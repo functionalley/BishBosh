@@ -1,0 +1,364 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<grammar xmlns="http://relaxng.org/ns/structure/1.0" datatypeLibrary="http://www.w3.org/2001/XMLSchema-datatypes">
+	<start>
+		<element name="options">
+			<optional>
+				<attribute name="maximumPlies">
+					<data type="positiveInteger"/>
+				</attribute>
+			</optional><optional>
+				<attribute name="randomSeed">
+					<data type="integer"/>
+				</attribute>
+			</optional><optional>
+				<element name="evaluationOptions">
+					<optional>
+						<attribute name="incrementalEvaluation">
+							<ref name="Boolean"/>
+						</attribute>
+					</optional>
+					<zeroOrMore>
+						<element name="rankValues">
+							<ref name="Rank"/>
+							<attribute name="value">
+								<ref name="ClosedUnitInterval"/>
+							</attribute>
+						</element>
+					</zeroOrMore>
+					<optional>
+						<element name="criteriaWeights">
+							<oneOrMore>
+								<attribute>
+									<choice>
+										<name>material</name>
+										<name>mobility</name>
+										<name>pieceSquareValue</name>
+										<name>castlingPotential</name>
+										<name>defence</name>
+										<name>doubledPawns</name>
+										<name>isolatedPawns</name>
+										<name>passedPawns</name>
+									</choice>
+									<ref name="ClosedUnitInterval"/>
+								</attribute>
+							</oneOrMore>
+						</element>
+					</optional><optional>
+						<element name="pieceSquareTables">
+							<element name="pieceSquareTable">
+								<ref name="PieceSquareTable"/>
+							</element><element name="pieceSquareTableEndGame">
+								<ref name="PieceSquareTable"/>
+							</element>
+						</element>	<!-- pieceSquareTables -->
+					</optional>
+				</element>	<!-- evaluationOptions -->
+			</optional><optional>
+				<element name="searchOptions">
+					<optional>
+						<attribute name="preferMovesTowardsCentre">
+							<ref name="Boolean"/>
+						</attribute>
+					</optional><optional>
+						<attribute name="sortOnStandardOpeningMoveFrequency">
+							<ref name="Boolean"/>
+						</attribute>
+					</optional><optional>
+						<attribute name="captureMoveSortAlgorithm">
+							<choice>
+								<value>MVVLVA</value>
+								<value>SEE</value>
+							</choice>
+						</attribute>
+					</optional><optional>
+						<attribute name="minimumHammingDistance">
+							<data type="positiveInteger"/>
+						</attribute>
+					</optional><optional>
+						<attribute name="retireKillerMovesAfter">
+							<data type="nonNegativeInteger"/>
+						</attribute>
+					</optional><optional>
+						<attribute name="trapRepeatedPositions">
+							<ref name="Boolean"/>
+						</attribute>
+					</optional><optional>
+						<attribute name="usePondering">
+							<ref name="Boolean"/>
+						</attribute>
+					</optional><optional>
+						<element name="transpositions">
+							<attribute name="retireTranspositionsAfter">
+								<data type="nonNegativeInteger"/>
+							</attribute><attribute name="minimumTranspositionSearchDepth">
+								<data type="positiveInteger"/>
+							</attribute>
+						</element>
+					</optional><optional>
+						<element name="standardOpeningOptions">
+							<optional>
+								<attribute name="tryToMatchMoves">
+									<ref name="Boolean"/>
+								</attribute>
+							</optional><optional>
+								<attribute name="tryToMatchViaJoiningMove">
+									<ref name="Boolean"/>
+								</attribute>
+							</optional><optional>
+								<attribute name="tryToMatchColourFlippedPosition">
+									<ref name="Boolean"/>
+								</attribute>
+							</optional>
+						</element>	<!-- standardOpeningOptions -->
+					</optional>
+					<element name="searchDepthByLogicalColour">
+						<zeroOrMore>
+							<element name="byLogicalColour">
+								<attribute name="logicalColour">
+									<choice>
+										<value>Black</value>
+										<value>White</value>
+									</choice>
+								</attribute><attribute name="searchDepth">
+									<data type="nonNegativeInteger"/>
+								</attribute>
+							</element>	<!-- byLogicalColour -->
+						</zeroOrMore>
+					</element>	<!-- searchDepthByLogicalColour -->
+				</element>	<!-- searchOptions -->
+			</optional><optional>
+				<element name="ioOptions">
+					<optional>
+						<attribute name="outputConfigFilePath"/>
+					</optional><optional>
+						<attribute name="maximumPGNNames">
+							<data type="nonNegativeInteger"/>
+						</attribute>
+					</optional>
+					<zeroOrMore>
+						<element name="pgnOptions">
+							<attribute name="databaseFilePath"/>
+							<optional>
+								<attribute name="minimumPlies">
+									<data type="nonNegativeInteger"/>
+								</attribute>
+							</optional>
+							<zeroOrMore>
+								<attribute>
+									<choice>
+										<name>isStrictlySequential</name>
+										<name>validateMoves</name>
+									</choice>
+									<ref name="Boolean"/>
+								</attribute>
+							</zeroOrMore><zeroOrMore>
+								<element name="identificationTag">
+									<attribute name="tag"/>
+								</element>
+							</zeroOrMore>
+						</element>
+					</zeroOrMore>
+					<optional>
+						<element name="persistence">
+							<attribute name="filePath"/>
+							<optional>
+								<attribute name="automatic">
+									<ref name="Boolean"/>
+								</attribute>
+							</optional>
+						</element>
+					</optional><optional>
+						<element name="uiOptions">
+							<optional>
+								<attribute name="moveNotation">
+									<choice>
+										<value>Coordinate</value>
+										<value>ICCFNumeric</value>
+										<value>Smith</value>
+									</choice>
+								</attribute>
+							</optional><optional>
+								<attribute name="printMoveTree">
+									<data type="positiveInteger"/>
+								</attribute>
+							</optional><optional>
+								<attribute name="nDecimalDigits">
+									<data type="positiveInteger">
+										<param name="maxInclusive">15</param>
+									</data>
+								</attribute>
+							</optional><optional>
+								<attribute name="verbosity">
+									<choice>
+										<value>Silent</value>
+										<value>Normal</value>
+										<value>Verbose</value>
+										<value>Deafening</value>
+									</choice>
+								</attribute>
+							</optional><optional>
+								<choice>
+									<element name="nativeUIOptions">
+										<optional>
+											<element name="boardMagnification">
+												<attribute name="nRows">
+													<data type="positiveInteger"/>
+												</attribute><attribute name="nColumns">
+													<data type="positiveInteger"/>
+												</attribute>
+											</element>
+										</optional><optional>
+											<element name="colourScheme">
+												<zeroOrMore>
+													<attribute>
+														<choice>
+															<name>darkPieceColour</name>
+															<name>darkSquareColour</name>
+														</choice><choice>
+															<value>Black</value>
+															<value>Red</value>
+															<value>Green</value>
+															<value>Blue</value>
+															<value>Magenta</value>
+															<value>Cyan</value>
+														</choice>
+													</attribute>
+												</zeroOrMore><zeroOrMore>
+													<attribute>
+														<choice>
+															<name>lightPieceColour</name>
+															<name>lightSquareColour</name>
+														</choice><choice>
+															<value>Red</value>
+															<value>Green</value>
+															<value>Yellow</value>
+															<value>Magenta</value>
+															<value>Cyan</value>
+															<value>White</value>
+														</choice>
+													</attribute>
+												</zeroOrMore>
+											</element>	<!-- colourScheme -->
+										</optional>
+									</element><element name="cecpOptions">
+										<zeroOrMore>
+											<attribute>
+												<choice>
+													<name>analyseMode</name>
+													<name>displaySAN</name>
+													<name>editMode</name>
+													<name>forceMode</name>
+													<name>pause</name>
+													<name>ponderMode</name>
+													<name>postMode</name>
+												</choice>
+												<ref name="Boolean"/>
+											</attribute>
+										</zeroOrMore>
+										<optional>
+											<attribute name="protocolVersion">
+												<data type="positiveInteger"/>
+											</attribute>
+										</optional><optional>
+											<element name="cecpFeatures">
+												<optional>
+													<attribute name="done">
+														<ref name="Boolean"/>
+													</attribute>
+												</optional>
+												<zeroOrMore>
+													<element name="feature">
+														<attribute name="key">
+															<choice>
+																<value>analyze</value>
+																<value>colors</value>
+																<value>debug</value>
+																<value>draw</value>
+																<value>egt</value>
+																<value>exclude</value>
+																<value>highlight</value>
+																<value>ics</value>
+																<value>memory</value>
+																<value>myname</value>
+																<value>name</value>
+																<value>nps</value>
+																<value>pause</value>
+																<value>ping</value>
+																<value>playother</value>
+																<value>reuse</value>
+																<value>san</value>
+																<value>setboard</value>
+																<value>setscore</value>
+																<value>sigint</value>
+																<value>sigterm</value>
+																<value>smp</value>
+																<value>time</value>
+																<value>usermove</value>
+																<value>variants</value>
+															</choice>
+														</attribute><attribute name="value">
+															<data type="string">
+																<param name="pattern">[^"]*</param>
+															</data>
+														</attribute>
+													</element>
+												</zeroOrMore>
+											</element>	<!-- cecpFeatures -->
+										</optional>
+									</element>	<!-- cecpOptions -->
+								</choice>
+							</optional>
+						</element>	<!-- uiOptions -->
+					</optional>
+				</element>	<!-- ioOptions -->
+			</optional>
+		</element>	<!-- options -->
+	</start>
+	<define name="Boolean">
+		<choice>
+			<value>False</value>
+			<value>True</value>
+		</choice>
+	</define><define name="ClosedUnitInterval">
+		<data type="decimal">
+			<param name="minInclusive">0</param>
+			<param name="maxInclusive">1</param>
+		</data>
+	</define><define name="PieceSquareTable">
+		<optional>
+			<attribute name="reflectOnY">
+				<ref name="Boolean"/>
+			</attribute>
+		</optional>
+		<oneOrMore>
+			<element name="byRank">
+				<ref name="Rank"/>
+				<attribute name="byCoordinates">
+					<list>
+						<oneOrMore>
+							<ref name="ClosedUnitInterval"/>
+						</oneOrMore>
+					</list>
+				</attribute>
+			</element>
+		</oneOrMore>
+	</define><define name="Rank">
+		<attribute name="rank">
+			<choice>
+				<value>p</value>
+				<value>r</value>
+				<value>n</value>
+				<value>b</value>
+				<value>q</value>
+				<value>k</value>
+			</choice>
+		</attribute>
+	</define><define name="ScreenCoordinates">
+		<attribute name="nRows">
+			<data type="nonNegativeInteger"/>
+		</attribute><attribute name="nColumns">
+			<data type="nonNegativeInteger"/>
+		</attribute>
+	</define>
+</grammar>
+

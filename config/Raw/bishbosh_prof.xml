@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE options SYSTEM "../bishbosh.dtd">	<!-- CAVEAT: amend after relocating this file ! -->
+<!--
+	AUTHOR: Dr. Alistair Ward
+
+	Copyright (C) 2018 Dr. Alistair Ward
+
+	This file is part of BishBosh.
+
+	BishBosh is free software: you can redistribute it and/or modify
+	it under the terms of the GNU General Public License as published by
+	the Free Software Foundation, either version 3 of the License, or
+	(at your option) any later version.
+
+	BishBosh is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+	GNU General Public License for more details.
+
+	You should have received a copy of the GNU General Public License
+	along with BishBosh.  If not, see <http://www.gnu.org/licenses/>.
+-->
+<!-- e2e3 e7e5 c2c4 d7d6 b1c3 b8c6 b2b3 g8f6 f1d3 c6b4 d3e2 f8e7 a2a3 b4c6 f2f4 e5f4p e3f4p c6d4 g1f3 c7c5 -->
+<options maximumPlies="20" randomSeed="-1">
+	<evaluationOptions>
+		<rankValues rank="p" value="0.1"/>
+		<rankValues rank="r" value="0.5"/>
+		<rankValues rank="n" value="0.3"/>
+		<rankValues rank="b" value="0.3"/>
+		<rankValues rank="q" value="0.9"/>
+		<rankValues rank="k" value="0"/>
+		<criteriaWeights material="1" mobility="0.01" pieceSquareValue="0.01" castlingPotential="0.01" defence="0.0001" doubledPawns="0.0001" isolatedPawns="0.0001" passedPawns="0.0001"/>
+		<pieceSquareTables>
+			<pieceSquareTable>
+<!--
+								a1   b1   c1   d1   a2   b2   c2   d2   a3   b3   c3   d3   a4   b4   c4   d4   a5   b5   c5   d5   a6   b6   c6   d6   a7   b7   c7   d7   a8   b8   c8   d8
+-->
+				<byRank rank="p" byCoordinates="0.50 0.50 0.50 0.50 0.55 0.60 0.60 0.30 0.55 0.45 0.40 0.50 0.50 0.50 0.50 0.70 0.55 0.55 0.60 0.75 0.60 0.60 0.70 0.80 1.00 1.00 1.00 1.00 0.50 0.50 0.50 0.50"/>
+				<byRank rank="r" byCoordinates="0.50 0.50 0.50 0.55 0.45 0.50 0.50 0.50 0.45 0.50 0.50 0.50 0.45 0.50 0.50 0.50 0.45 0.50 0.50 0.50 0.45 0.50 0.50 0.50 0.55 0.60 0.60 0.60 0.50 0.50 0.50 0.50"/>
+				<byRank rank="n" byCoordinates="0.00 0.10 0.20 0.20 0.10 0.30 0.50 0.55 0.20 0.55 0.60 0.65 0.20 0.50 0.65 0.70 0.20 0.55 0.65 0.70 0.20 0.50 0.60 0.65 0.10 0.30 0.50 0.50 0.00 0.10 0.20 0.20"/>
+				<byRank rank="b" byCoordinates="0.30 0.40 0.40 0.40 0.40 0.55 0.50 0.50 0.40 0.60 0.60 0.60 0.40 0.50 0.60 0.60 0.40 0.55 0.55 0.60 0.40 0.50 0.55 0.60 0.40 0.50 0.50 0.50 0.30 0.40 0.40 0.40"/>
+				<byRank rank="q" byCoordinates="0.30 0.40 0.40 0.45 0.40 0.50 0.50 0.50 0.40 0.50 0.55 0.55 0.45 0.50 0.55 0.55 0.45 0.50 0.55 0.55 0.40 0.50 0.55 0.55 0.40 0.50 0.50 0.50 0.30 0.40 0.40 0.45"/>
+				<byRank rank="k" byCoordinates="0.70 0.80 0.60 0.50 0.70 0.70 0.50 0.50 0.40 0.30 0.30 0.30 0.30 0.20 0.20 0.10 0.20 0.10 0.10 0.00 0.20 0.10 0.10 0.00 0.20 0.10 0.10 0.00 0.20 0.10 0.10 0.00"/>
+			</pieceSquareTable>
+			<pieceSquareTableEndGame>
+				<byRank rank="p" byCoordinates="0.50 0.50 0.50 0.50 0.00 0.00 0.00 0.00 0.10 0.10 0.10 0.10 0.20 0.20 0.20 0.20 0.30 0.30 0.30 0.30 0.60 0.60 0.60 0.60 1.00 1.00 1.00 1.00 0.50 0.50 0.50 0.50"/>
+				<byRank rank="k" byCoordinates="0.00 0.20 0.20 0.20 0.20 0.20 0.50 0.50 0.20 0.40 0.70 0.80 0.20 0.40 0.80 0.90 0.20 0.40 0.80 0.90 0.20 0.40 0.70 0.80 0.20 0.30 0.40 0.50 0.00 0.10 0.20 0.30"/>
+			</pieceSquareTableEndGame>
+		</pieceSquareTables>
+	</evaluationOptions>
+	<searchOptions preferMovesTowardsCentre="False" sortOnStandardOpeningMoveFrequency="True" captureMoveSortAlgorithm="MVVLVA" retireKillerMovesAfter="3">
+		<transpositions retireTranspositionsAfter="1" minimumTranspositionSearchDepth="2"/>
+		<searchDepthByLogicalColour>
+			<byLogicalColour logicalColour="Black" searchDepth="4"/>
+			<byLogicalColour logicalColour="White" searchDepth="4"/>
+		</searchDepthByLogicalColour>
+	</searchOptions>
+	<ioOptions maximumPGNNames="8">
+		<pgnOptions databaseFilePath="pgn/scid_fr.pgn" validateMoves="True">
+			<identificationTag tag="ECO"/>
+			<identificationTag tag="Variation"/>
+		</pgnOptions>
+		<persistence filePath="/dev/null" automatic="False"/>
+		<uiOptions verbosity="Silent"/>
+	</ioOptions>
+</options>

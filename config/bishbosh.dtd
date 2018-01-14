@@ -1,0 +1,149 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+	AUTHOR: Dr. Alistair Ward
+
+	Copyright (C) 2018 Dr. Alistair Ward
+
+	This file is part of BishBosh.
+
+	BishBosh is free software: you can redistribute it and/or modify
+	it under the terms of the GNU General Public License as published by
+	the Free Software Foundation, either version 3 of the License, or
+	(at your option) any later version.
+
+	BishBosh is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+	GNU General Public License for more details.
+
+	You should have received a copy of the GNU General Public License
+	along with BishBosh.  If not, see <http://www.gnu.org/licenses/>.
+-->
+<!ELEMENT options ((evaluationOptions)?, (searchOptions)?, (ioOptions)?)>
+	<!ATTLIST options
+		maximumPlies	CDATA	#IMPLIED
+		randomSeed	CDATA	#IMPLIED
+	>
+	<!ELEMENT evaluationOptions ((rankValues)*, (criteriaWeights)?, (pieceSquareTables)?)>
+		<!ATTLIST evaluationOptions
+			incrementalEvaluation	(False | True)	#IMPLIED
+		>
+		<!ELEMENT rankValues EMPTY>
+			<!ATTLIST rankValues
+				rank	(p | r | n | b | q | k)	#REQUIRED
+				value	CDATA			#REQUIRED
+			>
+		<!ELEMENT criteriaWeights EMPTY>
+			<!ATTLIST criteriaWeights
+				material		CDATA	#IMPLIED
+				mobility		CDATA	#IMPLIED
+				pieceSquareValue	CDATA	#IMPLIED
+				castlingPotential	CDATA	#IMPLIED
+				defence			CDATA	#IMPLIED
+				doubledPawns		CDATA	#IMPLIED
+				isolatedPawns		CDATA	#IMPLIED
+				passedPawns		CDATA	#IMPLIED
+			>
+		<!ELEMENT pieceSquareTables (pieceSquareTable, pieceSquareTableEndGame)>
+			<!ELEMENT pieceSquareTable (byRank)+>
+				<!ATTLIST pieceSquareTable
+					reflectOnY	(False | True)	#IMPLIED
+				>
+			<!ELEMENT pieceSquareTableEndGame (byRank)+>
+				<!ATTLIST pieceSquareTableEndGame
+					reflectOnY	(False | True)	#IMPLIED
+				>
+		<!ELEMENT byRank EMPTY>
+			<!ATTLIST byRank
+				rank		(p | r | n | b | q | k)	#REQUIRED
+				byCoordinates	CDATA			#REQUIRED
+			>
+	<!ELEMENT searchOptions ((transpositions)?, (standardOpeningOptions)?, searchDepthByLogicalColour)>
+		<!ATTLIST searchOptions
+			preferMovesTowardsCentre		(False | True)	#IMPLIED
+			sortOnStandardOpeningMoveFrequency	(False | True)	#IMPLIED
+			captureMoveSortAlgorithm		(MVVLVA | SEE)	#IMPLIED
+			minimumHammingDistance			CDATA		#IMPLIED
+			retireKillerMovesAfter			CDATA		#IMPLIED
+			trapRepeatedPositions			(False | True)	#IMPLIED
+			usePondering				(False | True)	#IMPLIED
+		>
+		<!ELEMENT standardOpeningOptions EMPTY>
+			<!ATTLIST standardOpeningOptions
+				tryToMatchMoves			(False | True)	#IMPLIED
+				tryToMatchViaJoiningMove	(False | True)	#IMPLIED
+				tryToMatchColourFlippedPosition	(False | True)	#IMPLIED
+			>
+		<!ELEMENT searchDepthByLogicalColour (byLogicalColour)*>
+			<!ELEMENT byLogicalColour EMPTY>
+				<!ATTLIST byLogicalColour
+					logicalColour	(Black | White) #REQUIRED
+					searchDepth	CDATA		#REQUIRED
+				>
+		<!ELEMENT transpositions EMPTY>
+			<!ATTLIST transpositions
+				retireTranspositionsAfter	CDATA	#REQUIRED
+				minimumTranspositionSearchDepth	CDATA	#REQUIRED
+			>
+	<!ELEMENT ioOptions ((pgnOptions)*, (persistence)?, (uiOptions)?)>
+		<!ATTLIST ioOptions
+			outputConfigFilePath	CDATA	#IMPLIED
+			maximumPGNNames		CDATA	#IMPLIED
+		>
+		<!ELEMENT pgnOptions (identificationTag)*>
+			<!ATTLIST pgnOptions
+				databaseFilePath	CDATA		#REQUIRED
+				minimumPlies		CDATA		#IMPLIED
+				isStrictlySequential	(False | True)	#IMPLIED
+				validateMoves		(False | True)	#IMPLIED
+			>
+			<!ELEMENT identificationTag EMPTY>
+				<!ATTLIST identificationTag
+					tag	CDATA	#REQUIRED
+				>
+		<!ELEMENT persistence EMPTY>
+			<!ATTLIST persistence
+				filePath	CDATA		#REQUIRED
+				automatic	(False | True)	#IMPLIED
+			>
+		<!ELEMENT uiOptions ((nativeUIOptions | cecpOptions)?)>
+			<!ATTLIST uiOptions
+				moveNotation	(Coordinate | ICCFNumeric | Smith)	#IMPLIED
+				printMoveTree	CDATA					#IMPLIED
+				nDecimalDigits	CDATA					#IMPLIED
+				verbosity	(Silent | Normal | Verbose | Deafening)	#IMPLIED
+			>
+			<!ELEMENT nativeUIOptions ((boardMagnification)?, (colourScheme)?)>
+				<!ELEMENT boardMagnification EMPTY>
+					<!ATTLIST boardMagnification
+						nRows		CDATA	#REQUIRED
+						nColumns	CDATA	#REQUIRED
+					>
+				<!ELEMENT colourScheme EMPTY>
+					<!ATTLIST colourScheme
+						darkPieceColour		(Black | Red | Green | Blue | Magenta | Cyan)	#IMPLIED
+						darkSquareColour	(Black | Red | Green | Blue | Magenta | Cyan)	#IMPLIED
+						lightPieceColour	(Red | Green | Yellow | Magenta | Cyan | White)	#IMPLIED
+						lightSquareColour	(Red | Green | Yellow | Magenta | Cyan | White)	#IMPLIED
+					>
+			<!ELEMENT cecpOptions (cecpFeatures)?>
+				<!ATTLIST cecpOptions
+					analyseMode	(False | True)	#IMPLIED
+					displaySAN	(False | True)	#IMPLIED
+					editMode	(False | True)	#IMPLIED
+					forceMode	(False | True)	#IMPLIED
+					pause		CDATA		#IMPLIED
+					ponderMode	(False | True)	#IMPLIED
+					postMode	(False | True)	#IMPLIED
+					protocolVersion	CDATA		#IMPLIED
+				>
+				<!ELEMENT cecpFeatures (feature)*>
+					<!ATTLIST cecpFeatures
+						done	(False | True)	#IMPLIED
+					>
+					<!ELEMENT feature EMPTY>
+						<!ATTLIST feature
+							key	ID	#REQUIRED
+							value	CDATA	#REQUIRED
+						>
+

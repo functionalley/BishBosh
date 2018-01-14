@@ -1,0 +1,182 @@
+\" AUTHOR: Dr. Alistair Ward
+\" Copyright (C) 2018 Dr. Alistair Ward
+\"
+\" This file is part of BishBosh.
+\" 
+\" BishBosh is free software: you can redistribute it and/or modify
+\" it under the terms of the GNU General Public License as published by
+\" the Free Software Foundation, either version 3 of the License, or
+\" (at your option) any later version.
+\" 
+\" BishBosh is distributed in the hope that it will be useful,
+\" but WITHOUT ANY WARRANTY; without even the implied warranty of
+\" MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+\" GNU General Public License for more details.
+\" 
+\" You should have received a copy of the GNU General Public License
+\" along with BishBosh.  If not, see <http://www.gnu.org/licenses/>.
+
+.TH bishbosh 1
+.SH NAME
+\fBbishbosh\fR - Plays Chess
+.SH SYNOPSIS
+\fBbishbosh\fR [\fIOPTIONS\fR]
+.SH DESCRIPTION
+.PP
+A chess-game which can be rendered natively in a terminal (emulator) using raw ASCII, or used as a chess-engine by a separate GUI (\fBxboard\fR).
+.PP
+It permits:
+.IP \(bu
+Castling
+.IP \(bu
+En-passant
+.IP \(bu
+Resignation
+.IP \(bu
+Draw by \fIStale-mate\fR, the \fISeventy-five move rule\fR, \fIFive-fold Repetition\fR, or \fIInsufficient Material\fR.
+.PP
+It features:
+.IP \(bu
+Unlimited roll-back of moves.
+.IP \(bu
+Comprehension of a variety of \fBhttps://en.wikipedia.org/wiki/Chess_notation\fRs.
+.IP \(bu
+The ability to read PGN-databases of standard openings & archived games,
+in which it can match both \fBhttps://chessprogramming.wikispaces.com/Transposition\fRs & colour-flipped (\fBhttps://chessprogramming.wikispaces.com/Color+Flipping\fR) positions.
+.IP \(bu
+Automation of the moves for either, neither, or both players.
+Both the evaluation of moves & the search for the optimum, are highly configurable; see \fBsection-5\fR of the man-pages.
+.IP \(bu
+Optional hints for manual players.
+.IP \(bu
+\fBhttps://chessprogramming.wikispaces.com/Pondering\fR.
+.SS Implementation
+Some understanding of the algorithm used to automatically select moves, is useful either when configuring this application or when interpreting the esoteric feedback available after move-selection (given "\fB--verbosity=Deafening\fR").
+The algorithm first compares the position with those in the referenced PGN-databases; a looser criterion than whether a matching move-sequence exists.
+It then partitions all matching archived positions, based on whether the current side was ultimately victorious.
+The next move will be selected randomly from the subset of victorious matching positions, in preference to the non-victorious subset.
+.PP
+On failure to match the position with an archived game, the tree of all possible moves until the end of the game, is constructed & statically sorted to advance the subsequent evaluation of capture-moves,
+using either \fBhttps://chessprogramming.wikispaces.com/MVV-LVA\fR or \fBhttps://chessprogramming.wikispaces.com/Static+Exchange+Evaluation\fR.
+On each move, this tree's non-capture moves are dynamically sorted using the \fBhttps://chessprogramming.wikispaces.com/Killer+Heuristic\fR & the \fBhttps://chessprogramming.wikispaces.com/History+Heuristic\fR.
+This tree is then searched using a \fBhttps://chessprogramming.wikispaces.com/Negamax\fR algorithm with \fBhttp://chessprogramming.wikispaces.com/Alpha-Beta\fR pruning,
+over a constant configurable number of plies, to find the optimal move according to the weighted-mean of various criteria described in \fBsection-5\fR of the man-pages.
+Shortcuts in the search for the optimal move are taken on encountering either \fBhttps://chessprogramming.wikispaces.com/Repetitions\fR in the move-sequence or \fBhttps://chessprogramming.wikispaces.com/Transposition\fRs of sibling games.
+.SH OPTIONS
+.SS "Input"
+.TP
+\fB-i\fR \fIFile-path\fR, \fB--inputConfigFilePath=\fR\fIFile-path\fR; there is no default.
+Read the mandatory configuration from the specified XML-file,
+.SS "Execution"
+.TP
+\fB-r\fR[\fIInt\fR], \fB--randomSeed\fR[\fB=\fR\fIInt\fR]
+Optionally takes an argument with which to seed the single pseudo-random number-generator used for all random operations.
+See "\fBrandomSeed\fR" in \fBsection-5\fR of the man-pages.
+.br
+In the absence of the whole field, the random-number generator will be seeded unpredictably from the operating-system.
+In the absence of just the argument, "\fB0\fR" will be inferred.
+.br
+N.B.: this application only makes significant use of the random-generator when selecting a move from any configured PGN-databases (see "\fBpgnOptions\fR" in \fBsection-5\fR of the man-pages); automated move-selection is deterministic.
+.SS "Output"
+.TP
+\fB--verbosity=\fR(\fBSilent\fR|\fBNormal\fR|\fBVerbose\fR|\fBDeafening\fR), defaulting to "\fBNormal\fR".
+Defines the quantity of ancillary output required. See "\fBverbosity\fR" in \fBsection-5\fR of the man-pages.
+.TP
+\fB--printMoveTree\fR=\fI<Int>\fR
+Print the tree of all possible moves in the game, truncated to the specified depth; see \fBsection-5\fR of the man-pages for details.
+.SS "Generic Program-information"
+.TP
+\fB-v\fR, \fB--version\fR
+Outputs version-information & then exits.
+.TP
+\fB-?\fR, \fB--help\fR
+Displays a usage-message & then exits.
+.SH RUNTIME
+.SS Command-line Interpreter
+This application understands a simple command-language, consisting of:
+.IP \(bu
+a move specified in the configured notation.
+.IP \(bu
+a '\fB?\fR', to generate a usage-message.
+.IP \(bu
+a case-insensitive command (which one may abbreviate), prefixed by a '\fB:\fR'.
+The available commands are:
+.TS
+lb	lb	lb
+l	l	l
+lb	li	.
+Command	Arguments	Description
+=======	=========	===========
+:hint		Request a move-suggestion.
+:print	object	Print the value of one of "\fBboard\fR", "\fBconfiguration\fR", "\fBFEN\fR", "\fBgame\fR", "\fBhelp\fR", "\fBmoves\fR", "\fBPGN\fR".
+:quit		Exit the application. The current game-state will be saved, provided \fBpersistence\fR (see "\fBpgnOptions\fR" in \fBsection-5\fR of the man-pages) hasn't been disabled.
+:resign		Resign the game.
+:restart		Start a new game.
+:rollBack	[Int]	Roll-back the optionally specified number of plies (half moves), defaulting to "\fB2\fR" when there's one manual player & "\fB1\fR" when both players are manual.
+:save		Save the current game-state in "\fB~/.bishbosh\fR"; this is automatic unless explicitly un-configured.
+:set	\fBsearchDepth\fR \fIInt\fR	Mutate the value of "\fBsearchDepth\fR", (see "\fBsearchOptions\fR" in \fBsection-5\fR of the man-pages).
+:swap		Swap sides. If the moves of one side were automated, then this will cause automation of the moves of the other side.
+.TE
+.SS Hardware-requirements.
+.IP \(bu
+This application benefits from the availability of multiple cores (see the "\fB+RTS -N\fR" option).
+.IP \(bu
+If one references large PGN-databases from the configuration (see "\fBpgnOptions\fR" in \fBsection-5\fR of the man-pages), or configures a large "\fBsearchDepth\fR" (see "\fBsearchOptions\fR" in \fBsection-5\fR of the man-pages), then correspondingly large amounts of RAM will be required.
+.SH EXIT-STATUS
+\fB0\fR on success, & >\fB0\fR if an error occurs.
+.SH EXAMPLES
+.nf
+.B bishbosh --verbosity=Verbose -i '/usr/share/bishbosh/config/Raw/bishbosh_white.xml'
+.fi
+.IP \(bu
+The application has been instructed to provide a relatively large amount of feedback.
+.IP \(bu
+One of the packaged configuration-files has been referenced (you'll need to adjust this if run from the build-directory), which automates White's moves & specifies a raw ASCII interface.
+.PP
+.nf
+.B bishbosh --verbosity=Deafening -i '/usr/share/bishbosh/config/Raw/bishbosh_black.xml' +RTS -N -H100M -RTS
+.IP \(bu
+The application has been instructed to provide maximal feedback.
+.IP \(bu
+One of the packaged configuration-files has been referenced, which automates Black's moves & also references some packaged PGN-databases.
+.IP \(bu
+For performance, the run-time system has been explicitly instructed to fully utilise the available CPU-cores to satisfy the massively parallel implementation, & to set a large minimum size for the heap to satisfy its craving for RAM; actually similar defaults have been predefined.
+.PP
+.nf
+.B xboard -fcp 'bishbosh -i /usr/share/bishbosh/config/CECP/bishbosh_black.xml'
+.IP \(bu
+Instruct the \fBxboard\fR GUI to use \fBbishbosh\fR as its first engine.
+.SH FILES
+.TS
+lb	lb
+l	l
+lb	l	.
+File-name	Contents
+=========	========
+bishbosh.svg	A module-dependency graph for this application.
+config/{CECP,Raw}/*.xml	Sample configuration-files.
+man/man5/bishbosh.5	\fBSection-5\fR of the man-pages for this product, describing the configuration-file format.
+pgn/*.pgn	Sample PGN-databases; \fBhttps://en.wikipedia.org/wiki/Portable_Game_Notation\fR.
+~/.bishbosh/*.txt	Persisted games, stored in a user-specific directory.
+https://www.gnu.org/software/xboard	A GUI for chess-engines.
+.TE
+.SH AUTHOR
+Written by Dr. Alistair Ward.
+.SH BUGS
+.IP \(bu
+The implementation of commands is synchronous.
+.IP \(bu
+The implementation of CECP is minimal.
+.IP \(bu
+Performance is uncompetitive with imperative implementions of similar algorithms.
+.SS "REPORTING BUGS"
+Report bugs to "\fBbishbosh@functionalley.eu\fR".
+.SH COPYRIGHT
+Copyright \(co 2018 Dr. Alistair Ward
+.PP
+This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
+.PP
+This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
+.PP
+You should have received a copy of the GNU General Public License along with this program. If not, see \fBhttp://www.gnu.org/licenses/\fR.
+

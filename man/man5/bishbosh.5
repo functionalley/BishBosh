@@ -1,0 +1,261 @@
+\" AUTHOR: Dr. Alistair Ward
+\" Copyright (C) 2018 Dr. Alistair Ward
+\"
+\" This file is part of BishBosh.
+\" 
+\" BishBosh is free software: you can redistribute it and/or modify
+\" it under the terms of the GNU General Public License as published by
+\" the Free Software Foundation, either version 3 of the License, or
+\" (at your option) any later version.
+\" 
+\" BishBosh is distributed in the hope that it will be useful,
+\" but WITHOUT ANY WARRANTY; without even the implied warranty of
+\" MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+\" GNU General Public License for more details.
+\" 
+\" You should have received a copy of the GNU General Public License
+\" along with BishBosh.  If not, see <http://www.gnu.org/licenses/>.
+
+.TH bishbosh 5
+.SH DESCRIPTION
+This man-page describes the configuration of the application; its invocation is described in \fBsection-1\fR of the man-pages.
+.SH CONFIGURATION
+Configuration is read from an XML-file referenced from the command-line.
+The grammar of this file is defined in "\fBconfig/bishbosh.dtd\fR" or more precisely using \fBRELAX NG\fR in "\fBconfig/bishbosh.rng\fR", but the semantics of the more important fields are described below.
+.SS Options
+.IP \(bu
+\fBmaximumPlies\fR \fIInt\fR: the optional maximum number of plies (half moves) before the game is terminated.
+.IP \(bu
+\fBrandomSeed\fR \fIInt\fR: optionally seed the pseudo-random number-generator to produce a repeatable game. See "\fB--randomSeed\fR" in \fBsection-1\fR of the man-pages.
+.SS Evaluation-options
+Each field governs automatic move-evaluation:
+.TE
+.IP \(bu
+\fBincrementalEvaluation\fR \fIBool\fR; default \fBTrue\fR.
+Whether to incrementally generate position-hashes & evaluate the piece-square value, from the previous values; otherwise these quantities are evaluated from scratch.
+This option slightly reduces memory-requirement, but doesn't affect the result.
+.IP \(bu
+\fBrankValues\fR: defines the value within the closed unit interval "\fB[0, 1]\fR", of each type of piece, defaulting (ref. \fBhttps://chessprogramming.wikispaces.com/Point+Value\fR) to:
+.TS
+lb	lb
+l	l
+lb	l	.
+Piece	Value
+=====	=====
+Rook	0.525
+Knight	0.35
+Bishop	0.35
+Queen	1
+King	\fIMoot, since it can't be taken.\fR
+.TE
+.IP \(bu
+\fBcriteriaWeights\fR: the weights in the closed unit-interval "\fB[0,1]\fR", each associated with a criterion used to evaluate a move;
+at the lower bound, the corresponding criterion is not even evaluated.
+The criteria to which these weights correspond, are:
+.TS
+lb	lb	lb	lb
+l	l	l	l
+lb	l	lb	l	.
+Criterion	Metric	Ref	Notes
+=========	======	===	=====
+material	Quantifies the value of the pieces remaining per side.	https://chessprogramming.wikispaces.com/Material	This is dependent on the value of each type of piece; see "\fBrankValues\fR".
+mobility	The difference between the number of moves available per side.	https://chessprogramming.wikispaces.com/Mobility	Actually the reciprocal is measured, to emphasis the reduction caused by checking one's opponent.
+pieceSquareValue	Quantifies the position held by the pieces per side.	https://chessprogramming.wikispaces.com/Piece-Square+Tables	This metric includes aspects of both "\fBmaterial\fR" & "\fBmobility\fR". The value can be made linearly dependent on progress through the game.
+castlingPotential	Whether each player has been permanently prevented from castling.		Reflects the disadvantage of moving one's King, thus preventing subsequent castling.
+defence	The difference between the number of pieces defending one's own, per side.		There's neither any penalty for gaps in this defence nor account made of the value of the defended piece; it's just the total number of defenders.
+doubledPawns	The difference between the total number of doubled Pawns per side.	https://chessprogramming.wikispaces.com/Doubled+Pawn	Reflects the reduced mobility of such Pawns.
+isolatedPawns	The difference between the total number of isolated Pawns per side.	https://chessprogramming.wikispaces.com/Isolated+Pawn	Reflects the lack of defence from adjacent Pawns.
+passedPawns	The difference between the total number of passed Pawns per side.	https://chessprogramming.wikispaces.com/Passed+Pawn	Reflects improved promotion-prospects.
+.TE
+.IP
+Other criteria could be measured, but orthogonality is problematic.
+One could reasonably argue that most of these criteria are ultimately reflected in "\fBmaterial\fR",
+but often they quantify some strategic advantage which manifests further into the future than it is feasible to predict the likely exchange of pieces.
+.br
+N.B.: "\fBdefence\fR" & the three Pawn-related criteria typically can't justify their existence; even if one ignores the time required to calculate them, their value is dubious.
+This is the nub of the esoteric choice of whether to accurately quantify each board, or to accept a vague quantification in order to explore deeper in the same time.
+.IP \(bu
+\fBpieceSquareTables\fR: defines the value within the closed unit interval "\fB[0, 1]\fR", of each type of piece occupying every square.
+.br
+N.B.: the values defined for a Pawn occupying any square in the first or last rank, are irrelevant.
+.br
+Values are defined for just the White pieces, which are then used to generate by reflection, those for the Black pieces.
+.br
+Values are optionally defined for just the left-hand side of the board, which are then used to generate by reflection, the right-hand side.
+.br
+For each type of piece, the values are defined in a SAN-coordinate-order list, rastering over the board from left to right, bottom to top; "\fIa1 b1 c1 d1 a2 b2 c3 ... c7 d8\fR".
+.br
+For each type of piece, an alternative definition may be provided for use during the end-game, to account for the different criteria relevant to that phase of the game.
+Under such circumstances, the two piece-square tables for that type of piece will be interpolated between, according to the number of pieces remaining (which is used to measure progress towards the end-game).
+The packaged configuration-files define modified tables for both Pawn & King.
+.SS Search-options
+.IP \(bu
+\fBpreferMovesTowardsCentre\fR: whether to sort moves on the magnitude of the progress towards the centre of the board.
+.IP \(bu
+\fBsortOnStandardOpeningMoveFrequency\fR: whether to sort moves on the frequency with which they occur in referenced standard openings.
+This is performed after \fBpreferMovesTowardsCentre\fR,
+but since the sort-algorithms are stable, i.e. they don't affect the order of those moves which compare equal, they can usefully be sequentially applied.
+.IP \(bu
+\fBcaptureMoveSortAlgorithm\fR: the optional algorithm by which to partition & sort capture-moves for preferential evaluation when searching for the optimum amongst available moves.
+If unspecified, the order of capture-moves will remain unaltered both wrt each other & wrt other moves.
+.br
+Neither of these sort-algorithms affects the relative order of non-capture moves; cf. \fBpreferMovesTowardsCentre\fR & \fBsortOnStandardOpeningMoveFrequency\fR.
+This is performed after \fBsortOnStandardOpeningMoveFrequency\fR.
+.TS
+lb	lb
+l	l
+lb	l	.
+Value	Meaning
+=====	=======
+MVVLVA	moves are advanced depending on the value of rank of the piece they capture, but where this is equal, those which achieve this using a less valuable piece are preferred. This is highly effective.
+SEE	moves are advanced depending on the net material gain resulting from any battle at the destination. This is not currently competitive.
+.TE
+.IP \(bu
+\fBminimumHammingDistance\fR \fIInt\fR: the optional positive lower bound on the Hamming-distance between any of the random numbers used to generate Zobrist hashes from positions.
+.br
+CAVEAT: Linear independence of the bit-vectors is a better measure than Hamming distance, of the quality of the selected random numbers.
+.IP \(bu
+\fBretireKillerMovesAfter\fR \fIInt\fR: the optional non-negative number of full moves (one by each player) after which killer-moves are retired.
+If unspecified, killer-moves won't even be recorded.
+.br
+N.B.: this is highly effective up to about \fB3\fR, beyond which returns diminish.
+.br
+Killer-moves can be used to reorder the evaluation of moves, based on whether similar moves triggered beta-cutoff in sibling games.
+.IP \(bu
+\fBtrapRepeatedPositions\fR: whether to short-circuit the fitness-evaluation of \fIposition\fRs which have been visited before in the current game.
+These situations result from loops of reversible moves, in the tree of moves which defines the game of chess.
+The fitness of such \fIposition\fRs can be derived by induction, since were one to search from this \fIposition\fR,
+one would ultimately arrive back another time, so the fitness of this future \fIposition\fR equals the current fitness.
+.br
+N.B.: this doesn't typically improve performance in either space or time.
+.IP \(bu
+\fBusePondering\fR: whether an automated player should plan their next move, based on a prediction of the opponent's response, & thus make use their opponent's thinking-time.
+.IP \(bu
+\fBtranspositions\fR: these can be used to reorder the evaluation of moves,
+based on the results previously found for identical \fIposition\fRs in sibling games reached by an alternative sequence of arbitrary moves.
+.TS
+lb	lb	lb
+l	l	l
+lb	l	l	.
+Value	Type	Meaning
+=====	====	=======
+retireTranspositionsAfter	\fIInt\fR	the non-negative number of full moves (one by each player) after which transpositions are retired. N.B.: this is highly effective at about \fB1\fR, beyond which returns diminish.
+minimumTranspositionSearchDepth	\fIInt\fR	the search-depth beneath which transpositions are not recorded. When the remaining search-depth is low, the potential gain from finding a recorded transposition of the current position, doesn't justify the effort. N.B.: this is most effective at about \fB2\fR.
+.TE
+.IP \(bu
+.B standardOpeningOptions
+.TS
+lb	lb	lb	lb
+l	l	l	l
+lb	l	lb	l	.
+Field	Type	Default	Meaning
+=========	====	=======	=======
+tryToMatchMoves	Bool	True	whether to attempt to exactly match the moves already made with a standard opening; i.e. without matching transpositions.
+tryToMatchViaJoiningMove	Bool	True	whether to attempt to join the current position (irrespective of the means by which it was achieved) to a standard opening that's only one ply away.
+tryToMatchColourFlippedPosition	Bool	True	whether to attempt to match a colour-flipped version of the current position with a standard opening.
+.TE
+.IP \(bu
+\fBsearchDepth\fR \fIInt\fR, defaulting to "\fB4\fR" (minimum "\fB1\fR"): the number of plies (half moves) to search ahead, when selecting the next move.
+This is defined for each of zero, one or two logical colours, corresponding to the players;
+it is the absence of any specification, from which the application infers manual move-selection.
+This value can be changed dynamically, see "\fBset searchDepth\fR" in \fBsection-1\fR of the man-pages.
+.br
+CAVEAT: the space & time complexity of the application are exponentially related to this quantity.
+.SS IO-options
+The application defines a set of "\fBioOptions\fR", in which one can define:
+.IP \(bu
+\fBmaximumPGNNames\fR \fIInt\fR: the optional maximum number of names, with which to annotate moves matching games from the configured PGN-databases.
+.IP \(bu
+\fBpgnOptions\fR: these options allow one to reference PGN-databases, which the application can leverage during move-selection.
+.TS
+lb	lb	lb	lb
+l	l	l	l
+lb	l	lb	l	.
+Field	Type	Default	Meaning
+=========	====	=======	=======
+databaseFilePath	\fIFile-path\fR		The path in the local file-system, to a PGN-database.
+minimumPlies	\fIInt\fR	1	The minimum number of half moves, for an archived game to be considered valuable.
+isStrictlySequential	(\fBTrue\fR|\fBFalse\fR)	True	Whether the recorded move-numbers are accurate.
+validateMoves	(\fBTrue\fR|\fBFalse\fR)	False	Whether to validate all the moves. In the absence of validation, PGN-databases can be read faster, but the consequence of reading invalid moves is unpredictable. This option is required to read games which continued after a draw can be inferred.
+identificationTags	String		The PGN-field(s) from which to construct a composite identifier for a game.
+.TE
+.IP \(bu
+\fBpersistence\fR: these options govern how the application persists its state, so that a game may span multiple sessions.
+.TS
+lb	lb	lb	lb
+l	l	l	l
+lb	l	lb	l	.
+Field	Type	Default	Meaning
+=========	====	=======	=======
+filePath	\fIFile-path\fR		The local file in which game-state will be persisted.
+automatic	(\fBTrue\fR|\fBFalse\fR)	True	Whether the game-state is automatically saved.
+.TE
+.P
+"\fBioOptions\fR" has a sub-section "\fBuiOptions\fR", which defines the user-interface.
+.IP \(bu
+\fBmoveNotation\fR (\fBCoordinate\fR|\fBICCFNumeric\fR|\fBSmith\fR), defaulting to "\fBSmith\fR": the expected syntax used to define a move.
+This application also understands \fBStandard Algebraic\fR notation, but it is only used to read the PGN-databases used to define standard openings.
+.IP \(bu
+\fBprintMoveTree\fR \fIInt\fR.
+Print the tree of all possible moves in the game, truncated to the specified depth.
+The forest of moves available at each node, is sequentially sorted according to; \fBpreferMovesTowardsCentre\fR, \fBsortOnStandardOpeningMoveFrequency\fR, \fBcaptureMoveSortAlgorithm\fR; since the sort-algorithm is stable, the relative order of moves which compare equal, remains unchanged.
+The fitness of each move, from the perspective of the player of the move, is also printed to the configured number of decimal places; see \fBnDecimalDigits\fR.
+See "\fB--printMoveTree\fR" in \fBsection-1\fR of the man-pages.
+.IP \(bu
+\fBnDecimalDigits\fR \fIInt\fR, defaulting to "\fB3\fR".
+Defines the precision with which fractional ancillary data is displayed.
+.IP \(bu
+\fBverbosity\fR (\fBSilent\fR|\fBNormal\fR|\fBVerbose\fR|\fBDeafening\fR), defaulting to "\fBNormal\fR": 
+Defines the quantity of ancillary output required. See "\fB--verbosity\fR" in \fBsection-1\fR on the man-pages.
+.IP \(bu
+\fBboardMagnification\fR: the size-multiplier used when rendering the board.
+.TS
+lb	lb	lb
+l	l	l
+lb	l	l	.
+Field	Type	Meaning
+=========	=======	=======
+nRows	\fIInt\fR	The vertical magnification of the board-image.
+nColumns	\fIInt\fR	The horizontal magnification of the board-image.
+.TE
+.IP \(bu
+\fBcolourScheme\fR: defines the physical colour of each component of the display.
+.TS
+lb	lb
+l	l
+lb	l	.
+Field	Options
+=========	=======
+axisLabelColour	(\fBBlack\fR|\fBRed\fR|\fBGreen\fR|\fBYellow\fR|\fBBlue\fR|\fBMagenta\fR|\fBCyan\fR|\fBWhite\fR)
+darkPieceColour	(\fBBlack\fR|\fBRed\fR|\fBGreen\fR|\fBBlue\fR|\fBMagenta\fR|\fBCyan\fR)
+lightPieceColour	(\fBRed\fR|\fBGreen\fR|\fBYellow\fR|\fBMagenta\fR|\fBCyan\fR|\fBWhite\fR)
+darkSquareColour	(\fBBlack\fR|\fBRed\fR|\fBGreen\fR|\fBBlue\fR|\fBMagenta\fR|\fBCyan\fR)
+lightSquareColour	(\fBRed\fR|\fBGreen\fR|\fBYellow\fR|\fBMagenta\fR|\fBCyan\fR|\fBWhite\fR)
+menuLabelColour	(\fBBlack\fR|\fBRed\fR|\fBGreen\fR|\fBYellow\fR|\fBBlue\fR|\fBMagenta\fR|\fBCyan\fR|\fBWhite\fR)
+menuBackgroundColour	(\fBBlack\fR|\fBRed\fR|\fBGreen\fR|\fBYellow\fR|\fBBlue\fR|\fBMagenta\fR|\fBCyan\fR|\fBWhite\fR)
+.TE
+.SH FILES
+.TS
+lb	lb
+l	l
+lb	l	.
+File-name	Contents
+=========	========
+config/bishbosh.dtd	A basic formal description of the XML-format for the configuration-file.
+config/bishbosh.rng	A more sophisticated, but slower, \fBRELAX NG\fR definition of the XML-format for the configuration-file.
+config/{CECP,Raw}/*.xml	Sample configuration-files.
+man/man1/bishbosh.1	Section-1 of the man-pages for this product, describing the command-line.
+pgn/*.pgn	Standard openings & archived games, as described in \fBhttps://en.wikipedia.org/wiki/Portable_Game_Notation\fR.
+https://www.oasis-open.org/committees/relax-ng/tutorial-20011203.html	A \fBRELAX NG\fR tutorial.
+.TE
+.SH AUTHOR
+Written by Dr. Alistair Ward.
+.SH COPYRIGHT
+Copyright \(co 2018 Dr. Alistair Ward
+.PP
+This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
+.PP
+This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
+.PP
+You should have received a copy of the GNU General Public License along with this program. If not, see \fBhttp://www.gnu.org/licenses/\fR.
+
