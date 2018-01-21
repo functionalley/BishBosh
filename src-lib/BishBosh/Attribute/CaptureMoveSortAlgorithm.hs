@@ -19,7 +19,7 @@
 {- |
  [@AUTHOR@]	Dr. Alistair Ward
 
- [@DESCRIPTION@]	Defines the algorithm used to sort the immediately available capture-/move/s, before the evaluating the fitness of the resulting positions.
+ [@DESCRIPTION@]	Defines the algorithm used to sort the immediately available capture-/move/s, before evaluating the fitness of the resulting positions.
 -}
 
 module BishBosh.Attribute.CaptureMoveSortAlgorithm(
