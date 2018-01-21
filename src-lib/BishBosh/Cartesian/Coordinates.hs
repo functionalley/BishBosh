@@ -19,7 +19,7 @@
 {- |
  [@AUTHOR@]	Dr. Alistair Ward
 
- [@DESCRaPTION@]	The location of a square on the board.
+ [@DESCRIPTION@]	The location of a square on the board.
 -}
 
 module BishBosh.Cartesian.Coordinates(
