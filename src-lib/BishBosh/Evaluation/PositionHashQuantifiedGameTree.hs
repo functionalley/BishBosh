@@ -21,9 +21,11 @@
 
  [@DESCRIPTION@]
 
-	* Constructs a tree of zobrist-hashes & /quantifiedGame/s, with one of the moves available to its parent node applied, & an evaluation of its fitness.
+	* Constructs a tree in which each node contains,
+	a zobrist-hash,
+	a /quantifiedGame/ with one of the moves available to its parent node applied & evaluation of the fitness of the resulting position.
 
-	* Each forest in the tree is sorted, before evaluation of it's fitness is performed.
+	* Each forest in the tree is sorted, before evaluation of its fitness is performed.
 
 	* CAVEAT: promotions are insufficiently frequent to be treated specially when sorting.
 -}
