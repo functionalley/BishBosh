@@ -42,9 +42,9 @@ import qualified	Control.Concurrent
 import qualified	Control.DeepSeq
 import qualified	Data.Maybe
 
--- | The premis on which pondering is based & the thread on which it is happening.
-data Pondering premis	= MkPondering {
-	getPremis	:: premis,
+-- | The premise on which pondering is based & the thread on which it is happening.
+data Pondering premise	= MkPondering {
+	getPremise	:: premise,
 	getThreadId	:: Control.Concurrent.ThreadId
 }
 
@@ -52,21 +52,21 @@ data Pondering premis	= MkPondering {
 ponder
 	:: Control.DeepSeq.NFData answer
 	=> (String -> IO ())	-- ^ Used to print arbitrary strings.
-	-> premis		-- ^ The basis of the question to which an answer is required.
-	-> String		-- ^ A string representing the premis.
+	-> premise		-- ^ The basis of the question to which an answer is required.
+	-> String		-- ^ A string representing the premise.
 	-> answer		-- ^ Actually an unevaluated question.
 	-> Control.Concurrent.MVar answer
-	-> IO (Pondering premis)
-ponder putStrLn' premis premisString answer mVar	= do
+	-> IO (Pondering premise)
+ponder putStrLn' premise premiseString answer mVar	= do
 	threadId	<- Control.Concurrent.forkIO $ do
 		Control.Concurrent.putMVar mVar $!! answer
 
-		putStrLn' $ showString "pondering-thread has a response based on " premisString
+		putStrLn' $ showString "pondering-thread has a response based on " premiseString
 
-	putStrLn' . showString "pondering (on " . shows threadId $ showString ") a response to " premisString
+	putStrLn' . showString "pondering (on " . shows threadId $ showString ") a response to " premiseString
 
 	return {-to IO-monad-} MkPondering {
-		getPremis	= premis,
+		getPremise	= premise,
 		getThreadId	= threadId
 	}
 

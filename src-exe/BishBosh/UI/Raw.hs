@@ -478,15 +478,15 @@ takeTurns positionHashQualifiedMoveTree randomGen playState	= let
 									return {-to IO-monad-} searchResult
 								 ) (
 									\Concurrent.Pondering.MkPondering {
-										Concurrent.Pondering.getPremis		= movePremis,
+										Concurrent.Pondering.getPremise		= movePremise,
 										Concurrent.Pondering.getThreadId	= threadId
-									} -> if Data.Maybe.maybe False ((== movePremis) . Component.QualifiedMove.getMove . Component.Turn.getQualifiedMove) $ Model.Game.maybeLastTurn game'
+									} -> if Data.Maybe.maybe False ((== movePremise) . Component.QualifiedMove.getMove . Component.Turn.getQualifiedMove) $ Model.Game.maybeLastTurn game'
 										then do
-											Control.Monad.when (verbosity == maxBound) . System.IO.hPutStrLn System.IO.stderr . Text.ShowList.showsInfoPrefix . showString "move-premis validated => waiting on " $ shows threadId "."
+											Control.Monad.when (verbosity == maxBound) . System.IO.hPutStrLn System.IO.stderr . Text.ShowList.showsInfoPrefix . showString "move-premise validated => waiting on " $ shows threadId "."
 
 											Control.Concurrent.takeMVar mVar
 										else do
-											Concurrent.Pondering.abort mVar threadId >>= Control.Monad.when (verbosity == maxBound) . System.IO.hPutStrLn System.IO.stderr . Text.ShowList.showsInfoPrefix . showString "pondering invalidated by incorrect move-premis => "
+											Concurrent.Pondering.abort mVar threadId >>= Control.Monad.when (verbosity == maxBound) . System.IO.hPutStrLn System.IO.stderr . Text.ShowList.showsInfoPrefix . showString "pondering invalidated by incorrect move-premise => "
 
 											return {-to IO-monad-} searchResult
 								 ) maybePondering >>= (
@@ -523,14 +523,14 @@ takeTurns positionHashQualifiedMoveTree randomGen playState	= let
 											 ) `fmap` if Input.SearchOptions.getUsePondering searchOptions
 												then case continuation of
 													quantifiedGame' : _	-> let
-														turnPremis	= Evaluation.QuantifiedGame.getLastTurn quantifiedGame'
+														turnPremise	= Evaluation.QuantifiedGame.getLastTurn quantifiedGame'
 													 in fmap Just . (
 														\positionHashQuantifiedGameTree'' -> Concurrent.Pondering.ponder (
 															Control.Monad.when (verbosity == maxBound) . System.IO.hPutStrLn System.IO.stderr . Text.ShowList.showsInfoPrefix
 														) (
-															Component.QualifiedMove.getMove $ Component.Turn.getQualifiedMove turnPremis
+															Component.QualifiedMove.getMove $ Component.Turn.getQualifiedMove turnPremise
 														) (
-															showString "move-premis" . Text.ShowList.showsAssociation $ Notation.MoveNotation.showsNotation moveNotation turnPremis "."
+															showString "move-premise" . Text.ShowList.showsAssociation $ Notation.MoveNotation.showsNotation moveNotation turnPremise "."
 														) (
 															search searchState' { Search.SearchState.getPositionHashQuantifiedGameTree = positionHashQuantifiedGameTree'' }
 														) mVar
