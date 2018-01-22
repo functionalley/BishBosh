@@ -14,7 +14,7 @@
 	GNU General Public License for more details.
 
 	You should have received a copy of the GNU General Public License
-	along with BishBosh.  If not, see <http://www.gnu.org/licenses/>.
+	along with BishBosh.  If not, see <https://www.gnu.org/licenses/>.
 -}
 {- |
  [@AUTHOR@]	Dr. Alistair Ward
@@ -146,7 +146,7 @@ compareByLVA
 compareByLVA evaluateRank MkTurn { getRank = rankL } MkTurn { getRank = rankR }	= Attribute.Rank.compareByLVA evaluateRank rankL rankR
 
 {- |
-	* Compares /turn/s by <http://chessprogramming.wikispaces.com/MVV-LVA>.
+	* Compares /turn/s by <https://chessprogramming.wikispaces.com/MVV-LVA>.
 
 	* This orders the most valuable victim of an attack first, but when victims are of equal rank, orders the least valuable aggressor first.
 

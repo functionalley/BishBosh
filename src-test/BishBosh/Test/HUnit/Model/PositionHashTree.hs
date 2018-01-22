@@ -14,7 +14,7 @@
 	GNU General Public License for more details.
 
 	You should have received a copy of the GNU General Public License
-	along with BishBosh.  If not, see <http://www.gnu.org/licenses/>.
+	along with BishBosh.  If not, see <https://www.gnu.org/licenses/>.
 -}
 {- |
  [@AUTHOR@]	Dr. Alistair Ward
@@ -42,5 +42,5 @@ testCases	= Test.HUnit.test [
 		maxDepth	= 4
 	in "'BishBosh.Model.PositionhashTree.countDistinctPositions' failed" ~: map (
 		\i -> Model.PositionHashTree.countDistinctPositions i (Data.Default.def :: Model.PositionHashTree.PositionHashTree T.PositionHash)
-	) [0 .. maxDepth] ~?= take (succ maxDepth) [1, 20, 400, 5362, 72078, 822518, 9417681, 96400068, 988187354, 9183421888, 85375278064, 726155461002]	-- <http://oeis.org/A083276>. CAVEAT: the point at which this test fails, depends on the square-root of the bits in 'T.PositionHash'.
+	) [0 .. maxDepth] ~?= take (succ maxDepth) [1, 20, 400, 5362, 72078, 822518, 9417681, 96400068, 988187354, 9183421888, 85375278064, 726155461002]	-- <https://oeis.org/A083276>. CAVEAT: the point at which this test fails, depends on the square-root of the bits in 'T.PositionHash'.
  ]
