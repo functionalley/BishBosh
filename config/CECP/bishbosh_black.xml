@@ -48,11 +48,11 @@
 		</searchDepthByLogicalColour>
 	</searchOptions>
 	<ioOptions maximumPGNNames="8">
-		<pgnOptions databaseFilePath="pgn/scid_fr.pgn" validateMoves="False">
+		<pgnOptions databaseFilePath="pgn/scid.pgn" isStrictlySequential="False" validateMoves="False">
 			<identificationTag tag="ECO"/>
 			<identificationTag tag="Variation"/>
 <!--
-		</pgnOptions><pgnOptions databaseFilePath="pgn/scid.pgn" isStrictlySequential="False" validateMoves="False">
+		</pgnOptions><pgnOptions databaseFilePath="pgn/scid_fr.pgn" validateMoves="False">
 			<identificationTag tag="ECO"/>
 			<identificationTag tag="Variation"/>
 		</pgnOptions><pgnOptions databaseFilePath="pgn/bundesliga2000.pgn" validateMoves="False">
