@@ -30,7 +30,7 @@ License:	GPLv3
 # From '/usr/share/doc/packages/rpm/GROUPS'.
 Group:		Amusements/Games
 # Source0:	https://functionalley.eu/Downloads/sdist/%tarBall
-URL:		https://functionalley.eu/BishBosh
+URL:		https://functionalley.eu/BishBosh/%name.html
 Prefix:		/usr
 BuildRequires:	haskell-platform
 
