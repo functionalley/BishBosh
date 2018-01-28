@@ -239,7 +239,6 @@ Executable bishbosh
 -- Required for 'cabal sdist'.
     Other-modules:
         BishBosh.Concurrent.Pondering
-        BishBosh.Concurrent.SignalHandlers
         BishBosh.Input.CommandLineOption
         BishBosh.Play
         BishBosh.State.ApplicationTerminationReason
@@ -247,6 +246,10 @@ Executable bishbosh
         BishBosh.Text.Show
         BishBosh.UI.CECP
         BishBosh.UI.Raw
+
+    if flag(unix)
+        Other-modules:
+            BishBosh.Concurrent.SignalHandlers
 
     Build-depends:
         array >= 0.5.1.1,

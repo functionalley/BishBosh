@@ -33,7 +33,6 @@ import			BishBosh.Data.Float()
 -- import		BishBosh.Data.Ratio()	-- Required if either criterionWeight or criterionValue is Rational.
 import			Control.Arrow((&&&), (***))
 import			Control.Category((>>>))
-import qualified	BishBosh.Concurrent.SignalHandlers		as Concurrent.SignalHandlers
 import qualified	BishBosh.ContextualNotation.PGN			as ContextualNotation.PGN
 import qualified	BishBosh.ContextualNotation.PGNDatabase		as ContextualNotation.PGNDatabase
 import qualified	BishBosh.ContextualNotation.QualifiedMoveForest	as ContextualNotation.QualifiedMoveForest
@@ -86,6 +85,10 @@ import qualified	Text.XML.HXT.RelaxNG
 
 #ifdef TOOL_VERSION_ghc
 import qualified	GHC.Conc
+#endif
+
+#ifdef USE_UNIX
+import qualified	BishBosh.Concurrent.SignalHandlers	as Concurrent.SignalHandlers
 #endif
 
 type Row	= T.Y
@@ -252,7 +255,6 @@ main	= do
 			generateDTD	= Control.Monad.void . HXT.runX $ HXT.constA (undefined :: Options) >>> HXT.xpickleWriteDTD HXT.xpickle [
 				HXT.withTrace 0 {-valid values in closed interval [0, 4]-}
 			 ] "-" {-stdout-}	-- CAVEAT: this DTD requires manual correction of defaulted attributes, which are erroneously defined as 'REQUIRED' rather than 'IMPLIED'.
-
 #ifdef USE_UNIX
 	Concurrent.SignalHandlers.handleSignals
 #endif
