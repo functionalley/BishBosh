@@ -123,7 +123,10 @@ play :: (
 play randomGen options qualifiedMoveForest	= Data.Maybe.maybe (
 	return {-to IO-monad-} Data.Default.def {-game-}
  ) (
-	\(filePath, _) -> if System.FilePath.equalFilePath filePath $ showChar System.FilePath.pathSeparator "dev" </> "null" -- On *nix.
+	\(filePath, _) -> if any (System.FilePath.equalFilePath filePath) [
+		showChar System.FilePath.pathSeparator "dev" </> "null", -- On *nix.
+		"nul" -- On Windows ?
+	]
 		then return {-to IO-monad-} Data.Default.def {-game-}
 		else Control.Exception.catch (
 			do
