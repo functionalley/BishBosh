@@ -167,7 +167,8 @@ mkPGNOptions
 mkPGNOptions databaseFilePath isStrictlySequential validateMoves identificationTags minimumPlies
 	| not $ System.FilePath.isValid databaseFilePath	= Control.Exception.throw . Data.Exception.mkInvalidDatum . showString "BishBosh.Input.PGNOptions.mkPGNOptions:\tinvalid " . showString databaseFilePathTag . Text.ShowList.showsAssociation $ shows databaseFilePath "."
 	| any null identificationTags				= Control.Exception.throw . Data.Exception.mkNullDatum . showString "BishBosh.Input.PGNOptions.mkPGNOptions:\tno " $ shows identificationTagTag " can be null."
-	| not $ null duplicateTags				= Control.Exception.throw . Data.Exception.mkDuplicateData . showString "BishBosh.Input.PGNOptions.mkPGNOptions:\tduplicate " . showString identificationTagTag . showChar 's' . Text.ShowList.showsAssociation $ shows duplicateTags "."
+	| duplicateTags@(_ : _)	<- map head . filter ((/= 1) . length) $ ToolShed.Data.Foldable.gather identificationTags
+	= Control.Exception.throw . Data.Exception.mkDuplicateData . showString "BishBosh.Input.PGNOptions.mkPGNOptions:\tduplicate " . showString identificationTagTag . showChar 's' . Text.ShowList.showsAssociation $ shows duplicateTags "."
 	| minimumPlies < 0					= Control.Exception.throw . Data.Exception.mkOutOfBounds . showString "BishBosh.Input.PGNOptions.mkPGNOptions:\t" $ shows minimumPliesTag " can't be negative."
 	| otherwise						= MkPGNOptions {
 		getDatabaseFilePath	= System.FilePath.normalise databaseFilePath,
@@ -176,7 +177,4 @@ mkPGNOptions databaseFilePath isStrictlySequential validateMoves identificationT
 		getIdentificationTags	= identificationTags,
 		getMinimumPlies		= minimumPlies
 	}
-	where
-		duplicateTags :: [ContextualNotation.PGN.Tag]
-		duplicateTags	= map head . filter ((/= 1) . length) $ ToolShed.Data.Foldable.gather identificationTags
 
