@@ -170,7 +170,7 @@ mkPGNOptions databaseFilePath isStrictlySequential validateMoves identificationT
 	| not $ null duplicateTags				= Control.Exception.throw . Data.Exception.mkDuplicateData . showString "BishBosh.Input.PGNOptions.mkPGNOptions:\tduplicate " . showString identificationTagTag . showChar 's' . Text.ShowList.showsAssociation $ shows duplicateTags "."
 	| minimumPlies < 0					= Control.Exception.throw . Data.Exception.mkOutOfBounds . showString "BishBosh.Input.PGNOptions.mkPGNOptions:\t" $ shows minimumPliesTag " can't be negative."
 	| otherwise						= MkPGNOptions {
-		getDatabaseFilePath	= databaseFilePath,
+		getDatabaseFilePath	= System.FilePath.normalise databaseFilePath,
 		getIsStrictlySequential	= isStrictlySequential,
 		getValidateMoves	= validateMoves,
 		getIdentificationTags	= identificationTags,

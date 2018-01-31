@@ -61,6 +61,7 @@ import qualified	BishBosh.Input.PGNOptions	as Input.PGNOptions
 import qualified	BishBosh.Input.UIOptions	as Input.UIOptions
 import qualified	BishBosh.Property.Tree		as Property.Tree
 import qualified	BishBosh.Text.ShowList		as Text.ShowList
+import qualified	Control.Arrow
 import qualified	Control.DeepSeq
 import qualified	Control.Exception
 import qualified	Data.Default
@@ -205,20 +206,18 @@ mkIOOptions maybeOutputConfigFilePath maybeMaximumPGNNames pgnOptionsList maybeP
 	, null pgnOptionsList			= Control.Exception.throw . Data.Exception.mkIncompatibleData . showString "Specification of " $ shows maximumPGNNamesTag " is only irrelevant when at least one PGN-database has been referenced."
 	| Just maximumPGNNames	<- maybeMaximumPGNNames
 	, maximumPGNNames < 0			= Control.Exception.throw . Data.Exception.mkOutOfBounds . showString "The maximum number of names, of matching PGN-games to display, can't be negative; " $ shows maximumPGNNames "."
-	| not $ null duplicateFilePaths		= Control.Exception.throw . Data.Exception.mkDuplicateData . showString "BishBosh.Input.IOOptions.mkIOOptions:\tduplicate " . showString Input.PGNOptions.databaseFilePathTag . Text.ShowList.showsAssociation $ shows duplicateFilePaths "."
+	| duplicateFilePaths@(_ : _)	<- map head . filter ((/= 1) . length) . ToolShed.Data.Foldable.gather $ map (System.FilePath.normalise . Input.PGNOptions.getDatabaseFilePath) pgnOptionsList
+	= Control.Exception.throw . Data.Exception.mkDuplicateData . showString "BishBosh.Input.IOOptions.mkIOOptions:\tduplicate " . showString Input.PGNOptions.databaseFilePathTag . Text.ShowList.showsAssociation $ shows duplicateFilePaths "."
 	| Data.Maybe.maybe False (
 		not . System.FilePath.isValid {-i.e. non-null on POSIX-} . fst {-file-path-}
 	) maybePersistence			= Control.Exception.throw . Data.Exception.mkInvalidDatum . showString "BishBosh.Input.IOOptions.mkIOOptions:\tinvalid path for " $ showString persistenceTag "."
 	| otherwise	= MkIOOptions {
-		getMaybeOutputConfigFilePath	= maybeOutputConfigFilePath,
+		getMaybeOutputConfigFilePath	= System.FilePath.normalise <$> maybeOutputConfigFilePath,
 		getMaybeMaximumPGNNames		= maybeMaximumPGNNames,
 		getPGNOptionsList		= pgnOptionsList,
-		getMaybePersistence		= maybePersistence,
+		getMaybePersistence		= Control.Arrow.first System.FilePath.normalise <$> maybePersistence,
 		getUIOptions			= uiOptions
 	}
-	where
-		duplicateFilePaths :: [System.FilePath.FilePath]
-		duplicateFilePaths	= map head . filter ((/= 1) . length) . ToolShed.Data.Foldable.gather $ map Input.PGNOptions.getDatabaseFilePath pgnOptionsList
 
 -- | The type of a function used to transform 'IOOptions'.
 type Transformation row column	= IOOptions row column -> IOOptions row column
