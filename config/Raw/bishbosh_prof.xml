@@ -60,7 +60,7 @@
 			<identificationTag tag="ECO"/>
 			<identificationTag tag="Variation"/>
 		</pgnOptions>
-		<persistence filePath="/dev/null" automatic="False"/>
+		<persistence filePath="/dev/null" automatic="False"/>	<!-- replace *nix-specific path with 'nul' in Windows ? -->
 		<uiOptions verbosity="Silent"/>
 	</ioOptions>
 </options>

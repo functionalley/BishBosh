@@ -62,7 +62,7 @@
 			<identificationTag tag="FICSGamesDBGameNo"/>
 -->
 		</pgnOptions>
-		<persistence filePath="/dev/null" automatic="False"/>
+		<persistence filePath="/dev/null" automatic="False"/>	<!-- replace *nix-specific path with 'nul' in Windows ? -->
 		<uiOptions moveNotation="Coordinate" verbosity="Silent">
 			<cecpOptions/>
 		</uiOptions>
