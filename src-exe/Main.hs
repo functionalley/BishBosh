@@ -186,7 +186,7 @@ main	= do
 				G.ReqArg (
 					Just . (,) Input.UIOptions.printMoveTreeTag . Just &&& Input.CommandLineOption.mkOptionsMutator . setPrintMoveTree
 				) $ mkTypeString intString
-			) $ showString outputString "draw the tree of all possible moves, each annotated by an evaluation of the fitness of the resulting position, truncated to the specified number of plies.",
+			) $ showString outputString "draw the tree of all possible moves in the configured notation, each annotated by a fitness-evaluation for the resulting position, truncated to the specified number of plies.",
 			G.Option ""	["checkPickler"] (
 				G.NoArg (
 					Nothing {-N/A-},
