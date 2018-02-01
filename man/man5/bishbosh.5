@@ -178,7 +178,7 @@ automatic	(\fBTrue\fR|\fBFalse\fR)	True	Whether the game-state is automatically 
 This application also understands \fBStandard Algebraic\fR notation, but it is only used to read the PGN-databases used to define standard openings.
 .IP \(bu
 \fBprintMoveTree\fR \fIInt\fR.
-Print the tree of all possible moves in the game, truncated to the specified depth.
+Print the tree of all possible moves in the configured notation, truncated to the specified depth.
 The forest of moves available at each node, is sequentially sorted according to; \fBpreferMovesTowardsCentre\fR, \fBsortOnStandardOpeningMoveFrequency\fR, \fBcaptureMoveSortAlgorithm\fR; since the sort-algorithm is stable, the relative order of moves which compare equal, remains unchanged.
 The fitness of each move, from the perspective of the player of the move, is also printed to the configured number of decimal places; see \fBnDecimalDigits\fR.
 See "\fB--printMoveTree\fR" in \fBsection-1\fR of the man-pages.
