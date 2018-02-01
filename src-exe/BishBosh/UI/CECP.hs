@@ -108,7 +108,7 @@ hintTag			= "Hint:"
 moveTag :: String
 moveTag			= "move"
 
--- | Used in output, to qualify an draw-offer.
+-- | Used in output, to qualify a draw-offer.
 offerTag :: String
 offerTag		= "offer"
 
