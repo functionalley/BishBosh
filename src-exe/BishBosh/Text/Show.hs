@@ -45,7 +45,7 @@ showsWarningPrefix	= Attribute.PhysicalColour.bracket (
 	Attribute.PhysicalColour.selectGraphicsRendition True $ Attribute.PhysicalColour.mkFgColourCode Attribute.PhysicalColour.yellow
  ) $ Text.ShowList.showsWarningPrefix ""
 
--- | Show the prefix used to denote a error-message.
+-- | Show the prefix used to denote an error-message.
 showsErrorPrefix :: ShowS
 showsErrorPrefix	= Attribute.PhysicalColour.bracket (
 	Attribute.PhysicalColour.selectGraphicsRendition True $ Attribute.PhysicalColour.mkFgColourCode Attribute.PhysicalColour.red
