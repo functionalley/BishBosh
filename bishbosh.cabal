@@ -83,7 +83,8 @@ flag threaded
     Manual:		True
     Default:		True
 
--- Automatically disabled when the required package isn't available, which will typically be the case on Windows.
+-- Automatically disabled when the required package isn't available.
+-- CAVEAT: on MS-Windows, it may be available but won't necessarily build, so specify "-f -unix --verbose" when configuring the package. 
 flag unix
     Description:	Link with package "unix" when available.
     Default:		True
