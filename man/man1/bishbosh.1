@@ -108,15 +108,16 @@ If one references large PGN-databases from the configuration (see "\fBpgnOptions
 \fB0\fR on success, & >\fB0\fR if an error occurs.
 .SH EXAMPLES
 .nf
-.B bishbosh --verbosity=Verbose -i '/usr/share/bishbosh/config/Raw/bishbosh_white.xml'
+.B bishbosh --verbosity=Verbose -i ~/.cabal/share/*/bishbosh-*/config/Raw/bishbosh_white.xml
 .fi
 .IP \(bu
 The application has been instructed to provide a relatively large amount of feedback.
 .IP \(bu
-One of the packaged configuration-files has been referenced (you'll need to adjust this if run from the build-directory), which automates White's moves & specifies a raw ASCII interface.
+One of the packaged configuration-files has been referenced, which automates White's moves & specifies a raw ASCII interface; on \fBMS-Windows\fR you'll need to issue this from a terminal-emulator which understands \fBhttps://en.wikipedia.org/wiki/ANSI_escape_code ANSI escape-codes\fR.
+This path includes both an architecture-specific & a version-specific directory, which are represented as globs & expanded by \fBbash\fR; on \fBMS-Windows\fR you may need to be more explicit.
 .PP
 .nf
-.B bishbosh --verbosity=Deafening -i '/usr/share/bishbosh/config/Raw/bishbosh_black.xml' +RTS -N -H100M -RTS
+.B bishbosh --verbosity=Deafening -i ~/.cabal/share/*/bishbosh-*/config/Raw/bishbosh_black.xml +RTS -N -H100M -RTS
 .fi
 .IP \(bu
 The application has been instructed to provide maximal feedback.
@@ -126,10 +127,10 @@ One of the packaged configuration-files has been referenced, which automates Bla
 For performance, the run-time system has been explicitly instructed to fully utilise the available CPU-cores, & to set a large minimum size for the heap to satisfy its craving for RAM; actually similar defaults have been predefined.
 .PP
 .nf
-.B xboard -fcp 'bishbosh -i /usr/share/bishbosh/config/CECP/bishbosh_black.xml'
+.B xboard -fcp 'bishbosh -i ~/.cabal/share/*/bishbosh-*/config/CECP/bishbosh_black.xml
 .fi
 .IP \(bu
-Instruct the \fBxboard\fR GUI to use \fBbishbosh\fR as its first engine.
+Instruct the \fBxboard\fR GUI to use \fBbishbosh\fR as its first engine; \fBwinboard\fR is the equivalent GUI for \fBMS-Windows\fR.
 .SH FILES
 .TS
 lb	lb
