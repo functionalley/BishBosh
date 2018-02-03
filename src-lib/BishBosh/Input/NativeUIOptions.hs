@@ -147,11 +147,11 @@ mkNativeUIOptions :: (
 mkNativeUIOptions boardMagnification colourScheme
 	| uncurry (||) $ (
 		(< 1) *** (< 1)
-	) boardMagnification			= Control.Exception.throw . Data.Exception.mkOutOfBounds . showString "BishBosh.Input.NativeUIOptions.mkNativeUIOptions:\t" . showString boardMagnificationTag . Text.ShowList.showsAssociation $ shows boardMagnification " must both exceed zero."
+	) boardMagnification	= Control.Exception.throw . Data.Exception.mkOutOfBounds . showString "BishBosh.Input.NativeUIOptions.mkNativeUIOptions:\t" . showString boardMagnificationTag . Text.ShowList.showsAssociation $ shows boardMagnification " must both exceed zero."
 	| uncurry (||) $ (
 		even *** even
-	) boardMagnification			= Control.Exception.throw . Data.Exception.mkInvalidDatum . showString "BishBosh.Input.NativeUIOptions.mkNativeUIOptions:\t" . showString boardMagnificationTag . Text.ShowList.showsAssociation $ shows boardMagnification " must both be odd."
-	| otherwise	= MkNativeUIOptions {
+	) boardMagnification	= Control.Exception.throw . Data.Exception.mkInvalidDatum . showString "BishBosh.Input.NativeUIOptions.mkNativeUIOptions:\t" . showString boardMagnificationTag . Text.ShowList.showsAssociation $ shows boardMagnification " must both be odd."
+	| otherwise		= MkNativeUIOptions {
 		getBoardMagnification	= boardMagnification,
 		getColourScheme		= colourScheme
 	}
