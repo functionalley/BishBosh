@@ -30,7 +30,7 @@ Homepage:	https://functionalley.eu/BishBosh/bishbosh.html
 Maintainer:	mailto:bishbosh@functionalley.eu
 Bug-reports:	mailto:bishbosh@functionalley.eu
 
--- These files can be read by the application from 'Paths_bishbosh.datadir'.
+-- Files which can be located by the application using 'Paths_bishbosh.datadir'.
 Data-files:
     config/bishbosh.dtd
     config/bishbosh.rng
@@ -38,7 +38,7 @@ Data-files:
     config/Raw/*.xml
     pgn/*.pgn
 
--- None of these files are needed at run-time.
+-- Files which are packaged, but not required at runtime.
 Extra-source-files:
     .ghci
     bishbosh.spec
@@ -77,7 +77,7 @@ flag narrownumbers
     Manual:		True
     Default:		False
 
--- Concurrency is used to implement Pondering, & parallelism is used when searching archives games.
+-- Concurrency is used to implement Pondering, & parallelism is used when searching through archived games.
 flag threaded
     Description:	Build for parallel runtime.
     Manual:		True
@@ -237,7 +237,7 @@ Executable bishbosh
     Hs-source-dirs:	src-exe
     Main-is:		Main.hs
 
--- Required for 'cabal sdist'.
+-- N.B.: required for 'cabal sdist'.
     Other-modules:
         BishBosh.Concurrent.Pondering
         BishBosh.Input.CommandLineOption
@@ -295,8 +295,6 @@ Executable bishbosh
     if flag(hxtrelaxng)
         Build-depends:	hxt-relaxng
         CPP-Options:	-DUSE_HXTRELAXNG=1
-    else
-        Build-depends:	parsec
 
     if flag(narrownumbers)
         CPP-Options:	-DUSE_NARROW_NUMBERS=1
@@ -304,7 +302,7 @@ Executable bishbosh
     if flag(threaded)
         GHC-options:	-threaded
 
--- N.B.: The Haskell package 'unix' may be available on Windows, but building it will probably be laborious.
+-- N.B.: The Haskell package 'unix' may be available on MS-Windows, but building it will probably be laborious.
     if flag(unix)
         Other-modules:	BishBosh.Concurrent.SignalHandlers
         Build-depends:	unix
