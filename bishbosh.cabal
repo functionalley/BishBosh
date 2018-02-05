@@ -71,13 +71,13 @@ flag hxtrelaxng
     Description:	Link with package "hxt-relaxng" when available, for more precise specification of the XML-configuration than a traditional DTD.
     Default:		True
 
--- Whether to use narrower numerical types than machine-defaults. CAVEAT: bizarely, this option increases both the space allocated & the execution-time.
+-- Whether to use narrower numerical types than machine-defaults. CAVEAT: this option increases both the space allocated & the execution-time.
 flag narrownumbers
     Description:	Use narrow numerical types.
     Manual:		True
     Default:		False
 
--- Highly recommended.
+-- Concurrency is used to implement Pondering, & parallelism is used when searching archives games.
 flag threaded
     Description:	Build for parallel runtime.
     Manual:		True
