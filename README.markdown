@@ -28,6 +28,8 @@ The test-suite can be run using:
     cabal build;
     cabal test --show-details=always;
 
+It's currently only been tested on **Linux**.
+
 ## Author
 
 This application is written and maintained by Dr. Alistair Ward.
