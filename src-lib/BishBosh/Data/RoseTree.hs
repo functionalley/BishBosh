@@ -48,11 +48,11 @@ countTerminalNodes Data.Tree.Node { Data.Tree.subForest = forest }	= Data.List.f
 	\acc -> (+ acc) . countTerminalNodes {-recurse-}
  ) 0 forest
 
--- | Returns a string which graphically represents the tree, optionally truncated to the specified depth.
+-- | Returns a string which graphically represents the tree.
 drawTree :: (a -> String) -> Data.Tree.Tree a -> String
 drawTree toString	= Data.Tree.drawTree . fmap toString
 
--- | Returns a string which graphically represents the forest, optionally truncated to the specified depth.
+-- | Returns a string which graphically represents the forest.
 drawForest :: (a -> String) -> Data.Tree.Forest a -> String
 drawForest toString	= Data.Tree.drawForest . map (fmap toString)
 
