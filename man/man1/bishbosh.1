@@ -119,7 +119,7 @@ The application has been instructed to provide a relatively large amount of feed
 One of the packaged configuration-files has been referenced, which automates White's moves & specifies a raw ASCII interface; on \fBMS-Windows\fR you'll need to issue this from a terminal-emulator which understands \fBhttps://en.wikipedia.org/wiki/ANSI_escape_code\fR .
 This path includes both an architecture-specific & a version-specific directory, which are represented as globs & expanded by \fBbash\fR; on \fBMS-Windows\fR you may need to be more explicit.
 .IP \(bu
-CAVEAT: assumes that the executable exists on \fB$PATH\fR, otherwise an absolute path will be required.
+CAVEAT: assumes that the executable exists on \fB$PATH\fR, otherwise an explicit path will be required.
 .PP
 .nf
 .B bishbosh --verbosity=Deafening -i ~/.cabal/share/*/bishbosh-*/config/Raw/bishbosh_black.xml +RTS -N -H100M -RTS
@@ -137,7 +137,9 @@ For performance, the run-time system has been explicitly instructed to fully uti
 .IP \(bu
 Instruct the \fBxboard\fR GUI to use \fBbishbosh\fR as its first engine; \fBwinboard\fR is the equivalent GUI for \fBMS-Windows\fR.
 .IP \(bu
-CAVEAT: the architecture-specific & version-specific directories may need to be edited.
+N.B.: \fBbishbosh\fR & its arguments are delimited by double-quotes, so that they are interpreted by \fBxboard\fR as a single argument.
+.IP \(bu
+CAVEAT: the hard-coded architecture-specific & version-specific directories may need to be edited.
 .SH FILES
 .TS
 lb	lb
