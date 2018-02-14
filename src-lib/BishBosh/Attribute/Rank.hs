@@ -19,7 +19,9 @@
 {- |
  [@AUTHOR@]	Dr. Alistair Ward
 
- [@DESCRIPTION@]	Defines the data-type which represents the rank of a chess-/piece/; cf. a row of the /board/.
+ [@DESCRIPTION@]	Defines the data-type which represents the rank of a chess-/piece/.
+
+ [@CAVEAT@]	This term is also commonly used to refer to a row of the board.
 -}
 
 module BishBosh.Attribute.Rank(
@@ -65,7 +67,7 @@ import qualified	Text.XML.HXT.Arrow.Pickle.Schema
 tag :: String
 tag	= "rank"
 
--- | That part of the difference between chess-/piece/s which is independent of their /logical colour/.
+-- | The component of a chess-/piece/ which is independent of its colour.
 data Rank
 	= Pawn
 	| Rook
@@ -118,55 +120,55 @@ instance Read Rank where
 instance HXT.XmlPickler Rank where
 	xpickle	= HXT.xpAttr tag . HXT.xpWrap (read, show) . HXT.xpTextDT . Text.XML.HXT.Arrow.Pickle.Schema.scEnum $ map show range
 
--- | The distinct /rank/s of the constant ordered range of those /piece/s of which each side has two.
+-- | The distinct /rank/s of the constant ordered range of those /piece/s of which each side has exactly two.
 flank :: [Rank]
-flank			= [Rook, Knight, Bishop]
+flank	= [Rook, Knight, Bishop]
 
 -- | The constant list of distinct /rank/ to which a @Pawn@ may legally be promoted; though there's no point in promotion to other than @Queen@ or @Knight@.
 promotionProspects :: [Rank]
 promotionProspects	= Queen : flank
 
--- | Constant /rank/ to which a @Pawn@ is, in the absence of instruction, promoted.
+-- | The /rank/ to which a @Pawn@ is, in the absence of instruction, promoted.
 defaultPromotionRank :: Rank
 defaultPromotionRank	= Queen
 
--- | The subset of ranks which can only move in single steps.
+-- | The subset of /rank/s which can only move in single steps.
 plodders :: [Rank]
-plodders		= [Pawn, King]
+plodders	= [Pawn, King]
 
--- | The subset of ranks which attack over a fixed range.
+-- | The subset of /rank/s which attack over a fixed range.
 fixedAttackRange :: [Rank]
 fixedAttackRange	= Knight : plodders
 
--- | The subset of ranks which (unsupported) are sufficient to force checkmate.
+-- | The subset of /rank/s which lacking support, are sufficient to force checkmate.
 individuallySufficientMaterial :: [Rank]
 individuallySufficientMaterial	= [Pawn, Rook, Queen]
 
--- | A subset of /rank/s.
+-- | The /rank/s of the back row of pieces, excluding both flanks.
 royalty :: [Rank]
-royalty		= [Queen, King]
+royalty	= [Queen, King]
 
--- | A subset of /rank/s, which excludes @ Pawn @.
+-- | The distinct /rank/s of the pieces from which the back row is composed, i.e. everything except @Pawn@s.
 pieces :: [Rank]
-pieces		= flank ++ royalty
+pieces	= flank ++ royalty
 
--- | The /rank/s of the constant ordered back row of /piece/s, including duplicates.
+-- | The ordered /rank/s of the pieces from which the back row is composed, including duplicates.
 nobility :: [Rank]
 nobility	= pieces ++ reverse flank
 
 -- | The constant ascending list of all /rank/s.
 range :: [Rank]
-range		= [minBound .. maxBound]
+range	= [minBound .. maxBound]
 
--- | Those ranks which can be taken.
+-- | Those /rank/s which can be taken.
 expendable :: [Rank]
 expendable	= Data.List.delete King range
 
--- | The type of a function which returns a Rank's value.
+-- | The type of a function which returns a /rank/'s value.
 type EvaluateRank rankValue	= Rank -> rankValue
 
 {- |
-	* Compares the rank-value of aggressors.
+	* Given two alternative capture moves, this function compares the rank-value of the aggressors.
 
 	* N.B.: a @King@ is always considered most valuable, regardless of the evaluation-function supplied.
 -}
@@ -182,7 +184,7 @@ compareByLVA evaluateRank rankL rankR
 	| rankR == King		= LT
 	| otherwise		= Data.Ord.comparing evaluateRank rankL rankR
 
--- | A number of arbitrary ranks.
+-- | A number of ranks.
 type NRanks	= Int
 
 -- | The constant number of distinct /rank/s.
@@ -192,7 +194,7 @@ nDistinctRanks	= length range
 -- | A boxed array indexed by /rank/, of arbitrary values.
 type ByRank	= Data.Array.IArray.Array Rank
 
--- | Array-constructor.
+-- | An array-constructor.
 listArrayByRank :: Data.Array.IArray.IArray a e => [e] -> a Rank e
 listArrayByRank	= Data.Array.IArray.listArray (minBound, maxBound)
 
