@@ -102,7 +102,7 @@ featureTag	= "feature"
 -- | Self-documentation.
 type Key	= String
 
--- | Each feature-value can be either an @Int@ (also used to represent @Boolean@ values), or an arbitrary @String@.
+-- | Each feature-value can be either an @Int@ (also used to represent @Bool@ values), or an arbitrary @String@.
 type Value	= Either Int String
 
 -- | Self-documentation.

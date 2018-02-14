@@ -93,7 +93,7 @@ type PieceSquareValue	= CriterionValue
 -- | The type of the hash used to uniquely represent a /position/.
 type PositionHash	=
 #ifdef USE_NARROW_NUMBERS
-	Data.Word.Word32	-- CAVEAT: hash-collisions become almost inevitable after (sqrt bits) trials.
+	Data.Word.Word32	-- CAVEAT: hash-collisions become almost inevitable after @ sqrt bits @ trials.
 #else
 	Data.Word.Word
 #endif
@@ -101,7 +101,7 @@ type PositionHash	=
 {- |
 	* The preferred type by which to represent the square of the radius of a coordinate, from the centre of the board.
 
-	* N.B. for efficiency, @ radius ^ 2 @ is measured, to avoid the need to call 'sqrt'.
+	* N.B. for efficiency, @ radius ^ 2 @ is measured, to avoid the need to call @sqrt@.
 -}
 type RadiusSquared	=
 #ifdef USE_NARROW_NUMBERS
