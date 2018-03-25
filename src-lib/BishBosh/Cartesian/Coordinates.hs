@@ -568,11 +568,11 @@ getLogicalColourOfSquare coordinates
 		xDistance, yDistance	:: T.Distance
 		(xDistance, yDistance)	= measureDistance minBound coordinates
 
--- | Whether the specified squares have the same logical colour.
+-- | Whether the specified squares have the same /logical colour/.
 areSquaresIsochromatic :: (Enum x, Enum y) => [Coordinates x y] -> Bool
 areSquaresIsochromatic	= uncurry (||) . (all (== minBound) &&& all (== maxBound)) . map getLogicalColourOfSquare
 
--- | The conventional starting /coordinates/ for both @King@s.
+-- | The conventional starting /coordinates/ for the @King@ of the specified /logical colour/.
 kingsStartingCoordinates :: (Enum x, Enum y) => Attribute.LogicalColour.LogicalColour -> Coordinates x y
 kingsStartingCoordinates logicalColour	= MkCoordinates {
 	getX	= toEnum $ Cartesian.Abscissa.xOrigin + 4,
