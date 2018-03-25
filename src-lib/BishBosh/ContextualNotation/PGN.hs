@@ -203,7 +203,7 @@ data PGN x y	= MkPGN {
 	getMaybeWhitePlayerName		:: Maybe Value,
 	getMaybeBlackPlayerName		:: Maybe Value,
 	getIdentificationTagPairs	:: [TagPair],		-- ^ Arbitrary tagged values.
-	getGame				:: Model.Game.Game x y	-- ^ Defines the turn-sequence, the result.
+	getGame				:: Model.Game.Game x y	-- ^ Defines the turn-sequence & the result.
 } deriving Eq
 
 instance (
