@@ -5,3 +5,6 @@
 
 ## 0.0.0.2
 Minor changes required to build on Windows.
+
+## 0.0.0.3
+Added **Paths_bishbosh** to **Other-modules** section of cabal file.

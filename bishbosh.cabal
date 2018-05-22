@@ -14,7 +14,7 @@
 -- along with BishBosh.  If not, see <http://www.gnu.org/licenses/>.
 
 Name:		bishbosh
-Version:	0.0.0.2
+Version:	0.0.0.3
 Cabal-version:	>= 1.10
 Copyright:	(C) 2018 Dr. Alistair Ward
 License:	GPL
@@ -25,7 +25,7 @@ Synopsis:	Plays chess.
 Build-type:	Simple
 Description:	A chess-game which can be rendered in a terminal (emulator) in raw ASCII, or used as an engine by xboard.
 Category:	Game
-Tested-with:	GHC == 8.0, GHC == 8.2
+Tested-with:	GHC == 8.0, GHC == 8.2, GHC == 8.4
 Homepage:	https://functionalley.eu/BishBosh/bishbosh.html
 Maintainer:	mailto:bishbosh@functionalley.eu
 Bug-reports:	mailto:bishbosh@functionalley.eu
@@ -247,6 +247,7 @@ Executable bishbosh
         BishBosh.Text.Show
         BishBosh.UI.CECP
         BishBosh.UI.Raw
+        Paths_bishbosh
 
     if flag(unix)
         Other-modules:
@@ -391,6 +392,7 @@ Test-Suite test
         BishBosh.Test.QuickCheck.UI.Command
         BishBosh.Test.QuickCheck.UI.PrintObject
         BishBosh.Test.QuickCheck.UI.SetObject
+        Paths_bishbosh
 
     Build-depends:
         array >= 0.5.1.1,
