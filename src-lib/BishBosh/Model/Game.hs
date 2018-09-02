@@ -494,7 +494,7 @@ mkGame nextLogicalColour castleableRooksByLogicalColour board turnsByLogicalColo
 			getAvailableQualifiedMovesByLogicalColour	= Data.Map.fromAscList [
 				(logicalColour, mkAvailableQualifiedMovesFor logicalColour game) |
 					logicalColour	<- Attribute.LogicalColour.range,
-					Data.Maybe.maybe True (/= logicalColour) $ getMaybeChecked game	-- Define the available qualified moves for unchecked players only.
+					getMaybeChecked game /= Just logicalColour	-- Define the available qualified moves for unchecked players only.
 			], -- List-comprehension.
 			getMaybeTerminationReason			= inferMaybeTerminationReason game
 		}
@@ -677,7 +677,7 @@ takeTurn turn game@MkGame {
 						(pawnCoordinates, oppositePiece) |
 							let oppositePiece	= Component.Piece.mkPiece opponentsLogicalColour sourceRank,
 							pawnCoordinates	<- Cartesian.Coordinates.getAdjacents destination,
-							Data.Maybe.maybe False (== oppositePiece) . State.MaybePieceByCoordinates.dereference pawnCoordinates $ State.Board.getMaybePieceByCoordinates board	-- Find any opposing Pawn which can capture En-passant.
+							State.MaybePieceByCoordinates.dereference pawnCoordinates (State.Board.getMaybePieceByCoordinates board) == Just oppositePiece 	-- Find any opposing Pawn which can capture En-passant.
 					] {-list-comprehension-}
 					else id
 			 ) $ kingsByCoordinates {-moves available to either King may be constrained or liberated, even if misaligned with move-endpoints-} ++ [
@@ -704,9 +704,9 @@ takeTurn turn game@MkGame {
 							(blockingCoordinates, blockingPiece)	<- Data.Maybe.maybeToList $ (
 								\pair@(coordinates, _) -> if coordinates /= destination
 									then Just pair
-									else {-blocker is destination-} if Data.Maybe.maybe False (== direction) $ Cartesian.Vector.toMaybeDirection (
+									else {-blocker is destination-} if Cartesian.Vector.toMaybeDirection (
 										Cartesian.Vector.measureDistance kingsCoordinates source	:: Cartesian.Vector.VectorInt
-									)
+									) == Just direction
 										then Nothing
 										else findBlockingPieceFrom coordinates	-- Look through the destination to the previous blocker; which might be the source.
 							) =<< findBlockingPieceFrom kingsCoordinates
@@ -731,7 +731,7 @@ takeTurn turn game@MkGame {
 					destination'	<- Component.Piece.findAttackDestinations source' piece',
 					State.MaybePieceByCoordinates.isVacant destination' maybePieceByCoordinates',
 					uncurry (&&) . (
-						Data.Maybe.maybe False {-unoccupied-} (== Property.Opposable.getOpposite piece') . (
+						(== Just (Property.Opposable.getOpposite piece')) . (
 							`State.MaybePieceByCoordinates.dereference` maybePieceByCoordinates'
 						) &&& (== move) . Component.Move.mkMove (Cartesian.Coordinates.advance logicalColour destination')
 					) $ Cartesian.Coordinates.retreat logicalColour destination',	-- Did an opposing Pawn just double-advance to the expected position ?
@@ -742,7 +742,7 @@ takeTurn turn game@MkGame {
 					Attribute.MoveType.mkNormalMoveType maybeTakenRank maybePromotionRank
 				) |
 					(destination', maybeTakenRank)	<- State.MaybePieceByCoordinates.listDestinationsFor source' piece' maybePieceByCoordinates',
-					Data.Maybe.maybe True {-unoccupied-} (/= Attribute.Rank.King) maybeTakenRank,	-- This move can never be made; the option will either be immediately removed or check-mate declared.
+					maybeTakenRank /= Just Attribute.Rank.King,	-- This move can never be made; the option will either be immediately removed or check-mate declared.
 					isSafeDestination destination',
 					maybePromotionRank		<- listMaybePromotionRanks destination' piece'
 			 ] {-list-comprehension-} of
@@ -927,7 +927,7 @@ validateQualifiedMove qualifiedMove game@MkGame {
 									State.MaybePieceByCoordinates.isOccupied destination maybePieceByCoordinates,
 									showString "taking a '" $ shows opponentsPawn "' en-passant, requires a move to a vacant square"
 								), (
-									Data.Maybe.maybe True {-unoccupied-} (/= opponentsPawn) $ State.MaybePieceByCoordinates.dereference opponentsCoordinates maybePieceByCoordinates,
+									State.MaybePieceByCoordinates.dereference opponentsCoordinates maybePieceByCoordinates /= Just opponentsPawn,
 									shows "en-passant" . showString " requires a '" $ shows opponentsPawn "' to be taken"
 								), (
 									Data.Maybe.maybe True {-zero previous turns-} (
@@ -1032,7 +1032,7 @@ validateQualifiedMove qualifiedMove game@MkGame {
 							] -- List-comprehension.
 						) ++ [
 							(
-								Data.Maybe.maybe False {-not in check-} (== sourceLogicalColour) maybeChecked,
+								maybeChecked == Just sourceLogicalColour,
 								"it can't castle out of check"
 							), (
 								any (
@@ -1046,7 +1046,7 @@ validateQualifiedMove qualifiedMove game@MkGame {
 					if Component.Piece.isKing sourcePiece
 						then showString "it"
 						else showString "your '" . shows (Component.Piece.mkKing sourceLogicalColour) . showChar '\''
-				) $ if Data.Maybe.maybe False (== sourceLogicalColour) maybeChecked
+				) $ if maybeChecked == Just sourceLogicalColour 
 					then (
 						State.Board.isKingChecked sourceLogicalColour $ State.Board.movePiece move (Just moveType) board,	-- CAVEAT: don't perform an unvalidated move at the Game-level.
 						" remains checked"
@@ -1193,7 +1193,7 @@ rollBack	= Data.List.unfoldr (
 				getAvailableQualifiedMovesByLogicalColour	= Data.Map.fromAscList [
 					(logicalColour, mkAvailableQualifiedMovesFor logicalColour game') |
 						logicalColour	<- Attribute.LogicalColour.range,
-						Data.Maybe.maybe True (/= logicalColour) maybeChecked'
+						maybeChecked' /= Just logicalColour
 				], -- List-comprehension.
 				getMaybeTerminationReason	= Nothing
 			}
@@ -1222,7 +1222,7 @@ listQualifiedMovesAvailableTo logicalColour game@MkGame {
 	getBoard	= board,
 	getMaybeChecked	= maybeChecked
 }
-	| Data.Maybe.maybe False (== logicalColour) maybeChecked	= let
+	| maybeChecked == Just logicalColour = let
 		kingsCoordinates	= State.CoordinatesByRankByLogicalColour.getKingsCoordinates logicalColour coordinatesByRankByLogicalColour
 	in [
 		Component.QualifiedMove.mkQualifiedMove move moveType |
@@ -1245,7 +1245,7 @@ listQualifiedMovesAvailableTo logicalColour game@MkGame {
 							) Attribute.MoveType.enPassant |
 								Component.Move.isPawnDoubleAdvance opponentsLogicalColour lastMove,
 								source	<- Cartesian.Coordinates.getAdjacents lastDestination,
-								Data.Maybe.maybe False {-unoccupied-} (== pawn) $ State.MaybePieceByCoordinates.dereference source maybePieceByCoordinates
+								State.MaybePieceByCoordinates.dereference source maybePieceByCoordinates == Just pawn
 						] -- List-comprehension.
 					) . Component.QualifiedMove.getMove . Component.Turn.getQualifiedMove
 				) $ maybeLastTurn game	-- The King is checked by a Pawn, which must also have been the last piece to move.
@@ -1283,7 +1283,7 @@ listQualifiedMovesAvailableTo logicalColour game@MkGame {
 				destination	<- Component.Piece.findAttackDestinations source pawn,
 				State.MaybePieceByCoordinates.isVacant destination maybePieceByCoordinates,
 				let opponentsCoordinates	= Cartesian.Coordinates.retreat logicalColour destination,
-				Data.Maybe.maybe False {-unoccupied-} (== Property.Opposable.getOpposite pawn) $ State.MaybePieceByCoordinates.dereference opponentsCoordinates maybePieceByCoordinates,
+				State.MaybePieceByCoordinates.dereference opponentsCoordinates maybePieceByCoordinates == Just (Property.Opposable.getOpposite pawn),
 				Data.Maybe.maybe False {-zero previous turns-} (
 					uncurry (&&) . (
 						(== opponentsCoordinates) . Component.Move.getDestination &&& (
@@ -1297,7 +1297,7 @@ listQualifiedMovesAvailableTo logicalColour game@MkGame {
 			) $ Attribute.MoveType.mkNormalMoveType maybeTakenRank maybePromotionRank |
 				(source, piece)			<- State.CoordinatesByRankByLogicalColour.findPiecesOfColour logicalColour coordinatesByRankByLogicalColour,
 				(destination, maybeTakenRank)	<- State.MaybePieceByCoordinates.listDestinationsFor source piece maybePieceByCoordinates,
-				Data.Maybe.maybe True {-unoccupied-} (/= Attribute.Rank.King) maybeTakenRank,	-- This move can never be made; the option will either be immediately removed or check-mate declared.
+				maybeTakenRank /= Just Attribute.Rank.King,	-- This move can never be made; the option will either be immediately removed or check-mate declared.
 				maybePromotionRank		<- listMaybePromotionRanks destination piece
 		] -- List-comprehension.
 	)

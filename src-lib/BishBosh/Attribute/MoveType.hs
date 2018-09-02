@@ -156,7 +156,7 @@ mkMaybeNormalMoveType
 	-> Maybe Attribute.Rank.Rank	-- ^ The /rank/ to which a @Pawn@ was just promoted.
 	-> Maybe MoveType		-- ^ Maybe the required /move-type/.
 mkMaybeNormalMoveType maybeTakenRank maybePromotionRank
-	| Data.Maybe.maybe True {-nothing taken-} (/= Attribute.Rank.King) maybeTakenRank
+	| maybeTakenRank /= Just Attribute.Rank.King
 	, Data.Maybe.maybe True {-nothing promoted-} (
 		`elem` Attribute.Rank.promotionProspects
 	) maybePromotionRank	= Just $ Normal maybeTakenRank maybePromotionRank
@@ -168,9 +168,7 @@ mkNormalMoveType
 	-> Maybe Attribute.Rank.Rank	-- ^ The /rank/ to which a @Pawn@ is to be promoted.
 	-> MoveType
 mkNormalMoveType maybeTakenRank maybePromotionRank	= Control.Exception.assert (
-	Data.Maybe.maybe True {-nothing taken-} (
-		/= Attribute.Rank.King
-	) maybeTakenRank && Data.Maybe.maybe True {-nothing promoted-} (
+	maybeTakenRank /= Just Attribute.Rank.King && Data.Maybe.maybe True {-nothing promoted-} (
 		`elem` Attribute.Rank.promotionProspects
 	) maybePromotionRank
  ) $ Normal maybeTakenRank maybePromotionRank

@@ -56,7 +56,7 @@ results	= sequence [
 		f :: Test.QuickCheck.Model.Game.Game -> Test.QuickCheck.Property
 		f = Test.QuickCheck.label "GameTree.prop_traceRoute" . (
 			\turns -> Data.Maybe.maybe False (
-				Data.Maybe.maybe False (== turns) . mapM Model.Game.maybeLastTurn
+				(== Just turns) . mapM Model.Game.maybeLastTurn
 			) $ Model.GameTree.traceRoute Data.Default.def turns
 		 ) . Model.Game.listTurnsChronologically
 	in Test.QuickCheck.quickCheckWithResult Test.QuickCheck.stdArgs { Test.QuickCheck.maxSuccess = 64 } f

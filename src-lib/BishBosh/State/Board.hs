@@ -425,11 +425,11 @@ movePiece move maybeMoveType board@MkBoard {
 				) maybePromotionRank,
 			getNPawnsByFileByLogicalColour	= if Component.Piece.isPawn sourcePiece && (
 				Cartesian.Coordinates.getX source /= Cartesian.Coordinates.getX destination {-includes En-passant-} || Attribute.MoveType.isPromotion moveType
-			) || Data.Maybe.maybe False (== Attribute.Rank.Pawn) (Attribute.MoveType.getMaybeExplicitlyTakenRank moveType)
+			) || Attribute.MoveType.getMaybeExplicitlyTakenRank moveType == Just Attribute.Rank.Pawn
 				then State.CoordinatesByRankByLogicalColour.countPawnsByFileByLogicalColour coordinatesByRankByLogicalColour'
 				else getNPawnsByFileByLogicalColour board,
 			getNPieces	= Attribute.MoveType.nPiecesMutator moveType nPieces,
-			getPassedPawnCoordinatesByLogicalColour	= if Component.Piece.isPawn sourcePiece {-includes En-passant & promotion-} || Data.Maybe.maybe False (== Attribute.Rank.Pawn) (Attribute.MoveType.getMaybeExplicitlyTakenRank moveType)
+			getPassedPawnCoordinatesByLogicalColour	= if Component.Piece.isPawn sourcePiece {-includes En-passant & promotion-} || Attribute.MoveType.getMaybeExplicitlyTakenRank moveType == Just Attribute.Rank.Pawn
 				then State.CoordinatesByRankByLogicalColour.findPassedPawnCoordinatesByLogicalColour coordinatesByRankByLogicalColour'
 				else getPassedPawnCoordinatesByLogicalColour board
 		}

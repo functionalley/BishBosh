@@ -473,7 +473,7 @@ parser explicitEnPassant validateMoves game	= let
 										Component.QualifiedMove.mkQualifiedMove (Component.Move.mkMove source destination) . Attribute.MoveType.mkNormalMoveType Nothing {-capture-}
 									) `fmap` Control.Applicative.optional promotionParser
 								 ) . Data.List.find (
-									Data.Maybe.maybe False {-no piece-} (== piece) . getMaybePiece
+									(== Just piece) . getMaybePiece
 								 ) . Data.Maybe.catMaybes . take 2 {-maximum Pawn-advance-} . tail {-drop the original-} $ iterate (
 									>>= Cartesian.Coordinates.maybeRetreat nextLogicalColour
 								 ) $ Just destination

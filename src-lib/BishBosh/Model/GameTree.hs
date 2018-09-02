@@ -216,7 +216,7 @@ traceRoute
 	=> GameTree x y
 	-> [Component.Turn.Turn x y]	-- ^ The data against which, nodes from the tree should be matched.
 	-> Maybe [Model.Game.Game x y]	-- ^ Returns 'Nothing' on match-failure.
-traceRoute MkGameTree { deconstruct = bareGameTree }	= Data.RoseTree.traceRoute (\turn -> Data.Maybe.maybe False (== turn) . Model.Game.maybeLastTurn) bareGameTree
+traceRoute MkGameTree { deconstruct = bareGameTree }	= Data.RoseTree.traceRoute (\turn -> (== Just turn) . Model.Game.maybeLastTurn) bareGameTree
 
 -- | Focus the underlying type.
 type MoveFrequency x y	= Model.MoveFrequency.MoveFrequency (Component.Move.Move x y)

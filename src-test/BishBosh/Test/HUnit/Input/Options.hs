@@ -81,7 +81,7 @@ testCases	= Test.HUnit.test [
 			\path -> do
 				optionsList	<- HXT.runX {-which returns a list-} $ HXT.setTraceLevel maximumTraceLevel >>> HXT.xunpickleDocument HXT.xpickle inputSysConfig path
 
-				Data.Maybe.maybe False (== head optionsList) (
+				(== Just (head optionsList)) (
 					(HXT.unpickleDoc HXT.xpickle . HXT.pickleDoc HXT.xpickle) =<< Data.Maybe.listToMaybe (
 						optionsList :: [
 							Input.Options.Options T.Y {-column-} T.CriterionWeight T.PieceSquareValue T.RankValue T.X {-row-} T.X T.Y

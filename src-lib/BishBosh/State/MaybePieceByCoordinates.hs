@@ -365,7 +365,7 @@ listDestinationsFor :: (
 	-> [(Cartesian.Coordinates.Coordinates x y, Maybe Attribute.Rank.Rank)]	-- ^ The destination & the rank of any piece taken.
 {-# SPECIALISE listDestinationsFor :: Cartesian.Coordinates.Coordinates T.X T.Y -> Component.Piece.Piece -> MaybePieceByCoordinates T.X T.Y -> [(Cartesian.Coordinates.Coordinates T.X T.Y, Maybe Attribute.Rank.Rank)] #-}
 listDestinationsFor source piece maybePieceByCoordinates@MkMaybePieceByCoordinates { deconstruct = byCoordinates }	= Control.Exception.assert (
-	Data.Maybe.maybe False (== piece) $ byCoordinates ! source
+	byCoordinates ! source == Just piece
  ) $ if Component.Piece.getRank piece `elem` Attribute.Rank.fixedAttackRange
 	then {-P,N,K-} let
 		findDestinations predicate	= [
@@ -555,7 +555,7 @@ findProximateKnights :: (
 	-> MaybePieceByCoordinates x y
 	-> [Cartesian.Coordinates.Coordinates x y]
 findProximateKnights logicalColour destination MkMaybePieceByCoordinates { deconstruct = byCoordinates }	= filter (
-	Data.Maybe.maybe False (== knight) . (byCoordinates !)
+	(== Just knight) . (byCoordinates !)
  ) $ Component.Piece.findAttackDestinations destination knight where
 	knight	= Component.Piece.mkKnight logicalColour
 

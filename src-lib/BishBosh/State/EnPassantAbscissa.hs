@@ -43,7 +43,6 @@ import qualified	BishBosh.Property.Opposable		as Property.Opposable
 import qualified	BishBosh.State.MaybePieceByCoordinates	as State.MaybePieceByCoordinates
 import qualified	Control.DeepSeq
 import qualified	Data.Array.IArray
-import qualified	Data.Maybe
 
 -- | Defines the file on which an En-passant option currently exists.
 newtype EnPassantAbscissa x	= MkEnPassantAbscissa {
@@ -71,8 +70,8 @@ mkMaybeEnPassantAbscissa nextLogicalColour maybePieceByCoordinates lastTurn
 	| Component.Turn.isPawnDoubleAdvance (Property.Opposable.getOpposite nextLogicalColour) lastTurn
 	, let destination	= Component.Move.getDestination . Component.QualifiedMove.getMove $ Component.Turn.getQualifiedMove lastTurn
 	, any (
-		Data.Maybe.maybe False {-unoccupied-} (
-			== Component.Piece.mkPawn nextLogicalColour
+		(
+			== Just (Component.Piece.mkPawn nextLogicalColour)
 		) . (
 			`State.MaybePieceByCoordinates.dereference` maybePieceByCoordinates
 		)
