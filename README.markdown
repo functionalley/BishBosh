@@ -21,7 +21,7 @@ For information on copying and distributing this package, see the file "**LICENS
 
 ## Bug-reporting
 
-Bug-reports should be emailed to <bishbosh@functionalley.eu>.
+Bug-reports should be emailed to <bishbosh@functionalley.com>.
 
 ## Testing
 

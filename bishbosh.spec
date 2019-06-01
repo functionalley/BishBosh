@@ -24,13 +24,13 @@
 
 Summary:	BishBosh is a chess-game.
 Name:		bishbosh
-Version:	0.0.0.3
+Version:	0.0.0.4
 Release:	1
 License:	GPLv3
 # From '/usr/share/doc/packages/rpm/GROUPS'.
 Group:		Amusements/Games
-# Source0:	https://functionalley.eu/Downloads/sdist/%tarBall
-URL:		https://functionalley.eu/BishBosh/%name.html
+# Source0:	https://functionalley.com/Downloads/sdist/%tarBall
+URL:		https://functionalley.com/BishBosh/%name.html
 Prefix:		/usr
 BuildRequires:	haskell-platform
 
@@ -72,6 +72,6 @@ rm -rf -- '%_builddir/%package/' '%buildroot/'	# Only the '.rpm' is required.
 %attr(0644, root, root) %doc	%_mandir/man5/%name.5.gz
 
 %changelog
-* Thu Jul 04 2013	Alistair Ward	<bishbosh@functionalley.eu>	0.0.0.1-1
+* Thu Jul 04 2013	Alistair Ward	<bishbosh@functionalley.com>	0.0.0.1-1
 First cut.
 
