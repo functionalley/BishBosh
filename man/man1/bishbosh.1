@@ -21,17 +21,17 @@ It features:
 .IP \(bu
 Unlimited roll-back of moves.
 .IP \(bu
-Configurable \fBhttps://en.wikipedia.org/wiki/Chess_notation\fR.
+Configurable <\fBhttps://en.wikipedia.org/wiki/Chess_notation\fR>.
 .IP \(bu
 The ability to read PGN-databases of standard openings & archived games,
-in which it can match both \fBhttps://chessprogramming.wikispaces.com/Transposition\fR s & colour-flipped (\fBhttps://chessprogramming.wikispaces.com/Color+Flipping\fR) positions.
+in which it can match both <\fBhttps://chessprogramming.wikispaces.com/Transposition\fR>s & colour-flipped (<\fBhttps://chessprogramming.wikispaces.com/Color+Flipping\fR>) positions.
 .IP \(bu
 Automation of the moves for either, neither, or both players.
 Both the evaluation of moves & the search for the optimum, are highly configurable; see \fBsection-5\fR of the man-pages.
 .IP \(bu
 Optional hints for manual players.
 .IP \(bu
-\fBhttps://chessprogramming.wikispaces.com/Pondering\fR .
+<\fBhttps://chessprogramming.wikispaces.com/Pondering\fR>.
 .SS Implementation
 Some understanding of the algorithm used to automatically select moves, is useful either when configuring this application or when interpreting the esoteric feedback available after move-selection (given "\fB--verbosity=Deafening\fR").
 The algorithm first compares the position with those in the referenced PGN-databases; a looser criterion than whether a matching move-sequence exists.
@@ -39,14 +39,14 @@ It then partitions all matching archived positions, based on whether the current
 The next move will be selected randomly from the subset of victorious matching positions, in preference to the non-victorious subset.
 .PP
 On failure to match the position with an archived game, the tree of all possible moves until the end of the game, is constructed & statically sorted to advance the subsequent evaluation of capture-moves,
-using either \fBhttps://chessprogramming.wikispaces.com/MVV-LVA\fR or \fBhttps://chessprogramming.wikispaces.com/Static+Exchange+Evaluation\fR .
-On each move, this tree's non-capture moves are dynamically sorted using the \fBhttps://chessprogramming.wikispaces.com/Killer+Heuristic\fR & the \fBhttps://chessprogramming.wikispaces.com/History+Heuristic\fR .
+using either <\fBhttps://chessprogramming.wikispaces.com/MVV-LVA\fR> or <\fBhttps://chessprogramming.wikispaces.com/Static+Exchange+Evaluation\fR>.
+On each move, this tree's non-capture moves are dynamically sorted using the <\fBhttps://chessprogramming.wikispaces.com/Killer+Heuristic\fR> & the <\fBhttps://chessprogramming.wikispaces.com/History+Heuristic\fR>.
 .br
-This tree is then searched using a \fBhttps://chessprogramming.wikispaces.com/Negamax\fR algorithm with \fBhttps://chessprogramming.wikispaces.com/Alpha-Beta\fR pruning,
+This tree is then searched using a <\fBhttps://chessprogramming.wikispaces.com/Negamax\fR> algorithm with <\fBhttps://chessprogramming.wikispaces.com/Alpha-Beta\fR> pruning,
 over a constant configurable number of plies, to find the optimal move according to the weighted-mean of various criteria described in \fBsection-5\fR of the man-pages.
 .br
-Shortcuts in the search for the optimal move are taken on encountering either \fBhttps://chessprogramming.wikispaces.com/Repetitions\fR in the move-sequence,
-or transpositions (\fBhttps://chessprogramming.wikispaces.com/Transposition\fR) of sibling games.
+Shortcuts in the search for the optimal move are taken on encountering either <\fBhttps://chessprogramming.wikispaces.com/Repetitions\fR> in the move-sequence,
+or transpositions (<\fBhttps://chessprogramming.wikispaces.com/Transposition\fR>) of sibling games.
 .SH OPTIONS
 .SS "Input"
 .TP
@@ -67,7 +67,7 @@ N.B.: this application only makes significant use of the random-generator when s
 \fB--verbosity=\fR(\fBSilent\fR|\fBNormal\fR|\fBVerbose\fR|\fBDeafening\fR), defaulting to "\fBNormal\fR".
 Defines the quantity of ancillary output required. See "\fBverbosity\fR" in \fBsection-5\fR of the man-pages.
 .TP
-\fB--printMoveTree\fR=\fI<Int>\fR
+\fB--printMoveTree\fR=<\fIInt\fR>
 Print the tree of all possible moves in the configured notation, each annotated by a fitness-evaluation for the resulting position, truncated to the specified number of plies; see \fBsection-5\fR of the man-pages for details.
 .SS "Generic Program-information"
 .TP
@@ -116,7 +116,7 @@ If one references large PGN-databases from the configuration (see "\fBpgnOptions
 .IP \(bu
 The application has been instructed to provide a relatively large amount of feedback.
 .IP \(bu
-One of the packaged configuration-files has been referenced, which automates White's moves & specifies a raw ASCII interface; on \fBMS-Windows\fR you'll need to issue this from a terminal-emulator which understands \fBhttps://en.wikipedia.org/wiki/ANSI_escape_code\fR .
+One of the packaged configuration-files has been referenced, which automates White's moves & specifies a raw ASCII interface; on \fBMS-Windows\fR you'll need to issue this from a terminal-emulator which understands <\fBhttps://en.wikipedia.org/wiki/ANSI_escape_code\fR>.
 This path includes both an architecture-specific & a version-specific directory, which are represented as globs & expanded by \fBbash\fR; on \fBMS-Windows\fR you may need to be more explicit.
 .IP \(bu
 CAVEAT: assumes that the executable exists on \fB$PATH\fR, otherwise an explicit path will be required.
@@ -150,9 +150,9 @@ File-name	Contents
 bishbosh.svg	A module-dependency graph for this application.
 config/{CECP,Raw}/*.xml	Sample configuration-files.
 man/man5/bishbosh.5	\fBSection-5\fR of the man-pages for this product, describing the configuration-file format.
-pgn/*.pgn	Sample PGN-databases; \fBhttps://en.wikipedia.org/wiki/Portable_Game_Notation\fR .
+pgn/*.pgn	Sample PGN-databases; <\fBhttps://en.wikipedia.org/wiki/Portable_Game_Notation\fR>.
 ~/.bishbosh/*.txt	Persisted games, stored in a user-specific directory.
-https://www.gnu.org/software/xboard	A GUI for chess-engines.
+<https://www.gnu.org/software/xboard>	A GUI for chess-engines.
 .TE
 .SH AUTHOR
 Written by Dr. Alistair Ward.
@@ -172,16 +172,16 @@ This program is free software: you can redistribute it and/or modify it under th
 .PP
 This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
 .PP
-You should have received a copy of the GNU General Public License along with this program. If not, see \fBhttps://www.gnu.org/licenses/\fR .
+You should have received a copy of the GNU General Public License along with this program. If not, see <\fBhttps://www.gnu.org/licenses/\fR>.
 .SH "SEE ALSO"
 .IP \(bu
-Home-page: \fBhttps://functionalley.com/BishBosh/bishbosh.html\fR
+Home-page: <\fBhttps://functionalley.com/BishBosh/bishbosh.html\fR>.
 .IP \(bu
-.B https://hackage.haskell.org/package/bishbosh
+<\fBhttps://hackage.haskell.org/package/bishbosh\fR>.
 .IP \(bu
-.B https://github.com/functionalley/BishBosh
+<\fBhttps://github.com/functionalley/BishBosh\fR>.
 .IP \(bu
 Source-documentation is generated by "\fBHaddock\fR", & is available in the distribution.
 .IP \(bu
-.B https://www.haskell.org/haddock/
+<\fBhttps://www.haskell.org/haddock/\fR>.
 

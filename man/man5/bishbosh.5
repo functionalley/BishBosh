@@ -16,7 +16,7 @@ Each field governs automatic move-evaluation:
 Whether to incrementally generate position-hashes & evaluate the piece-square value, from the previous values; otherwise these quantities are evaluated from scratch.
 This option slightly reduces memory-requirement, but doesn't affect the result.
 .IP \(bu
-\fBrankValues\fR: defines the value within the closed unit interval "\fB[0, 1]\fR", of each type of piece, defaulting (ref. \fBhttps://chessprogramming.wikispaces.com/Point+Value\fR) to:
+\fBrankValues\fR: defines the value within the closed unit interval "\fB[0, 1]\fR", of each type of piece, defaulting (ref. <\fBhttps://chessprogramming.wikispaces.com/Point+Value\fR>) to:
 .TS
 lb	lb
 l	l
@@ -39,14 +39,14 @@ l	l	l	l
 lb	l	lb	l	.
 Criterion	Metric	Ref	Notes
 =========	======	===	=====
-material	Quantifies the value of the pieces remaining per side.	https://chessprogramming.wikispaces.com/Material	This is dependent on the value of each type of piece; see "\fBrankValues\fR".
-mobility	The difference between the number of moves available per side.	https://chessprogramming.wikispaces.com/Mobility	Actually the reciprocal is measured, to emphasis the reduction caused by checking one's opponent.
-pieceSquareValue	Quantifies the position held by the pieces per side.	https://chessprogramming.wikispaces.com/Piece-Square+Tables	This metric includes aspects of both "\fBmaterial\fR" & "\fBmobility\fR". The value can be made linearly dependent on progress through the game.
+material	Quantifies the value of the pieces remaining per side.	<https://chessprogramming.wikispaces.com/Material>	This is dependent on the value of each type of piece; see "\fBrankValues\fR".
+mobility	The difference between the number of moves available per side.	<https://chessprogramming.wikispaces.com/Mobility>	Actually the reciprocal is measured, to emphasis the reduction caused by checking one's opponent.
+pieceSquareValue	Quantifies the position held by the pieces per side.	<https://chessprogramming.wikispaces.com/Piece-Square+Tables>	This metric includes aspects of both "\fBmaterial\fR" & "\fBmobility\fR". The value can be made linearly dependent on progress through the game.
 castlingPotential	Whether each player has been permanently prevented from castling.		Reflects the disadvantage of moving one's King, thus preventing subsequent castling.
 defence	The difference between the number of pieces defending one's own, per side.		There's neither any penalty for gaps in this defence nor account made of the value of the defended piece; it's just the total number of defenders.
-doubledPawns	The difference between the total number of doubled Pawns per side.	https://chessprogramming.wikispaces.com/Doubled+Pawn	Reflects the reduced mobility of such Pawns.
-isolatedPawns	The difference between the total number of isolated Pawns per side.	https://chessprogramming.wikispaces.com/Isolated+Pawn	Reflects the lack of defence from adjacent Pawns.
-passedPawns	The difference between the total number of passed Pawns per side.	https://chessprogramming.wikispaces.com/Passed+Pawn	Reflects improved promotion-prospects.
+doubledPawns	The difference between the total number of doubled Pawns per side.	<https://chessprogramming.wikispaces.com/Doubled+Pawn>	Reflects the reduced mobility of such Pawns.
+isolatedPawns	The difference between the total number of isolated Pawns per side.	<https://chessprogramming.wikispaces.com/Isolated+Pawn>	Reflects the lack of defence from adjacent Pawns.
+passedPawns	The difference between the total number of passed Pawns per side.	<https://chessprogramming.wikispaces.com/Passed+Pawn>	Reflects improved promotion-prospects.
 .TE
 .IP
 Other criteria could be measured, but orthogonality is problematic.
@@ -86,35 +86,35 @@ l	l
 lb	l	.
 Value	Meaning
 =====	=======
-MVVLVA	moves are advanced depending on the value of rank of the piece they capture, but where this is equal, those which achieve this using a less valuable piece are preferred; \fBhttps://chessprogramming.wikispaces.com/MVV-LVA\fR . This is highly effective.
-SEE	moves are advanced depending on the net material gain resulting from any battle at the destination; \fBhttps://chessprogramming.wikispaces.com/Static+Exchange+Evaluation\fR . This is not currently competitive.
+MVVLVA	moves are advanced depending on the value of rank of the piece they capture, but where this is equal, those which achieve this using a less valuable piece are preferred; <\fBhttps://chessprogramming.wikispaces.com/MVV-LVA\fR>. This is highly effective.
+SEE	moves are advanced depending on the net material gain resulting from any battle at the destination; <\fBhttps://chessprogramming.wikispaces.com/Static+Exchange+Evaluation\fR>. This is not currently competitive.
 .TE
 .IP
 Neither of these sort-algorithms affects the relative order of non-capture moves; cf. \fBpreferMovesTowardsCentre\fR & \fBsortOnStandardOpeningMoveFrequency\fR.
 This is performed after \fBsortOnStandardOpeningMoveFrequency\fR.
 .IP \(bu
-\fBminimumHammingDistance\fR \fIInt\fR: the optional positive lower bound on the Hamming-distance between any of the random numbers used to generate Zobrist hashes from positions; \fBhttps://chessprogramming.wikispaces.com/Zobrist+Hashing\fR .
+\fBminimumHammingDistance\fR \fIInt\fR: the optional positive lower bound on the Hamming-distance between any of the random numbers used to generate Zobrist hashes from positions; <\fBhttps://chessprogramming.wikispaces.com/Zobrist+Hashing\fR>.
 .br
 CAVEAT: linear independence of the bit-vectors is a better measure than Hamming-distance, of the quality of the selected random numbers.
 .IP \(bu
-\fBretireKillerMovesAfter\fR \fIInt\fR: the optional non-negative number of full moves (one by each player) after which killer-moves are retired; \fBhttps://chessprogramming.wikispaces.com/Killer+Move\fR .
+\fBretireKillerMovesAfter\fR \fIInt\fR: the optional non-negative number of full moves (one by each player) after which killer-moves are retired; <\fBhttps://chessprogramming.wikispaces.com/Killer+Move\fR>.
 If unspecified, killer-moves won't even be recorded.
 .br
 N.B.: this is highly effective up to about \fB3\fR, beyond which returns diminish.
 .br
-Killer-moves are used to dynamically sort the moves available from a position, based on whether similar moves previously triggered beta-cutoff; \fBhttps://chessprogramming.wikispaces.com/Beta-Cutoff\fR .
+Killer-moves are used to dynamically sort the moves available from a position, based on whether similar moves previously triggered beta-cutoff; <\fBhttps://chessprogramming.wikispaces.com/Beta-Cutoff\fR>.
 .IP \(bu
-\fBtrapRepeatedPositions\fR: whether to short-circuit the fitness-evaluation of \fIposition\fRs which have been visited before in the current game; \fBhttps://chessprogramming.wikispaces.com/Repetitions\fR .
+\fBtrapRepeatedPositions\fR: whether to short-circuit the fitness-evaluation of \fIposition\fRs which have been visited before in the current game; <\fBhttps://chessprogramming.wikispaces.com/Repetitions\fR>.
 These situations result from loops of consecutive reversible moves, in the move-tree which defines the game of chess.
 The fitness of such \fIposition\fRs can be derived by induction, since were one to search from this \fIposition\fR,
 one would ultimately arrive back another time, so the fitness of this future \fIposition\fR equals the current fitness.
 .br
 N.B.: this doesn't typically improve performance in either space or time.
 .IP \(bu
-\fBusePondering\fR: whether an automated player should plan their next move, based on a prediction of the opponent's response, & thus make use their opponent's thinking-time; \fBhttps://chessprogramming.wikispaces.com/Pondering\fR .
+\fBusePondering\fR: whether an automated player should plan their next move, based on a prediction of the opponent's response, & thus make use their opponent's thinking-time; <\fBhttps://chessprogramming.wikispaces.com/Pondering\fR>.
 .IP \(bu
 \fBtranspositions\fR: these can be used to reorder the evaluation of moves,
-based on the results previously found for identical \fIposition\fRs in sibling games reached by an alternative sequence of arbitrary moves; \fBhttps://chessprogramming.wikispaces.com/Transposition\fR .
+based on the results previously found for identical \fIposition\fRs in sibling games reached by an alternative sequence of arbitrary moves; <\fBhttps://chessprogramming.wikispaces.com/Transposition\fR>.
 .TS
 lb	lb	lb
 l	l	l
@@ -134,7 +134,7 @@ Field	Type	Default	Meaning
 =========	====	=======	=======
 tryToMatchMoves	Bool	True	whether to attempt to exactly match the moves already made, with a standard opening; i.e. without matching transpositions.
 tryToMatchViaJoiningMove	Bool	True	whether to attempt to join the current position (irrespective of the means by which it was achieved) to a standard opening that's only one move away.
-tryToMatchColourFlippedPosition	Bool	True	whether to attempt to match a colour-flipped (\fBhttps://chessprogramming.wikispaces.com/Color+Flipping\fR) version of the current position with a standard opening.
+tryToMatchColourFlippedPosition	Bool	True	whether to attempt to match a colour-flipped (<\fBhttps://chessprogramming.wikispaces.com/Color+Flipping\fR>) version of the current position with a standard opening.
 .TE
 .IP \(bu
 \fBsearchDepth\fR \fIInt\fR, defaulting to "\fB4\fR" (minimum "\fB1\fR"): the number of plies (half moves) to search ahead, when selecting the next move.
@@ -148,7 +148,7 @@ The application defines a set of "\fBioOptions\fR", in which one can define:
 .IP \(bu
 \fBmaximumPGNNames\fR \fIInt\fR: the optional maximum number of names, with which to annotate moves matching games from the configured PGN-databases.
 .IP \(bu
-\fBpgnOptions\fR: these options allow one to reference PGN-databases, which the application can leverage during move-selection; \fBhttps://en.wikipedia.org/wiki/Portable_Game_Notation\fR .
+\fBpgnOptions\fR: these options allow one to reference PGN-databases, which the application can leverage during move-selection; <\fBhttps://en.wikipedia.org/wiki/Portable_Game_Notation\fR>.
 .TS
 lb	lb	lb	lb
 l	l	l	l
@@ -175,7 +175,7 @@ automatic	(\fBTrue\fR|\fBFalse\fR)	True	Whether the game-state is automatically 
 .P
 "\fBioOptions\fR" has a sub-section "\fBuiOptions\fR", which defines the user-interface.
 .IP \(bu
-\fBmoveNotation\fR (\fBCoordinate\fR|\fBICCFNumeric\fR|\fBSmith\fR), defaulting to "\fBSmith\fR"; \fBhttps://en.wikipedia.org/wiki/Chess_notation\fR . The expected syntax used to define a move.
+\fBmoveNotation\fR (\fBCoordinate\fR|\fBICCFNumeric\fR|\fBSmith\fR), defaulting to "\fBSmith\fR"; <\fBhttps://en.wikipedia.org/wiki/Chess_notation\fR>. The expected syntax used to define a move.
 This application also understands \fBStandard Algebraic\fR notation, but it is only used to read the PGN-databases used to define standard openings.
 .IP \(bu
 \fBprintMoveTree\fR \fIInt\fR.
@@ -226,8 +226,8 @@ config/bishbosh.dtd	A basic formal description of the XML-format for the configu
 config/bishbosh.rng	A more sophisticated, but slower, \fBRELAX NG\fR definition of the XML-format for the configuration-file.
 config/{CECP,Raw}/*.xml	Sample configuration-files.
 man/man1/bishbosh.1	Section-1 of the man-pages for this product, describing the command-line.
-pgn/*.pgn	Standard openings & archived games, described in \fBhttps://en.wikipedia.org/wiki/Portable_Game_Notation\fR .
-https://www.oasis-open.org/committees/relax-ng/tutorial-20011203.html	A \fBRELAX NG\fR tutorial.
+pgn/*.pgn	Standard openings & archived games, described in <\fBhttps://en.wikipedia.org/wiki/Portable_Game_Notation\fR>.
+<https://www.oasis-open.org/committees/relax-ng/tutorial-20011203.html>	A \fBRELAX NG\fR tutorial.
 .TE
 .SH AUTHOR
 Written by Dr. Alistair Ward.
@@ -238,5 +238,5 @@ This program is free software: you can redistribute it and/or modify it under th
 .PP
 This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
 .PP
-You should have received a copy of the GNU General Public License along with this program. If not, see \fBhttps://www.gnu.org/licenses/\fR .
+You should have received a copy of the GNU General Public License along with this program. If not, see <\fBhttps://www.gnu.org/licenses/\fR>.
 
