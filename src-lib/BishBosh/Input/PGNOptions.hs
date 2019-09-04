@@ -31,6 +31,7 @@ module BishBosh.Input.PGNOptions(
 		getDatabaseFilePath,
 		getIsStrictlySequential,
 		getValidateMoves,
+		getTextEncoding,
 		getIdentificationTags,
 		getMinimumPlies
 	),
@@ -48,11 +49,13 @@ import qualified	BishBosh.Component.Move				as Component.Move
 import qualified	BishBosh.ContextualNotation.PGN			as ContextualNotation.PGN
 import qualified	BishBosh.ContextualNotation.StandardAlgebraic	as ContextualNotation.StandardAlgebraic
 import qualified	BishBosh.Data.Exception				as Data.Exception
+import qualified	BishBosh.Text.Encoding				as Text.Encoding
 import qualified	BishBosh.Text.ShowList				as Text.ShowList
 import qualified	Control.DeepSeq
 import qualified	Control.Exception
 import qualified	Data.Default
 import qualified	System.FilePath
+import qualified	System.IO
 import qualified	Text.XML.HXT.Arrow.Pickle			as HXT
 import qualified	ToolShed.Data.Foldable
 
@@ -85,6 +88,7 @@ data PGNOptions	= MkPGNOptions {
 	getDatabaseFilePath	:: System.FilePath.FilePath,				-- ^ Path to a PGN-database file.
 	getIsStrictlySequential	:: ContextualNotation.PGN.IsStrictlySequential,		-- ^ Whether moves with an unexpected number should be considered to be an error.
 	getValidateMoves	:: ContextualNotation.StandardAlgebraic.ValidateMoves,	-- ^ Whether moves should be validated, which can become tedious if they're already known to be valid.
+	getTextEncoding		:: System.IO.TextEncoding,				-- ^ The conversion-scheme between byte-sequences & Unicode characters.
 	getIdentificationTags	:: [ContextualNotation.PGN.Tag],			-- ^ The tags to extract from this PGN-database to form a unique composite game-identifier.
 	getMinimumPlies		:: Component.Move.NMoves				-- ^ The minimum number of half moves, for the game to be considered useful; most short games result from "forfeit by disconnection".
 } deriving Eq
@@ -103,6 +107,7 @@ instance Show PGNOptions where
 		getDatabaseFilePath	= databaseFilePath,
 		getIsStrictlySequential	= isStrictlySequential,
 		getValidateMoves	= validateMoves,
+		getTextEncoding		= textEncoding,
 		getIdentificationTags	= identificationTags,
 		getMinimumPlies		= minimumPlies
 	} = Text.ShowList.showsAssociationList' [
@@ -115,6 +120,9 @@ instance Show PGNOptions where
 		), (
 			validateMovesTag,
 			shows validateMoves
+		), (
+			Text.Encoding.tag,
+			shows textEncoding
 		), (
 			showString identificationTagTag "s",
 			shows identificationTags
@@ -129,27 +137,29 @@ instance Data.Default.Default PGNOptions where
 		getDatabaseFilePath	= "pgn/bishbosh.pgn",	-- CAVEAT: rather arbitrary.
 		getIsStrictlySequential	= True,
 		getValidateMoves	= True,
+		getTextEncoding		= Data.Default.def,
 		getIdentificationTags	= ["ECO", "Variation"],	-- CAVEAT: rather arbitrary.
 		getMinimumPlies		= 1
 	}
 
 instance HXT.XmlPickler PGNOptions where
 	xpickle	= HXT.xpElem tag . HXT.xpWrap (
-		\(a, b, c, d, e) -> mkPGNOptions a b c d e,	-- Construct.
+		\(a, b, c, d, e, f) -> mkPGNOptions a b c d e f,	-- Construct.
 		\MkPGNOptions {
 			getDatabaseFilePath	= databaseFilePath,
 			getIsStrictlySequential	= isStrictlySequential,
 			getValidateMoves	= validateMoves,
+			getTextEncoding		= textEncoding,
 			getIdentificationTags	= identificationTags,
 			getMinimumPlies		= minimumPlies
-		} -> (databaseFilePath, isStrictlySequential, validateMoves, identificationTags, minimumPlies) -- Deconstruct.
-	 ) $ HXT.xp5Tuple (
+		} -> (databaseFilePath, isStrictlySequential, validateMoves, textEncoding, identificationTags, minimumPlies) -- Deconstruct.
+	 ) $ HXT.xp6Tuple (
 		HXT.xpTextAttr databaseFilePathTag
 	 ) (
 		getIsStrictlySequential def `HXT.xpDefault` HXT.xpAttr isStrictlySequentialTag HXT.xpickle {-Bool-}
 	 ) (
 		getValidateMoves def `HXT.xpDefault` HXT.xpAttr validateMovesTag HXT.xpickle {-Bool-}
-	 ) (
+	 ) HXT.xpickle {-TextEncoding-} (
 		HXT.xpList . HXT.xpElem identificationTagTag $ HXT.xpTextAttr "tag"
 	 ) (
 		getMinimumPlies def `HXT.xpDefault` HXT.xpAttr minimumPliesTag HXT.xpickle {-NMoves-}
@@ -161,10 +171,11 @@ mkPGNOptions
 	:: System.FilePath.FilePath	-- ^ Database file-path.
 	-> ContextualNotation.PGN.IsStrictlySequential
 	-> ContextualNotation.StandardAlgebraic.ValidateMoves
+	-> System.IO.TextEncoding
 	-> [ContextualNotation.PGN.Tag]	-- ^ Optional identification tags.
 	-> Component.Move.NMoves	-- ^ The minimum plies.
 	-> PGNOptions
-mkPGNOptions databaseFilePath isStrictlySequential validateMoves identificationTags minimumPlies
+mkPGNOptions databaseFilePath isStrictlySequential validateMoves textEncoding identificationTags minimumPlies
 	| not $ System.FilePath.isValid databaseFilePath	= Control.Exception.throw . Data.Exception.mkInvalidDatum . showString "BishBosh.Input.PGNOptions.mkPGNOptions:\tinvalid " . showString databaseFilePathTag . Text.ShowList.showsAssociation $ shows databaseFilePath "."
 	| any null identificationTags				= Control.Exception.throw . Data.Exception.mkNullDatum . showString "BishBosh.Input.PGNOptions.mkPGNOptions:\tno " $ shows identificationTagTag " can be null."
 	| duplicateTags@(_ : _)	<- map head . filter ((/= 1) . length) $ ToolShed.Data.Foldable.gather identificationTags
@@ -174,6 +185,7 @@ mkPGNOptions databaseFilePath isStrictlySequential validateMoves identificationT
 		getDatabaseFilePath	= System.FilePath.normalise databaseFilePath,
 		getIsStrictlySequential	= isStrictlySequential,
 		getValidateMoves	= validateMoves,
+		getTextEncoding		= textEncoding,
 		getIdentificationTags	= identificationTags,
 		getMinimumPlies		= minimumPlies
 	}

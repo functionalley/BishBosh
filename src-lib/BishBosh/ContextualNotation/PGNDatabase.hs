@@ -36,7 +36,9 @@ module BishBosh.ContextualNotation.PGNDatabase(
 import qualified	BishBosh.ContextualNotation.PGN			as ContextualNotation.PGN
 import qualified	BishBosh.ContextualNotation.StandardAlgebraic	as ContextualNotation.StandardAlgebraic
 import qualified	BishBosh.Types					as T
+import qualified	Control.DeepSeq
 import qualified	System.FilePath
+import qualified	System.IO
 
 #ifdef USE_POLYPARSE
 import qualified	BishBosh.Text.Poly				as Text.Poly
@@ -118,8 +120,14 @@ parseIO :: (
 	=> System.FilePath.FilePath
 	-> ContextualNotation.PGN.IsStrictlySequential
 	-> ContextualNotation.StandardAlgebraic.ValidateMoves
+	-> System.IO.TextEncoding	-- ^ The conversion-scheme between byte-sequences & Unicode characters.
 	-> [ContextualNotation.PGN.Tag]
 	-> IO (Either String (PGNDatabase x y))
-{-# SPECIALISE parseIO :: System.FilePath.FilePath -> ContextualNotation.PGN.IsStrictlySequential -> ContextualNotation.StandardAlgebraic.ValidateMoves -> [ContextualNotation.PGN.Tag] -> IO (Either String (PGNDatabase T.X T.Y)) #-}
-parseIO filePath isStrictlySequential validateMoves identificationTags	= parse filePath isStrictlySequential validateMoves identificationTags `fmap` readFile filePath
+{-# SPECIALISE parseIO :: System.FilePath.FilePath -> ContextualNotation.PGN.IsStrictlySequential -> ContextualNotation.StandardAlgebraic.ValidateMoves -> System.IO.TextEncoding -> [ContextualNotation.PGN.Tag] -> IO (Either String (PGNDatabase T.X T.Y)) #-}
+parseIO filePath isStrictlySequential validateMoves textEncoding identificationTags	= System.IO.withFile filePath System.IO.ReadMode $ \fileHandle -> do
+	System.IO.hSetEncoding fileHandle textEncoding
+
+	contents	<- System.IO.hGetContents fileHandle
+
+	Control.DeepSeq.deepseq contents {-CAVEAT: evaluate before the file is closed-} . return $ parse filePath isStrictlySequential validateMoves identificationTags contents
 

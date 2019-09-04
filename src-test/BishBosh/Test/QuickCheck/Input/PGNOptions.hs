@@ -26,6 +26,7 @@
 module BishBosh.Test.QuickCheck.Input.PGNOptions() where
 
 import qualified	BishBosh.Input.PGNOptions	as Input.PGNOptions
+import			BishBosh.Test.QuickCheck.Text.Encoding()
 import qualified	System.FilePath
 import qualified	Test.QuickCheck
 import			System.FilePath((</>), (<.>))
@@ -33,7 +34,7 @@ import			System.FilePath((</>), (<.>))
 instance Test.QuickCheck.Arbitrary Input.PGNOptions.PGNOptions where
 	arbitrary	= Input.PGNOptions.mkPGNOptions (
 		showChar System.FilePath.pathSeparator $ "tmp" </> "database" <.> "pgn"
-	 ) <$> Test.QuickCheck.arbitrary {-isStrictlySequential-} <*> Test.QuickCheck.arbitrary {-validateMoves-} <*> Test.QuickCheck.elements [
+	 ) <$> Test.QuickCheck.arbitrary {-isStrictlySequential-} <*> Test.QuickCheck.arbitrary {-validateMoves-} <*> Test.QuickCheck.arbitrary {-text-encoding-} <*> Test.QuickCheck.elements [
 		["FICSGamesDBGameNo"],
 		["ECO"],
 		["FICSGamesDBGameNo", "ECO"]

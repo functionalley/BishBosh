@@ -92,10 +92,11 @@
 		>
 		<!ELEMENT pgnOptions (identificationTag)*>
 			<!ATTLIST pgnOptions
-				databaseFilePath	CDATA		#REQUIRED
-				minimumPlies		CDATA		#IMPLIED
-				isStrictlySequential	(False | True)	#IMPLIED
-				validateMoves		(False | True)	#IMPLIED
+				databaseFilePath	CDATA					#REQUIRED
+				minimumPlies		CDATA					#IMPLIED
+				isStrictlySequential	(False | True)				#IMPLIED
+				validateMoves		(False | True)				#IMPLIED
+				textEncoding		(ISO8859-1 | UTF-8 | UTF-16 | UTF-32)	#IMPLIED
 			>
 			<!ELEMENT identificationTag EMPTY>
 				<!ATTLIST identificationTag

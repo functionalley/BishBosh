@@ -409,6 +409,8 @@ main	= do
 										) (
 											Input.PGNOptions.getValidateMoves pgnOptions
 										) (
+											Input.PGNOptions.getTextEncoding pgnOptions
+										) (
 											Input.PGNOptions.getIdentificationTags pgnOptions
 										)
 									) . Data.Maybe.listToMaybe =<< ToolShed.System.File.locate pgnDatabaseFilePath searchPath

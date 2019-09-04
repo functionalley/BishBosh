@@ -52,10 +52,10 @@
 			<identificationTag tag="ECO"/>
 			<identificationTag tag="Variation"/>
 <!--
-		</pgnOptions><pgnOptions databaseFilePath="pgn/scid_fr.pgn" validateMoves="False">
+		</pgnOptions><pgnOptions databaseFilePath="pgn/scid_fr.pgn" validateMoves="False" textEncoding="ISO8859-1">
 			<identificationTag tag="ECO"/>
 			<identificationTag tag="Variation"/>
-		</pgnOptions><pgnOptions databaseFilePath="pgn/bundesliga2000.pgn" validateMoves="False">
+		</pgnOptions><pgnOptions databaseFilePath="pgn/bundesliga2000.pgn" validateMoves="False" textEncoding="ISO8859-1">
 			<identificationTag tag="Event"/>
 			<identificationTag tag="Round"/>
 		</pgnOptions><pgnOptions databaseFilePath="pgn/ficsgamesdb_201601_standard2000_nomovetimes_1403205.pgn" validateMoves="False" minimumPlies="8">

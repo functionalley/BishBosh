@@ -151,7 +151,18 @@
 									</choice>
 									<ref name="Boolean"/>
 								</attribute>
-							</zeroOrMore><zeroOrMore>
+							</zeroOrMore>
+							<optional>
+								<attribute name="textEncoding">
+									<choice>
+										<value>ISO8859-1</value>
+										<value>UTF-8</value>
+										<value>UTF-16</value>
+										<value>UTF-32</value>
+									</choice>
+								</attribute>
+							</optional>
+							<zeroOrMore>
 								<element name="identificationTag">
 									<attribute name="tag"/>
 								</element>

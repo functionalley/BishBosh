@@ -159,6 +159,7 @@ databaseFilePath	\fIFile-path\fR		The path in the local file-system, to a PGN-da
 minimumPlies	\fIInt\fR	1	The minimum number of half moves, for an archived game to be considered valuable.
 isStrictlySequential	(\fBTrue\fR|\fBFalse\fR)	True	Whether the recorded move-numbers are accurate.
 validateMoves	(\fBTrue\fR|\fBFalse\fR)	False	Whether to validate all the moves. In the absence of validation, PGN-databases can be read faster, but the consequence of reading invalid moves is unpredictable. This option is required to read games which continued after a draw can be inferred.
+textEncoding	(\fBISO8859-1(checked)\fR|\fButf8\fR|\fButf16\fR|\fButf32\fR)	utf8	Defines the conversion-scheme between byte-sequences & Unicode characters.
 identificationTags	String		The PGN-field(s) from which to construct a composite identifier for a game.
 .TE
 .IP \(bu

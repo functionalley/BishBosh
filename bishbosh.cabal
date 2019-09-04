@@ -186,6 +186,7 @@ Library
         BishBosh.State.MaybePieceByCoordinates
         BishBosh.State.Position
         BishBosh.State.TurnsByLogicalColour
+        BishBosh.Text.Encoding
         BishBosh.Text.ShowList
         BishBosh.Types
         BishBosh.UI.Command
@@ -389,6 +390,7 @@ Test-Suite test
         BishBosh.Test.QuickCheck.State.InstancesByPosition
         BishBosh.Test.QuickCheck.State.Position
         BishBosh.Test.QuickCheck.State.TurnsByLogicalColour
+        BishBosh.Test.QuickCheck.Text.Encoding
         BishBosh.Test.QuickCheck.UI.Command
         BishBosh.Test.QuickCheck.UI.PrintObject
         BishBosh.Test.QuickCheck.UI.SetObject

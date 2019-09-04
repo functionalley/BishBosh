@@ -79,6 +79,7 @@ import qualified	BishBosh.Test.QuickCheck.State.Censor						as Test.QuickCheck.S
 import qualified	BishBosh.Test.QuickCheck.State.InstancesByPosition				as Test.QuickCheck.State.InstancesByPosition
 import qualified	BishBosh.Test.QuickCheck.State.Position						as Test.QuickCheck.State.Position
 import qualified	BishBosh.Test.QuickCheck.State.TurnsByLogicalColour				as Test.QuickCheck.State.TurnsByLogicalColour
+import qualified	BishBosh.Test.QuickCheck.Text.Encoding						as Test.QuickCheck.Text.Encoding
 import qualified	BishBosh.Test.QuickCheck.UI.Command						as Test.QuickCheck.UI.Command
 import qualified	BishBosh.Test.QuickCheck.UI.PrintObject						as Test.QuickCheck.UI.PrintObject
 import qualified	BishBosh.Test.QuickCheck.UI.SetObject						as Test.QuickCheck.UI.SetObject
@@ -112,6 +113,7 @@ main	= mapM_ Test.HUnit.runTestTT [
 	(`Control.Monad.unless` System.Exit.exitFailure) . all ToolShed.Test.QuickCheck.Result.isSuccessful =<<
  ) [
 	Test.QuickCheck.Data.Integral.results,
+	Test.QuickCheck.Text.Encoding.results,
 	Test.QuickCheck.Attribute.LogicalColour.results,
 	Test.QuickCheck.Attribute.Direction.results,
 	Test.QuickCheck.Attribute.Rank.results,
