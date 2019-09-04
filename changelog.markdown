@@ -11,3 +11,6 @@ Added **Paths_bishbosh** to **Other-modules** section of cabal file.
 
 ## 0.0.0.4
 Changed references to author's domain-name.
+
+## 0.0.0.5
+Added ability to specify the text-encoding used in a PGN-database file.
