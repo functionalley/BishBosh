@@ -115,11 +115,11 @@ readArg :: Read a => String -> a
 readArg	= read' "failed to parse command-line argument "
 
 -- | Reads a bounded integral from the command-line, guarding against overflow.
-readBoundedIntegral :: (Integral i, Read i, Show i) => String -> i
+readBoundedIntegral :: Integral i => String -> i
 readBoundedIntegral s
-	| bounded /= unbounded	= Control.Exception.throw . Data.Exception.mkOutOfBounds . showString "BishBosh.Input.CommandLineOption.readBoundedIntegral:\tintegral value exceeds permissible bounds; " $ shows unbounded "."
-	| otherwise		= bounded
+	| fromIntegral bounded /= unbounded	= Control.Exception.throw . Data.Exception.mkOutOfBounds . showString "BishBosh.Input.CommandLineOption.readBoundedIntegral:\tintegral value exceeds permissible bounds; " $ shows unbounded "."
+	| otherwise				= bounded
 	where
 		unbounded	= readArg s
-		bounded		= unbounded
+		bounded		= fromInteger unbounded
 
