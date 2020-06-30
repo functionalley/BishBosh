@@ -14,7 +14,7 @@
 -- along with BishBosh.  If not, see <http://www.gnu.org/licenses/>.
 
 Name:		bishbosh
-Version:	0.0.0.4
+Version:	0.0.0.5
 Cabal-version:	>= 1.10
 Copyright:	(C) 2018 Dr. Alistair Ward
 License:	GPL
@@ -25,7 +25,7 @@ Synopsis:	Plays chess.
 Build-type:	Simple
 Description:	A chess-game which can be rendered in a terminal (emulator) in raw ASCII, or used as an engine by xboard.
 Category:	Game
-Tested-with:	GHC == 8.0, GHC == 8.2, GHC == 8.4, GHC == 8.6
+Tested-with:	GHC == 8.0, GHC == 8.2, GHC == 8.4, GHC == 8.6, GHC == 8.8, GHC == 8.10
 Homepage:	https://functionalley.com/BishBosh/bishbosh.html
 Maintainer:	mailto:bishbosh@functionalley.com
 Bug-reports:	mailto:bishbosh@functionalley.com

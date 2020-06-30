@@ -14,3 +14,4 @@ Changed references to author's domain-name.
 
 ## 0.0.0.5
 Added ability to specify the text-encoding used in a PGN-database file.
+Updated list of test-compilers.

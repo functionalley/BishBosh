@@ -24,7 +24,7 @@
 
 Summary:	BishBosh is a chess-game.
 Name:		bishbosh
-Version:	0.0.0.4
+Version:	0.0.0.5
 Release:	1
 License:	GPLv3
 # From '/usr/share/doc/packages/rpm/GROUPS'.
