@@ -15,3 +15,6 @@ Changed references to author's domain-name.
 ## 0.0.0.5
 Added ability to specify the text-encoding used in a PGN-database file.
 Updated list of test-compilers.
+
+## 0.0.0.6
+Fixed failure to persiste game-state after requesting a restart.
