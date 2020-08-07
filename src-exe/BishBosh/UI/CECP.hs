@@ -315,7 +315,20 @@ readMove positionHashQualifiedMoveTree randomGen	= slave where
 						else showString " & leaving " . shows modeNames
 				 ) "."
 
-				return {-to IO-monad-} $ State.PlayState.reconstructPositionHashQuantifiedGameTree Data.Default.def {-game-} playState {
+				let game''	= Data.Default.def
+
+				Data.Maybe.maybe (
+					return {-to IO-monad-} ()
+				 ) (
+					\(filePath, _) -> Control.Exception.catch (
+						do
+							System.IO.withFile filePath System.IO.WriteMode (`System.IO.hPrint` game'')
+
+							Control.Monad.when (verbosity == maxBound) . System.IO.hPutStrLn System.IO.stderr . Text.ShowList.showsInfoPrefix . showString "the game-state has been saved in " $ shows filePath "."
+					) $ \e -> System.IO.hPutStrLn System.IO.stderr . Text.ShowList.showsErrorPrefix $ show (e :: Control.Exception.SomeException)
+				 ) $ Input.IOOptions.getMaybePersistence ioOptions
+
+				return {-to IO-monad-} $ State.PlayState.reconstructPositionHashQuantifiedGameTree game'' playState {
 					State.PlayState.getOptions	= options {
 						Input.Options.getIOOptions	= ioOptions {
 							Input.IOOptions.getUIOptions	= uiOptions {
@@ -323,7 +336,7 @@ readMove positionHashQualifiedMoveTree randomGen	= slave where
 							}
 						}
 					}
-				}	-- By exiting the event-loop, the new game will be persisted where appropriate.
+				}
 			onCommand (UI.Command.RollBack maybeNPlies)	= let
 				rollBack :: Component.Move.NMoves -> IO (State.PlayState.PlayState column criterionValue criterionWeight pieceSquareValue positionHash rankValue row weightedMean x y)
 				rollBack nPlies
@@ -1262,7 +1275,7 @@ takeTurns positionHashQualifiedMoveTree randomGen playState	= do
 						 ) (
 							\(filePath, automatic) -> let
 								game''	= State.PlayState.getGame playState''
-							in Control.Monad.when (automatic && show game'' /= show game') . Control.Exception.catch (
+							in Control.Monad.when automatic . Control.Exception.catch (
 								System.IO.withFile filePath System.IO.WriteMode (`System.IO.hPrint` game'')
 							) $ \e -> System.IO.hPutStrLn System.IO.stderr . Text.ShowList.showsErrorPrefix $ show (e :: Control.Exception.SomeException)
 						 ) $ Input.IOOptions.getMaybePersistence ioOptions

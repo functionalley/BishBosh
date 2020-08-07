@@ -52,7 +52,6 @@ import qualified	BishBosh.Input.UIOptions					as Input.UIOptions
 import qualified	BishBosh.Model.Game						as Model.Game
 import qualified	BishBosh.Notation.MoveNotation					as Notation.MoveNotation
 import qualified	BishBosh.Property.ForsythEdwards				as Property.ForsythEdwards
-import qualified	BishBosh.Property.Null						as Property.Null
 import qualified	BishBosh.Property.ShowFloat					as Property.ShowFloat
 import qualified	BishBosh.Search.Search						as Search.Search
 import qualified	BishBosh.Search.SearchState					as Search.SearchState
@@ -207,23 +206,31 @@ readMove positionHashQualifiedMoveTree randomGen startUTCTime playState	= let
 				UI.PrintObject.PGN		-> ContextualNotation.PGN.showsGame game >>= putStrLn . ($ "")
 
 			eventLoop
-		onCommand UI.Command.Quit		= do
+		onCommand UI.Command.Quit	= do
 			Control.Monad.when (verbosity == maxBound) . System.IO.hPutStrLn System.IO.stderr $ Text.Show.showsInfoPrefix "quitting on request."
 
 			return {-to IO-monad-} playState { State.PlayState.getMaybeApplicationTerminationReason = Just State.ApplicationTerminationReason.byRequest }
-		onCommand UI.Command.Resign		= do
+		onCommand UI.Command.Resign	= do
 			Control.Monad.when (verbosity == maxBound) . System.IO.hPutStrLn System.IO.stderr $ Text.Show.showsInfoPrefix "resigning."
 
 			return {-to IO-monad-} $ State.PlayState.resign playState
-		onCommand UI.Command.Restart
-			| Property.Null.isNull game	= do
-				Control.Monad.when (verbosity >= Data.Default.def) . System.IO.hPutStrLn System.IO.stderr $ Text.Show.showsWarningPrefix "the game is unstarted."
+		onCommand UI.Command.Restart	= do
+			Control.Monad.when (verbosity == maxBound) . System.IO.hPutStrLn System.IO.stderr $ Text.Show.showsInfoPrefix "restarting game."
 
-				return {-to IO-monad-} playState
-			| otherwise			= do
-				Control.Monad.when (verbosity == maxBound) . System.IO.hPutStrLn System.IO.stderr $ Text.Show.showsInfoPrefix "restarting game."
+			let game''	= Data.Default.def
 
-				return {-to IO-monad-} $ State.PlayState.reconstructPositionHashQuantifiedGameTree Data.Default.def {-game-} playState	-- By exiting the event-loop, the new game will be persisted where appropriate.
+			Data.Maybe.maybe (
+				return {-to IO-monad-} ()
+			 ) (
+				\(filePath, _) -> Control.Exception.catch (
+					do
+						System.IO.withFile filePath System.IO.WriteMode (`System.IO.hPrint` game'')
+
+						Control.Monad.when (verbosity == maxBound) . System.IO.hPutStrLn System.IO.stderr . Text.Show.showsInfoPrefix . showString "the game-state has been saved in " $ shows filePath "."
+				) $ \e -> System.IO.hPutStrLn System.IO.stderr . Text.Show.showsErrorPrefix $ show (e :: Control.Exception.SomeException)
+			 ) $ Input.IOOptions.getMaybePersistence ioOptions
+
+			return {-to IO-monad-} $ State.PlayState.reconstructPositionHashQuantifiedGameTree game'' playState
 		onCommand (UI.Command.RollBack maybeNPlies)	= let
 			rollBack :: Component.Move.NMoves -> IO (State.PlayState.PlayState column criterionValue criterionWeight pieceSquareValue positionHash rankValue row weightedMean x y)
 			rollBack nPlies
@@ -577,8 +584,11 @@ takeTurns positionHashQualifiedMoveTree randomGen playState	= let
 							 ) (
 								\(filePath, automatic) -> let
 									game''	= State.PlayState.getGame playState''
-								in Control.Monad.when (automatic && show game'' /= show game') . Control.Exception.catch (
-									System.IO.withFile filePath System.IO.WriteMode (`System.IO.hPrint` game'')
+								in Control.Monad.when automatic . Control.Exception.catch (
+									do
+										System.IO.withFile filePath System.IO.WriteMode (`System.IO.hPrint` game'')
+
+										Control.Monad.when (verbosity == maxBound) . System.IO.hPutStrLn System.IO.stderr . Text.Show.showsInfoPrefix . showString "the game-state has been saved in " $ shows filePath "."
 								) $ \e -> System.IO.hPutStrLn System.IO.stderr . Text.Show.showsErrorPrefix $ show (e :: Control.Exception.SomeException)
 							 ) $ Input.IOOptions.getMaybePersistence ioOptions
 
