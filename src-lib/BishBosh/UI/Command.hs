@@ -147,11 +147,11 @@ commands	= [
 	), (
 		quitTag,
 		Nothing,
-		"Quit"
+		"Terminate ths application"
 	), (
 		resignTag,
 		Nothing,
-		"Resign"
+		"Admit defeat"
 	), (
 		restartTag,
 		Nothing,
@@ -163,7 +163,7 @@ commands	= [
 	), (
 		saveTag,
 		Nothing,
-		"Save"
+		"Persist the current game-state"
 	), (
 		setTag,
 		Just setArgs,
