@@ -43,7 +43,7 @@ instance Eq System.IO.TextEncoding where
 
 instance Read System.IO.TextEncoding where
 	readsPrec _ s	= case Data.List.Extra.trimStart s of
-		'I':'S':'O':'8':'8':'5':'9':'-':'1':remainder	-> return {-to List-monad-} . (,) System.IO.latin1 $ case remainder of
+		'I':'S':'O': '-':'8':'8':'5':'9':'-':'1':remainder	-> return {-to List-monad-} . (,) System.IO.latin1 $ case remainder of
 			'(':'c':'h':'e':'c':'k':'e':'d':')':remainder2	-> remainder2	-- Junk.
 			_						-> remainder
 		'U':'T':'F':'-':'8':remainder			-> [(System.IO.utf8, remainder)]

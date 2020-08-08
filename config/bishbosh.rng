@@ -155,7 +155,7 @@
 							<optional>
 								<attribute name="textEncoding">
 									<choice>
-										<value>ISO8859-1</value>
+										<value>ISO-8859-1</value>
 										<value>UTF-8</value>
 										<value>UTF-16</value>
 										<value>UTF-32</value>

@@ -56,7 +56,7 @@
 		</searchDepthByLogicalColour>
 	</searchOptions>
 	<ioOptions maximumPGNNames="8">
-		<pgnOptions databaseFilePath="pgn/scid_fr.pgn" validateMoves="True" textEncoding="ISO8859-1">
+		<pgnOptions databaseFilePath="pgn/scid_fr.pgn" validateMoves="True" textEncoding="ISO-8859-1">
 			<identificationTag tag="ECO"/>
 			<identificationTag tag="Variation"/>
 		</pgnOptions>
