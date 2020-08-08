@@ -1,4 +1,3 @@
-{-# OPTIONS_GHC -fno-warn-orphans #-}
 {-
 	Copyright (C) 2018 Dr. Alistair Ward
 
@@ -20,7 +19,9 @@
 {- |
  [@AUTHOR@]	Dr. Alistair Ward
 
- [@DESCRIPTION@]	The levels of program-output.
+ [@DESCRIPTION@]
+	The levels of program-output.
+	N.B.: the data-type is coincidentally similar to 'Distribution.Verbosity.Internal.VerbosityLevel'.
 -}
 
 module BishBosh.Input.Verbosity(
