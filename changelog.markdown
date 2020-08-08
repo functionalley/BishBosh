@@ -17,4 +17,6 @@ Added ability to specify the text-encoding used in a PGN-database file.
 Updated list of test-compilers.
 
 ## 0.0.0.6
-Fixed failure to persiste game-state after requesting a restart.
+Fixed failure to persist game-state after requesting that the game be restarted.
+Fixed parsing of **TextEncoding** in **PGNOptions**.
+Replaced module **Distribution.Verbosity** with **BishBosh.Input.Verbosity**.

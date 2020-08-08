@@ -61,6 +61,7 @@ import qualified	BishBosh.Input.EvaluationOptions	as Input.EvaluationOptions
 import qualified	BishBosh.Input.IOOptions		as Input.IOOptions
 import qualified	BishBosh.Input.SearchOptions		as Input.SearchOptions
 import qualified	BishBosh.Input.UIOptions		as Input.UIOptions
+import qualified	BishBosh.Input.Verbosity		as Input.Verbosity
 import qualified	BishBosh.Property.ShowFloat		as Property.ShowFloat
 import qualified	BishBosh.Property.Tree			as Property.Tree
 import qualified	BishBosh.Text.ShowList			as Text.ShowList
@@ -68,7 +69,6 @@ import qualified	Control.DeepSeq
 import qualified	Control.Exception
 import qualified	Data.Default
 import qualified	Data.Maybe
-import qualified	Distribution.Verbosity
 import qualified	System.FilePath
 import qualified	Text.XML.HXT.Arrow.Pickle		as HXT
 
@@ -252,7 +252,7 @@ setMaybePersistence maybePersistence options@MkOptions { getIOOptions = ioOption
 }
 
 -- | Mutator.
-setVerbosity :: Distribution.Verbosity.Verbosity -> Transformation column criterionWeight pieceSquareValue rankValue row x y
+setVerbosity :: Input.Verbosity.Verbosity -> Transformation column criterionWeight pieceSquareValue rankValue row x y
 setVerbosity verbosity options@MkOptions { getIOOptions = ioOptions }	= options {
 	getIOOptions	= Input.IOOptions.setVerbosity verbosity ioOptions
 }

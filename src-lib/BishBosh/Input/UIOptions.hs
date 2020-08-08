@@ -67,7 +67,6 @@ import qualified	Control.DeepSeq
 import qualified	Control.Exception
 import qualified	Data.Default
 import qualified	Data.Maybe
-import qualified	Distribution.Verbosity
 import qualified	Text.XML.HXT.Arrow.Pickle	as HXT
 
 -- | Used to qualify XML.
@@ -99,7 +98,7 @@ data UIOptions row column = MkUIOptions {
 	getMaybePrintMoveTree		:: Maybe Property.Tree.Depth,			-- ^ Print the move-tree to the specified depth.
 	getNDecimalDigits		:: Property.ShowFloat.NDecimalDigits,		-- ^ The precision to which fractional auxiliary data is displayed.
 	getEitherNativeUIOrCECPOptions	:: EitherNativeUIOrCECPOptions row column,	-- ^ When a native display is configured some additional style-parameters are required.
-	getVerbosity			:: Distribution.Verbosity.Verbosity		-- ^ Set the threshold for ancillary information-output.
+	getVerbosity			:: Input.Verbosity.Verbosity			-- ^ Set the threshold for ancillary information-output.
 } deriving Eq
 
 instance (
@@ -196,7 +195,7 @@ mkUIOptions
 	-> Maybe Property.Tree.Depth
 	-> Property.ShowFloat.NDecimalDigits	-- ^ The precision to which fractional auxiliary data is displayed.
 	-> EitherNativeUIOrCECPOptions row column
-	-> Distribution.Verbosity.Verbosity	-- ^ Set the threshold for logging.
+	-> Input.Verbosity.Verbosity		-- ^ Set the threshold for logging.
 	-> UIOptions row column
 mkUIOptions moveNotation maybePrintMoveTree nDecimalDigits eitherNativeUIOrCECPOptions verbosity
 	| Just depth <- maybePrintMoveTree

@@ -26,8 +26,7 @@
 module BishBosh.Test.QuickCheck.Input.Verbosity() where
 
 import qualified	BishBosh.Input.Verbosity	as Input.Verbosity
-import qualified	Distribution.Verbosity
 import qualified	Test.QuickCheck
 
-instance Test.QuickCheck.Arbitrary Distribution.Verbosity.Verbosity where
+instance Test.QuickCheck.Arbitrary Input.Verbosity.Verbosity where
 	arbitrary	= Test.QuickCheck.elements Input.Verbosity.range

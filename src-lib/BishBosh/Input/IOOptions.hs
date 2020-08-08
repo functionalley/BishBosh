@@ -59,6 +59,7 @@ import qualified	BishBosh.Data.Exception		as Data.Exception
 import qualified	BishBosh.Input.CECPFeatures	as Input.CECPFeatures
 import qualified	BishBosh.Input.PGNOptions	as Input.PGNOptions
 import qualified	BishBosh.Input.UIOptions	as Input.UIOptions
+import qualified	BishBosh.Input.Verbosity	as Input.Verbosity
 import qualified	BishBosh.Property.Tree		as Property.Tree
 import qualified	BishBosh.Text.ShowList		as Text.ShowList
 import qualified	Control.Arrow
@@ -66,7 +67,6 @@ import qualified	Control.DeepSeq
 import qualified	Control.Exception
 import qualified	Data.Default
 import qualified	Data.Maybe
-import qualified	Distribution.Verbosity
 import qualified	System.FilePath
 import qualified	Text.XML.HXT.Arrow.Pickle	as HXT
 import qualified	ToolShed.Data.Foldable
@@ -261,7 +261,7 @@ deleteCECPFeature feature ioOptions@MkIOOptions { getUIOptions = uiOptions }	= i
 }
 
 -- | Mutator.
-setVerbosity :: Distribution.Verbosity.Verbosity -> Transformation row column
+setVerbosity :: Input.Verbosity.Verbosity -> Transformation row column
 setVerbosity verbosity ioOptions@MkIOOptions { getUIOptions = uiOptions }	= ioOptions {
 	getUIOptions	= uiOptions {
 		Input.UIOptions.getVerbosity	= verbosity
