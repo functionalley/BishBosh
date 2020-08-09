@@ -45,10 +45,10 @@ instance Read System.IO.TextEncoding where
 	readsPrec _ s	= case Data.List.Extra.trimStart s of
 		'I':'S':'O':remainder -> case remainder of
 			'8':'8':'5':'9':'-':'1':remainder2	-> return {-to List-monad-} . (,) System.IO.latin1 $ case remainder2 of
-				'(':'c':'h':'e':'c':'k':'e':'d':')':remainder3	-> remainder3	-- Junk.
+				'(':'c':'h':'e':'c':'k':'e':'d':')':remainder3	-> remainder3
 				_						-> remainder2
 			'-':'8':'8':'5':'9':'-':'1':remainder2	-> return {-to List-monad-} . (,) System.IO.latin1 $ case remainder2 of
-				'(':'c':'h':'e':'c':'k':'e':'d':')':remainder3	-> remainder3	-- Junk.
+				'(':'c':'h':'e':'c':'k':'e':'d':')':remainder3	-> remainder3
 				_						-> remainder2
 			_					-> []	-- No parse.
 		'U':'T':'F':'-':remainder -> case remainder of
