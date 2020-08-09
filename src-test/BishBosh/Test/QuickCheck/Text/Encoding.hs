@@ -42,16 +42,16 @@ results	= sequence [
 	let
 		f :: System.IO.TextEncoding -> Test.QuickCheck.Property
 		f	= Test.QuickCheck.label "Text.Encoding.prop_readPrependedWhiteSpace" . ToolShed.Test.ReversibleIO.readPrependedWhiteSpace
-	in Test.QuickCheck.quickCheckWithResult Test.QuickCheck.stdArgs { Test.QuickCheck.maxSuccess = 256 } f,
+	in Test.QuickCheck.quickCheckWithResult Test.QuickCheck.stdArgs { Test.QuickCheck.maxSuccess = 1024 } f,
 	let
 		f :: String -> Test.QuickCheck.Property
 		f garbage	= Test.QuickCheck.label "Text.Encoding.prop_read" $ case (reads garbage :: [(System.IO.TextEncoding, String)]) of
 			[_]	-> True
 			_	-> True	-- Unless the read-implementation throws an exception.
-	in Test.QuickCheck.quickCheckWithResult Test.QuickCheck.stdArgs { Test.QuickCheck.maxSuccess = 256 } f,
+	in Test.QuickCheck.quickCheckWithResult Test.QuickCheck.stdArgs { Test.QuickCheck.maxSuccess = 1024 } f,
 	let
 		f :: System.IO.TextEncoding -> String -> Test.QuickCheck.Property
 		f textEncoding	= Test.QuickCheck.label "Text.Encoding.prop_readTrailingGarbage" . ToolShed.Test.ReversibleIO.readTrailingGarbage (const False) textEncoding
-	in Test.QuickCheck.quickCheckWithResult Test.QuickCheck.stdArgs { Test.QuickCheck.maxSuccess = 256 } f
+	in Test.QuickCheck.quickCheckWithResult Test.QuickCheck.stdArgs { Test.QuickCheck.maxSuccess = 1024 } f
  ]
 

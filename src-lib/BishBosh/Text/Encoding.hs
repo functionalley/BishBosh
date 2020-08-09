@@ -43,13 +43,20 @@ instance Eq System.IO.TextEncoding where
 
 instance Read System.IO.TextEncoding where
 	readsPrec _ s	= case Data.List.Extra.trimStart s of
-		'I':'S':'O': '-':'8':'8':'5':'9':'-':'1':remainder	-> return {-to List-monad-} . (,) System.IO.latin1 $ case remainder of
-			'(':'c':'h':'e':'c':'k':'e':'d':')':remainder2	-> remainder2	-- Junk.
-			_						-> remainder
-		'U':'T':'F':'-':'8':remainder			-> [(System.IO.utf8, remainder)]
-		'U':'T':'F':'-':'1':'6':remainder		-> [(System.IO.utf16, remainder)]
-		'U':'T':'F':'-':'3':'2':remainder		-> [(System.IO.utf32, remainder)]
-		_						-> []	-- No parse.
+		'I':'S':'O':remainder -> case remainder of
+			'8':'8':'5':'9':'-':'1':remainder2	-> return {-to List-monad-} . (,) System.IO.latin1 $ case remainder2 of
+				'(':'c':'h':'e':'c':'k':'e':'d':')':remainder3	-> remainder3	-- Junk.
+				_						-> remainder2
+			'-':'8':'8':'5':'9':'-':'1':remainder2	-> return {-to List-monad-} . (,) System.IO.latin1 $ case remainder2 of
+				'(':'c':'h':'e':'c':'k':'e':'d':')':remainder3	-> remainder3	-- Junk.
+				_						-> remainder2
+			_					-> []	-- No parse.
+		'U':'T':'F':'-':remainder -> case remainder of
+			'8':remainder2		-> [(System.IO.utf8, remainder2)]
+			'1':'6':remainder2	-> [(System.IO.utf16, remainder2)]
+			'3':'2':remainder2	-> [(System.IO.utf32, remainder2)]
+			_			-> []	-- No parse.
+		_	-> []	-- No parse.
 
 instance HXT.XmlPickler System.IO.TextEncoding where
 	xpickle	= HXT.xpDefault Data.Default.def . HXT.xpWrap (read, show) . HXT.xpAttr tag . HXT.xpTextDT . Text.XML.HXT.Arrow.Pickle.Schema.scEnum $ map show range
