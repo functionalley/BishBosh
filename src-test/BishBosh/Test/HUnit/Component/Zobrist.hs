@@ -45,6 +45,6 @@ testCases :: Test.HUnit.Test
 testCases	= Test.HUnit.test [
 	"'BishBosh.Component.Zobrist.Zobrist' contains the wrong number of random numbers." ~: length (
 		Data.Foldable.toList (Data.Default.def :: Zobrist)
-	) ~?= 781 -- <https://chessprogramming.wikispaces.com/Zobrist+Hashing>
+	) ~?= 781 -- <https://www.chessprogramming.org/Zobrist_Hashing>
  ]
 

@@ -22,7 +22,7 @@
 
  [@DESCRIPTION@]
 
-	* Defines the state of the game, without regard to how it arrived there; <https://chessprogramming.wikispaces.com/Chess+Position>.
+	* Defines the state of the game, without regard to how it arrived there; <https://www.chessprogramming.org/Chess_Position>.
 
 	* Games with the same /position/ have the same opportunities.
 
@@ -58,7 +58,7 @@ import qualified	Data.Array.IArray
 import qualified	Data.Maybe
 
 {- |
-	* The state of the game, without regard to how it arrived there; <https://chessprogramming.wikispaces.com/Chess+Position>.
+	* The state of the game, without regard to how it arrived there; <https://www.chessprogramming.org/Chess_Position>.
 
 	* Games with the same /position/ may be considered to have converged, since they now have equal opportunity.
 -}

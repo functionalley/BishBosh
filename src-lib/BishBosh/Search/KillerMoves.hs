@@ -19,7 +19,7 @@
 {- |
  [@AUTHOR@]	Dr. Alistair Ward
 
- [@DESCRIPTION@] <https://chessprogramming.wikispaces.com/Killer+Heuristic>.
+ [@DESCRIPTION@] <https://www.chessprogramming.org/Killer_Heuristic>.
 -}
 
 module BishBosh.Search.KillerMoves (
@@ -99,7 +99,7 @@ insert nPlies killerMove MkKillerMoves { deconstruct = nInstancesByKeyByNPliesBy
 		else Attribute.LogicalColour.White	-- White makes the first move.
  ] -- Singleton.
 
--- | Sorts an arbitrary list using the History-heuristic; <https://chessprogramming.wikispaces.com/History+Heuristic>.
+-- | Sorts an arbitrary list using the History-heuristic; <https://www.chessprogramming.org/History_Heuristic>.
 sortByHistoryHeuristic
 	:: Ord killerMove
 	=> Attribute.LogicalColour.LogicalColour

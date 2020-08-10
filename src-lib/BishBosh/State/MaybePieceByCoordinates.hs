@@ -113,7 +113,7 @@ newtype MaybePieceByCoordinates x y	= MkMaybePieceByCoordinates {
 	)
 } deriving (Eq, Ord)
 
--- | Used to separate the /ranks/ of the /board/ as represented by the IO-format <https://en.wikipedia.org/wiki/Forsyth%E2%80%93Edwards_Notation Forsyth-Edwards notation>.
+-- | Used to separate the /ranks/ of the /board/ as represented by the IO-format <https://en.wikipedia.org/wiki/Forsyth%E2%80%93Edwards_Notation>.
 rankSeparator :: Char
 rankSeparator	= '/'
 

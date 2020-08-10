@@ -19,7 +19,7 @@
 {- |
  [@AUTHOR@]	Dr. Alistair Ward
 
- [@DESCRIPTION@]	Static tests based on <https://chessprogramming.wikispaces.com/Bratko-Kopec+Test>.
+ [@DESCRIPTION@]	Static tests based on <https://www.chessprogramming.org/Bratko-Kopec_Test>.
 -}
 
 module BishBosh.Test.HUnit.Search.Search (

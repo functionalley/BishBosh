@@ -23,7 +23,7 @@
 
 	* The relative values of the various /rank/s of chess-piece.
 
-	* <https://en.wikipedia.org/wiki/Chess_piece_relative_value#Hans_Berliner.27s_system Chess-piece relative values>
+	* <https://en.wikipedia.org/wiki/Chess_piece_relative_value#Hans_Berliner.27s_system%20Chess-piece%20relative%20values>
 -}
 
 module BishBosh.Attribute.RankValues(
@@ -72,7 +72,7 @@ newtype RankValues rankValue	= MkRankValues {
 instance Real rankValue => Property.ShowFloat.ShowFloat (RankValues rankValue) where
 	showsFloat fromDouble	= Text.ShowList.showsAssociationList' . map (show *** fromDouble . realToFrac) . Data.Array.IArray.assocs . deconstruct
 
--- Derived from Larry Kaufman's values; <https://chessprogramming.wikispaces.com/Point+Value>.
+-- Derived from Larry Kaufman's values; <https://www.chessprogramming.org/Point_Value>.
 instance (
 	Fractional	rankValue,
 	Ord		rankValue,

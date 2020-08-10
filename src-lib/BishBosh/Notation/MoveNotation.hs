@@ -19,7 +19,7 @@
 {- |
  [@AUTHOR@]	Dr. Alistair Ward
 
- [@DESCRIPTION@]	Implements various move-notations <https://en.wikipedia.org/wiki/Chess_notation Chess-notation>.
+ [@DESCRIPTION@]	Implements various move-notations <https://en.wikipedia.org/wiki/Chess_notation_Chess-notation>.
 -}
 
 module BishBosh.Notation.MoveNotation(
@@ -72,7 +72,7 @@ tag	= "moveNotation"
 data MoveNotation
 	= Coordinate	-- ^ As used for communication with /xboard/.
 	| ICCFNumeric	-- ^ <https://en.wikipedia.org/wiki/ICCF_numeric_notation>.
-	| Smith		-- ^ <https://www.chessclub.com/user/chessviewer/smith.html>.
+	| Smith		-- ^ <https://www.chessprogramming.org/Warren_D._Smith>.
 	deriving (Eq, Read, Show)
 
 instance Control.DeepSeq.NFData MoveNotation where

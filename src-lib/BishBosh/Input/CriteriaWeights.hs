@@ -114,14 +114,14 @@ weightOfPassedPawnsTag			= "passedPawns"
 	& this value shouldn't be less than their weighted normalised /rank-value/, otherwise sacrifice would be beneficial.
 -}
 data CriteriaWeights criterionWeight	= MkCriteriaWeights {
-	getWeightOfMaterial		:: Attribute.CriterionWeight.CriterionWeight criterionWeight,	-- ^ The arithmetic difference between the total /rank-value/ of the /piece/s currently in play on either side; <https://chessprogramming.wikispaces.com/Material>.
-	getWeightOfMobility		:: Attribute.CriterionWeight.CriterionWeight criterionWeight,	-- ^ The arithmetic difference between the reciprocal of the number of destinations available to the /piece/s of either side. N.B. this weight can be derived from 'getWeightOfMaterial' since losing a @Queen@ is less significant than reducing mobility to zero; <https://chessprogramming.wikispaces.com/Mobility>.
+	getWeightOfMaterial		:: Attribute.CriterionWeight.CriterionWeight criterionWeight,	-- ^ The arithmetic difference between the total /rank-value/ of the /piece/s currently in play on either side; <https://www.chessprogramming.org/Material>.
+	getWeightOfMobility		:: Attribute.CriterionWeight.CriterionWeight criterionWeight,	-- ^ The arithmetic difference between the reciprocal of the number of destinations available to the /piece/s of either side. N.B. this weight can be derived from 'getWeightOfMaterial' since losing a @Queen@ is less significant than reducing mobility to zero; <https://www.chessprogramming.org/Mobility>.
 	getWeightOfPieceSquareValue	:: Attribute.CriterionWeight.CriterionWeight criterionWeight,	-- ^ The arithmetic difference in the values of the squares occupied by the pieces of either side.
 	getWeightOfCastlingPotential	:: Attribute.CriterionWeight.CriterionWeight criterionWeight,	-- ^ Whether each player has been permanently prevented from /Castling/.
 	getWeightOfDefence		:: Attribute.CriterionWeight.CriterionWeight criterionWeight,	-- ^ The arithmetic difference between the number of /piece/s defending each of one's own, compared with the opponent.
-	getWeightOfDoubledPawns		:: Attribute.CriterionWeight.CriterionWeight criterionWeight,	-- ^ The arithmetic difference between the total number of /doubled/ @Pawn@s on either side; <https://chessprogramming.wikispaces.com/Doubled+Pawn>.
-	getWeightOfIsolatedPawns	:: Attribute.CriterionWeight.CriterionWeight criterionWeight,	-- ^ The arithmetic difference between the total number of /isolated/ @Pawn@s on either side; <https://chessprogramming.wikispaces.com/Isolated+Pawn>.
-	getWeightOfPassedPawns		:: Attribute.CriterionWeight.CriterionWeight criterionWeight	-- ^ The arithmetic difference between the total number of /passed/ @Pawn@s on either side; <https://chessprogramming.wikispaces.com/Passed+Pawn>.
+	getWeightOfDoubledPawns		:: Attribute.CriterionWeight.CriterionWeight criterionWeight,	-- ^ The arithmetic difference between the total number of /doubled/ @Pawn@s on either side; <https://www.chessprogramming.org/Doubled_Pawn>.
+	getWeightOfIsolatedPawns	:: Attribute.CriterionWeight.CriterionWeight criterionWeight,	-- ^ The arithmetic difference between the total number of /isolated/ @Pawn@s on either side; <https://www.chessprogramming.org/Isolated_Pawn>.
+	getWeightOfPassedPawns		:: Attribute.CriterionWeight.CriterionWeight criterionWeight	-- ^ The arithmetic difference between the total number of /passed/ @Pawn@s on either side; <https://www.chessprogramming.org/Passed_Pawn>.
 } deriving (Eq, Show)
 
 -- | Smart-constructor.
@@ -240,7 +240,7 @@ instance (
 		xpickle'	= HXT.xpDefault Data.Default.def . (`HXT.xpAttr` HXT.xpickle)
 
 {- |
-	* Returns the weighted sum of the specified criteria, divided by the sum of the weights; <https://chessprogramming.wikispaces.com/evaluation>
+	* Returns the weighted sum of the specified criteria, divided by the sum of the weights; <https://www.chessprogramming.org/evaluation>
 
 	* Each criterion increases in proportion to some desirable attribute of the proposed /game/.
 

@@ -42,8 +42,8 @@ tag	= "captureMoveSortAlgorithm"
 
 -- | The algorithm by which moves are sorted.
 data CaptureMoveSortAlgorithm
-	= MVVLVA	-- ^ <https://chessprogramming.wikispaces.com/MVV-LVA>.
-	| SEE		-- ^ <https://chessprogramming.wikispaces.com/Static+Exchange+Evaluation>.
+	= MVVLVA	-- ^ <https://www.chessprogramming.org/MVV-LVA>.
+	| SEE		-- ^ <https://www.chessprogramming.org/Static_Exchange_Evaluation>.
 	deriving (Eq, Read, Show)
 
 instance Control.DeepSeq.NFData CaptureMoveSortAlgorithm where

@@ -113,7 +113,7 @@ white	= White
 range :: [PhysicalColour]
 range	= [minBound .. maxBound]
 
--- | A colour-code, as used by terminal-emulators; <https://en.wikipedia.org/wiki/ANSI_escape_code ANSI escape-codes>.
+-- | A colour-code, as used by terminal-emulators; <https://en.wikipedia.org/wiki/ANSI_escape_code>.
 type ANSIColourCode	= Int
 
 -- | Offset the specified colour-code, so that it applies to the foreground.

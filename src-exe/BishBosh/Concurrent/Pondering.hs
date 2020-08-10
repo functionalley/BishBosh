@@ -21,7 +21,7 @@
 
  [@DESCRIPTION@]
 
-	* Implements <https://chessprogramming.wikispaces.com/Pondering> by an automatic player during a manual player's move.
+	* Implements <https://www.chessprogramming.org/Pondering> by an automatic player during a manual player's move.
 
 	* Using the last move one can predict the opponent's response, & consequently one's counter-move.
 	If the opponent makes the expected response, then this speculative result can be used,

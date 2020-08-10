@@ -21,11 +21,9 @@
 
  [@DESCRIPTION@]
 
-	* <https://chessprogramming.wikispaces.com/Transposition+Table>.
+	* <https://www.chessprogramming.org/Transposition_Table>.
 
 	* <https://en.wikipedia.org/wiki/Transposition_table>.
-
-	* <http://www.chessbin.com/post/Transposition-Table-and-Zobrist-Hashing>.
 
 	* Valid move-sequences can be recorded against the hash of the position from which they start.
 -}

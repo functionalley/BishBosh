@@ -409,7 +409,7 @@ instance Property.Null.Null (Game x y) where
 	isNull MkGame { getTurnsByLogicalColour = turnsByLogicalColour }	= Property.Null.isNull turnsByLogicalColour
 
 {- |
-	* Create an alternative game in which @Black@ moved first; <https://chessprogramming.wikispaces.com/Color+Flipping>
+	* Create an alternative game in which @Black@ moved first; <https://www.chessprogramming.org/Color_Flipping>.
 
 	* N.B.: 'Property.Reflectable.ReflectableOnY' isn't implemented,
 	since /reflectOnY/ produces a mirror-image /board/ in which the royal /piece/s start in a non-standard position & castling occurs the wrong way.

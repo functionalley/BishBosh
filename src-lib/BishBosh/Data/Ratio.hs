@@ -25,7 +25,7 @@
  [@CAVEAT@]
 
 	'Rational' numbers are converted imprecisely to floating-point for representation as XML.
-	To remedy the loss of precision on reading from XML, they're rounded to the /epsilon/ for IEEE double-precision <https://en.wikipedia.org/wiki/Machine_epsilon Machine epsilon>.
+	To remedy the loss of precision on reading from XML, they're rounded to the /epsilon/ for IEEE double-precision <https://en.wikipedia.org/wiki/Machine_epsilon>.
 -}
 
 module BishBosh.Data.Ratio(

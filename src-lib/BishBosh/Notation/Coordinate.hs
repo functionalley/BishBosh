@@ -21,7 +21,7 @@
 
  [@DESCRIPTION@]
 
-	* <https://chessprogramming.wikispaces.com/Algebraic+Chess+Notation#Pure coordinate notation>.
+	* <https://www.chessprogramming.org/Algebraic_Chess_Notation#Pure_coordinate_notation>.
 
 	* CAVEAT: <https://en.wikipedia.org/wiki/Chess_notation> defined a variant of this notation.
 

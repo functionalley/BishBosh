@@ -22,7 +22,7 @@
 
  [@DESCRIPTION@]
 
-	* <https://chessprogramming.wikispaces.com/Zobrist+Hashing>.
+	* <https://www.chessprogramming.org/Zobrist_Hashing>.
 
 	* Defines the random-numbers required to construct a hash of a chess-position.
 
@@ -110,7 +110,7 @@ instance (
 	def	= mkZobrist Nothing $ System.Random.mkStdGen 0
 
 {- |
-	* <https://chessprogramming.wikispaces.com/Population+Count#HammingDistance>.
+	* <https://www.chessprogramming.org/Population_Count#HammingDistance>.
 
 	* Quantifies the Hamming distance between all combinations of pairs of the random numbers used to compose hashes.
 

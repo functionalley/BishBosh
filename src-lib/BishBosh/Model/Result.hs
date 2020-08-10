@@ -54,7 +54,7 @@ instance Control.DeepSeq.NFData Result where
 	rnf (VictoryBy logicalColour)		= Control.DeepSeq.rnf logicalColour
 	rnf Draw				= ()
 
--- | Convert a game-termination reason into PGN's @Result@ field; <https://www.chessclub.com/user/help/pgn-spec>.
+-- | Convert a game-termination reason into PGN's @Result@ field; <https://www.chessclub.com/help/pgn-spec>.
 instance Show Result where
 	showsPrec _ result	= (
 		\(showsWhiteResult, showsBlackResult) -> showsWhiteResult . showChar '-' . showsBlackResult

@@ -22,11 +22,11 @@
 
  [@DESCRIPTION@]
 
-	* Performs an <https://chessprogramming.wikispaces.com/Alpha-Beta> search, implemented using <https://chessprogramming.wikispaces.com/Negamax>.
+	* Performs an <https://www.chessprogramming.org/Alpha-Beta> search, implemented using <https://www.chessprogramming.org/Negamax>.
 
 	* Moves are dynamically re-ordering using the killer-heuristic.
 
-	* <https://chessprogramming.wikispaces.com/Repetitions> & <https://chessprogramming.wikispaces.com/Transposition>s are detected.
+	* <https://www.chessprogramming.org/Repetitions> & <https://www.chessprogramming.org/Transposition>s are detected.
 -}
 
 module BishBosh.Search.AlphaBeta(

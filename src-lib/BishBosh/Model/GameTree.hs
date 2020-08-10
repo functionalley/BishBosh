@@ -99,7 +99,7 @@ getLastMove :: BareGameTree x y -> Component.Move.Move x y
 getLastMove Data.Tree.Node { Data.Tree.rootLabel = game }	= Component.QualifiedMove.getMove . Component.Turn.getQualifiedMove . Data.Maybe.fromJust $ Model.Game.maybeLastTurn game
 
 {- |
-	* <https://chessprogramming.wikispaces.com/Static+Exchange+Evaluation>.
+	* <https://www.chessprogramming.org/Static_Exchange_Evaluation>.
 
 	* Returns the net /rankValue/-difference in the /piece/s lost by either side, after a continuous battle at the specified coordinates.
 

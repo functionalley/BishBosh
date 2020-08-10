@@ -142,7 +142,7 @@ measurePieceSquareValueIncrementally previousPieceSquareValue pieceSquareArray g
 		Just turn	= Model.Game.maybeLastTurn game
 		qualifiedMove	= Component.Turn.getQualifiedMove turn
 
--- | Measure the arithmetic difference between the total /rank-value/ of the /piece/s currently held by either side; <https://chessprogramming.wikispaces.com/Material>.
+-- | Measure the arithmetic difference between the total /rank-value/ of the /piece/s currently held by either side; <https://www.chessprogramming.org/Material>.
 measureValueOfMaterial :: (
 	Fractional	criterionValue,
 	Fractional	rankValue,
@@ -166,7 +166,7 @@ measureValueOfMaterial rankValues game	= Attribute.CriterionValue.mkCriterionVal
  ) 0 . Data.Array.IArray.assocs . State.Board.getNPiecesDifferenceByRank {-which arbitrarily counts White pieces as positive & Black as negative-} $ Model.Game.getBoard game
 
 {- |
-	* Count the difference between the reciprocals (cf. <https://chessprogramming.wikispaces.com/Mobility>), of the total number of /move/s available to each player.
+	* Count the difference between the reciprocals (cf. <https://www.chessprogramming.org/Mobility>), of the total number of /move/s available to each player.
 
 	* Using the reciprocal facilitates mapping into the /closed unit-interval/, & also emphasises the difference between having just one available move & having zero (i.e. mate).
 	In consequence, it is more about restricting the opponent's mobility (particularly the @King@) rather than increasing one's own.
@@ -223,7 +223,7 @@ measureValueOfCastlingPotential game	= Attribute.CriterionValue.mkCriterionValue
 	 )
 
 {- |
-	* Measure the arithmetic difference between the number of /doubled/ @Pawn@s on either side; <https://chessprogramming.wikispaces.com/Doubled+Pawn>.
+	* Measure the arithmetic difference between the number of /doubled/ @Pawn@s on either side; <https://www.chessprogramming.org/Doubled_Pawn>.
 
 	* N.B.: measures tripled @Pawn@s as equivalent to two doubled @Pawn@s.
 
@@ -244,7 +244,7 @@ measureValueOfDoubledPawns game	= Attribute.CriterionValue.mkCriterionValue . (
 	 ) $ State.Board.getNPawnsByFileByLogicalColour (Model.Game.getBoard game) ! logicalColour
 
 {- |
-	* Measure the arithmetic difference between the number of /isolated/ @Pawn@s on either side; <https://chessprogramming.wikispaces.com/Isolated+Pawn>.
+	* Measure the arithmetic difference between the number of /isolated/ @Pawn@s on either side; <https://www.chessprogramming.org/Isolated_Pawn>.
 
 	* CAVEAT: this is a negative attribute, so the weighted normalised value shouldn't exceed the reduction due to 'measureValueOfMaterial' resulting from a @Pawn@-sacrifice.
 -}
@@ -270,7 +270,7 @@ measureValueOfIsolatedPawns game	= Attribute.CriterionValue.mkCriterionValue . (
 	 ) 0 nPawnsByFile where
 		nPawnsByFile	= State.Board.getNPawnsByFileByLogicalColour (Model.Game.getBoard game) ! logicalColour
 
--- | Measure the arithmetic difference between the number of /passed/ @Pawn@s on either side; <https://chessprogramming.wikispaces.com/Passed+Pawn>.
+-- | Measure the arithmetic difference between the number of /passed/ @Pawn@s on either side; <https://www.chessprogramming.org/Passed_Pawn>.
 measureValueOfPassedPawns :: forall x y criterionValue. (
 	Enum		y,
 	Fractional	criterionValue,
@@ -328,7 +328,7 @@ measureValueOfDefence game	= Attribute.CriterionValue.mkCriterionValue . (
 {- |
 	* Evaluates the fitness of the /board/ from the perspective of the last player to move.
 	If the game has ended, the fitness is maximum for checkmate or zero for a draw,
-	but otherwise is the /weighted mean/ of various criteria; <https://chessprogramming.wikispaces.com/Evaluation>.
+	but otherwise is the /weighted mean/ of various criteria; <https://www.chessprogramming.org/Evaluation>.
 
 	* Also returns the break-down of those /criterion-value/s with a non-zero /criterion-weight/.
 

@@ -24,14 +24,14 @@ Unlimited roll-back of moves.
 Configurable <\fBhttps://en.wikipedia.org/wiki/Chess_notation\fR>.
 .IP \(bu
 The ability to read PGN-databases of standard openings & archived games,
-in which it can match both <\fBhttps://chessprogramming.wikispaces.com/Transposition\fR>s & colour-flipped (<\fBhttps://chessprogramming.wikispaces.com/Color+Flipping\fR>) positions.
+in which it can match both <\fBhttps://www.chessprogramming.org/Transposition\fR>s & colour-flipped (<\fBhttps://www.chessprogramming.org/Color_Flipping\fR>) positions.
 .IP \(bu
 Automation of the moves for either, neither, or both players.
 Both the evaluation of moves & the search for the optimum, are highly configurable; see \fBsection-5\fR of the man-pages.
 .IP \(bu
 Optional hints for manual players.
 .IP \(bu
-<\fBhttps://chessprogramming.wikispaces.com/Pondering\fR>.
+<\fBhttps://www.chessprogramming.org/Pondering\fR>.
 .SS Implementation
 Some understanding of the algorithm used to automatically select moves, is useful either when configuring this application or when interpreting the esoteric feedback available after move-selection (given "\fB--verbosity=Deafening\fR").
 The algorithm first compares the position with those in the referenced PGN-databases; a looser criterion than whether a matching move-sequence exists.
@@ -39,14 +39,14 @@ It then partitions all matching archived positions, based on whether the current
 The next move will be selected randomly from the subset of victorious matching positions, in preference to the non-victorious subset.
 .PP
 On failure to match the position with an archived game, the tree of all possible moves until the end of the game, is constructed & statically sorted to advance the subsequent evaluation of capture-moves,
-using either <\fBhttps://chessprogramming.wikispaces.com/MVV-LVA\fR> or <\fBhttps://chessprogramming.wikispaces.com/Static+Exchange+Evaluation\fR>.
-On each move, this tree's non-capture moves are dynamically sorted using the <\fBhttps://chessprogramming.wikispaces.com/Killer+Heuristic\fR> & the <\fBhttps://chessprogramming.wikispaces.com/History+Heuristic\fR>.
+using either <\fBhttps://www.chessprogramming.org/MVV-LVA\fR> or <\fBhttps://www.chessprogramming.org/Static_Exchange_Evaluation\fR>.
+On each move, this tree's non-capture moves are dynamically sorted using the <\fBhttps://www.chessprogramming.org/Killer_Heuristic\fR> & the <\fBhttps://www.chessprogramming.org/History_Heuristic\fR>.
 .br
-This tree is then searched using a <\fBhttps://chessprogramming.wikispaces.com/Negamax\fR> algorithm with <\fBhttps://chessprogramming.wikispaces.com/Alpha-Beta\fR> pruning,
+This tree is then searched using a <\fBhttps://www.chessprogramming.org/Negamax\fR> algorithm with <\fBhttps://www.chessprogramming.org/Alpha-Beta\fR> pruning,
 over a constant configurable number of plies, to find the optimal move according to the weighted-mean of various criteria described in \fBsection-5\fR of the man-pages.
 .br
-Shortcuts in the search for the optimal move are taken on encountering either <\fBhttps://chessprogramming.wikispaces.com/Repetitions\fR> in the move-sequence,
-or transpositions (<\fBhttps://chessprogramming.wikispaces.com/Transposition\fR>) of sibling games.
+Shortcuts in the search for the optimal move are taken on encountering either <\fBhttps://www.chessprogramming.org/Repetitions\fR> in the move-sequence,
+or transpositions (<\fBhttps://www.chessprogramming.org/Transposition\fR>) of sibling games.
 .SH OPTIONS
 .SS "Input"
 .TP

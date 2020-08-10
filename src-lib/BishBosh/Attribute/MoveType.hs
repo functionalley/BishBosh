@@ -199,7 +199,7 @@ isPromotion :: MoveType -> Bool
 isPromotion (Normal _ (Just _))	= True
 isPromotion _			= False
 
--- | <https://chessprogramming.wikispaces.com/Quiet+Moves>.
+-- | <https://www.chessprogramming.org/Quiet_Moves>.
 isQuiet :: MoveType -> Bool
 isQuiet (Normal Nothing Nothing)	= True
 isQuiet	moveType			= isCastle moveType

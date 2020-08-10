@@ -19,7 +19,7 @@
 {- |
  [@AUTHOR@]	Dr. Alistair Ward
 
- [@DESCRIPTION@]	<https://www.chessclub.com/user/chessviewer/smith.html Smith-notation>
+ [@DESCRIPTION@]	<https://www.chessprogramming.org/Warren_D._Smith>.
 -}
 
 module BishBosh.Notation.Smith(

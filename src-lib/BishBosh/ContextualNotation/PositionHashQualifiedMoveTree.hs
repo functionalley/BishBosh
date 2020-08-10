@@ -181,7 +181,7 @@ findNextOnymousQualifiedMovesForGame requiredGame	= slave (
 {- |
 	* For all matching /position/s, return the subsequent /qualifiedMove/.
 
-	* By matching the /position/ rather than the precise sequence of /move/s, transpositions <https://chessprogramming.wikispaces.com/Transposition> can also be identified.
+	* By matching the /position/ rather than the precise sequence of /move/s, transpositions <https://www.chessprogramming.org/Transposition> can also be identified.
 
 	* CAVEAT: a null list can result from either match-failure, or a match with the final /move/ of a /game/.
 -}

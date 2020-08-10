@@ -146,7 +146,7 @@ compareByLVA
 compareByLVA evaluateRank MkTurn { getRank = rankL } MkTurn { getRank = rankR }	= Attribute.Rank.compareByLVA evaluateRank rankL rankR
 
 {- |
-	* Compares /turn/s by <https://chessprogramming.wikispaces.com/MVV-LVA>.
+	* Compares /turn/s by <https://www.chessprogramming.org/MVV-LVA>.
 
 	* This orders the most valuable victim of an attack first, but when victims are of equal rank, orders the least valuable aggressor first.
 

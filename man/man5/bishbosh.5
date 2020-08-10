@@ -16,7 +16,7 @@ Each field governs automatic move-evaluation:
 Whether to incrementally generate position-hashes & evaluate the piece-square value, from the previous values; otherwise these quantities are evaluated from scratch.
 This option slightly reduces memory-requirement, but doesn't affect the result.
 .IP \(bu
-\fBrankValues\fR: defines the value within the closed unit interval "\fB[0, 1]\fR", of each type of piece, defaulting (ref. <\fBhttps://chessprogramming.wikispaces.com/Point+Value\fR>) to:
+\fBrankValues\fR: defines the value within the closed unit interval "\fB[0, 1]\fR", of each type of piece, defaulting (ref. <\fBhttps://www.chessprogramming.org/Point_Value\fR>) to:
 .TS
 lb	lb
 l	l
@@ -39,14 +39,14 @@ l	l	l	l
 lb	l	lb	l	.
 Criterion	Metric	Ref	Notes
 =========	======	===	=====
-material	Quantifies the value of the pieces remaining per side.	<https://chessprogramming.wikispaces.com/Material>	This is dependent on the value of each type of piece; see "\fBrankValues\fR".
-mobility	The difference between the number of moves available per side.	<https://chessprogramming.wikispaces.com/Mobility>	Actually the reciprocal is measured, to emphasis the reduction caused by checking one's opponent.
-pieceSquareValue	Quantifies the position held by the pieces per side.	<https://chessprogramming.wikispaces.com/Piece-Square+Tables>	This metric includes aspects of both "\fBmaterial\fR" & "\fBmobility\fR". The value can be made linearly dependent on progress through the game.
+material	Quantifies the value of the pieces remaining per side.	<https://www.chessprogramming.org/Material>	This is dependent on the value of each type of piece; see "\fBrankValues\fR".
+mobility	The difference between the number of moves available per side.	<https://www.chessprogramming.org/Mobility>	Actually the reciprocal is measured, to emphasis the reduction caused by checking one's opponent.
+pieceSquareValue	Quantifies the position held by the pieces per side.	<https://www.chessprogramming.org/Piece-Square_Tables>	This metric includes aspects of both "\fBmaterial\fR" & "\fBmobility\fR". The value can be made linearly dependent on progress through the game.
 castlingPotential	Whether each player has been permanently prevented from castling.		Reflects the disadvantage of moving one's King, thus preventing subsequent castling.
 defence	The difference between the number of pieces defending one's own, per side.		There's neither any penalty for gaps in this defence nor account made of the value of the defended piece; it's just the total number of defenders.
-doubledPawns	The difference between the total number of doubled Pawns per side.	<https://chessprogramming.wikispaces.com/Doubled+Pawn>	Reflects the reduced mobility of such Pawns.
-isolatedPawns	The difference between the total number of isolated Pawns per side.	<https://chessprogramming.wikispaces.com/Isolated+Pawn>	Reflects the lack of defence from adjacent Pawns.
-passedPawns	The difference between the total number of passed Pawns per side.	<https://chessprogramming.wikispaces.com/Passed+Pawn>	Reflects improved promotion-prospects.
+doubledPawns	The difference between the total number of doubled Pawns per side.	<https://www.chessprogramming.org/Doubled_Pawn>	Reflects the reduced mobility of such Pawns.
+isolatedPawns	The difference between the total number of isolated Pawns per side.	<https://www.chessprogramming.org/Isolated_Pawn>	Reflects the lack of defence from adjacent Pawns.
+passedPawns	The difference between the total number of passed Pawns per side.	<https://www.chessprogramming.org/Passed_Pawn>	Reflects improved promotion-prospects.
 .TE
 .IP
 Other criteria could be measured, but orthogonality is problematic.
@@ -86,35 +86,35 @@ l	l
 lb	l	.
 Value	Meaning
 =====	=======
-MVVLVA	moves are advanced depending on the value of rank of the piece they capture, but where this is equal, those which achieve this using a less valuable piece are preferred; <\fBhttps://chessprogramming.wikispaces.com/MVV-LVA\fR>. This is highly effective.
-SEE	moves are advanced depending on the net material gain resulting from any battle at the destination; <\fBhttps://chessprogramming.wikispaces.com/Static+Exchange+Evaluation\fR>. This is not currently competitive.
+MVVLVA	moves are advanced depending on the value of rank of the piece they capture, but where this is equal, those which achieve this using a less valuable piece are preferred; <\fBhttps://www.chessprogramming.org/MVV-LVA\fR>. This is highly effective.
+SEE	moves are advanced depending on the net material gain resulting from any battle at the destination; <\fBhttps://www.chessprogramming.org/Static_Exchange_Evaluation\fR>. This is not currently competitive.
 .TE
 .IP
 Neither of these sort-algorithms affects the relative order of non-capture moves; cf. \fBpreferMovesTowardsCentre\fR & \fBsortOnStandardOpeningMoveFrequency\fR.
 This is performed after \fBsortOnStandardOpeningMoveFrequency\fR.
 .IP \(bu
-\fBminimumHammingDistance\fR \fIInt\fR: the optional positive lower bound on the Hamming-distance between any of the random numbers used to generate Zobrist hashes from positions; <\fBhttps://chessprogramming.wikispaces.com/Zobrist+Hashing\fR>.
+\fBminimumHammingDistance\fR \fIInt\fR: the optional positive lower bound on the Hamming-distance between any of the random numbers used to generate Zobrist hashes from positions; <\fBhttps://www.chessprogramming.org/Zobrist_Hashing\fR>.
 .br
 CAVEAT: linear independence of the bit-vectors is a better measure than Hamming-distance, of the quality of the selected random numbers.
 .IP \(bu
-\fBretireKillerMovesAfter\fR \fIInt\fR: the optional non-negative number of full moves (one by each player) after which killer-moves are retired; <\fBhttps://chessprogramming.wikispaces.com/Killer+Move\fR>.
+\fBretireKillerMovesAfter\fR \fIInt\fR: the optional non-negative number of full moves (one by each player) after which killer-moves are retired; <\fBhttps://www.chessprogramming.org/Killer_Move\fR>.
 If unspecified, killer-moves won't even be recorded.
 .br
 N.B.: this is highly effective up to about \fB3\fR, beyond which returns diminish.
 .br
-Killer-moves are used to dynamically sort the moves available from a position, based on whether similar moves previously triggered beta-cutoff; <\fBhttps://chessprogramming.wikispaces.com/Beta-Cutoff\fR>.
+Killer-moves are used to dynamically sort the moves available from a position, based on whether similar moves previously triggered beta-cutoff; <\fBhttps://www.chessprogramming.org/Beta-Cutoff\fR>.
 .IP \(bu
-\fBtrapRepeatedPositions\fR: whether to short-circuit the fitness-evaluation of \fIposition\fRs which have been visited before in the current game; <\fBhttps://chessprogramming.wikispaces.com/Repetitions\fR>.
+\fBtrapRepeatedPositions\fR: whether to short-circuit the fitness-evaluation of \fIposition\fRs which have been visited before in the current game; <\fBhttps://www.chessprogramming.org/Repetitions\fR>.
 These situations result from loops of consecutive reversible moves, in the move-tree which defines the game of chess.
 The fitness of such \fIposition\fRs can be derived by induction, since were one to search from this \fIposition\fR,
 one would ultimately arrive back another time, so the fitness of this future \fIposition\fR equals the current fitness.
 .br
 N.B.: this doesn't typically improve performance in either space or time.
 .IP \(bu
-\fBusePondering\fR: whether an automated player should plan their next move, based on a prediction of the opponent's response, & thus make use their opponent's thinking-time; <\fBhttps://chessprogramming.wikispaces.com/Pondering\fR>.
+\fBusePondering\fR: whether an automated player should plan their next move, based on a prediction of the opponent's response, & thus make use their opponent's thinking-time; <\fBhttps://www.chessprogramming.org/Pondering\fR>.
 .IP \(bu
 \fBtranspositions\fR: these can be used to reorder the evaluation of moves,
-based on the results previously found for identical \fIposition\fRs in sibling games reached by an alternative sequence of arbitrary moves; <\fBhttps://chessprogramming.wikispaces.com/Transposition\fR>.
+based on the results previously found for identical \fIposition\fRs in sibling games reached by an alternative sequence of arbitrary moves; <\fBhttps://www.chessprogramming.org/Transposition\fR>.
 .TS
 lb	lb	lb
 l	l	l
@@ -134,7 +134,7 @@ Field	Type	Default	Meaning
 =========	====	=======	=======
 tryToMatchMoves	Bool	True	whether to attempt to exactly match the moves already made, with a standard opening; i.e. without matching transpositions.
 tryToMatchViaJoiningMove	Bool	True	whether to attempt to join the current position (irrespective of the means by which it was achieved) to a standard opening that's only one move away.
-tryToMatchColourFlippedPosition	Bool	True	whether to attempt to match a colour-flipped (<\fBhttps://chessprogramming.wikispaces.com/Color+Flipping\fR>) version of the current position with a standard opening.
+tryToMatchColourFlippedPosition	Bool	True	whether to attempt to match a colour-flipped (<\fBhttps://www.chessprogramming.org/Color_Flipping\fR>) version of the current position with a standard opening.
 .TE
 .IP \(bu
 \fBsearchDepth\fR \fIInt\fR, defaulting to "\fB4\fR" (minimum "\fB1\fR"): the number of plies (half moves) to search ahead, when selecting the next move.

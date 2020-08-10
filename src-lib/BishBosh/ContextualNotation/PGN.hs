@@ -20,7 +20,7 @@
 {- |
  [@AUTHOR@]	Dr. Alistair Ward
 
- [@DESCRIPTION@]	Defines a parser for PGN; <https://www.chessclub.com/user/help/pgn-spec>.
+ [@DESCRIPTION@]	Defines a parser for PGN; <https://www.chessclub.com/help/pgn-spec>.
 -}
 
 module BishBosh.ContextualNotation.PGN(
@@ -359,7 +359,7 @@ mkPGN' identificationTags tagPairs	= mkPGN maybeEventName maybeSiteName (
 	 ]
 
 {- |
-	* Represents the specified /game/ in /Portable Game Notation/; <https://www.chessclub.com/user/help/pgn-spec>.
+	* Represents the specified /game/ in /Portable Game Notation/; <https://www.chessclub.com/help/pgn-spec>.
 
 	* This function is only responsible for the line defining the numbered sequence of /move/s represented in SAN.
 -}

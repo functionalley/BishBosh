@@ -50,7 +50,7 @@ import qualified	Control.DeepSeq
 data DrawReason
 	= ByAgreement		-- ^ Both players have agreed to a draw.
 	| FiftyMoveRule		-- ^ A draw can be claimed if fifty consecutive full /move/s have occured without any capture or any @Pawn@ being moved.
-	| SeventyFiveMoveRule	-- ^ Seventy-five consecutive full /move/s have occured without either capture or @Pawn@-movement; <https://chessprogramming.wikispaces.com/Repetitions#Rules-Fide Rule>.
+	| SeventyFiveMoveRule	-- ^ Seventy-five consecutive full /move/s have occured without either capture or @Pawn@-movement; <https://www.chessprogramming.org/Repetitions#Fide_Rule>.
 	| InsufficientMaterial	-- ^ Neither player as the fire-power to force /check-mate/.
 	| StaleMate		-- ^ The next player hasn't any legal moves, but isn't /in check/.
 	| ThreeFoldRepetition	-- ^ A draw can be claimed if the same /position/ has been reached on any three occasions.
