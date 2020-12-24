@@ -20,3 +20,6 @@ Updated list of test-compilers.
 Fixed failure to persist game-state after requesting that the game be restarted.
 Fixed parsing of **TextEncoding** in **PGNOptions**.
 Replaced module **Distribution.Verbosity** with **BishBosh.Input.Verbosity**.
+
+## 0.0.0.7
+Rewrote function **BishBosh.Data.RoseTree.countTerminalNodes** in accordance with the suggestions of David Feuer.

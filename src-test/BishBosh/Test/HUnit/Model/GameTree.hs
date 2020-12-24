@@ -50,7 +50,7 @@ testCases :: Test.HUnit.Test
 testCases	= Test.HUnit.test [
 	let
 		maxDepth	= 4
-	in "'BishBosh.Model.GameTree.countGames' failed" ~: map Model.GameTree.countGames [0 .. maxDepth] ~?= take (succ maxDepth) [1, 20, 400, 8902, 197281, 4865609, 119060324, 3195901860, 84998978956],	-- <https://oeis.org/A019319>.
+	in "'BishBosh.Model.GameTree.countGames' failed" ~: map Model.GameTree.countGames [0 .. maxDepth] ~?= take (succ maxDepth) [1, 20, 400, 8902, 197281, 4865609],	-- <https://oeis.org/A048987>
 	"'BishBosh.Model.GameTree.countMoves' failed" ~: map (
 		\searchDepth -> Model.GameTree.countMoves searchDepth ~?= foldr (
 			(+) . Model.GameTree.countGames

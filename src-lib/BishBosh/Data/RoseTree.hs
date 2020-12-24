@@ -41,12 +41,17 @@ module BishBosh.Data.RoseTree(
 import qualified	Data.List
 import qualified	Data.Tree
 
--- | Counts the number of terminal nodes.
+-- Counts the number of terminal nodes.
 countTerminalNodes :: Num nodes => Data.Tree.Tree a -> nodes
+{-
 countTerminalNodes Data.Tree.Node { Data.Tree.subForest = [] }		= 1
 countTerminalNodes Data.Tree.Node { Data.Tree.subForest = forest }	= Data.List.foldl' (
 	\acc -> (+ acc) . countTerminalNodes {-recurse-}
  ) 0 forest
+-}
+countTerminalNodes = go 0 where
+	go acc Data.Tree.Node { Data.Tree.subForest = [] }	= acc + 1
+	go acc Data.Tree.Node { Data.Tree.subForest = forest }	= Data.List.foldl' go acc forest
 
 -- | Returns a string which graphically represents the tree.
 drawTree :: (a -> String) -> Data.Tree.Tree a -> String
