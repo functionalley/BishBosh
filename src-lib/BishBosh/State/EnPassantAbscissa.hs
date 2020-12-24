@@ -32,7 +32,9 @@ module BishBosh.State.EnPassantAbscissa (
 	mkMaybeEnPassantAbscissa
 ) where
 
+import qualified	BishBosh.Attribute.Direction		as Attribute.Direction
 import qualified	BishBosh.Attribute.LogicalColour	as Attribute.LogicalColour
+import qualified	BishBosh.Attribute.Rank			as Attribute.Rank
 import qualified	BishBosh.Cartesian.Coordinates		as Cartesian.Coordinates
 import qualified	BishBosh.Component.Move			as Component.Move
 import qualified	BishBosh.Component.Piece		as Component.Piece
@@ -43,6 +45,7 @@ import qualified	BishBosh.Property.Opposable		as Property.Opposable
 import qualified	BishBosh.State.MaybePieceByCoordinates	as State.MaybePieceByCoordinates
 import qualified	Control.DeepSeq
 import qualified	Data.Array.IArray
+import qualified	Data.Maybe
 
 -- | Defines the file on which an En-passant option currently exists.
 newtype EnPassantAbscissa x	= MkEnPassantAbscissa {
@@ -62,19 +65,26 @@ mkMaybeEnPassantAbscissa :: (
 	Ord	x,
 	Ord	y
  )
-	=> Attribute.LogicalColour.LogicalColour	-- ^ The player who moves next, & who may have an En-passant option.
+	=> Attribute.LogicalColour.LogicalColour	-- ^ The player who moves next, & who may have an En-passant capture-option.
 	-> State.MaybePieceByCoordinates.MaybePieceByCoordinates x y
 	-> Component.Turn.Turn x y			-- ^ The last /turn/ taken.
 	-> Maybe (EnPassantAbscissa x)
 mkMaybeEnPassantAbscissa nextLogicalColour maybePieceByCoordinates lastTurn
 	| Component.Turn.isPawnDoubleAdvance (Property.Opposable.getOpposite nextLogicalColour) lastTurn
-	, let destination	= Component.Move.getDestination . Component.QualifiedMove.getMove $ Component.Turn.getQualifiedMove lastTurn
-	, any (
-		(
-			== Just (Component.Piece.mkPawn nextLogicalColour)
-		) . (
-			`State.MaybePieceByCoordinates.dereference` maybePieceByCoordinates
-		)
-	) $ Cartesian.Coordinates.getAdjacents destination	= Just . MkEnPassantAbscissa $ Cartesian.Coordinates.getX destination
-	| otherwise						= Nothing
+	, let lastMoveDestination	= Component.Move.getDestination . Component.QualifiedMove.getMove $ Component.Turn.getQualifiedMove lastTurn
+	, not $ null [
+		passedPawn |
+			adjacentCoordinates	<- Cartesian.Coordinates.getAdjacents lastMoveDestination,
+			passedPawn		<- filter (== Component.Piece.mkPawn nextLogicalColour) . Data.Maybe.maybeToList $ State.MaybePieceByCoordinates.dereference adjacentCoordinates maybePieceByCoordinates,
+			all (
+				/= Component.Piece.mkKing nextLogicalColour	-- Will I expose my King ?
+			) [
+				blockingPiece |
+					threatDirection		<- Attribute.Direction.range,	-- Consider all directions.
+					(_, attackerRank)	<- Data.Maybe.maybeToList $ State.MaybePieceByCoordinates.findAttackerInDirection nextLogicalColour threatDirection adjacentCoordinates maybePieceByCoordinates,	-- Find discovered attacks.
+					attackerRank `notElem` Attribute.Rank.fixedAttackRange,	-- Any viable attack through the vacated square must be long-range.
+					(_, blockingPiece)	<- Data.Maybe.maybeToList $ State.MaybePieceByCoordinates.findBlockingPiece (Property.Opposable.getOpposite threatDirection) adjacentCoordinates maybePieceByCoordinates	-- Find any discovered attack.
+			] -- Confirm that the En-passant capture doesn't expose my King.
+	] = Just . MkEnPassantAbscissa $ Cartesian.Coordinates.getX lastMoveDestination
+	| otherwise	= Nothing
 

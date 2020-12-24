@@ -46,11 +46,11 @@ results	= sequence [
 		f :: Test.QuickCheck.Model.Game.Game -> Test.QuickCheck.Property
 		f = Test.QuickCheck.label "Position.prop_getMaybeEnPassantAbscissa" . uncurry (==) . (
 			fmap (
-				Cartesian.Coordinates.getX . Component.Move.getDestination . Component.QualifiedMove.getMove	-- Extract the ordinate.
+				Cartesian.Coordinates.getX . Component.Move.getDestination . Component.QualifiedMove.getMove	-- Extract the abscissa.
 			) . Data.List.find (
 				Attribute.MoveType.isEnPassant . Component.QualifiedMove.getMoveType
 			) . Model.Game.findQualifiedMovesAvailableToNextPlayer &&& fmap State.EnPassantAbscissa.getAbscissa . State.Position.getMaybeEnPassantAbscissa . Model.Game.mkPosition
 		 )
-	in Test.QuickCheck.quickCheckWithResult Test.QuickCheck.stdArgs { Test.QuickCheck.maxSuccess = 1024 } f
+	in Test.QuickCheck.quickCheckWithResult Test.QuickCheck.stdArgs { Test.QuickCheck.maxSuccess = 4096 } f
  ]
 

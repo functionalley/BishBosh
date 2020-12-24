@@ -23,3 +23,4 @@ Replaced module **Distribution.Verbosity** with **BishBosh.Input.Verbosity**.
 
 ## 0.0.0.7
 Rewrote function **BishBosh.Data.RoseTree.countTerminalNodes** in accordance with the suggestions of David Feuer.
+Amended function **BishBosh.State.EnPassantAbscissa.mkMaybeEnPassantAbscissa** to guard against exposing one's King after En-passant capture.
