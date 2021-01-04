@@ -63,7 +63,7 @@
 -->
 		</pgnOptions>
 		<persistence filePath="/dev/null" automatic="False"/>	<!-- replace *nix-specific path with 'nul' in Windows ? -->
-		<uiOptions moveNotation="Coordinate" verbosity="Silent">
+		<uiOptions moveNotation="PureCoordinate" verbosity="Silent">
 			<cecpOptions/>
 		</uiOptions>
 	</ioOptions>

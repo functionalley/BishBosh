@@ -23,41 +23,41 @@
  [@DESCRIPTION@]	Implements 'Test.QuickCheck.Arbitrary' & defines /QuickCheck/-properties.
 -}
 
-module BishBosh.Test.QuickCheck.Notation.Coordinate(
+module BishBosh.Test.QuickCheck.Notation.PureCoordinate(
 -- * Types
 -- ** Type-synonyms
---	Coordinate,
+--	PureCoordinate,
 -- * Constants
 	results
 ) where
 
 import			BishBosh.Test.QuickCheck.Component.Move()
 import			Control.Arrow((&&&))
-import qualified	BishBosh.Attribute.Rank		as Attribute.Rank
-import qualified	BishBosh.Cartesian.Coordinates	as Cartesian.Coordinates
-import qualified	BishBosh.Cartesian.Ordinate	as Cartesian.Ordinate
-import qualified	BishBosh.Cartesian.Vector	as Cartesian.Vector
-import qualified	BishBosh.Component.Move		as Component.Move
-import qualified	BishBosh.Notation.Coordinate	as Notation.Coordinate
-import qualified	BishBosh.Types			as T
+import qualified	BishBosh.Attribute.Rank			as Attribute.Rank
+import qualified	BishBosh.Cartesian.Coordinates		as Cartesian.Coordinates
+import qualified	BishBosh.Cartesian.Ordinate		as Cartesian.Ordinate
+import qualified	BishBosh.Cartesian.Vector		as Cartesian.Vector
+import qualified	BishBosh.Component.Move			as Component.Move
+import qualified	BishBosh.Notation.PureCoordinate	as Notation.PureCoordinate
+import qualified	BishBosh.Types				as T
 import qualified	Data.Char
 import qualified	Test.QuickCheck
 import qualified	ToolShed.Test.ReversibleIO
 
 -- | Defines a concrete type for testing.
-type Coordinate	= Notation.Coordinate.Coordinate T.X T.Y
+type PureCoordinate	= Notation.PureCoordinate.PureCoordinate T.X T.Y
 
 instance (
 	Enum	x,
 	Enum	y,
 	Ord	x,
 	Ord	y
- ) => Test.QuickCheck.Arbitrary (Notation.Coordinate.Coordinate x y) where
-	{-# SPECIALISE instance Test.QuickCheck.Arbitrary Coordinate #-}
+ ) => Test.QuickCheck.Arbitrary (Notation.PureCoordinate.PureCoordinate x y) where
+	{-# SPECIALISE instance Test.QuickCheck.Arbitrary PureCoordinate #-}
 	arbitrary	= do
 		move	<- Test.QuickCheck.arbitrary
 
-		Notation.Coordinate.mkCoordinate move `fmap` if abs (
+		Notation.PureCoordinate.mkPureCoordinate move `fmap` if abs (
 			Cartesian.Vector.getXDistance (Component.Move.measureDistance move :: Cartesian.Vector.VectorInt)
 		 ) <= 1 && (
 			Cartesian.Coordinates.getY . Component.Move.getSource &&& Cartesian.Coordinates.getY . Component.Move.getDestination $ move
@@ -75,20 +75,20 @@ instance (
 results :: IO [Test.QuickCheck.Result]
 results	= sequence [
 	let
-		f :: Coordinate -> Test.QuickCheck.Property
-		f	= Test.QuickCheck.label "Coordinate.prop_readPrependedWhiteSpace" . ToolShed.Test.ReversibleIO.readPrependedWhiteSpace
+		f :: PureCoordinate -> Test.QuickCheck.Property
+		f	= Test.QuickCheck.label "PureCoordinate.prop_readPrependedWhiteSpace" . ToolShed.Test.ReversibleIO.readPrependedWhiteSpace
 	in Test.QuickCheck.quickCheckWithResult Test.QuickCheck.stdArgs { Test.QuickCheck.maxSuccess = 256 } f,
 	let
 		f :: String -> Test.QuickCheck.Property
-		f garbage	= Test.QuickCheck.label "Coordinate.prop_read" $ case (
-			reads garbage :: [(Notation.Coordinate.Coordinate Int Int, String)]
+		f garbage	= Test.QuickCheck.label "PureCoordinate.prop_read" $ case (
+			reads garbage :: [(Notation.PureCoordinate.PureCoordinate Int Int, String)]
 		 ) of
 			[_]	-> True
 			_	-> True	-- Unless the read-implementation throws an exception.
 	in Test.QuickCheck.quickCheckWithResult Test.QuickCheck.stdArgs { Test.QuickCheck.maxSuccess = 256 } f,
 	let
-		f :: Coordinate -> String -> Test.QuickCheck.Property
-		f coordinate	= Test.QuickCheck.label "Coordinate.prop_readTrailingGarbage" . ToolShed.Test.ReversibleIO.readTrailingGarbage (
+		f :: PureCoordinate -> String -> Test.QuickCheck.Property
+		f coordinate	= Test.QuickCheck.label "PureCoordinate.prop_readTrailingGarbage" . ToolShed.Test.ReversibleIO.readTrailingGarbage (
 			(
 				`elem` concatMap show Attribute.Rank.promotionProspects
 			) . Data.Char.toLower

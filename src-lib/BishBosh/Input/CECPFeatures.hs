@@ -180,7 +180,7 @@ playotherTag	= "playother"
 reuseTag :: Key
 reuseTag	= "reuse"
 
--- | Tags the feature which defines whether the GUI may send moves in "SAN" rather than "Coordinate" notation.
+-- | Tags the feature which defines whether the GUI may send moves in "SAN" rather than "PureCoordinate" notation.
 sanTag :: Key
 sanTag		= "san"
 
@@ -294,7 +294,7 @@ instance Data.Default.Default CECPFeatures where
 			), (
 				reuseTag,	true			-- Whether xboard may reuse this engine for multiple games.
 			), (
-				sanTag,		false			-- Whether xboard sends moves in "Standard Algebraic Notation" rather than "Coordinate".
+				sanTag,		false			-- Whether xboard sends moves in "Standard Algebraic Notation" rather than "PureCoordinate".
 			), (
 				setboardTag,	true			-- Whether xboard may send the "setboard" command, to define the board.
 			), (

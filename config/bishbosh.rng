@@ -183,8 +183,8 @@
 							<optional>
 								<attribute name="moveNotation">
 									<choice>
-										<value>Coordinate</value>
 										<value>ICCFNumeric</value>
+										<value>PureCoordinate</value>
 										<value>Smith</value>
 									</choice>
 								</attribute>

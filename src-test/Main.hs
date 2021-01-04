@@ -68,8 +68,8 @@ import qualified	BishBosh.Test.QuickCheck.Model.GameTerminationReason				as Test
 import qualified	BishBosh.Test.QuickCheck.Model.GameTree						as Test.QuickCheck.Model.GameTree
 import qualified	BishBosh.Test.QuickCheck.Model.MoveFrequency					as Test.QuickCheck.Model.MoveFrequency
 import qualified	BishBosh.Test.QuickCheck.Model.Result						as Test.QuickCheck.Model.Result
-import qualified	BishBosh.Test.QuickCheck.Notation.Coordinate					as Test.QuickCheck.Notation.Coordinate
 import qualified	BishBosh.Test.QuickCheck.Notation.ICCFNumeric					as Test.QuickCheck.Notation.ICCFNumeric
+import qualified	BishBosh.Test.QuickCheck.Notation.PureCoordinate				as Test.QuickCheck.Notation.PureCoordinate
 import qualified	BishBosh.Test.QuickCheck.Notation.Smith						as Test.QuickCheck.Notation.Smith
 import qualified	BishBosh.Test.QuickCheck.Search.KillerMoves					as Test.QuickCheck.Search.KillerMoves
 -- import qualified	BishBosh.Test.QuickCheck.Search.Search						as Test.QuickCheck.Search.Search
@@ -127,8 +127,8 @@ main	= mapM_ Test.HUnit.runTestTT [
 	Test.QuickCheck.Component.Move.results,
 	Test.QuickCheck.Component.QualifiedMove.results,
 	Test.QuickCheck.Component.Turn.results,
-	Test.QuickCheck.Notation.Coordinate.results,
 	Test.QuickCheck.Notation.ICCFNumeric.results,
+	Test.QuickCheck.Notation.PureCoordinate.results,
 	Test.QuickCheck.Notation.Smith.results,
 	Test.QuickCheck.Model.GameTerminationReason.results,
 	Test.QuickCheck.Model.Result.results,

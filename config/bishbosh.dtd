@@ -109,7 +109,7 @@
 			>
 		<!ELEMENT uiOptions ((nativeUIOptions | cecpOptions)?)>
 			<!ATTLIST uiOptions
-				moveNotation	(Coordinate | ICCFNumeric | Smith)	#IMPLIED
+				moveNotation	(ICCFNumeric | PureCoordinate | Smith)	#IMPLIED
 				printMoveTree	CDATA					#IMPLIED
 				nDecimalDigits	CDATA					#IMPLIED
 				verbosity	(Silent | Normal | Verbose | Deafening)	#IMPLIED

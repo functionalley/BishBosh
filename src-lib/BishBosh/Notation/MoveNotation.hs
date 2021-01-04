@@ -31,7 +31,7 @@ module BishBosh.Notation.MoveNotation(
 	MoveNotation(),
 -- * Constants
 	tag,
-	coordinate,
+	pureCoordinate,
 	range,
 -- * Functions
 	readsQualifiedMove,
@@ -40,7 +40,7 @@ module BishBosh.Notation.MoveNotation(
 	getOrigin,
 	showsNotationFloatToNDecimals,
 -- ** Predicates
-	isCoordinate
+	isPureCoordinate
 ) where
 
 import			Control.Arrow((&&&))
@@ -49,8 +49,8 @@ import qualified	BishBosh.Cartesian.Coordinates		as Cartesian.Coordinates
 import qualified	BishBosh.Component.EitherQualifiedMove	as Component.EitherQualifiedMove
 import qualified	BishBosh.Component.QualifiedMove	as Component.QualifiedMove
 import qualified	BishBosh.Component.Turn			as Component.Turn
-import qualified	BishBosh.Notation.Coordinate		as Notation.Coordinate
 import qualified	BishBosh.Notation.ICCFNumeric		as Notation.ICCFNumeric
+import qualified	BishBosh.Notation.PureCoordinate	as Notation.PureCoordinate
 import qualified	BishBosh.Notation.Smith			as Notation.Smith
 import qualified	BishBosh.Property.ShowFloat		as Property.ShowFloat
 import qualified	Control.Arrow
@@ -70,9 +70,9 @@ tag	= "moveNotation"
 	* /Standard Algebraic/ isn't included here because conversion to or from a /QualifiedMove/ requires access to the /game/.
 -}
 data MoveNotation
-	= Coordinate	-- ^ As used for communication with /xboard/.
-	| ICCFNumeric	-- ^ <https://en.wikipedia.org/wiki/ICCF_numeric_notation>.
-	| Smith		-- ^ <https://www.chessprogramming.org/Warren_D._Smith>.
+	= ICCFNumeric		-- ^ <https://en.wikipedia.org/wiki/ICCF_numeric_notation>.
+	| PureCoordinate	-- ^ As used for communication with /xboard/ & as the basis of Standard Algebraic.
+	| Smith			-- ^ <https://www.chessprogramming.org/Warren_D._Smith>.
 	deriving (Eq, Read, Show)
 
 instance Control.DeepSeq.NFData MoveNotation where
@@ -85,12 +85,12 @@ instance HXT.XmlPickler MoveNotation where
 	xpickle	= HXT.xpDefault Data.Default.def . HXT.xpWrap (read, show) . HXT.xpAttr tag . HXT.xpTextDT . Text.XML.HXT.Arrow.Pickle.Schema.scEnum $ map show range	-- CAVEAT: whether it'll be used as an XML-attribute or an XML-element isn't currently known.
 
 -- | Constant.
-coordinate :: MoveNotation
-coordinate	= Coordinate
+pureCoordinate :: MoveNotation
+pureCoordinate	= PureCoordinate
 
 -- | The constant complete range of values.
 range :: [MoveNotation]
-range	= [Coordinate, ICCFNumeric, Smith]
+range	= [ICCFNumeric, PureCoordinate, Smith]
 
 -- | Reads a /move/ & /move-type/ from the specified 'MoveNotation'.
 readsQualifiedMove :: (
@@ -101,29 +101,29 @@ readsQualifiedMove :: (
  )
 	=> MoveNotation
 	-> ReadS (Component.EitherQualifiedMove.EitherQualifiedMove x y)
-readsQualifiedMove Coordinate	= map (Control.Arrow.first $ uncurry Component.EitherQualifiedMove.mkPartiallyQualifiedMove . (Notation.Coordinate.getMove &&& Attribute.Rank.getMaybePromotionRank)) . reads
 readsQualifiedMove ICCFNumeric	= map (Control.Arrow.first $ uncurry Component.EitherQualifiedMove.mkPartiallyQualifiedMove . (Notation.ICCFNumeric.getMove &&& Attribute.Rank.getMaybePromotionRank)) . reads
+readsQualifiedMove PureCoordinate	= map (Control.Arrow.first $ uncurry Component.EitherQualifiedMove.mkPartiallyQualifiedMove . (Notation.PureCoordinate.getMove &&& Attribute.Rank.getMaybePromotionRank)) . reads
 readsQualifiedMove Smith	= map (Control.Arrow.first $ uncurry Component.EitherQualifiedMove.mkFullyQualifiedMove . (Component.QualifiedMove.getMove &&& Component.QualifiedMove.getMoveType) . Notation.Smith.getQualifiedMove) . reads
 
 -- | Show the syntax required by a specific 'MoveNotation'.
 showsMoveSyntax :: MoveNotation -> ShowS
 showsMoveSyntax moveNotation	= showChar '/' . showString (
 	case moveNotation of
-		Coordinate	-> Notation.Coordinate.regexSyntax
 		ICCFNumeric	-> Notation.ICCFNumeric.regexSyntax
+		PureCoordinate	-> Notation.PureCoordinate.regexSyntax
 		Smith		-> Notation.Smith.regexSyntax
  ) . showChar '/'
 
 -- | Returns the origin of the specified coordinate-system.
 getOrigin :: MoveNotation -> (Int, Int)
-getOrigin Coordinate	= Notation.Coordinate.origin
-getOrigin ICCFNumeric	= Notation.ICCFNumeric.origin
-getOrigin Smith		= Notation.Smith.origin
+getOrigin ICCFNumeric		= Notation.ICCFNumeric.origin
+getOrigin PureCoordinate	= Notation.PureCoordinate.origin
+getOrigin Smith			= Notation.Smith.origin
 
 -- | Predicate.
-isCoordinate :: MoveNotation -> Bool
-isCoordinate Coordinate	= True
-isCoordinate _		= False
+isPureCoordinate :: MoveNotation -> Bool
+isPureCoordinate PureCoordinate	= True
+isPureCoordinate _		= False
 
 -- | An interface for types which can be rendered in a chess-notation.
 class ShowNotation a where
@@ -131,8 +131,8 @@ class ShowNotation a where
 
 instance (Enum x, Enum y) => ShowNotation (Component.QualifiedMove.QualifiedMove x y) where
 	showsNotation moveNotation qualifiedMove	= case moveNotation of
-		Coordinate	-> shows $ Notation.Coordinate.mkCoordinate' move moveType
 		ICCFNumeric	-> shows $ Notation.ICCFNumeric.mkICCFNumeric' move moveType
+		PureCoordinate	-> shows $ Notation.PureCoordinate.mkPureCoordinate' move moveType
 		Smith		-> shows $ Notation.Smith.fromQualifiedMove qualifiedMove
 		where
 			(move, moveType)	= Component.QualifiedMove.getMove &&& Component.QualifiedMove.getMoveType $ qualifiedMove
@@ -141,8 +141,8 @@ instance (Enum x, Enum y) => ShowNotation (Component.Turn.Turn x y) where
 	showsNotation moveNotation	= showsNotation moveNotation . Component.Turn.getQualifiedMove
 
 instance (Enum x, Enum y) => ShowNotation (Cartesian.Coordinates.Coordinates x y) where
-	showsNotation Coordinate	= Notation.Coordinate.showsCoordinates
 	showsNotation ICCFNumeric	= Notation.ICCFNumeric.showsCoordinates
+	showsNotation PureCoordinate	= Notation.PureCoordinate.showsCoordinates
 	showsNotation Smith		= Notation.Smith.showsCoordinates
 
 -- | Show an arbitrary datum using the specified notation.

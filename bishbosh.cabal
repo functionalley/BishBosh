@@ -156,9 +156,9 @@ Library
         BishBosh.Model.MoveFrequency
         BishBosh.Model.PositionHashTree
         BishBosh.Model.Result
-        BishBosh.Notation.Coordinate
         BishBosh.Notation.ICCFNumeric
         BishBosh.Notation.MoveNotation
+        BishBosh.Notation.PureCoordinate
         BishBosh.Notation.Smith
         BishBosh.Property.Empty
         BishBosh.Property.ForsythEdwards
@@ -377,9 +377,9 @@ Test-Suite test
         BishBosh.Test.QuickCheck.Model.GameTree
         BishBosh.Test.QuickCheck.Model.MoveFrequency
         BishBosh.Test.QuickCheck.Model.Result
-        BishBosh.Test.QuickCheck.Notation.Coordinate
         BishBosh.Test.QuickCheck.Notation.ICCFNumeric
         BishBosh.Test.QuickCheck.Notation.MoveNotation
+        BishBosh.Test.QuickCheck.Notation.PureCoordinate
         BishBosh.Test.QuickCheck.Notation.Smith
         BishBosh.Test.QuickCheck.Search.KillerMoves
         BishBosh.Test.QuickCheck.Search.Search

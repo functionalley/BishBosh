@@ -41,7 +41,7 @@ instance (
  ) => Test.QuickCheck.Arbitrary (Input.UIOptions.UIOptions row column) where
 	arbitrary	= do
 		eitherNativeUIOrCECPOptions	<- Test.QuickCheck.arbitrary
-		moveNotation			<- const Test.QuickCheck.arbitrary `either` const (return {-to Gen-monad-} Notation.MoveNotation.coordinate) $ eitherNativeUIOrCECPOptions
+		moveNotation			<- const Test.QuickCheck.arbitrary `either` const (return {-to Gen-monad-} Notation.MoveNotation.pureCoordinate) $ eitherNativeUIOrCECPOptions
 
 		Input.UIOptions.mkUIOptions <$> return {-to Gen-monad-} moveNotation <*> fmap (
 			fmap $ succ . (`mod` 3)	-- maybePrintMoveTree.

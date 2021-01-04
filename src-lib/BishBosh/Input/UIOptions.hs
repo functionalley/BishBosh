@@ -205,7 +205,7 @@ mkUIOptions moveNotation maybePrintMoveTree nDecimalDigits eitherNativeUIOrCECPO
 	| (
 		const False `either` const True
 	) eitherNativeUIOrCECPOptions && not (
-		Notation.MoveNotation.isCoordinate moveNotation
+		Notation.MoveNotation.isPureCoordinate moveNotation
 	)					= Control.Exception.throw . Data.Exception.mkIncompatibleData . showString "BishBosh.Input.UIOptions.mkUIOptions:\t" . shows Input.CECPOptions.tag . showString " is incompatible with " . showString Notation.MoveNotation.tag . Text.ShowList.showsAssociation $ shows moveNotation "."
 	| otherwise	= MkUIOptions {
 		getMoveNotation			= moveNotation,
