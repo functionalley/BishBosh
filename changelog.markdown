@@ -24,3 +24,6 @@ Replaced module **Distribution.Verbosity** with **BishBosh.Input.Verbosity**.
 ## 0.0.0.7
 Rewrote function **BishBosh.Data.RoseTree.countTerminalNodes** in accordance with the suggestions of David Feuer.
 Amended function **BishBosh.State.EnPassantAbscissa.mkMaybeEnPassantAbscissa** to guard against exposing one's King after En-passant capture.
+
+## 0.0.0.8
+Corrected the parsing of FEN when an Enpassant-destination defined on file **b** was erroneously interpreted as a bishop in the previous **CastleableRooks** field.
