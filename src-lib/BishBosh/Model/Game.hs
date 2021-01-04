@@ -109,6 +109,7 @@ import qualified	BishBosh.Model.DrawReason			as Model.DrawReason
 import qualified	BishBosh.Model.GameTerminationReason		as Model.GameTerminationReason
 import qualified	BishBosh.Model.Result				as Model.Result
 import qualified	BishBosh.Notation.MoveNotation			as Notation.MoveNotation
+import qualified	BishBosh.Notation.PureCoordinate		as Notation.PureCoordinate
 import qualified	BishBosh.Property.Empty				as Property.Empty
 import qualified	BishBosh.Property.ForsythEdwards		as Property.ForsythEdwards
 import qualified	BishBosh.Property.Null				as Property.Null
@@ -330,8 +331,6 @@ instance (
 	Enum	y,
 	Ord	x,
 	Ord	y,
-	Read	x,
-	Read	y,
 	Show	x,
 	Show	y
  ) => Property.ForsythEdwards.ReadsFEN (Game x y) where
@@ -339,14 +338,14 @@ instance (
 	readsFEN s	= [
 		(
 			mkGame nextLogicalColour castleableRooksByLogicalColour board turnsByLogicalColour,
-			remainder	-- En-passant target, half-move clock, full-move number.
+			s6
 		) |
 			(board, s1)				<- Property.ForsythEdwards.readsFEN s,
 			(nextLogicalColour, s2)			<- Property.ForsythEdwards.readsFEN s1,
 			(castleableRooksByLogicalColour, s3)	<- Property.ForsythEdwards.readsFEN s2,
-			(turnsByLogicalColour, remainder)	<- case Data.List.Extra.trimStart s3 of
-				'-' : remainder	-> [(Property.Empty.empty {-TurnsByLogicalColour-}, remainder)]
-				s4		-> Control.Arrow.first (
+			(turnsByLogicalColour, s4)		<- case Data.List.Extra.trimStart s3 of
+				'-' : s4'	-> [(Property.Empty.empty {-TurnsByLogicalColour-}, s4')]
+				s3'		-> Control.Arrow.first (
 					\enPassantDestination -> let
 						opponentsLogicalColour	= Property.Opposable.getOpposite nextLogicalColour
 					 in State.TurnsByLogicalColour.fromAssocs [
@@ -360,13 +359,17 @@ instance (
 									Component.QualifiedMove.mkQualifiedMove (
 										uncurry Component.Move.mkMove $ (
 											uncurry Cartesian.Coordinates.retreat &&& uncurry Cartesian.Coordinates.advance
-										) (opponentsLogicalColour, enPassantDestination)	-- Construct a Pawn double-advance.
+										) (opponentsLogicalColour, enPassantDestination)	-- Reconstruct the recent Pawn double-advance.
 									) Data.Default.def {-move-type-}
 								 ) Attribute.Rank.Pawn
 							] -- Singleton.
 						) -- Pair.
 					]
-				 ) `map` reads s4
+				 ) `map` (
+					Notation.PureCoordinate.readsCoordinates s3'
+				 ) {-En-passant destination-},
+			(_halfMoveClock, s5)			<- reads s4 :: [(Int, String)],
+			(_fullMoveCounter, s6)			<- reads s5 :: [(Int, String)]
 	 ] -- List-comprehension.
 
 instance (
@@ -389,9 +392,9 @@ instance (
 			\turn -> if Component.Turn.isPawnDoubleAdvance (Property.Opposable.getOpposite nextLogicalColour) turn
 				then Notation.MoveNotation.showsNotation Data.Default.def {-Smith is the same as the required Algebraic notation in this limited role-} . Cartesian.Coordinates.advance nextLogicalColour . Component.Move.getDestination . Component.QualifiedMove.getMove $ Component.Turn.getQualifiedMove turn
 				else Property.ForsythEdwards.showsNullField
-		) $ maybeLastTurn game,	-- En-passant target square. CAVEAT: in contrast to X-FEN, the opponent isn't required to have a Pawn in position to take en-passant.
+		) $ maybeLastTurn game,	-- En-passant target square. CAVEAT: in contrast to X-FEN, this is required even when there's no opposing Pawn in a suitable position to take en-passant.
 		shows $ State.InstancesByPosition.countConsecutiveRepeatablePlies instancesByPosition,	-- Half move clock.
-		shows . succ {-the full-move count starts at '1', before any move has occurred-} . length $ State.TurnsByLogicalColour.dereference Attribute.LogicalColour.Black turnsByLogicalColour	-- Full move number.
+		shows . succ {-the full-move counter starts at '1', before any move has occurred-} . length $ State.TurnsByLogicalColour.dereference Attribute.LogicalColour.Black turnsByLogicalColour	-- Full move counter.
 	 ]
 
 instance (
