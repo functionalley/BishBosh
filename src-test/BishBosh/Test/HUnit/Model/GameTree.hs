@@ -70,8 +70,6 @@ testCases	= Test.HUnit.test [
 	sortAvailableMoves :: (
 		Integral	x,
 		Integral	y,
-		Read		x,
-		Read		y,
 		Show		x,
 		Show		y
 	 ) => Maybe Attribute.CaptureMoveSortAlgorithm.CaptureMoveSortAlgorithm -> String -> [Component.Turn.Turn x y]
