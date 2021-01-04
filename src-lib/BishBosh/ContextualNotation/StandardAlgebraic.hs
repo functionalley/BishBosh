@@ -42,24 +42,13 @@ module BishBosh.ContextualNotation.StandardAlgebraic(
 --	longCastleToken,
 --	shortCastleToken,
 --	moveSuffixAnnotations,
---	xMin,
---	yMin,
---	xMax,
---	yMax,
---	xOrigin,
---	yOrigin,
 -- * Functions
---	encode,
-	showsCoordinates,
 	showsTurn,
 	showTurn,
 	showsMove,
 	showMove,
 	movePiece,
 --	rankParser,
---	abscissaParser,
---	ordinateParser,
---	coordinatesParser,
 --	captureParser,
 --	moveSuffixAnnotationParser,
 	parser,
@@ -67,18 +56,13 @@ module BishBosh.ContextualNotation.StandardAlgebraic(
 	toRank,
 -- ** Constructors
 	fromQualifiedMove
--- ** Predicates
---	inXRange,
---	inYRange
 ) where
 
-import			Control.Arrow((&&&), (***))
+import			Control.Arrow((&&&))
 import			Data.Array.IArray((!))
 import qualified	BishBosh.Attribute.MoveType		as Attribute.MoveType
 import qualified	BishBosh.Attribute.Rank			as Attribute.Rank
-import qualified	BishBosh.Cartesian.Abscissa		as Cartesian.Abscissa
 import qualified	BishBosh.Cartesian.Coordinates		as Cartesian.Coordinates
-import qualified	BishBosh.Cartesian.Ordinate		as Cartesian.Ordinate
 import qualified	BishBosh.Component.Move			as Component.Move
 import qualified	BishBosh.Component.Piece		as Component.Piece
 import qualified	BishBosh.Component.QualifiedMove	as Component.QualifiedMove
@@ -86,6 +70,7 @@ import qualified	BishBosh.Component.Turn			as Component.Turn
 import qualified	BishBosh.Data.Exception			as Data.Exception
 import qualified	BishBosh.Model.Game			as Model.Game
 import qualified	BishBosh.Model.GameTerminationReason	as Model.GameTerminationReason
+import qualified	BishBosh.Notation.PureCoordinate	as Notation.PureCoordinate
 import qualified	BishBosh.Property.ForsythEdwards	as Property.ForsythEdwards
 import qualified	BishBosh.State.Board			as State.Board
 import qualified	BishBosh.State.MaybePieceByCoordinates	as State.MaybePieceByCoordinates
@@ -151,32 +136,6 @@ shortCastleToken	= "O-O"
 moveSuffixAnnotations :: String
 moveSuffixAnnotations	= "!?"
 
--- | The minimum permissible values for /x/ & /y/ coordinates.
-min' :: (Char, Char)
-xMin, yMin :: Char
-min'@(xMin, yMin)	= ('a', '1')
-
--- | The origin of the coordinate-system.
-origin :: (Int, Int)
-xOrigin, yOrigin :: Int
-origin@(xOrigin, yOrigin)	= Data.Char.ord *** Data.Char.ord $ min'
-
--- | The maximum permissible values for /x/ & /y/ coordinates.
-xMax, yMax :: Char
-(xMax, yMax)	= Data.Char.chr . (
-	+ pred {-fence-post-} (fromIntegral Cartesian.Abscissa.xLength)
- ) *** Data.Char.chr . (
-	+ pred {-fence-post-} (fromIntegral Cartesian.Ordinate.yLength)
- ) $ origin
-
--- | Whether the specified character is a valid abscissa.
-inXRange :: Char -> Bool
-inXRange	= uncurry (&&) . ((>= xMin) &&& (<= xMax))
-
--- | Whether the specified character is a valid ordinate.
-inYRange :: Char -> Bool
-inYRange	= uncurry (&&) . ((>= yMin) &&& (<= yMax))
-
 -- | Defines a /move/, to enable i/o in /StandardAlgebraic/-notation.
 newtype StandardAlgebraic x y	= MkStandardAlgebraic {
 	getQualifiedMove	:: Component.QualifiedMove.QualifiedMove x y
@@ -185,14 +144,6 @@ newtype StandardAlgebraic x y	= MkStandardAlgebraic {
 -- | Constructor.
 fromQualifiedMove :: Component.QualifiedMove.QualifiedMove x y -> StandardAlgebraic x y
 fromQualifiedMove	= MkStandardAlgebraic
-
--- | Encodes the ordinate & abscissa.
-encode :: (Enum x, Enum y) => Cartesian.Coordinates.Coordinates x y -> (ShowS, ShowS)
-encode	= showChar . Data.Char.chr . (+ (xOrigin - Cartesian.Abscissa.xOrigin)) . fromEnum . Cartesian.Coordinates.getX &&& showChar . Data.Char.chr . (+ (yOrigin - Cartesian.Ordinate.yOrigin)) . fromEnum . Cartesian.Coordinates.getY
-
--- | Shows the specified /coordinates/.
-showsCoordinates :: (Enum x, Enum y) => Cartesian.Coordinates.Coordinates x y -> ShowS
-showsCoordinates	= uncurry (.) . encode
 
 -- | Whether en-passant moves are tagged, or implicit.
 type ExplicitEnPassant	= Bool
@@ -254,7 +205,7 @@ showsTurn explicitEnPassant turn game
 				else checkFlag
 			else id
 	)
-	| otherwise	= Control.Exception.throw . Data.Exception.mkSearchFailure . showString "BishBosh.ContextualNotation.StandardAlgebraic.showsTurn:\tno piece exists at " . showsCoordinates source . showString "; " $ Property.ForsythEdwards.showsFEN game "."
+	| otherwise	= Control.Exception.throw . Data.Exception.mkSearchFailure . showString "BishBosh.ContextualNotation.StandardAlgebraic.showsTurn:\tno piece exists at " . Notation.PureCoordinate.showsCoordinates source . showString "; " $ Property.ForsythEdwards.showsFEN game "."
 	where
 		((source, destination), moveType)	= (Component.Move.getSource &&& Component.Move.getDestination) . Component.QualifiedMove.getMove &&& Component.QualifiedMove.getMoveType $ Component.Turn.getQualifiedMove turn
 		board					= Model.Game.getBoard game
@@ -268,8 +219,8 @@ showsTurn explicitEnPassant turn game
 
 		showsCapture, showsX, showsY, showsDestination :: ShowS
 		showsCapture		= showChar captureFlag
-		(showsX, showsY)	= encode source
-		showsDestination	= showsCoordinates destination
+		(showsX, showsY)	= Notation.PureCoordinate.encode source
+		showsDestination	= Notation.PureCoordinate.showsCoordinates destination
 
 		game'	= Model.Game.takeTurn turn game
 
@@ -342,34 +293,6 @@ movePiece MkStandardAlgebraic { getQualifiedMove = qualifiedMove }	= Model.Game.
 rankParser :: Text.Poly.TextParser Attribute.Rank.Rank
 rankParser	= toRank `fmap` Poly.satisfyMsg (`elem` map fromRank Attribute.Rank.pieces) Attribute.Rank.tag
 
--- | Parse an /x/-coordinate.
-abscissaParser :: Enum x => Text.Poly.TextParser x
-{-# SPECIALISE abscissaParser :: Text.Poly.TextParser T.X #-}
-abscissaParser	= (
-	toEnum . (+ (Cartesian.Abscissa.xOrigin - xOrigin)) . Data.Char.ord
- ) `fmap` Poly.satisfyMsg inXRange "Abscissa"
-
--- | Parse a /y/-coordinate.
-ordinateParser :: Enum y => Text.Poly.TextParser y
-{-# SPECIALISE ordinateParser :: Text.Poly.TextParser T.Y #-}
-ordinateParser	= (
-	toEnum . (+ (Cartesian.Ordinate.yOrigin - yOrigin)) . Data.Char.ord
- ) `fmap` Poly.satisfyMsg inYRange "Ordinate"
-
--- | Parse a pair of /coordinates/.
-coordinatesParser :: (
-	Enum	x,
-	Enum	y,
-	Ord	x,
-	Ord	y
- ) => Text.Poly.TextParser (Cartesian.Coordinates.Coordinates x y)
-{-# SPECIALISE coordinatesParser :: Text.Poly.TextParser (Cartesian.Coordinates.Coordinates T.X T.Y) #-}
-coordinatesParser	= do
-	x	<- abscissaParser
-	y	<- ordinateParser
-
-	return {-to Parser-monad-} $ Cartesian.Coordinates.mkCoordinates x y
-
 -- | Parse the flag which denotes capture.
 captureParser :: Text.Poly.TextParser Char
 captureParser	= Poly.satisfyMsg (== captureFlag) "Capture"
@@ -377,30 +300,6 @@ captureParser	= Poly.satisfyMsg (== captureFlag) "Capture"
 -- | Parse the /rank/ of the /piece/ being moved.
 rankParser :: Parsec.Parser Attribute.Rank.Rank
 rankParser	= toRank <$> Parsec.oneOf (map fromRank Attribute.Rank.pieces) <?> Attribute.Rank.tag
-
--- | Parse an /x/-coordinate.
-abscissaParser :: Enum x => Parsec.Parser x
-{-# SPECIALISE abscissaParser :: Parsec.Parser T.X #-}
-abscissaParser	= (
-	toEnum . (+ (Cartesian.Abscissa.xOrigin - xOrigin)) . Data.Char.ord
- ) <$> Parsec.satisfy inXRange <?> "Abscissa"
-
--- | Parse a /y/-coordinate.
-ordinateParser :: Enum y => Parsec.Parser y
-{-# SPECIALISE ordinateParser :: Parsec.Parser T.X #-}
-ordinateParser	= (
-	toEnum . (+ (Cartesian.Ordinate.yOrigin - yOrigin)) . Data.Char.ord
- ) <$> Parsec.satisfy inYRange <?> "Ordinate"
-
--- | Parse a pair of /coordinates/.
-coordinatesParser :: (
-	Enum	x,
-	Enum	y,
-	Ord	x,
-	Ord	y
- ) => Parsec.Parser (Cartesian.Coordinates.Coordinates x y)
-{-# SPECIALISE coordinatesParser :: Parsec.Parser (Cartesian.Coordinates.Coordinates T.X T.Y) #-}
-coordinatesParser	= Cartesian.Coordinates.mkCoordinates <$> abscissaParser <*> ordinateParser
 
 -- | Parse the flag which denotes capture.
 captureParser :: Parsec.Parser ()
@@ -461,7 +360,7 @@ parser explicitEnPassant validateMoves game	= let
 						(
 							"Pawn-advance",
 							do
-								destination	<- coordinatesParser
+								destination	<- Notation.PureCoordinate.coordinatesParser
 
 								Data.Maybe.maybe (
 									do
@@ -480,9 +379,9 @@ parser explicitEnPassant validateMoves game	= let
 						), (
 							"Pawn-capture",
 							do
-								x		<- abscissaParser
+								x		<- Notation.PureCoordinate.abscissaParser
 								_		<- captureParser
-								destination	<- Poly.commit coordinatesParser
+								destination	<- Poly.commit Notation.PureCoordinate.coordinatesParser
 
 								let maybeDestinationRank	= getMaybeRank destination
 
@@ -532,8 +431,8 @@ parser explicitEnPassant validateMoves game	= let
 						(
 							"Fully qualified move",	-- N.B. this scenario occurs when there are identical pieces on both the same row & the same column, as the intended attacker; i.e. after a promotion.
 							do
-								source		<- coordinatesParser
-								destination	<- Control.Applicative.optional captureParser >> coordinatesParser
+								source		<- Notation.PureCoordinate.coordinatesParser
+								destination	<- Control.Applicative.optional captureParser >> Notation.PureCoordinate.coordinatesParser
 
 								return {-to Parser-monad-} . Component.QualifiedMove.mkQualifiedMove (Component.Move.mkMove source destination) $ mkNormalMoveType destination
 						), (
@@ -544,22 +443,22 @@ parser explicitEnPassant validateMoves game	= let
 										"Abscissa qualification",
 										(
 											\x -> filter $ (== x) . Cartesian.Coordinates.getX
-										) `fmap` abscissaParser
+										) `fmap` Notation.PureCoordinate.abscissaParser
 									), (
 										"Ordinate qualification",
 										(
 											\y -> filter $ (== y) . Cartesian.Coordinates.getY
-										) `fmap` ordinateParser
+										) `fmap` Notation.PureCoordinate.ordinateParser
 									)
 								 ] -- Build a filter from the source-qualifier.
 
-								destination	<- Control.Applicative.optional captureParser >> coordinatesParser
+								destination	<- Control.Applicative.optional captureParser >> Notation.PureCoordinate.coordinatesParser
 
 								resolveQualifiedMove destination . sourceFilter $ findAttacksBy destination
 						), (
 							"Unqualified move",	-- The most likely scenario, where the intended attacker is unambiguous.
 							Poly.commit $ do
-								destination	<- Control.Applicative.optional captureParser >> coordinatesParser
+								destination	<- Control.Applicative.optional captureParser >> Notation.PureCoordinate.coordinatesParser
 
 								resolveQualifiedMove destination $ findAttacksBy destination
 						)
@@ -616,7 +515,7 @@ parser explicitEnPassant validateMoves game	= let
 					promotionParser	= (Parsec.char promotionFlag <?> "Promotion") >> rankParser
 				in Parsec.try (
 					do
-						destination	<- coordinatesParser	<?> "Destination"
+						destination	<- Notation.PureCoordinate.coordinatesParser	<?> "Destination"
 
 						Data.Maybe.maybe (
 							fail . showString "Failed to locate any " . shows piece . showString " which can advance to " $ shows destination "."
@@ -630,8 +529,8 @@ parser explicitEnPassant validateMoves game	= let
 							>>= Cartesian.Coordinates.maybeRetreat nextLogicalColour
 						 ) $ Just destination
 				) <|> do
-					x		<- abscissaParser <* captureParser
-					destination	<- coordinatesParser	<?> "Destination"
+					x		<- Notation.PureCoordinate.abscissaParser <* captureParser
+					destination	<- Notation.PureCoordinate.coordinatesParser	<?> "Destination"
 
 					let maybeDestinationRank	= getMaybeRank destination
 
@@ -669,33 +568,33 @@ parser explicitEnPassant validateMoves game	= let
 						 ] -- List-comprehension.
 				in Parsec.choice [
 					Parsec.try $ do -- N.B. this scenario occurs when there are identical pieces on both the same row & the same column, as the intended attacker; i.e. after a promotion.
-						source		<- coordinatesParser	<?> "Source"
+						source		<- Notation.PureCoordinate.coordinatesParser	<?> "Source"
 
 						Parsec.optional captureParser		<?> "Optional capture"
 
-						destination	<- coordinatesParser	<?> "Destination"
+						destination	<- Notation.PureCoordinate.coordinatesParser	<?> "Destination"
 
 						return {-to ParsecT-monad-} . Component.QualifiedMove.mkQualifiedMove (Component.Move.mkMove source destination) $ mkNormalMoveType destination,
 					Parsec.try $ do	-- This scenario occurs if there's an identical piece on either the same row or the same column, as the intended attacker.
 						sourceFilter	<- (
 							(
 								\x -> filter $ (== x) . Cartesian.Coordinates.getX
-							) <$> abscissaParser
+							) <$> Notation.PureCoordinate.abscissaParser
 						 ) <|> (
 							(
 								\y -> filter $ (== y) . Cartesian.Coordinates.getY
-							) <$> ordinateParser
+							) <$> Notation.PureCoordinate.ordinateParser
 						 ) -- Build a filter from the source-qualifier.
 
 						Parsec.optional captureParser		<?> "Optional capture"
 
-						destination	<- coordinatesParser	<?> "Destination"
+						destination	<- Notation.PureCoordinate.coordinatesParser	<?> "Destination"
 
 						resolveQualifiedMove destination . sourceFilter $ findAttacksBy destination,
 					do	-- The most likely scenario, where the intended attacker is unambiguous.
 						Parsec.optional captureParser		<?> "Optional capture"
 
-						destination	<- coordinatesParser	<?> "Unqualified destination"
+						destination	<- Notation.PureCoordinate.coordinatesParser	<?> "Unqualified destination"
 
 						resolveQualifiedMove destination $ findAttacksBy destination
 				],

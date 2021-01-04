@@ -1,3 +1,4 @@
+{-# LANGUAGE CPP #-}
 {-
 	Copyright (C) 2018 Dr. Alistair Ward
 
@@ -26,53 +27,94 @@
 	* CAVEAT: <https://en.wikipedia.org/wiki/Chess_notation> defined a variant of this notation.
 
 	* N.B.: used for communication via /CECP/ with /xboard/.
+
+	* N.B.: this minimal notation defines the coordinate-system on which Standard Algebraic is based.
 -}
 
-module BishBosh.Notation.Coordinate(
+module BishBosh.Notation.PureCoordinate(
 -- * Types
 -- ** Data-types
-	Coordinate(
---		MkCoordinate,
+	PureCoordinate(
+--		MkPureCoordinate,
 		getMove
 --		getMaybePromotionRank
 	),
 -- * Constants
+--	min',
+--	xMin,
+--	xMax,
+--	yMin,
+--	yMax,
 --	xOrigin,
 --	yOrigin,
 	origin,
 	regexSyntax,
 -- * Functions
---	encode,
+	encode,
 	showsCoordinates,
+	readsCoordinates,
+	abscissaParser,
+	ordinateParser,
+	coordinatesParser,
 -- ** Constructors
-	mkCoordinate,
-	mkCoordinate'
+	mkPureCoordinate,
+	mkPureCoordinate'
+-- ** Predicates
+--	inXRange,
+--	inYRange
 ) where
 
-import			Control.Arrow((&&&))
+import			Control.Arrow((&&&), (***))
 import qualified	BishBosh.Attribute.Rank		as Attribute.Rank
 import qualified	BishBosh.Cartesian.Abscissa	as Cartesian.Abscissa
 import qualified	BishBosh.Cartesian.Coordinates	as Cartesian.Coordinates
 import qualified	BishBosh.Cartesian.Ordinate	as Cartesian.Ordinate
 import qualified	BishBosh.Component.Move		as Component.Move
 import qualified	BishBosh.Data.Exception		as Data.Exception
+import qualified	BishBosh.Types			as T
 import qualified	Control.Arrow
 import qualified	Control.Exception
 import qualified	Data.Char
 import qualified	Data.List.Extra
 import qualified	Data.Maybe
 
--- | The /x/-origin.
-xOrigin :: Int
-xOrigin	= Data.Char.ord 'a'
+#ifdef USE_POLYPARSE
+import qualified	BishBosh.Text.Poly			as Text.Poly
+#if USE_POLYPARSE == 1
+import qualified	Text.ParserCombinators.Poly.Lazy	as Poly
+#else /* Plain */
+import qualified	Text.ParserCombinators.Poly.Plain	as Poly
+#endif
+#else /* Parsec */
+import qualified	Text.ParserCombinators.Parsec		as Parsec
+import			Text.ParserCombinators.Parsec((<?>))
+#endif
 
--- | The /y/-origin.
-yOrigin :: Int
-yOrigin	= Data.Char.ord '1'
+-- | The minimum permissible values for /x/ & /y/ coordinates.
+min' :: (Char, Char)
+xMin, yMin :: Char
+min'@(xMin, yMin)	= ('a', '1')
 
--- | The origin.
+-- | The origin of the coordinate-system.
 origin :: (Int, Int)
-origin	= (xOrigin, yOrigin)
+xOrigin, yOrigin :: Int
+origin@(xOrigin, yOrigin)	= Data.Char.ord *** Data.Char.ord $ min'
+
+-- | The maximum permissible values for /x/ & /y/ coordinates.
+xMax, yMax :: Char
+(xMax, yMax)	= Data.Char.chr . (
+	+ pred {-fence-post-} (fromIntegral Cartesian.Abscissa.xLength)
+ ) *** Data.Char.chr . (
+	+ pred {-fence-post-} (fromIntegral Cartesian.Ordinate.yLength)
+ ) $ origin
+
+-- | Whether the specified character is a valid abscissa.
+inXRange :: Char -> Bool
+inXRange	= uncurry (&&) . ((>= xMin) &&& (<= xMax))
+
+-- | Whether the specified character is a valid ordinate.
+inYRange :: Char -> Bool
+inYRange	= uncurry (&&) . ((>= yMin) &&& (<= yMax))
 
 -- | Defines using a regex, the required syntax.
 regexSyntax :: String
@@ -80,25 +122,79 @@ regexSyntax	= showString "([a-h][1-8]){2}[" $ showString (
 	concatMap show Attribute.Rank.promotionProspects
  ) "]?"
 
--- | Defines a /move/, to enable i/o in /Coordinate/-notation.
-data Coordinate x y	= MkCoordinate {
+#ifdef USE_POLYPARSE
+-- | Parse an /x/-coordinate.
+abscissaParser :: Enum x => Text.Poly.TextParser x
+{-# SPECIALISE abscissaParser :: Text.Poly.TextParser T.X #-}
+abscissaParser	= (
+	toEnum . (+ (Cartesian.Abscissa.xOrigin - xOrigin)) . Data.Char.ord
+ ) `fmap` Poly.satisfyMsg inXRange "Abscissa"
+
+-- | Parse a /y/-coordinate.
+ordinateParser :: Enum y => Text.Poly.TextParser y
+{-# SPECIALISE ordinateParser :: Text.Poly.TextParser T.Y #-}
+ordinateParser	= (
+	toEnum . (+ (Cartesian.Ordinate.yOrigin - yOrigin)) . Data.Char.ord
+ ) `fmap` Poly.satisfyMsg inYRange "Ordinate"
+
+-- | Parse a pair of /coordinates/.
+coordinatesParser :: (
+	Enum	x,
+	Enum	y,
+	Ord	x,
+	Ord	y
+ ) => Text.Poly.TextParser (Cartesian.Coordinates.Coordinates x y)
+{-# SPECIALISE coordinatesParser :: Text.Poly.TextParser (Cartesian.Coordinates.Coordinates T.X T.Y) #-}
+coordinatesParser	= do
+	x	<- abscissaParser
+	y	<- ordinateParser
+
+	return {-to Parser-monad-} $ Cartesian.Coordinates.mkCoordinates x y
+#else
+-- | Parse an /x/-coordinate.
+abscissaParser :: Enum x => Parsec.Parser x
+{-# SPECIALISE abscissaParser :: Parsec.Parser T.X #-}
+abscissaParser	= (
+	toEnum . (+ (Cartesian.Abscissa.xOrigin - xOrigin)) . Data.Char.ord
+ ) <$> Parsec.satisfy inXRange <?> "Abscissa"
+
+-- | Parse a /y/-coordinate.
+ordinateParser :: Enum y => Parsec.Parser y
+{-# SPECIALISE ordinateParser :: Parsec.Parser T.X #-}
+ordinateParser	= (
+	toEnum . (+ (Cartesian.Ordinate.yOrigin - yOrigin)) . Data.Char.ord
+ ) <$> Parsec.satisfy inYRange <?> "Ordinate"
+
+-- | Parse a pair of /coordinates/.
+coordinatesParser :: (
+	Enum	x,
+	Enum	y,
+	Ord	x,
+	Ord	y
+ ) => Parsec.Parser (Cartesian.Coordinates.Coordinates x y)
+{-# SPECIALISE coordinatesParser :: Parsec.Parser (Cartesian.Coordinates.Coordinates T.X T.Y) #-}
+coordinatesParser	= Cartesian.Coordinates.mkCoordinates <$> abscissaParser <*> ordinateParser
+#endif
+
+-- | Defines a /move/, to enable i/o in /PureCoordinate/-notation.
+data PureCoordinate x y	= MkPureCoordinate {
 	getMove			:: Component.Move.Move x y,
 	getMaybePromotionRank	:: Maybe Attribute.Rank.Rank
 } deriving Eq
 
 -- | Smart constructor.
-mkCoordinate :: Component.Move.Move x y -> Maybe Attribute.Rank.Rank -> Coordinate x y
-mkCoordinate move maybePromotionRank
+mkPureCoordinate :: Component.Move.Move x y -> Maybe Attribute.Rank.Rank -> PureCoordinate x y
+mkPureCoordinate move maybePromotionRank
 	| Just rank	<- maybePromotionRank
-	, rank `notElem` Attribute.Rank.promotionProspects	= Control.Exception.throw . Data.Exception.mkInvalidDatum . showString "BishBosh.Notation.Coordinate.Coordinate:\tcan't promote to a " $ shows rank "."
-	| otherwise						= MkCoordinate {
+	, rank `notElem` Attribute.Rank.promotionProspects	= Control.Exception.throw . Data.Exception.mkInvalidDatum . showString "BishBosh.Notation.PureCoordinate.mkPureCoordinate:\tcan't promote to a " $ shows rank "."
+	| otherwise						= MkPureCoordinate {
 		getMove			= move,
 		getMaybePromotionRank	= maybePromotionRank
 	}
 
 -- | Smart constructor.
-mkCoordinate' :: Attribute.Rank.Promotable promotable => Component.Move.Move x y -> promotable -> Coordinate x y
-mkCoordinate' move	= mkCoordinate move . Attribute.Rank.getMaybePromotionRank
+mkPureCoordinate' :: Attribute.Rank.Promotable promotable => Component.Move.Move x y -> promotable -> PureCoordinate x y
+mkPureCoordinate' move	= mkPureCoordinate move . Attribute.Rank.getMaybePromotionRank
 
 -- | Encodes the ordinate & abscissa.
 encode :: (Enum x, Enum y) => Cartesian.Coordinates.Coordinates x y -> (ShowS, ShowS)
@@ -108,8 +204,25 @@ encode	= showChar . Data.Char.chr . (+ (xOrigin - Cartesian.Abscissa.xOrigin)) .
 showsCoordinates :: (Enum x, Enum y) => Cartesian.Coordinates.Coordinates x y -> ShowS
 showsCoordinates	= uncurry (.) . encode
 
-instance (Enum x, Enum y) => Show (Coordinate x y) where
-	showsPrec _ MkCoordinate {
+-- | Reads coordinates.
+readsCoordinates :: (
+	Enum	x,
+	Enum	y,
+	Ord	x,
+	Ord	y
+ ) => ReadS (Cartesian.Coordinates.Coordinates x y)
+readsCoordinates s	= case Data.List.Extra.trimStart s of
+	x : y : remainder	-> map (
+		flip (,) remainder
+	 ) . Data.Maybe.maybeToList $ Cartesian.Coordinates.mkMaybeCoordinates (
+		toEnum $ Data.Char.ord x + (Cartesian.Abscissa.xOrigin - xOrigin)
+	 ) (
+		toEnum $ Data.Char.ord y + (Cartesian.Ordinate.yOrigin - yOrigin)
+	 )
+	_			-> []	-- Mo parse.
+
+instance (Enum x, Enum y) => Show (PureCoordinate x y) where
+	showsPrec _ MkPureCoordinate {
 		getMove			= move,
 		getMaybePromotionRank	= maybePromotionRank
 	} = showsCoordinates (
@@ -124,7 +237,7 @@ instance (
 	Enum	y,
 	Ord	x,
 	Ord	y
- ) => Read (Coordinate x y) where
+ ) => Read (PureCoordinate x y) where
 	readsPrec _ s	= case Data.List.Extra.trimStart s of
 		x : y : x' : y' : remainder	-> let
 			translate x'' y''	= Cartesian.Coordinates.mkMaybeCoordinates (
@@ -134,7 +247,7 @@ instance (
 			 )
 		 in [
 			Control.Arrow.first (
-				mkCoordinate $ Component.Move.mkMove source destination
+				mkPureCoordinate $ Component.Move.mkMove source destination
 			) (
 				case reads $ take 1 remainder of
 					[(rank, "")]	-> if rank `elem` Attribute.Rank.promotionProspects
@@ -148,6 +261,6 @@ instance (
 		 ] -- List-comprehension.
 		_					-> []	-- No parse.
 
-instance Attribute.Rank.Promotable (Coordinate x y) where
+instance Attribute.Rank.Promotable (PureCoordinate x y) where
 	getMaybePromotionRank	= getMaybePromotionRank
 
