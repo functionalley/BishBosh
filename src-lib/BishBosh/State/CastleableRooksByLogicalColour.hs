@@ -78,6 +78,7 @@ import qualified	Control.Arrow
 import qualified	Control.DeepSeq
 import qualified	Control.Exception
 import qualified	Data.Array.IArray
+import qualified	Data.Char
 import qualified	Data.Default
 import qualified	Data.List
 import qualified	Data.List.Extra
@@ -163,31 +164,35 @@ instance (
 	readsFEN s	= case Data.List.Extra.trimStart s of
 		'-' : remainder	-> [
 			(
-				MkCastleableRooksByLogicalColour $ Attribute.LogicalColour.range `zip` repeat [],	-- CAVEAT: it could also be just '[]'.
+				MkCastleableRooksByLogicalColour $ Attribute.LogicalColour.range `zip` repeat [],	-- CAVEAT: can't disambiguate between this potential value & '[]' which have different semantics for this application.
 				remainder
 			) -- Pair.
 		 ] -- Singleton.
 		s1		-> let
-			readsAssocs s'	= case reads s' of
-				[(piece, s'')]	-> let
-					logicalColour	= Component.Piece.getLogicalColour piece
-				 in case Component.Piece.getRank piece of
-					Attribute.Rank.Queen	-> Control.Arrow.first (
-						(
-							logicalColour,
-							Cartesian.Abscissa.xMin
-						) :
-					 ) `map` readsAssocs s''	-- Recurse.
-					Attribute.Rank.King	-> Control.Arrow.first (
-						(
-							logicalColour,
-							Cartesian.Abscissa.xMax
-						) :
-					 ) `map` readsAssocs s''	-- Recurse.
-					_			-> []	-- Inappropriate rank => parse-failure.
-				_		-> [([], s')]
+			readsAssocs s'
+				| null s' || Data.Char.isSpace (head s')	= terminate	-- CAVEAT: white space separates this field from the start of the En-passant destination, which should it begin with a 'b' might be interpreted as a Bishop.
+				| otherwise					= case reads s' of
+					[(piece, s'')]	-> case rank of
+						Attribute.Rank.Queen	-> Control.Arrow.first (
+							(
+								logicalColour,
+								Cartesian.Abscissa.xMin
+							) : {-prepend-}
+						 ) `map` readsAssocs s''	-- Recurse.
+						Attribute.Rank.King	-> Control.Arrow.first (
+							(
+								logicalColour,
+								Cartesian.Abscissa.xMax
+							) : {-prepend-}
+						 ) `map` readsAssocs s''	-- Recurse.
+						_			-> []	-- Inappropriate rank => parse-failure.
+						where
+							(logicalColour, rank)	= Component.Piece.getLogicalColour &&& Component.Piece.getRank $ piece
+					_		-> terminate
+				where
+					terminate	= [([], s')]
 		 in case readsAssocs s1 of
-			[([], _)]	-> []	-- Zero pieces were read => no parse.
+			[([], _)]	-> []	-- Zero pieces were read => parse-failure.
 			l		-> Control.Arrow.first (fromAssocs . Data.List.Extra.groupSort) `map` l
 
 instance (Enum x, Eq x) => Property.ForsythEdwards.ShowsFEN (CastleableRooksByLogicalColour x) where
@@ -215,7 +220,7 @@ fromAssocs :: (
 	Enum	x,
 	Ord	x,
 	Show	x
- ) => [(Attribute.LogicalColour.LogicalColour, [x])] -> CastleableRooksByLogicalColour x
+ ) => AbscissaeByLogicalColour x -> CastleableRooksByLogicalColour x
 fromAssocs assocs
 	| Data.List.Extra.anySame $ map fst {-logicalColour-} assocs	= Control.Exception.throw . Data.Exception.mkDuplicateData . showString "BishBosh.State.CastleableRooksByLogicalColour.fromAssocs:\tduplicate logical colours have been defined; " $ shows assocs "."
 	| any (Data.List.Extra.anySame . snd) assocs			= Control.Exception.throw . Data.Exception.mkDuplicateData . showString "BishBosh.State.CastleableRooksByLogicalColour.fromAssocs:\tduplicate abscissae have been defined; " $ shows assocs "."
