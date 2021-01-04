@@ -267,6 +267,30 @@ testCases	= Test.HUnit.test [
 		[(eitherQualifiedMove, "")]	-> Model.Game.isValidEitherQualifiedMove eitherQualifiedMove (
 			Property.ForsythEdwards.readFEN "r2qkbnr/ppp1pppp/2np4/5b2/3P4/NQP5/PP1BPPPP/R3KBNR w KQkq - 5 6"	:: Game
 		 ) ~? "long Castle through legal check failed."
-		_				-> Control.Exception.throw . Data.Exception.mkParseFailure . showString "BishBosh.Test.HUnit.Model.Game.testCases:\tfailed to parse " $ shows longCastle "."
+		_				-> Control.Exception.throw . Data.Exception.mkParseFailure . showString "BishBosh.Test.HUnit.Model.Game.testCases:\tfailed to parse " $ shows longCastle ".",
+	let
+		fens :: [String]
+		fens	= [
+			"rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",		-- Initial position.
+			"rnbqkbnr/pppp1ppp/8/3Pp3/8/8/PPP1PPPP/RNBQKBNR w KQkq e6 0 2",		-- Double Pawn-advance leading to en-passant option.
+			"rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq e3 0 1",		-- Double Pawn-advance, but no actual en-passant option.
+			"rnbqkbnr/pp1ppppp/8/2p5/4P3/8/PPPP1PPP/RNBQKBNR w KQkq c6 0 2",	-- Double Pawn-advance, but no actual en-passant option.
+			" rnbqkbnr/pppppppp/8/8/1P6/8/P1PPPPPP/RNBQKBNR  w\t Kq   b3 \r0  1",	-- Extra white space & potential parser confusion between Casteable Rooks & En-passant destination fields.
+			"rnbqkr2/p2pbp1p/1pp4n/6N1/PP2pRpP/2N5/R1PPPPP1/2BQKB2 b - - 0 13"	-- Neither Casteable Rooks nor En-passant destination.
+		 ]
+
+		parseFailures :: [(String, String)]
+		parseFailures	= filter (
+			uncurry (/=)
+		 ) $ map (
+			\s -> (
+				s,
+				case Property.ForsythEdwards.readsFEN s of
+					[(game, "")]		-> Property.ForsythEdwards.showFEN (game :: Game)
+					[(_, remainder)]	-> Control.Exception.throw . Data.Exception.mkRedundantData . showString "BishBosh.Test.HUnit.Model.Game.testCases:\tparsed FEN=" . shows s . showString ", but leaving " $ shows remainder " unparsed."
+					_			-> Control.Exception.throw . Data.Exception.mkParseFailure . showString "BishBosh.Test.HUnit.Model.Game.testCases:\tfailed to parse FEN=" $ shows s "."
+			) -- Pair.
+		 ) fens
+	in not (null parseFailures) ~? (showString "BishBosh.Test.HUnit.Model.Game.testCases:\tfailed to correctly parse FENs=" $ shows parseFailures ".")
  ]
 

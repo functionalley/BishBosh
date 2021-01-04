@@ -119,12 +119,27 @@ results	= sequence [
 		f game	= Test.QuickCheck.label "Game.prop_fen/Half move clock" $ uncurry (&&) . (
 			(>= 0) &&& (<= Model.DrawReason.maximumConsecutiveRepeatablePlies)
 		 ) . read . (
-			!! 4
+			!! 4	-- Half-move Clock.
 		 ) . words $ Property.ForsythEdwards.showFEN game
 	in Test.QuickCheck.quickCheckWithResult Test.QuickCheck.stdArgs { Test.QuickCheck.maxSuccess = 256 } f,
 	let
 		f :: Game -> Test.QuickCheck.Property
-		f game	= Test.QuickCheck.label "Game.prop_fen/Full move number" $ (> (0 :: Component.Move.NMoves)) . read . (!! 5) . words $ Property.ForsythEdwards.showFEN game
+		f game	= Test.QuickCheck.label "Game.prop_fen/Full move counter" $ (
+			> (0 :: Component.Move.NMoves)
+		 ) . read . (
+			!! 5	-- Full Move Counter.
+		 ) . words $ Property.ForsythEdwards.showFEN game
+	in Test.QuickCheck.quickCheckWithResult Test.QuickCheck.stdArgs { Test.QuickCheck.maxSuccess = 256 } f,
+	let
+		f :: Game -> Test.QuickCheck.Property
+		f game	= Test.QuickCheck.label "Game.prop_fen" . (
+			\game'	-> and [
+				uncurry (==) $ (($ game) &&& ($ game')) Model.Game.getNextLogicalColour,
+				uncurry (==) . (($ game) &&& ($ game')) $ State.CastleableRooksByLogicalColour.unify . Model.Game.getCastleableRooksByLogicalColour,
+				uncurry (==) $ (($ game) &&& ($ game')) Model.Game.getBoard,
+				uncurry (==) $ (($ game) &&& ($ game')) Model.Game.getMaybeChecked
+			]
+		 ) . Property.ForsythEdwards.readFEN $ Property.ForsythEdwards.showFEN game
 	in Test.QuickCheck.quickCheckWithResult Test.QuickCheck.stdArgs { Test.QuickCheck.maxSuccess = 256 } f,
 	let
 		f :: Game -> Test.QuickCheck.Property
