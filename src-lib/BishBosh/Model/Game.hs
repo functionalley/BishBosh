@@ -989,7 +989,7 @@ validateQualifiedMove qualifiedMove game@MkGame {
 					Attribute.Rank.Knight	-> [
 						(
 							distance `notElem` Cartesian.Vector.attackVectorsForKnight,
-							"the jump must be to the opposite corner of a 3 x 2 rectangle."
+							"the jump must be to the opposite corner of a 3 x 2 rectangle"
 						) -- Pair.
 					 ]
 					Attribute.Rank.Bishop	-> [
