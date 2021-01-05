@@ -30,21 +30,22 @@ module BishBosh.Property.ForsythEdwards(
 -- * Type-classes
 	ReadsFEN(..),
 	ShowsFEN(..),
--- * Constants
-	showsNullField,
-	showsSeparator,
 -- * Functions
 	readFEN,
 	showFEN
 ) where
 
+import qualified	BishBosh.Property.ExtendedPositionDescription	as Property.ExtendedPositionDescription
+
 -- | An alternative to 'Read'.
-class ReadsFEN a where
+class Property.ExtendedPositionDescription.ReadsEPD a => ReadsFEN a where
 	readsFEN	:: ReadS a	-- ^ Read a datum from FEN.
+	readsFEN	= Property.ExtendedPositionDescription.readsEPD	-- Default implementation.
 
 -- | An alternative to 'Show'.
-class ShowsFEN a where
+class Property.ExtendedPositionDescription.ShowsEPD a => ShowsFEN a where
 	showsFEN	:: a -> ShowS	-- ^ Stringify a FEN-datum.
+	showsFEN	= Property.ExtendedPositionDescription.showsEPD	-- Default implementation.
 
 -- | Read from FEN.
 readFEN	:: ReadsFEN a => String -> a
@@ -55,12 +56,4 @@ readFEN s	= case readsFEN s of
 -- | Display in FEN.
 showFEN	:: ShowsFEN a => a -> String
 showFEN a	= showsFEN a ""
-
--- | The standard way to denote the absence of a field.
-showsNullField :: ShowS
-showsNullField	= showChar '-'
-
--- | The standard separator between fields in FEN.
-showsSeparator :: ShowS
-showsSeparator	= showChar ' '
 

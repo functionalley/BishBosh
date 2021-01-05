@@ -161,6 +161,7 @@ Library
         BishBosh.Notation.PureCoordinate
         BishBosh.Notation.Smith
         BishBosh.Property.Empty
+        BishBosh.Property.ExtendedPositionDescription
         BishBosh.Property.ForsythEdwards
         BishBosh.Property.Null
         BishBosh.Property.Opposable

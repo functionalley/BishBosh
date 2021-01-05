@@ -27,3 +27,4 @@ Amended function **BishBosh.State.EnPassantAbscissa.mkMaybeEnPassantAbscissa** t
 
 ## 0.0.0.8
 Corrected the parsing of FEN when an Enpassant-destination defined on file **b** was erroneously interpreted as a bishop in the previous **CastleableRooks** field.
+Added parent class **BishBosh.Property.ExtendedPositionDescription.EPD** for **Property.ForsythEdwards.FEN**, for which the latter typically has a default implementation of both methods.
