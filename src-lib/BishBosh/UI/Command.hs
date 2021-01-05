@@ -119,7 +119,7 @@ setArgs	= Data.List.intercalate alternationTag [
 data Command x y
 	= Hint						-- ^ Request a move-suggestion.
 	| Print UI.PrintObject.PrintObject		-- ^ Show the value of the specified object.
-	| Quit						-- ^ Terminate ths application.
+	| Quit						-- ^ Terminate this application.
 	| Resign					-- ^ Admit defeat.
 	| Restart					-- ^ Abandon the current game, & start afresh.
 	| RollBack (Maybe Component.Move.NMoves)	-- ^ Roll-back the specified number of plies.
@@ -147,7 +147,7 @@ commands	= [
 	), (
 		quitTag,
 		Nothing,
-		"Terminate ths application"
+		"Terminate this application"
 	), (
 		resignTag,
 		Nothing,
