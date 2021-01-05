@@ -51,6 +51,7 @@ import qualified	BishBosh.Input.StandardOpeningOptions				as Input.StandardOpeni
 import qualified	BishBosh.Input.UIOptions					as Input.UIOptions
 import qualified	BishBosh.Model.Game						as Model.Game
 import qualified	BishBosh.Notation.MoveNotation					as Notation.MoveNotation
+import qualified	BishBosh.Property.ExtendedPositionDescription			as Property.ExtendedPositionDescription
 import qualified	BishBosh.Property.ForsythEdwards				as Property.ForsythEdwards
 import qualified	BishBosh.Property.ShowFloat					as Property.ShowFloat
 import qualified	BishBosh.Search.Search						as Search.Search
@@ -193,6 +194,7 @@ readMove positionHashQualifiedMoveTree randomGen startUTCTime playState	= let
 			case printObject of
 				UI.PrintObject.Board		-> putStrLn $ show2D game
 				UI.PrintObject.Configuration	-> putStrLn $ Property.ShowFloat.showsFloatToN nDecimalDigits options "."
+				UI.PrintObject.EPD		-> putStrLn $ Property.ExtendedPositionDescription.showEPD game
 				UI.PrintObject.FEN		-> putStrLn $ Property.ForsythEdwards.showFEN game
 				UI.PrintObject.Game		-> print game
 				UI.PrintObject.Help		-> putStrLn . showString "Enter either a move in " . shows moveNotation $ showString "-notation, or:\n" UI.Command.usageMessage

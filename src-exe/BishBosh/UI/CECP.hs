@@ -71,6 +71,7 @@ import qualified	BishBosh.Input.UIOptions					as Input.UIOptions
 import qualified	BishBosh.Model.Game						as Model.Game
 import qualified	BishBosh.Model.GameTerminationReason				as Model.GameTerminationReason
 import qualified	BishBosh.Notation.MoveNotation					as Notation.MoveNotation
+import qualified	BishBosh.Property.ExtendedPositionDescription			as Property.ExtendedPositionDescription
 import qualified	BishBosh.Property.ForsythEdwards				as Property.ForsythEdwards
 import qualified	BishBosh.Property.ShowFloat					as Property.ShowFloat
 import qualified	BishBosh.Search.Search						as Search.Search
@@ -283,6 +284,7 @@ readMove positionHashQualifiedMoveTree randomGen	= slave where
 				putStrLn . tellUser =<< case printObject of
 					UI.PrintObject.Board		-> return {-to IO-monad-} . show $ Model.Game.getBoard game
 					UI.PrintObject.Configuration	-> return {-to IO-monad-} $ Property.ShowFloat.showsFloatToN nDecimalDigits options "."
+					UI.PrintObject.EPD		-> return {-to IO-monad-} $ Property.ExtendedPositionDescription.showEPD game
 					UI.PrintObject.FEN		-> return {-to IO-monad-} $ Property.ForsythEdwards.showFEN game
 					UI.PrintObject.Game		-> return {-to IO-monad-} $ show game
 					UI.PrintObject.Help		-> return {-to IO-monad-} . showString "USAGE: " . showString UI.Command.printTag . showChar ' ' $ Text.ShowList.showsDelimitedList (showChar '|') (showChar '(') (showChar ')') (map shows UI.PrintObject.range) ""

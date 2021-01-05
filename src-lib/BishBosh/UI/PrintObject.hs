@@ -29,6 +29,7 @@ module BishBosh.UI.PrintObject (
 -- * Constants
 	boardTag,
 	configurationTag,
+	epdTag,
 	fenTag,
 	gameTag,
 	helpTag,
@@ -54,6 +55,10 @@ configurationTag :: String
 configurationTag	= "configuration"
 
 -- | Input-format.
+epdTag :: String
+epdTag			= "epd"
+
+-- | Input-format.
 fenTag :: String
 fenTag			= "fen"
 
@@ -77,6 +82,7 @@ pgnTag			= "pgn"
 data PrintObject
 	= Board
 	| Configuration
+	| EPD
 	| FEN
 	| Game
 	| Help
@@ -91,6 +97,7 @@ instance Show PrintObject where
 	showsPrec _ printObject	= showString $ case printObject of
 		Board		-> boardTag
 		Configuration	-> configurationTag
+		EPD		-> epdTag
 		FEN		-> fenTag
 		Game		-> gameTag
 		Help		-> helpTag
@@ -101,6 +108,7 @@ instance Read PrintObject where
 	readsPrec _ s	= case Control.Arrow.first Data.List.Extra.lower `map` lex s of
 		[("board", remainder)]		-> [(Board, remainder)]
 		[("configuration", remainder)]	-> [(Configuration, remainder)]
+		[("epd", remainder)]		-> [(EPD, remainder)]
 		[("fen", remainder)]		-> [(FEN, remainder)]
 		[("game", remainder)]		-> [(Game, remainder)]
 		[("help", remainder)]		-> [(Help, remainder)]
@@ -110,7 +118,7 @@ instance Read PrintObject where
 
 -- | The constant unordered list of possible values.
 range :: [PrintObject]
-range	= [Board, Configuration, FEN, Game, Help, Moves, PGN]
+range	= [Board, Configuration, EPD, FEN, Game, Help, Moves, PGN]
 
 -- | Replace the first word of the specified string with the name of a command of which it is an unambiguous case-insensitive prefix.
 autoComplete :: ShowS
@@ -120,6 +128,7 @@ autoComplete	= uncurry (++) . Control.Arrow.first (
 			tag	<- [
 				boardTag,
 				configurationTag,
+				epdTag,
 				fenTag,
 				gameTag,
 				helpTag,
