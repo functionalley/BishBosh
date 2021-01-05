@@ -45,6 +45,7 @@ import qualified	BishBosh.Data.Exception				as Data.Exception
 import qualified	BishBosh.Model.Game				as Model.Game
 import qualified	BishBosh.Model.GameTerminationReason		as Model.GameTerminationReason
 import qualified	BishBosh.Notation.MoveNotation			as Notation.MoveNotation
+import qualified	BishBosh.Property.ExtendedPositionDescription	as Property.ExtendedPositionDescription
 import qualified	BishBosh.Property.ForsythEdwards		as Property.ForsythEdwards
 import qualified	BishBosh.Test.HUnit.Cartesian.Coordinates	as Test.HUnit.Cartesian.Coordinates
 import qualified	BishBosh.Text.ShowList				as Text.ShowList
@@ -269,28 +270,28 @@ testCases	= Test.HUnit.test [
 		 ) ~? "long Castle through legal check failed."
 		_				-> Control.Exception.throw . Data.Exception.mkParseFailure . showString "BishBosh.Test.HUnit.Model.Game.testCases:\tfailed to parse " $ shows longCastle ".",
 	let
-		fens :: [String]
-		fens	= [
-			"rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",		-- Initial position.
-			"rnbqkbnr/pppp1ppp/8/3Pp3/8/8/PPP1PPPP/RNBQKBNR w KQkq e6 0 2",		-- Double Pawn-advance leading to en-passant option.
-			"rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq e3 0 1",		-- Double Pawn-advance, but no actual en-passant option.
-			"rnbqkbnr/pp1ppppp/8/2p5/4P3/8/PPPP1PPP/RNBQKBNR w KQkq c6 0 2",	-- Double Pawn-advance, but no actual en-passant option.
-			" rnbqkbnr/pppppppp/8/8/1P6/8/P1PPPPPP/RNBQKBNR  w\t Kq   b3 \r0  1",	-- Extra white space & potential parser confusion between Casteable Rooks & En-passant destination fields.
-			"rnbqkr2/p2pbp1p/1pp4n/6N1/PP2pRpP/2N5/R1PPPPP1/2BQKB2 b - - 0 13"	-- Neither Casteable Rooks nor En-passant destination.
+		epds :: [String]
+		epds	= [
+			"rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq -",			-- Initial position.
+			"rnbqkbnr/pppp1ppp/8/3Pp3/8/8/PPP1PPPP/RNBQKBNR w KQkq e6",		-- Double Pawn-advance leading to en-passant option.
+			"rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq e3",		-- Double Pawn-advance, but no actual en-passant option.
+			"rnbqkbnr/pp1ppppp/8/2p5/4P3/8/PPPP1PPP/RNBQKBNR w KQkq c6",		-- Double Pawn-advance, but no actual en-passant option.
+			" rnbqkbnr/pppppppp/8/8/1P6/8/P1PPPPPP/RNBQKBNR  w\t Kq \r  b3",	-- Extra white space & potential parser confusion between Casteable Rooks & En-passant destination fields.
+			"rnbqkr2/p2pbp1p/1pp4n/6N1/PP2pRpP/2N5/R1PPPPP1/2BQKB2 b - -"		-- Neither Casteable Rooks nor En-passant destination are defined.
 		 ]
 
 		parseFailures :: [(String, String)]
 		parseFailures	= filter (
 			uncurry (/=)
 		 ) $ map (
-			\s -> (
-				s,
-				case Property.ForsythEdwards.readsFEN s of
-					[(game, "")]		-> Property.ForsythEdwards.showFEN (game :: Game)
-					[(_, remainder)]	-> Control.Exception.throw . Data.Exception.mkRedundantData . showString "BishBosh.Test.HUnit.Model.Game.testCases:\tparsed FEN=" . shows s . showString ", but leaving " $ shows remainder " unparsed."
-					_			-> Control.Exception.throw . Data.Exception.mkParseFailure . showString "BishBosh.Test.HUnit.Model.Game.testCases:\tfailed to parse FEN=" $ shows s "."
+			\epd -> (
+				epd,
+				case Property.ExtendedPositionDescription.readsEPD epd of
+					[(game, "")]		-> Property.ExtendedPositionDescription.showEPD (game :: Game)
+					[(_, remainder)]	-> Control.Exception.throw . Data.Exception.mkRedundantData . showString "BishBosh.Test.HUnit.Model.Game.testCases:\tparsed EPD=" . shows epd . showString ", but leaving " $ shows remainder " unparsed."
+					_			-> Control.Exception.throw . Data.Exception.mkParseFailure . showString "BishBosh.Test.HUnit.Model.Game.testCases:\tfailed to parse EPD=" $ shows epd "."
 			) -- Pair.
-		 ) fens
-	in not (null parseFailures) ~? (showString "BishBosh.Test.HUnit.Model.Game.testCases:\tfailed to correctly parse FENs=" $ shows parseFailures ".")
+		 ) epds
+	in not (null parseFailures) ~? (showString "BishBosh.Test.HUnit.Model.Game.testCases:\tfailed to correctly parse EPDs=" $ shows parseFailures ".")
  ]
 

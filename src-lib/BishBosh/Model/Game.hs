@@ -111,6 +111,7 @@ import qualified	BishBosh.Model.Result				as Model.Result
 import qualified	BishBosh.Notation.MoveNotation			as Notation.MoveNotation
 import qualified	BishBosh.Notation.PureCoordinate		as Notation.PureCoordinate
 import qualified	BishBosh.Property.Empty				as Property.Empty
+import qualified	BishBosh.Property.ExtendedPositionDescription	as Property.ExtendedPositionDescription
 import qualified	BishBosh.Property.ForsythEdwards		as Property.ForsythEdwards
 import qualified	BishBosh.Property.Null				as Property.Null
 import qualified	BishBosh.Property.Opposable			as Property.Opposable
@@ -325,7 +326,6 @@ instance (
 		) Attribute.LogicalColour.range
 	}
 
--- CAVEAT: some information is lost during 'showsFEN', which can't subsequently be recovered by 'readsFEN'.
 instance (
 	Enum	x,
 	Enum	y,
@@ -333,16 +333,16 @@ instance (
 	Ord	y,
 	Show	x,
 	Show	y
- ) => Property.ForsythEdwards.ReadsFEN (Game x y) where
-	{-# SPECIALISE instance Property.ForsythEdwards.ReadsFEN (Game T.X T.Y) #-}
-	readsFEN s	= [
+ ) => Property.ExtendedPositionDescription.ReadsEPD (Game x y) where
+	{-# SPECIALISE instance Property.ExtendedPositionDescription.ReadsEPD (Game T.X T.Y) #-}
+	readsEPD s	= [
 		(
 			mkGame nextLogicalColour castleableRooksByLogicalColour board turnsByLogicalColour,
-			s6
+			s4
 		) |
-			(board, s1)				<- Property.ForsythEdwards.readsFEN s,
-			(nextLogicalColour, s2)			<- Property.ForsythEdwards.readsFEN s1,
-			(castleableRooksByLogicalColour, s3)	<- Property.ForsythEdwards.readsFEN s2,
+			(board, s1)				<- Property.ExtendedPositionDescription.readsEPD s,
+			(nextLogicalColour, s2)			<- Property.ExtendedPositionDescription.readsEPD s1,
+			(castleableRooksByLogicalColour, s3)	<- Property.ExtendedPositionDescription.readsEPD s2,
 			(turnsByLogicalColour, s4)		<- case Data.List.Extra.trimStart s3 of
 				'-' : s4'	-> [(Property.Empty.empty {-TurnsByLogicalColour-}, s4')]
 				s3'		-> Control.Arrow.first (
@@ -367,9 +367,45 @@ instance (
 					]
 				 ) `map` (
 					Notation.PureCoordinate.readsCoordinates s3'
-				 ) {-En-passant destination-},
-			(_halfMoveClock, s5)			<- reads s4 :: [(Int, String)],
-			(_fullMoveCounter, s6)			<- reads s5 :: [(Int, String)]
+				 ) {-En-passant destination-}
+	 ] -- List-comprehension.
+
+instance (
+	Enum	x,
+	Enum	y,
+	Ord	x,
+	Ord	y
+ ) => Property.ExtendedPositionDescription.ShowsEPD (Game x y) where
+	showsEPD game@MkGame {
+		getNextLogicalColour			= nextLogicalColour,
+		getCastleableRooksByLogicalColour	= castleableRooksByLogicalColour,
+		getBoard				= board
+	 } = Text.ShowList.showsDelimitedList Property.ExtendedPositionDescription.showsSeparator id id [
+		Property.ExtendedPositionDescription.showsEPD board,				-- 1. Placement of pieces.
+		Property.ExtendedPositionDescription.showsEPD nextLogicalColour,		-- 2. Active colour.
+		Property.ExtendedPositionDescription.showsEPD castleableRooksByLogicalColour,	-- 3. Castling availability.
+		Data.Maybe.maybe Property.ExtendedPositionDescription.showsNullField (
+			\turn -> if Component.Turn.isPawnDoubleAdvance (Property.Opposable.getOpposite nextLogicalColour) turn
+				then Notation.MoveNotation.showsNotation Data.Default.def {-Smith is the same as the required Algebraic notation in this limited role-} . Cartesian.Coordinates.advance nextLogicalColour . Component.Move.getDestination . Component.QualifiedMove.getMove $ Component.Turn.getQualifiedMove turn
+				else Property.ExtendedPositionDescription.showsNullField
+		) $ maybeLastTurn game	-- 4. En-passant target square. CAVEAT: in contrast to X-EPD, this is required even when there's no opposing Pawn in a suitable position to take en-passant.
+	 ]
+
+-- CAVEAT: some information is lost during 'showsFEN', which can't subsequently be recovered by 'readsFEN'.
+instance (
+	Enum	x,
+	Enum	y,
+	Ord	x,
+	Ord	y,
+	Show	x,
+	Show	y
+ ) => Property.ForsythEdwards.ReadsFEN (Game x y) where
+	{-# SPECIALISE instance Property.ForsythEdwards.ReadsFEN (Game T.X T.Y) #-}
+	readsFEN s	=  [
+		(game, s3) |
+			(game, s1)		<- Property.ExtendedPositionDescription.readsEPD s,
+			(_halfMoveClock, s2)	<- reads s1 :: [(Int, String)],
+			(_fullMoveCounter, s3)	<- reads s2 :: [(Int, String)]
 	 ] -- List-comprehension.
 
 instance (
@@ -379,22 +415,12 @@ instance (
 	Ord	y
  ) => Property.ForsythEdwards.ShowsFEN (Game x y) where
 	showsFEN game@MkGame {
-		getNextLogicalColour			= nextLogicalColour,
-		getCastleableRooksByLogicalColour	= castleableRooksByLogicalColour,
-		getBoard				= board,
-		getTurnsByLogicalColour			= turnsByLogicalColour,
-		getInstancesByPosition			= instancesByPosition
-	 } = Text.ShowList.showsDelimitedList Property.ForsythEdwards.showsSeparator id id [
-		Property.ForsythEdwards.showsFEN board,					-- Placement of pieces.
-		Property.ForsythEdwards.showsFEN nextLogicalColour,			-- Active colour.
-		Property.ForsythEdwards.showsFEN castleableRooksByLogicalColour,	-- Castling availability.
-		Data.Maybe.maybe Property.ForsythEdwards.showsNullField (
-			\turn -> if Component.Turn.isPawnDoubleAdvance (Property.Opposable.getOpposite nextLogicalColour) turn
-				then Notation.MoveNotation.showsNotation Data.Default.def {-Smith is the same as the required Algebraic notation in this limited role-} . Cartesian.Coordinates.advance nextLogicalColour . Component.Move.getDestination . Component.QualifiedMove.getMove $ Component.Turn.getQualifiedMove turn
-				else Property.ForsythEdwards.showsNullField
-		) $ maybeLastTurn game,	-- En-passant target square. CAVEAT: in contrast to X-FEN, this is required even when there's no opposing Pawn in a suitable position to take en-passant.
-		shows $ State.InstancesByPosition.countConsecutiveRepeatablePlies instancesByPosition,	-- Half move clock.
-		shows . succ {-the full-move counter starts at '1', before any move has occurred-} . length $ State.TurnsByLogicalColour.dereference Attribute.LogicalColour.Black turnsByLogicalColour	-- Full move counter.
+		getTurnsByLogicalColour	= turnsByLogicalColour,
+		getInstancesByPosition	= instancesByPosition
+	 } = Text.ShowList.showsDelimitedList Property.ExtendedPositionDescription.showsSeparator id id [
+		Property.ExtendedPositionDescription.showsEPD game,
+		shows $ State.InstancesByPosition.countConsecutiveRepeatablePlies instancesByPosition, -- 5. Half move clock.
+		shows . succ {-the full-move counter starts at '1', before any move has occurred-} . length $ State.TurnsByLogicalColour.dereference Attribute.LogicalColour.Black turnsByLogicalColour	-- 6. Full move counter.
 	 ]
 
 instance (

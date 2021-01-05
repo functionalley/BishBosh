@@ -44,8 +44,9 @@ module BishBosh.Attribute.LogicalColour(
 --	isWhite
 ) where
 
-import qualified	BishBosh.Property.ForsythEdwards	as Property.ForsythEdwards
-import qualified	BishBosh.Property.Opposable		as Property.Opposable
+import qualified	BishBosh.Property.ExtendedPositionDescription	as Property.ExtendedPositionDescription
+import qualified	BishBosh.Property.ForsythEdwards		as Property.ForsythEdwards
+import qualified	BishBosh.Property.Opposable			as Property.Opposable
 import qualified	Control.DeepSeq
 import qualified	Control.Exception
 import qualified	Data.Array.IArray
@@ -93,16 +94,20 @@ instance Property.Opposable.Opposable LogicalColour where
 	getOpposite Black	= White
 	getOpposite _		= Black
 
-instance Property.ForsythEdwards.ReadsFEN LogicalColour where
-	readsFEN s	= case Data.List.Extra.trimStart s of
+instance Property.ExtendedPositionDescription.ReadsEPD LogicalColour where
+	readsEPD s	= case Data.List.Extra.trimStart s of
 		'b' : remainder	-> [(Black, remainder)]
 		'w' : remainder	-> [(White, remainder)]
 		_		-> []
 
-instance Property.ForsythEdwards.ShowsFEN LogicalColour where
-	showsFEN logicalColour	= showChar $ case logicalColour of
+instance Property.ExtendedPositionDescription.ShowsEPD LogicalColour where
+	showsEPD logicalColour	= showChar $ case logicalColour of
 		Black	-> 'b'
 		White	-> 'w'
+
+instance Property.ForsythEdwards.ReadsFEN LogicalColour
+
+instance Property.ForsythEdwards.ShowsFEN LogicalColour
 
 -- | Whether the specified /logical colour/ is @Black@.
 isBlack :: LogicalColour -> Bool

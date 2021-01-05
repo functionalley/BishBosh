@@ -82,6 +82,7 @@ import qualified	BishBosh.Component.PieceSquareArray		as Component.PieceSquareAr
 import qualified	BishBosh.Component.Zobrist			as Component.Zobrist
 import qualified	BishBosh.Data.Exception				as Data.Exception
 import qualified	BishBosh.Property.Empty				as Property.Empty
+import qualified	BishBosh.Property.ExtendedPositionDescription	as Property.ExtendedPositionDescription
 import qualified	BishBosh.Property.ForsythEdwards		as Property.ForsythEdwards
 import qualified	BishBosh.Property.Opposable			as Property.Opposable
 import qualified	BishBosh.Property.Reflectable			as Property.Reflectable
@@ -142,8 +143,8 @@ instance (
 	Enum	y,
 	Ord	x,
 	Ord	y
- ) => Property.ForsythEdwards.ReadsFEN (MaybePieceByCoordinates x y) where
-	readsFEN s
+ ) => Property.ExtendedPositionDescription.ReadsEPD (MaybePieceByCoordinates x y) where
+	readsEPD s
 		| length rows /= fromIntegral Cartesian.Ordinate.yLength || any (
 			(/= fromIntegral Cartesian.Abscissa.xLength) . length
 		) rows		= []	-- No parse.
@@ -154,11 +155,11 @@ instance (
 					concatMap (
 						\c -> case reads [c] of
 							[(i, "")]	-> replicate i Nothing	-- Expand the runlength-code so that each row has the same length.
-							_		-> [Just piece | (piece, []) <- Property.ForsythEdwards.readsFEN [c]] -- List-comprehension.
+							_		-> [Just piece | (piece, []) <- Property.ExtendedPositionDescription.readsEPD [c]] -- List-comprehension.
 					)
 				) . Text.ShowList.splitOn (== rankSeparator)
 			 ) . span (
-				`elem` rankSeparator : concatMap Property.ForsythEdwards.showFEN Component.Piece.range ++ concatMap show [1 .. Cartesian.Abscissa.xLength]
+				`elem` rankSeparator : concatMap Property.ExtendedPositionDescription.showEPD Component.Piece.range ++ concatMap show [1 .. Cartesian.Abscissa.xLength]
 			 ) $ Data.List.Extra.trimStart s
 
 instance (
@@ -166,8 +167,8 @@ instance (
 	Enum	y,
 	Ord	x,
 	Ord	y
- ) => Property.ForsythEdwards.ShowsFEN (MaybePieceByCoordinates x y) where
-	showsFEN MkMaybePieceByCoordinates { deconstruct = byCoordinates }	= foldr1 (
+ ) => Property.ExtendedPositionDescription.ShowsEPD (MaybePieceByCoordinates x y) where
+	showsEPD MkMaybePieceByCoordinates { deconstruct = byCoordinates }	= foldr1 (
 		flip (.)	-- Render the line with the highest y-coordinate first.
 	 ) . Data.List.intersperse (
 		showChar rankSeparator	-- Separate the lines.
@@ -176,10 +177,24 @@ instance (
 			\(runLength, maybePiece) -> Data.Maybe.maybe [
 				shows runLength	-- Represent empty squares.
 			] (
-				replicate runLength . Property.ForsythEdwards.showsFEN	-- Render each piece.
+				replicate runLength . Property.ExtendedPositionDescription.showsEPD	-- Render each piece.
 			) maybePiece
 		) . ToolShed.Data.List.Runlength.encode
 	 ) . listToRaster $ Data.Array.IArray.elems byCoordinates
+
+instance (
+	Enum	x,
+	Enum	y,
+	Ord	x,
+	Ord	y
+ ) => Property.ForsythEdwards.ReadsFEN (MaybePieceByCoordinates x y)
+
+instance (
+	Enum	x,
+	Enum	y,
+	Ord	x,
+	Ord	y
+ ) => Property.ForsythEdwards.ShowsFEN (MaybePieceByCoordinates x y)
 
 instance (
 	Enum	x,

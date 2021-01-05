@@ -83,6 +83,7 @@ import qualified	BishBosh.Component.PieceSquareArray		as Component.PieceSquareAr
 import qualified	BishBosh.Component.Zobrist			as Component.Zobrist
 import qualified	BishBosh.Data.Exception				as Data.Exception
 import qualified	BishBosh.Property.Empty				as Property.Empty
+import qualified	BishBosh.Property.ExtendedPositionDescription	as Property.ExtendedPositionDescription
 import qualified	BishBosh.Property.ForsythEdwards		as Property.ForsythEdwards
 import qualified	BishBosh.Property.Opposable			as Property.Opposable
 import qualified	BishBosh.Property.Reflectable			as Property.Reflectable
@@ -176,17 +177,33 @@ instance (
 	Enum	y,
 	Ord	x,
 	Ord	y
- ) => Property.ForsythEdwards.ReadsFEN (Board x y) where
-	{-# SPECIALISE instance Property.ForsythEdwards.ReadsFEN (Board T.X T.Y) #-}
-	readsFEN	= map (Control.Arrow.first fromMaybePieceByCoordinates) . Property.ForsythEdwards.readsFEN
+ ) => Property.ExtendedPositionDescription.ReadsEPD (Board x y) where
+	{-# SPECIALISE instance Property.ExtendedPositionDescription.ReadsEPD (Board T.X T.Y) #-}
+	readsEPD	= map (Control.Arrow.first fromMaybePieceByCoordinates) . Property.ExtendedPositionDescription.readsEPD
 
 instance (
 	Enum	x,
 	Enum	y,
 	Ord	x,
 	Ord	y
- ) => Property.ForsythEdwards.ShowsFEN (Board x y) where
-	showsFEN MkBoard { getMaybePieceByCoordinates = maybePieceByCoordinates }	= Property.ForsythEdwards.showsFEN maybePieceByCoordinates
+ ) => Property.ExtendedPositionDescription.ShowsEPD (Board x y) where
+	showsEPD MkBoard { getMaybePieceByCoordinates = maybePieceByCoordinates }	= Property.ExtendedPositionDescription.showsEPD maybePieceByCoordinates
+
+instance (
+	Enum	x,
+	Enum	y,
+	Ord	x,
+	Ord	y
+ ) => Property.ForsythEdwards.ReadsFEN (Board x y) where
+	{-# SPECIALISE instance Property.ForsythEdwards.ReadsFEN (Board T.X T.Y) #-}
+	readsFEN	=  Property.ExtendedPositionDescription.readsEPD
+
+instance (
+	Enum	x,
+	Enum	y,
+	Ord	x,
+	Ord	y
+ ) => Property.ForsythEdwards.ShowsFEN (Board x y)
 
 instance (
 	Enum	x,

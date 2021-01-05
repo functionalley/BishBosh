@@ -67,6 +67,7 @@ import qualified	BishBosh.Component.QualifiedMove		as Component.QualifiedMove
 import qualified	BishBosh.Component.Turn				as Component.Turn
 import qualified	BishBosh.Component.Zobrist			as Component.Zobrist
 import qualified	BishBosh.Data.Exception				as Data.Exception
+import qualified	BishBosh.Property.ExtendedPositionDescription	as Property.ExtendedPositionDescription
 import qualified	BishBosh.Property.ForsythEdwards		as Property.ForsythEdwards
 import qualified	BishBosh.Property.Opposable			as Property.Opposable
 import qualified	BishBosh.Property.Reflectable			as Property.Reflectable
@@ -160,8 +161,8 @@ instance (
 	Enum	x,
 	Ord	x,
 	Show	x
- ) => Property.ForsythEdwards.ReadsFEN (CastleableRooksByLogicalColour x) where
-	readsFEN s	= case Data.List.Extra.trimStart s of
+ ) => Property.ExtendedPositionDescription.ReadsEPD (CastleableRooksByLogicalColour x) where
+	readsEPD s	= case Data.List.Extra.trimStart s of
 		'-' : remainder	-> [
 			(
 				MkCastleableRooksByLogicalColour $ Attribute.LogicalColour.range `zip` repeat [],	-- CAVEAT: can't disambiguate between this potential value & '[]' which have different semantics for this application.
@@ -195,17 +196,25 @@ instance (
 			[([], _)]	-> []	-- Zero pieces were read => parse-failure.
 			l		-> Control.Arrow.first (fromAssocs . Data.List.Extra.groupSort) `map` l
 
-instance (Enum x, Eq x) => Property.ForsythEdwards.ShowsFEN (CastleableRooksByLogicalColour x) where
-	showsFEN MkCastleableRooksByLogicalColour { getAssocs = assocs }
-		| all (null . snd) assocs	= Property.ForsythEdwards.showsNullField
+instance (Enum x, Eq x) => Property.ExtendedPositionDescription.ShowsEPD (CastleableRooksByLogicalColour x) where
+	showsEPD MkCastleableRooksByLogicalColour { getAssocs = assocs }
+		| all (null . snd) assocs	= Property.ExtendedPositionDescription.showsNullField
 		| otherwise			= foldr (
-			(.) . Property.ForsythEdwards.showsFEN
+			(.) . Property.ExtendedPositionDescription.showsEPD
 		) id [
 			pieceConstructor logicalColour |
 				logicalColour			<- [Attribute.LogicalColour.White, Attribute.LogicalColour.Black],	-- N.B.: the order is standardised.
 				(rooksX, pieceConstructor)	<- [(Cartesian.Abscissa.xMax, Component.Piece.mkKing), (Cartesian.Abscissa.xMin, Component.Piece.mkQueen)],	-- N.B.: the order is defined as King-side (short) before Queen-side (long), which is also alphabetical.
 				canCastleWith' logicalColour rooksX assocs
 		] -- List-comprehension.
+
+instance (
+	Enum	x,
+	Ord	x,
+	Show	x
+ ) => Property.ForsythEdwards.ReadsFEN (CastleableRooksByLogicalColour x)
+
+instance (Enum x, Eq x) => Property.ForsythEdwards.ShowsFEN (CastleableRooksByLogicalColour x)
 
 -- | Get the list of random numbers required to represent the current castling potential.
 instance Eq x => Component.Zobrist.Hashable1D CastleableRooksByLogicalColour x {-CAVEAT: FlexibleInstances, MultiParamTypeClasses-} where

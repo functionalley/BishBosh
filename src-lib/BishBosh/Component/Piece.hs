@@ -73,16 +73,17 @@ module BishBosh.Component.Piece(
 
 import			Control.Arrow((&&&), (***))
 import			Data.Array.IArray((!))
-import qualified	BishBosh.Attribute.Direction		as Attribute.Direction
-import qualified	BishBosh.Attribute.LogicalColour	as Attribute.LogicalColour
-import qualified	BishBosh.Attribute.Rank			as Attribute.Rank
-import qualified	BishBosh.Cartesian.Abscissa		as Cartesian.Abscissa
-import qualified	BishBosh.Cartesian.Coordinates		as Cartesian.Coordinates
-import qualified	BishBosh.Cartesian.Ordinate		as Cartesian.Ordinate
-import qualified	BishBosh.Cartesian.Vector		as Cartesian.Vector
-import qualified	BishBosh.Property.ForsythEdwards	as Property.ForsythEdwards
-import qualified	BishBosh.Property.Opposable		as Property.Opposable
-import qualified	BishBosh.Types				as T
+import qualified	BishBosh.Attribute.Direction			as Attribute.Direction
+import qualified	BishBosh.Attribute.LogicalColour		as Attribute.LogicalColour
+import qualified	BishBosh.Attribute.Rank				as Attribute.Rank
+import qualified	BishBosh.Cartesian.Abscissa			as Cartesian.Abscissa
+import qualified	BishBosh.Cartesian.Coordinates			as Cartesian.Coordinates
+import qualified	BishBosh.Cartesian.Ordinate			as Cartesian.Ordinate
+import qualified	BishBosh.Cartesian.Vector			as Cartesian.Vector
+import qualified	BishBosh.Property.ExtendedPositionDescription	as Property.ExtendedPositionDescription
+import qualified	BishBosh.Property.ForsythEdwards		as Property.ForsythEdwards
+import qualified	BishBosh.Property.Opposable			as Property.Opposable
+import qualified	BishBosh.Types					as T
 import qualified	Control.DeepSeq
 import qualified	Control.Exception
 import qualified	Data.Array.IArray
@@ -90,7 +91,7 @@ import qualified	Data.Char
 import qualified	Data.List.Extra
 import qualified	Data.Map
 import qualified	Data.Maybe
-import qualified	Text.XML.HXT.Arrow.Pickle		as HXT
+import qualified	Text.XML.HXT.Arrow.Pickle			as HXT
 import qualified	Text.XML.HXT.Arrow.Pickle.Schema
 
 -- | Used to qualify XML.
@@ -130,8 +131,8 @@ instance Read Piece where
 instance Show Piece where
 	showsPrec _	= Property.ForsythEdwards.showsFEN
 
-instance Property.ForsythEdwards.ReadsFEN Piece where
-	readsFEN s	= case Data.List.Extra.trimStart s of
+instance Property.ExtendedPositionDescription.ReadsEPD Piece where
+	readsEPD s	= case Data.List.Extra.trimStart s of
 		c : remainder	-> (
 			MkPiece (
 				if Data.Char.isUpper c
@@ -141,12 +142,16 @@ instance Property.ForsythEdwards.ReadsFEN Piece where
 		 ) `map` reads [c]
 		_		-> []	-- No parse.
 
-instance Property.ForsythEdwards.ShowsFEN Piece where
-	showsFEN piece@MkPiece { getRank = rank }	= showString . map (
+instance Property.ExtendedPositionDescription.ShowsEPD Piece where
+	showsEPD piece@MkPiece { getRank = rank }	= showString . map (
 		if isBlack piece
 			then Data.Char.toLower	-- Only required for independence from the specific implementation of Read for Rank.
 			else Data.Char.toUpper
 	 ) $ show rank
+
+instance Property.ForsythEdwards.ReadsFEN Piece
+
+instance Property.ForsythEdwards.ShowsFEN Piece
 
 instance HXT.XmlPickler Piece where
 	xpickle	= HXT.xpWrap (read, show) . HXT.xpAttr tag . HXT.xpTextDT . Text.XML.HXT.Arrow.Pickle.Schema.scEnum $ map show range
