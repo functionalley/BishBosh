@@ -188,7 +188,7 @@ updateWithManualMove :: (
  ) => Model.Game.Game x y -> Transformation column criterionValue criterionWeight pieceSquareValue positionHash rankValue row weightedMean x y
 updateWithManualMove game playState@MkPlayState { getSearchState = searchState }	= setPositionHashQuantifiedGameTree (
 	Data.Maybe.fromMaybe (
-		Control.Exception.throw $ Data.Exception.mkIncompatibleData "BishBosh.State.PlayState.updateWithManualMove:\tData.RoseTree.reduce failed."
+		Control.Exception.throw $ Data.Exception.mkIncompatibleData "BishBosh.State.PlayState.updateWithManualMove:\tEvaluation.PositionHashQuantifiedGameTree.reduce failed."
 	) . Evaluation.PositionHashQuantifiedGameTree.reduce (
 		(
 			== Data.Maybe.fromMaybe (
