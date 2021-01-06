@@ -60,13 +60,17 @@ flag llvm
     Default:		False
 
 -- Automatically disabled when the required package isn't available.
--- To manually disable, use "runhaskell Setup configure -f -polyparse --verbose"; which may be required to access Parsec's more precise error-messages.
+-- To access Parsec's more precise error-messages, manually disable using one of:
+--	runhaskell Setup configure -f -polyparse --verbose;
+--	stack build --flag 'bishbosh:-polyparse' --cabal-verbose;
 flag polyparse
     Description:	Link with package "polyparse" when available, rather than "parsec".
     Default:		True
 
 -- Automatically disabled when the required package isn't available.
--- To manually disable, use "runhaskell Setup configure -f -hxtrelaxng --verbose", under which circumstances the XML-configuration will be validated against the packaged DTD instead.
+-- To force validation of the XML-configuration against the packaged DTD, manually disable using one of:
+--	runhaskell Setup configure -f -hxtrelaxng --verbose;
+--	stack build --flag 'bishbosh:-hxtrelaxng' --cabal-verbose;
 flag hxtrelaxng
     Description:	Link with package "hxt-relaxng" when available, for more precise specification of the XML-configuration than a traditional DTD.
     Default:		True
