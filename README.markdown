@@ -9,7 +9,7 @@ This is "**BishBosh**", a chess-game which can be rendered in a terminal (emulat
 
 ## Installation
 
-It can be built and installed using [Cabal](https://www.haskell.org/cabal/users-guide/installing-packages.html).
+It can be built and installed using [Cabal](https://www.haskell.org/cabal/users-guide/installing-packages.html) or [The Haskell Tool Stack](https://docs.haskellstack.org/en/stable/README/).
 
 ## Documentation
 
@@ -25,11 +25,10 @@ Bug-reports should be emailed to <bishbosh@functionalley.com>.
 
 ## Testing
 
-The test-suite can be run using:
+The test-suite can be run using either of:
 
-    cabal configure --enable-tests;
-    cabal build;
-    cabal test --show-details=always;
+* cabal configure --enable-tests && cabal build && cabal test --show-details=always;
+* stack test;
 
 It's currently only been tested on **Linux**.
 
