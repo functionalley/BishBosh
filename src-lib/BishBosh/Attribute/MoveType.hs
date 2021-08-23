@@ -29,8 +29,8 @@ module BishBosh.Attribute.MoveType(
 -- ** Data-types
 	MoveType(
 		Castle,
-		EnPassant,
-		Normal
+		EnPassant
+--		Normal
 	),
 -- * Constants
 	tag,
@@ -55,8 +55,9 @@ module BishBosh.Attribute.MoveType(
 	getMaybeImplicitlyTakenRank
 ) where
 
-import qualified	BishBosh.Attribute.Rank	as Attribute.Rank
-import qualified	BishBosh.Text.ShowList	as Text.ShowList
+import qualified	BishBosh.Attribute.Rank			as Attribute.Rank
+import qualified	BishBosh.Property.FixedMembership	as Property.FixedMembership
+import qualified	BishBosh.Text.ShowList			as Text.ShowList
 import qualified	Control.Arrow
 import qualified	Control.DeepSeq
 import qualified	Control.Exception
@@ -83,20 +84,23 @@ longCastle	= Castle False
 enPassant :: MoveType
 enPassant	= EnPassant
 
--- | Classifies the distinct types of /move/.
+-- | The sum-type of distinct types of /move/.
 data MoveType
 	= Castle IsShort	-- ^ Castling between the @King@ & one of its @Rook@s.
 	| EnPassant		-- ^ Capture by a @Pawn@ of a @Pawn@ as it advanced two squares.
 	| Normal {
-		_getMaybeTakenRank	:: Maybe Attribute.Rank.Rank,	-- ^ The /rank/ of any opposing /piece/ which was just taken.
-		_getMaybePromotionRank	:: Maybe Attribute.Rank.Rank	-- ^ The /rank/ of any /piece/ to which a @Pawn@ was just promoted.
-	}
+		getMaybeTakenRank	:: Maybe Attribute.Rank.Rank,
+		getMaybePromotionRank	:: Maybe Attribute.Rank.Rank
+	}			-- ^ The /rank/ of any opposing /piece/ which was just taken & the /rank/ of any /piece/ to which a @Pawn@ was just promoted.
 	deriving Eq
 
 instance Show MoveType where
-	showsPrec _ (Castle isShort)				= showString "Castle (short" . Text.ShowList.showsAssociation . shows isShort . showChar ')'
-	showsPrec _ EnPassant					= showString "En-passant"
-	showsPrec _ (Normal maybeTakenRank maybePromotionRank)	= Text.ShowList.showsAssociationList' $ Data.Maybe.catMaybes [
+	showsPrec _ (Castle isShort)	= showString "Castle (short" . Text.ShowList.showsAssociation . shows isShort . showChar ')'
+	showsPrec _ EnPassant		= showString "En-passant"
+	showsPrec _ Normal {
+		getMaybeTakenRank	= maybeTakenRank,
+		getMaybePromotionRank	= maybePromotionRank
+	} = Text.ShowList.showsAssociationList' $ Data.Maybe.catMaybes [
 		fmap ((,) "takenRank" . shows) maybeTakenRank,
 		fmap ((,) "promotionRank" . shows) maybePromotionRank
 	 ]
@@ -140,15 +144,31 @@ instance Read MoveType where
 
 instance Control.DeepSeq.NFData MoveType where
 	rnf (Castle isShort)	= Control.DeepSeq.rnf isShort
-	rnf (Normal t p)	= Control.DeepSeq.rnf (t, p)
-	rnf _			= ()
+	rnf EnPassant		= ()
+	rnf Normal {
+		getMaybeTakenRank	= maybeTakenRank,
+		getMaybePromotionRank	= maybePromotionRank
+	}			= Control.DeepSeq.rnf (maybeTakenRank, maybePromotionRank)
 
 instance Data.Default.Default MoveType where
-	def	= Normal Nothing Nothing
+	def	= Normal {
+		getMaybeTakenRank	= Nothing,
+		getMaybePromotionRank	= Nothing
+	}
 
 instance Attribute.Rank.Promotable MoveType where
-	getMaybePromotionRank (Normal _ maybePromotionRank)	= maybePromotionRank
-	getMaybePromotionRank _					= Nothing
+	getMaybePromotionRank Normal { getMaybePromotionRank = maybePromotionRank }	= maybePromotionRank
+	getMaybePromotionRank _								= Nothing
+
+instance Property.FixedMembership.FixedMembership MoveType where
+	members	= EnPassant : map Castle Property.FixedMembership.members ++ [
+		Normal {
+			getMaybeTakenRank	= maybeTakenRank,
+			getMaybePromotionRank	= maybePromotionRank
+		} |
+			maybeTakenRank		<- Nothing : map Just Attribute.Rank.expendable,
+			maybePromotionRank	<- Nothing : map Just Attribute.Rank.promotionProspects
+	 ] -- List-comprehension.
 
 -- | Smart-constructor for normal move-types.
 mkMaybeNormalMoveType
@@ -159,7 +179,10 @@ mkMaybeNormalMoveType maybeTakenRank maybePromotionRank
 	| maybeTakenRank /= Just Attribute.Rank.King
 	, Data.Maybe.maybe True {-nothing promoted-} (
 		`elem` Attribute.Rank.promotionProspects
-	) maybePromotionRank	= Just $ Normal maybeTakenRank maybePromotionRank
+	) maybePromotionRank	= Just Normal {
+		getMaybeTakenRank	= maybeTakenRank,
+		getMaybePromotionRank	= maybePromotionRank
+	}
 	| otherwise		= Nothing
 
 -- | Smart-constructor for normal move-types.
@@ -171,7 +194,10 @@ mkNormalMoveType maybeTakenRank maybePromotionRank	= Control.Exception.assert (
 	maybeTakenRank /= Just Attribute.Rank.King && Data.Maybe.maybe True {-nothing promoted-} (
 		`elem` Attribute.Rank.promotionProspects
 	) maybePromotionRank
- ) $ Normal maybeTakenRank maybePromotionRank
+ ) Normal {
+	getMaybeTakenRank	= maybeTakenRank,
+	getMaybePromotionRank	= maybePromotionRank
+}
 
 -- | Predicate.
 isCastle :: MoveType -> Bool
@@ -191,18 +217,21 @@ isNormal _		= False
 -- | Whether a piece was captured, including @Pawn@s taken En-passant.
 isCapture :: MoveType -> Bool
 {-# INLINE isCapture #-}
-isCapture (Normal (Just _) _)	= True
-isCapture moveType		= isEnPassant moveType
+isCapture Normal { getMaybeTakenRank = Just _ }	= True
+isCapture moveType				= isEnPassant moveType
 
 -- | Whether the /move/ includes @Pawn@-promotion.
 isPromotion :: MoveType -> Bool
-isPromotion (Normal _ (Just _))	= True
-isPromotion _			= False
+isPromotion Normal { getMaybePromotionRank = Just _ }	= True
+isPromotion _						= False
 
 -- | <https://www.chessprogramming.org/Quiet_Moves>.
 isQuiet :: MoveType -> Bool
-isQuiet (Normal Nothing Nothing)	= True
-isQuiet	moveType			= isCastle moveType
+isQuiet Normal {
+	getMaybeTakenRank	= Nothing,
+	getMaybePromotionRank	= Nothing
+}			= True
+isQuiet	moveType	= isCastle moveType
 
 {- |
 	* Whether the /move/ can't be a member of a repeated cycle.
@@ -210,13 +239,16 @@ isQuiet	moveType			= isCastle moveType
 	* CAVEAT: one can't infer from a negative result that the move can be repeated, since the mover may have been a @Pawn@.
 -}
 isAcyclic :: MoveType -> Bool
-isAcyclic (Normal Nothing Nothing)	= False
-isAcyclic _				= True
+isAcyclic Normal {
+	getMaybeTakenRank	= Nothing,
+	getMaybePromotionRank	= Nothing
+}		= False
+isAcyclic _	= True
 
 -- | Query whether a /piece/ was explicitly taken, excluding @Pawn@s taken En-passant.
 getMaybeExplicitlyTakenRank :: MoveType -> Maybe Attribute.Rank.Rank
-getMaybeExplicitlyTakenRank (Normal maybeTakenRank _)	= maybeTakenRank
-getMaybeExplicitlyTakenRank _				= Nothing
+getMaybeExplicitlyTakenRank Normal { getMaybeTakenRank = maybeTakenRank }	= maybeTakenRank
+getMaybeExplicitlyTakenRank _							= Nothing
 
 -- | Query whether a /piece/ was taken either explicitly, or implicitly during En-passant.
 getMaybeImplicitlyTakenRank :: MoveType -> Maybe Attribute.Rank.Rank

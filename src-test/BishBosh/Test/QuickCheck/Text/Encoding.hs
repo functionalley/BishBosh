@@ -28,13 +28,14 @@ module BishBosh.Test.QuickCheck.Text.Encoding (
 	results
 ) where
 
-import qualified	BishBosh.Text.Encoding	as Text.Encoding
+import			BishBosh.Text.Encoding()
+import qualified	BishBosh.Property.FixedMembership	as Property.FixedMembership
 import qualified	System.IO
 import qualified	Test.QuickCheck
 import qualified	ToolShed.Test.ReversibleIO
 
 instance Test.QuickCheck.Arbitrary System.IO.TextEncoding where
-	arbitrary	= Test.QuickCheck.elements Text.Encoding.range
+	arbitrary	= Test.QuickCheck.elements Property.FixedMembership.members
 
 -- | The constant test-results.
 results :: IO [Test.QuickCheck.Result]

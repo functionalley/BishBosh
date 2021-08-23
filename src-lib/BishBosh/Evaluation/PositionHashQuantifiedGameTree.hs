@@ -1,3 +1,4 @@
+{-# LANGUAGE CPP, FlexibleContexts #-}
 {-
 	Copyright (C) 2018 Dr. Alistair Ward
 
@@ -21,9 +22,10 @@
 
  [@DESCRIPTION@]
 
-	* Constructs a tree in which each node contains,
-	a zobrist-hash,
-	a /quantifiedGame/ with one of the moves available to its parent node applied & evaluation of the fitness of the resulting position.
+	* Constructs a tree in which each node contains;
+	a /Zobrist-hash/;
+	a /quantifiedGame/ with one of the moves available to its parent node applied;
+	& an evaluation of the fitness of the resulting position.
 
 	* Each forest in the tree is sorted, before evaluation of its fitness is performed.
 
@@ -60,13 +62,12 @@ module BishBosh.Evaluation.PositionHashQuantifiedGameTree(
 	fromBarePositionHashQuantifiedGameTree,
 	mkPositionHashQuantifiedGameTree
 -- ** Predicates
---	equalsLastMove
+--	equalsLastQualifiedMove
  ) where
 
 import			Control.Arrow((&&&))
 import qualified	BishBosh.Attribute.RankValues				as Attribute.RankValues
 import qualified	BishBosh.Attribute.WeightedMeanAndCriterionValues	as Attribute.WeightedMeanAndCriterionValues
-import qualified	BishBosh.Component.Move					as Component.Move
 import qualified	BishBosh.Component.QualifiedMove			as Component.QualifiedMove
 import qualified	BishBosh.Component.Turn					as Component.Turn
 import qualified	BishBosh.Component.Zobrist				as Component.Zobrist
@@ -78,8 +79,8 @@ import qualified	BishBosh.Input.SearchOptions				as Input.SearchOptions
 import qualified	BishBosh.Model.Game					as Model.Game
 import qualified	BishBosh.Model.GameTree					as Model.GameTree
 import qualified	BishBosh.Notation.MoveNotation				as Notation.MoveNotation
+import qualified	BishBosh.Property.Arboreal				as Property.Arboreal
 import qualified	BishBosh.Property.Null					as Property.Null
-import qualified	BishBosh.Property.Tree					as Property.Tree
 import qualified	BishBosh.Types						as T
 import qualified	Control.Arrow
 import qualified	Control.Monad.Reader
@@ -87,6 +88,14 @@ import qualified	Data.Array.IArray
 import qualified	Data.Bits
 import qualified	Data.Maybe
 import qualified	Data.Tree
+
+#ifdef USE_PARALLEL
+import qualified	Control.DeepSeq
+#endif
+
+#ifdef USE_UNBOXED_ARRAYS
+import qualified	Data.Array.Unboxed
+#endif
 
 -- | Define a node in the tree to contain the hash of a /game/ & an evaluation of the fitness of that /game/.
 data NodeLabel x y positionHash criterionValue weightedMean	= MkNodeLabel {
@@ -104,9 +113,9 @@ instance (Enum x, Enum y, Real weightedMean) => Notation.MoveNotation.ShowNotati
 instance Property.Null.Null (NodeLabel x y positionHash criterionValue weightedMean) where
 	isNull MkNodeLabel { getQuantifiedGame = quantifiedGame }	= Property.Null.isNull quantifiedGame
 
--- | Whether the last move of the /game/ in a node, matches a specified /move/.
-equalsLastMove :: (Eq x, Eq y) => Component.Move.Move x y -> Data.RoseTree.IsMatch (NodeLabel x y positionHash criterionValue weightedMean)
-equalsLastMove move MkNodeLabel { getQuantifiedGame = quantifiedGame }	= (== move) . Component.QualifiedMove.getMove . Component.Turn.getQualifiedMove $ Evaluation.QuantifiedGame.getLastTurn quantifiedGame
+-- | Whether the last qualifiedMove of the /game/ in a node, matches a specified /QualifiedMove/.
+equalsLastQualifiedMove :: (Eq x, Eq y) => Component.QualifiedMove.QualifiedMove x y -> Data.RoseTree.IsMatch (NodeLabel x y positionHash criterionValue weightedMean)
+equalsLastQualifiedMove qualifiedMove MkNodeLabel { getQuantifiedGame = quantifiedGame }	= (== qualifiedMove) . Component.Turn.getQualifiedMove $ Evaluation.QuantifiedGame.getLastTurn quantifiedGame
 
 -- | The tree resulting from each possible move-choice applied to a /game/, including a position-hash & an evaluation of the resulting fitness.
 type BarePositionHashQuantifiedGameTree x y positionHash criterionValue weightedMean	= Data.Tree.Tree (NodeLabel x y positionHash criterionValue weightedMean)
@@ -122,8 +131,8 @@ newtype PositionHashQuantifiedGameTree x y positionHash criterionValue weightedM
 	deconstruct	:: BarePositionHashQuantifiedGameTree x y positionHash criterionValue weightedMean
 } deriving Eq
 
-instance Property.Tree.Prunable (PositionHashQuantifiedGameTree x y positionHash criterionValue weightedMean) where
-	prune depth MkPositionHashQuantifiedGameTree { deconstruct = barePositionHashQuantifiedGameTree }	= MkPositionHashQuantifiedGameTree $ Property.Tree.prune depth barePositionHashQuantifiedGameTree
+instance Property.Arboreal.Prunable (PositionHashQuantifiedGameTree x y positionHash criterionValue weightedMean) where
+	prune depth MkPositionHashQuantifiedGameTree { deconstruct = barePositionHashQuantifiedGameTree }	= MkPositionHashQuantifiedGameTree $ Property.Arboreal.prune depth barePositionHashQuantifiedGameTree
 
 instance (
 	Enum	x,
@@ -143,20 +152,26 @@ fromBarePositionHashQuantifiedGameTree	= MkPositionHashQuantifiedGameTree
 
 -- | Constructor.
 mkPositionHashQuantifiedGameTree :: (
-	Data.Array.IArray.Ix	x,
-	Data.Bits.Bits		positionHash,
-	Fractional		criterionValue,
-	Fractional		pieceSquareValue,
-	Fractional		rankValue,
-	Fractional		weightedMean,
-	Integral		x,
-	Integral		y,
-	Real			criterionValue,
-	Real			criterionWeight,
-	Real			pieceSquareValue,
-	Real			rankValue,
-	Show			x,
-	Show			y
+#ifdef USE_PARALLEL
+	Control.DeepSeq.NFData					criterionValue,
+#endif
+	Data.Array.IArray.Ix					x,
+#ifdef USE_UNBOXED_ARRAYS
+	Data.Array.Unboxed.IArray Data.Array.Unboxed.UArray	pieceSquareValue,	-- Requires 'FlexibleContexts'. The unboxed representation of the array-element must be defined (& therefore must be of fixed size).
+#endif
+	Data.Bits.Bits						positionHash,
+	Fractional						criterionValue,
+	Fractional						pieceSquareValue,
+	Fractional						rankValue,
+	Fractional						weightedMean,
+	Integral						x,
+	Integral						y,
+	Real							criterionValue,
+	Real							criterionWeight,
+	Real							pieceSquareValue,
+	Real							rankValue,
+	Show							x,
+	Show							y
  )
 	=> Input.EvaluationOptions.EvaluationOptions criterionWeight pieceSquareValue rankValue x y
 	-> Input.SearchOptions.SearchOptions
@@ -192,10 +207,10 @@ mkPositionHashQuantifiedGameTree evaluationOptions searchOptions zobrist moveFre
 							) evaluationOptions,
 							Data.Tree.subForest	= map (slave positionHash' game') gameForest'	-- Recurse.
 						} where
-							positionHash'	= Model.Game.incrementalHash game positionHash game' zobrist
+							positionHash'	= Model.Game.updateIncrementalPositionHash game positionHash game' zobrist
 					in slave
 				) (
-					\pieceSquareArray -> let
+					\pieceSquareByCoordinatesByRank -> let
 						slave pieceSquareValue positionHash game Data.Tree.Node {
 							Data.Tree.rootLabel	= game',
 							Data.Tree.subForest	= gameForest'
@@ -205,11 +220,11 @@ mkPositionHashQuantifiedGameTree evaluationOptions searchOptions zobrist moveFre
 							) evaluationOptions,
 							Data.Tree.subForest	= map (slave pieceSquareValue' positionHash' game') gameForest'	-- Recurse.
 						} where
-							pieceSquareValue'	= Evaluation.Fitness.measurePieceSquareValueIncrementally pieceSquareValue pieceSquareArray game'
-							positionHash'		= Model.Game.incrementalHash game positionHash game' zobrist
-					in slave $ Evaluation.Fitness.measurePieceSquareValue pieceSquareArray seedGame
+							pieceSquareValue'	= Evaluation.Fitness.measurePieceSquareValueIncrementally pieceSquareValue pieceSquareByCoordinatesByRank game'
+							positionHash'		= Model.Game.updateIncrementalPositionHash game positionHash game' zobrist
+					in slave $ Evaluation.Fitness.measurePieceSquareValue pieceSquareByCoordinatesByRank seedGame
 				) (
-					Input.EvaluationOptions.getMaybePieceSquareArray evaluationOptions
+					Input.EvaluationOptions.getMaybePieceSquareByCoordinatesByRank evaluationOptions
 				) apexPositionHash seedGame
 			) $ Data.Tree.subForest bareGameTree
 		}
@@ -219,8 +234,8 @@ mkPositionHashQuantifiedGameTree evaluationOptions searchOptions zobrist moveFre
 			)
 		) bareGameTree
  ) where
-	bareGameTree	= Model.GameTree.deconstruct . uncurry Model.GameTree.sortGameTree (
-		Input.SearchOptions.getPreferMovesTowardsCentre &&& Input.SearchOptions.getMaybeCaptureMoveSortAlgorithm $ searchOptions
+	bareGameTree	= Model.GameTree.deconstruct . Model.GameTree.sortGameTree (
+		Input.SearchOptions.getMaybeCaptureMoveSortAlgorithm searchOptions
 	 ) (
 		`Attribute.RankValues.findRankValue` Input.EvaluationOptions.getRankValues evaluationOptions
 	 ) moveFrequency $ Model.GameTree.fromGame seedGame
@@ -260,9 +275,9 @@ traceRoute isMatch MkPositionHashQuantifiedGameTree { deconstruct = barePosition
 traceMatchingMoves
 	:: (Eq x, Eq y)
 	=> PositionHashQuantifiedGameTree x y positionHash criterionValue weightedMean
-	-> [Component.Move.Move x y]
-	-> Maybe [NodeLabel x y positionHash criterionValue weightedMean]	-- ^ Returns 'Nothing' on failure to match a move.
-traceMatchingMoves MkPositionHashQuantifiedGameTree { deconstruct = barePositionHashQuantifiedGameTree }	= Data.RoseTree.traceRoute equalsLastMove barePositionHashQuantifiedGameTree
+	-> [Component.QualifiedMove.QualifiedMove x y]
+	-> Maybe [NodeLabel x y positionHash criterionValue weightedMean]	-- ^ Returns 'Nothing', on failure to match a move.
+traceMatchingMoves MkPositionHashQuantifiedGameTree { deconstruct = barePositionHashQuantifiedGameTree }	= Data.RoseTree.traceRoute equalsLastQualifiedMove barePositionHashQuantifiedGameTree
 
 -- | Amend the apex-game to reflect the resignation of the next player.
 resign :: PositionHashQuantifiedGameTree x y positionHash criterionValue weightedMean -> PositionHashQuantifiedGameTree x y positionHash criterionValue weightedMean
@@ -286,10 +301,10 @@ type Forest x y positionHash criterionValue weightedMean	= [BarePositionHashQuan
 -}
 promoteMatchingMoves
 	:: (Eq x, Eq y)
-	=> [Component.Move.Move x y]					-- ^ The list of moves, which should be promoted at successively deeper levels in the tree.
+	=> [Component.QualifiedMove.QualifiedMove x y]			-- ^ The list of qualifiedMoves, which should be promoted at successively deeper levels in the tree.
 	-> Forest x y positionHash criterionValue weightedMean
 	-> Maybe (Forest x y positionHash criterionValue weightedMean)	-- ^ Returns 'Nothing' on failure to match a move.
-promoteMatchingMoves	= Data.RoseTree.promote equalsLastMove
+promoteMatchingMoves	= Data.RoseTree.promote equalsLastQualifiedMove
 
 {- |
 	* Sorts the forest, starting just after any initial capture-moves.

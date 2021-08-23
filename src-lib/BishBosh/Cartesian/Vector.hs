@@ -44,6 +44,7 @@ module BishBosh.Cartesian.Vector(
 	mkVector,
 	measureDistance,
 -- ** Predicates
+--	hasDistance,
 	isDiagonal,
 	isParallel,
 	isStraight,
@@ -59,9 +60,11 @@ import qualified	BishBosh.Attribute.LogicalColour	as Attribute.LogicalColour
 import qualified	BishBosh.Cartesian.Abscissa		as Cartesian.Abscissa
 import qualified	BishBosh.Cartesian.Coordinates		as Cartesian.Coordinates
 import qualified	BishBosh.Cartesian.Ordinate		as Cartesian.Ordinate
+import qualified	BishBosh.Data.Enum			as Data.Enum
 import qualified	BishBosh.Property.Opposable		as Property.Opposable
 import qualified	BishBosh.Property.Orientated		as Property.Orientated
 import qualified	BishBosh.Types				as T
+import qualified	Control.DeepSeq
 import qualified	Control.Exception
 
 -- | The distance between two /coordinates/.
@@ -73,13 +76,15 @@ data Vector distance = MkVector {
 instance Num distance => Property.Opposable.Opposable (Vector distance) where
 	getOpposite (MkVector xDistance yDistance)	= MkVector (negate xDistance) (negate yDistance)
 
+-- | Whether the vector has a non-zero length (or a well-defined direction).
+hasDistance :: (Eq distance, Num distance) => distance -> distance -> Bool
+hasDistance xDistance yDistance	= xDistance /= 0 || yDistance /= 0
+
 -- | Smart constructor.
 mkVector :: (Num distance, Ord distance) => distance -> distance -> Vector distance
 {-# INLINE mkVector #-}
 mkVector xDistance yDistance	= Control.Exception.assert (
-	(
-		xDistance /= 0 || yDistance /= 0	-- Which would be neither a valid chess-move nor have a direction.
-	) && abs xDistance < fromIntegral Cartesian.Abscissa.xLength && abs yDistance < fromIntegral Cartesian.Ordinate.yLength
+	hasDistance xDistance yDistance && abs xDistance < fromIntegral Cartesian.Abscissa.xLength && abs yDistance < fromIntegral Cartesian.Ordinate.yLength
  ) $ MkVector xDistance yDistance
 
 -- | Construct a /vector/ by measuring the signed distance between source-/coordinates/ & destination.
@@ -113,6 +118,9 @@ isStraight vector	= isParallel vector || isDiagonal vector
 -- | A suitable concrete type.
 type VectorInt	= Vector T.Distance
 
+instance Control.DeepSeq.NFData	distance => Control.DeepSeq.NFData (Vector distance) where
+	rnf MkVector { getXDistance = xDistance, getYDistance = yDistance }	= Control.DeepSeq.rnf (xDistance, yDistance)
+
 instance (Eq distance, Num distance) => Property.Orientated.Orientated (Vector distance) where
 	{-# SPECIALISE instance Property.Orientated.Orientated VectorInt #-}
 	isDiagonal	= isDiagonal
@@ -136,24 +144,26 @@ attackVectorsForPawn logicalColour	= [
 attackVectorsForKnight :: Num distance => [Vector distance]
 attackVectorsForKnight	= [
 	MkVector (fX xDistance) (fY $ 3 - xDistance) |
-		fX		<- [negate, id],
-		fY		<- [negate, id],
+		fX		<- negateOrNot,
+		fY		<- negateOrNot,
 		xDistance	<- [1, 2]
- ] -- List-comprehension.
+ ] where
+	negateOrNot	= [negate, id]
 
 -- | The constant list of attack-vectors for a @King@.
 attackVectorsForKing :: (Eq distance, Num distance) => [Vector distance]
 attackVectorsForKing	= [
 	MkVector xDistance yDistance |
-		xDistance	<- [negate 1, 0, 1],
-		yDistance	<- [negate 1, 0, 1],
-		xDistance /= 0 || yDistance /= 0
- ] -- List-comprehension.
+		xDistance	<- signumValues,
+		yDistance	<- signumValues,
+		hasDistance xDistance yDistance
+ ] where
+	signumValues	= [negate 1, 0, 1]
 
 {- |
 	* Whether the specified /vector/ might represent an attack (rather than an advance) by a @Pawn@.
 
-	* CAVEAT: if the move started at the first rank, then it can't be a @Pawn@, but that's unknown.
+	* CAVEAT: if the move started at the first rank, then it can't be a @Pawn@, but that's beyond the scope of this module (since a /Vector/ doesn't define absolute /coordinate/s).
 -}
 isPawnAttack :: (Eq distance, Num distance) => Attribute.LogicalColour.LogicalColour -> Vector distance -> Bool
 {-# INLINE isPawnAttack #-}
@@ -206,7 +216,7 @@ translate :: (
 	-> Vector distance
 	-> Cartesian.Coordinates.Coordinates x y
 translate coordinates (MkVector xDistance yDistance)	= Cartesian.Coordinates.translate (
-	toEnum . (+ fromIntegral xDistance) . fromEnum *** toEnum . (+ fromIntegral yDistance) . fromEnum
+	Data.Enum.translate (+ fromIntegral xDistance) *** Data.Enum.translate (+ fromIntegral yDistance)
  ) coordinates
 
 -- | Where legal, translate the specified /coordinates/ by the specified /vector/.
@@ -220,9 +230,9 @@ maybeTranslate :: (
 	=> Cartesian.Coordinates.Coordinates x y
 	-> Vector distance
 	-> Maybe (Cartesian.Coordinates.Coordinates x y)
-{-# INLINE maybeTranslate #-}
+{-# SPECIALISE maybeTranslate :: Cartesian.Coordinates.Coordinates T.X T.Y -> Vector T.Distance -> Maybe (Cartesian.Coordinates.Coordinates T.X T.Y) #-}
 maybeTranslate coordinates (MkVector xDistance yDistance)	= Cartesian.Coordinates.maybeTranslate (
-	toEnum . (+ fromIntegral xDistance) . fromEnum *** toEnum . (+ fromIntegral yDistance) . fromEnum
+	Data.Enum.translate (+ fromIntegral xDistance) *** Data.Enum.translate (+ fromIntegral yDistance)
  ) coordinates
 
 {- |

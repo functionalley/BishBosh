@@ -26,7 +26,6 @@ module BishBosh.Input.SearchOptions(
 -- * Types
 -- ** Type-synonyms
 	SearchDepth,
-	PreferMovesTowardsCentre,
 	SortOnStandardOpeningMoveFrequency,
 	HammingDistance,
 --	Transformation,
@@ -41,7 +40,6 @@ module BishBosh.Input.SearchOptions(
 -- ** Data-types
 	SearchOptions(
 --		MkSearchOptions,
-		getPreferMovesTowardsCentre,
 		getSortOnStandardOpeningMoveFrequency,
 		getMaybeCaptureMoveSortAlgorithm,
 		getMaybeMinimumHammingDistance,
@@ -54,7 +52,6 @@ module BishBosh.Input.SearchOptions(
 	),
 -- * Constants
 	tag,
---	preferMovesTowardsCentreTag
 --	sortOnStandardOpeningMoveFrequencyTag
 --	minimumHammingDistanceTag,
 --	retireKillerMovesAfterTag,
@@ -88,26 +85,23 @@ import qualified	BishBosh.Attribute.CaptureMoveSortAlgorithm	as Attribute.Captur
 import qualified	BishBosh.Attribute.LogicalColour		as Attribute.LogicalColour
 import qualified	BishBosh.Component.Move				as Component.Move
 import qualified	BishBosh.Data.Exception				as Data.Exception
+import qualified	BishBosh.Data.Foldable
 import qualified	BishBosh.Input.StandardOpeningOptions		as Input.StandardOpeningOptions
 import qualified	BishBosh.Property.Opposable			as Property.Opposable
+import qualified	BishBosh.Text.Case				as Text.Case
 import qualified	BishBosh.Text.ShowList				as Text.ShowList
-import qualified	Control.Arrow
 import qualified	Control.DeepSeq
 import qualified	Control.Exception
 import qualified	Control.Monad.Reader
 import qualified	Data.Default
 import qualified	Data.Foldable
-import qualified	Data.Map
+import qualified	Data.Map.Strict
 import qualified	Data.Maybe
 import qualified	Text.XML.HXT.Arrow.Pickle			as HXT
 
 -- | Used to qualify XML.
 tag :: String
 tag					= "searchOptions"
-
--- | Used to qualify XML.
-preferMovesTowardsCentreTag :: String
-preferMovesTowardsCentreTag		= "preferMovesTowardsCentre"
 
 -- | Used to qualify XML.
 sortOnStandardOpeningMoveFrequencyTag :: String
@@ -143,25 +137,22 @@ searchDepthTag				= "searchDepth"
 
 -- | Used to qualify XML.
 searchDepthByLogicalColourTag :: String
-searchDepthByLogicalColourTag		= showString searchDepthTag "ByLogicalColour"
+searchDepthByLogicalColourTag		= showString searchDepthTag . showString "By" $ Text.Case.toUpperInitial Attribute.LogicalColour.tag
 
 -- | The number of plies to search for the optimal move.
-type SearchDepth	= Component.Move.NMoves
+type SearchDepth	= Component.Move.NPlies
 
--- | The minimum permissible search-depth.
+-- | The constant minimum permissible search-depth.
 minimumSearchDepth :: SearchDepth
 minimumSearchDepth	= 1
 
 {- |
-	* The default search-depth.
+	* The constant default search-depth.
 
 	* CAVEAT: this is rather arbitrary.
 -}
 defaultSearchDepth :: SearchDepth
 defaultSearchDepth	= 4
-
--- | Whether to prefer moves which progress towards the centre of the board.
-type PreferMovesTowardsCentre		= Bool
 
 -- | Sort moves on the decreasing frequency of occurrence in standard openings.
 type SortOnStandardOpeningMoveFrequency	= Bool
@@ -182,11 +173,10 @@ type UsePondering			= Bool
 type MaybeUseTranspositions		= Maybe (Component.Move.NMoves, SearchDepth)
 
 -- | The depth to search for each /logical colour/.
-type SearchDepthByLogicalColour		= Data.Map.Map Attribute.LogicalColour.LogicalColour SearchDepth
+type SearchDepthByLogicalColour		= Data.Map.Strict.Map Attribute.LogicalColour.LogicalColour SearchDepth
 
 -- | Defines options related to searching for a move.
 data SearchOptions	= MkSearchOptions {
-	getPreferMovesTowardsCentre		:: PreferMovesTowardsCentre,
 	getSortOnStandardOpeningMoveFrequency	:: SortOnStandardOpeningMoveFrequency,
 	getMaybeCaptureMoveSortAlgorithm	:: Maybe Attribute.CaptureMoveSortAlgorithm.CaptureMoveSortAlgorithm,
 	getMaybeMinimumHammingDistance		:: Maybe HammingDistance,
@@ -200,7 +190,6 @@ data SearchOptions	= MkSearchOptions {
 
 instance Control.DeepSeq.NFData SearchOptions where
 	rnf MkSearchOptions {
-		getPreferMovesTowardsCentre		= preferMovesTowardsCentre,
 		getSortOnStandardOpeningMoveFrequency	= sortOnStandardOpeningMoveFrequency,
 		getMaybeCaptureMoveSortAlgorithm	= maybeCaptureMoveSortAlgorithm,
 		getMaybeMinimumHammingDistance		= maybeMinimumHammingDistance,
@@ -212,7 +201,7 @@ instance Control.DeepSeq.NFData SearchOptions where
 		getSearchDepthByLogicalColour		= searchDepthByLogicalColour
 	} = Control.DeepSeq.rnf (
 		(
-			preferMovesTowardsCentre, sortOnStandardOpeningMoveFrequency, maybeCaptureMoveSortAlgorithm, maybeMinimumHammingDistance, maybeRetireKillerMovesAfter
+			sortOnStandardOpeningMoveFrequency, maybeCaptureMoveSortAlgorithm, maybeMinimumHammingDistance, maybeRetireKillerMovesAfter
 		), (
 			trapRepeatedPositions, usePondering, maybeUseTranspositions, standardOpeningOptions, searchDepthByLogicalColour
 		)
@@ -220,7 +209,6 @@ instance Control.DeepSeq.NFData SearchOptions where
 
 instance Show SearchOptions where
 	showsPrec _ MkSearchOptions {
-		getPreferMovesTowardsCentre		= preferMovesTowardsCentre,
 		getSortOnStandardOpeningMoveFrequency	= sortOnStandardOpeningMoveFrequency,
 		getMaybeCaptureMoveSortAlgorithm	= maybeCaptureMoveSortAlgorithm,
 		getMaybeMinimumHammingDistance		= maybeMinimumHammingDistance,
@@ -239,9 +227,6 @@ instance Show SearchOptions where
 	 ) maybeRetireKillerMovesAfter $ Data.Maybe.maybe id (
 		\(retireTranspositionsAfter, minimumTranspositionSearchDepth)	-> (++) [
 			(
-				preferMovesTowardsCentreTag,
-				shows preferMovesTowardsCentre
-			), (
 				sortOnStandardOpeningMoveFrequencyTag,
 				shows sortOnStandardOpeningMoveFrequency
 			), (
@@ -264,13 +249,12 @@ instance Show SearchOptions where
 			shows standardOpeningOptions
 		), (
 			searchDepthByLogicalColourTag,
-			Text.ShowList.showsAssociationList' . map (show *** shows) $ Data.Map.assocs searchDepthByLogicalColour
+			Text.ShowList.showsAssociationList' . map (show *** shows) $ Data.Map.Strict.assocs searchDepthByLogicalColour
 		)
 	 ]
 
 instance Data.Default.Default SearchOptions where
 	def = MkSearchOptions {
-		getPreferMovesTowardsCentre		= True,
 		getSortOnStandardOpeningMoveFrequency	= False,
 		getMaybeCaptureMoveSortAlgorithm	= Nothing,
 		getMaybeMinimumHammingDistance		= Nothing,
@@ -279,14 +263,13 @@ instance Data.Default.Default SearchOptions where
 		getUsePondering				= False,
 		getMaybeUseTranspositions		= Nothing,
 		getStandardOpeningOptions		= Data.Default.def,
-		getSearchDepthByLogicalColour		= Data.Map.empty	-- Manual.
+		getSearchDepthByLogicalColour		= Data.Map.Strict.empty	-- Manual.
 	}
 
 instance HXT.XmlPickler SearchOptions where
 	xpickle	= HXT.xpDefault Data.Default.def . HXT.xpElem tag . HXT.xpWrap (
-		\(a, b, c, d, e, f, g, h, i, j) -> mkSearchOptions a b c d e f g h i j,	-- Construct.
+		\(a, b, c, d, e, f, g, h, i) -> mkSearchOptions a b c d e f g h i,	-- Construct.
 		\MkSearchOptions {
-			getPreferMovesTowardsCentre		= preferMovesTowardsCentre,
 			getSortOnStandardOpeningMoveFrequency	= sortOnStandardOpeningMoveFrequency,
 			getMaybeCaptureMoveSortAlgorithm	= maybeCaptureMoveSortAlgorithm,
 			getMaybeMinimumHammingDistance		= maybeMinimumHammingDistance,
@@ -297,7 +280,6 @@ instance HXT.XmlPickler SearchOptions where
 			getStandardOpeningOptions		= standardOpeningOptions,
 			getSearchDepthByLogicalColour		= searchDepthByLogicalColour
 		} -> (
-			preferMovesTowardsCentre,
 			sortOnStandardOpeningMoveFrequency,
 			maybeCaptureMoveSortAlgorithm,
 			maybeMinimumHammingDistance,
@@ -308,9 +290,7 @@ instance HXT.XmlPickler SearchOptions where
 			standardOpeningOptions,
 			searchDepthByLogicalColour
 		) -- Deconstruct.
-	 ) $ HXT.xp10Tuple (
-		getPreferMovesTowardsCentre def `HXT.xpDefault` HXT.xpAttr preferMovesTowardsCentreTag HXT.xpickle {-Bool-}
-	 ) (
+	 ) $ HXT.xp9Tuple (
 		getSortOnStandardOpeningMoveFrequency def `HXT.xpDefault` HXT.xpAttr sortOnStandardOpeningMoveFrequencyTag HXT.xpickle
 	 ) (
 		HXT.xpOption HXT.xpickle {-CaptureMoveSortAlgorithm-}
@@ -326,16 +306,23 @@ instance HXT.XmlPickler SearchOptions where
 		HXT.xpOption . HXT.xpElem "transpositions" $ HXT.xpAttr retireTranspositionsAfterTag HXT.xpInt `HXT.xpPair` HXT.xpAttr minimumTranspositionSearchDepthTag HXT.xpInt
 	 ) HXT.xpickle {-standardOpeningOptions-} (
 		HXT.xpElem searchDepthByLogicalColourTag . HXT.xpWrap (
-			Data.Map.fromList,	-- Construct from a List.
-			Data.Map.toList		-- Deconstruct to a List.
-		) . HXT.xpList {-potentially null-} . HXT.xpElem "byLogicalColour" $ HXT.xpickle {-LogicalColour-} `HXT.xpPair` HXT.xpAttr searchDepthTag HXT.xpInt
+			Data.Map.Strict.fromList . (
+				\l	-> let
+					duplicateLogicalColours	= BishBosh.Data.Foldable.findDuplicates $ map fst {-logicalColour-} l
+				in if null duplicateLogicalColours
+					then l
+					else Control.Exception.throw . Data.Exception.mkDuplicateData . showString "BishBosh.Input.SearchOptions.xpickle:\t" . showString Attribute.LogicalColour.tag . showString "s must be distinct; " $ shows duplicateLogicalColours "."
+			),	-- Construct from a List.
+			Data.Map.Strict.toList		-- Deconstruct to a List.
+		) . HXT.xpList {-potentially null-} . HXT.xpElem (
+			showString "by" $ Text.Case.toUpperInitial Attribute.LogicalColour.tag
+		) $ HXT.xpickle {-LogicalColour-} `HXT.xpPair` HXT.xpAttr searchDepthTag HXT.xpInt
 	 ) where
 		def	= Data.Default.def
 
 -- | Smart constructor.
 mkSearchOptions
-	:: PreferMovesTowardsCentre
-	-> SortOnStandardOpeningMoveFrequency
+	:: SortOnStandardOpeningMoveFrequency
 	-> Maybe Attribute.CaptureMoveSortAlgorithm.CaptureMoveSortAlgorithm
 	-> Maybe HammingDistance	-- ^ The optional lower bound on the Hamming-distance between the random numbers used to compose Zobrist hashes from /position/s.
 	-> MaybeRetireAfterNMoves	-- ^ The number of full moves back from the current position, after which to retire killer-moves.
@@ -345,12 +332,12 @@ mkSearchOptions
 	-> Input.StandardOpeningOptions.StandardOpeningOptions
 	-> SearchDepthByLogicalColour
 	-> SearchOptions
-mkSearchOptions preferMovesTowardsCentre sortOnStandardOpeningMoveFrequency maybeCaptureMoveSortAlgorithm maybeMinimumHammingDistance maybeRetireKillerMovesAfter trapRepeatedPositions usePondering maybeUseTranspositions standardOpeningOptions searchDepthByLogicalColour
+mkSearchOptions sortOnStandardOpeningMoveFrequency maybeCaptureMoveSortAlgorithm maybeMinimumHammingDistance maybeRetireKillerMovesAfter trapRepeatedPositions usePondering maybeUseTranspositions standardOpeningOptions searchDepthByLogicalColour
 	| Just minimumHammingDistance		<- maybeMinimumHammingDistance
 	, minimumHammingDistance < 1	= Control.Exception.throw . Data.Exception.mkOutOfBounds . showString "BishBosh.Input.SearchOptions.mkSearchOptions:\t" . showString minimumHammingDistanceTag . Text.ShowList.showsAssociation $ shows minimumHammingDistance " must exceed zero."
 	| Just retireKillerMovesAfter		<- maybeRetireKillerMovesAfter
 	, retireKillerMovesAfter < 0	= Control.Exception.throw . Data.Exception.mkOutOfBounds . showString "BishBosh.Input.SearchOptions.mkSearchOptions:\t" . showString retireKillerMovesAfterTag . Text.ShowList.showsAssociation $ shows retireKillerMovesAfter " can't be negative."
-	| let nAutomatedPlayers	= Data.Map.size searchDepthByLogicalColour
+	| let nAutomatedPlayers	= Data.Map.Strict.size searchDepthByLogicalColour
 	, usePondering && nAutomatedPlayers /= 1
 	= Control.Exception.throw . Data.Exception.mkIncompatibleData . showString "BishBosh.Input.SearchOptions.mkSearchOptions:\tpondering is pointless unless there's an automated player who can use the unused CPU-time during a manual player's move, but there're " $ shows nAutomatedPlayers " automated players."
 	| Just (retireTranspositionsAfter, _)	<- maybeUseTranspositions
@@ -358,15 +345,14 @@ mkSearchOptions preferMovesTowardsCentre sortOnStandardOpeningMoveFrequency mayb
 	| Just (_, minimumTranspositionSearchDepth)	<- maybeUseTranspositions
 	, minimumTranspositionSearchDepth < 1	= Control.Exception.throw . Data.Exception.mkOutOfBounds . showString "BishBosh.Input.SearchOptions.mkSearchOptions:\t" . showString minimumTranspositionSearchDepthTag . Text.ShowList.showsAssociation $ shows minimumTranspositionSearchDepth " must exceed zero."
 	| Just (_, minimumTranspositionSearchDepth)	<- maybeUseTranspositions
-	, not $ Data.Map.null searchDepthByLogicalColour
+	, not $ Data.Map.Strict.null searchDepthByLogicalColour
 	, Data.Foldable.all (
 		minimumTranspositionSearchDepth >
-	) searchDepthByLogicalColour	= Control.Exception.throw . Data.Exception.mkOutOfBounds . showString "BishBosh.Input.SearchOptions.mkSearchOptions:\t" . showString minimumTranspositionSearchDepthTag . Text.ShowList.showsAssociation $ shows minimumTranspositionSearchDepth . showString " exceeds " . showString searchDepthTag . Text.ShowList.showsAssociation $ shows (Data.Map.toList searchDepthByLogicalColour) "."
+	) searchDepthByLogicalColour	= Control.Exception.throw . Data.Exception.mkOutOfBounds . showString "BishBosh.Input.SearchOptions.mkSearchOptions:\t" . showString minimumTranspositionSearchDepthTag . Text.ShowList.showsAssociation $ shows minimumTranspositionSearchDepth . showString " exceeds " . showString searchDepthTag . Text.ShowList.showsAssociation $ shows (Data.Map.Strict.toList searchDepthByLogicalColour) "."
 	| Data.Foldable.any (
 		< minimumSearchDepth
 	) searchDepthByLogicalColour	= Control.Exception.throw . Data.Exception.mkOutOfBounds . showString "BishBosh.Input.SearchOptions.mkSearchOptions:\t" $ showString searchDepthTag " must be positive."
 	| otherwise	= MkSearchOptions {
-		getPreferMovesTowardsCentre		= preferMovesTowardsCentre,
 		getSortOnStandardOpeningMoveFrequency	= sortOnStandardOpeningMoveFrequency,
 		getMaybeCaptureMoveSortAlgorithm	= maybeCaptureMoveSortAlgorithm,
 		getMaybeMinimumHammingDistance		= maybeMinimumHammingDistance,
@@ -380,7 +366,7 @@ mkSearchOptions preferMovesTowardsCentre sortOnStandardOpeningMoveFrequency mayb
 
 -- | Get either player's search-depth, using a default value when none are defined.
 getSearchDepth :: SearchOptions -> SearchDepth
-getSearchDepth MkSearchOptions { getSearchDepthByLogicalColour = searchDepthByLogicalColour }	= Data.Maybe.fromMaybe defaultSearchDepth . Data.Maybe.listToMaybe $ Data.Map.elems searchDepthByLogicalColour	-- Manual players don't have a searchDepth, so use the opponent's settings.
+getSearchDepth MkSearchOptions { getSearchDepthByLogicalColour = searchDepthByLogicalColour }	= Data.Maybe.fromMaybe defaultSearchDepth . Data.Maybe.listToMaybe $ Data.Map.Strict.elems searchDepthByLogicalColour	-- Manual players don't have a searchDepth, so use the opponent's settings.
 
 -- | Self-documentation.
 type RecordKillerMoves	= Bool
@@ -404,16 +390,15 @@ type Transformation	= SearchOptions -> SearchOptions
 setSearchDepth :: SearchDepth -> Transformation
 setSearchDepth searchDepth searchOptions@MkSearchOptions { getSearchDepthByLogicalColour = searchDepthByLogicalColour }
 	| searchDepth < minimumSearchDepth	= Control.Exception.throw . Data.Exception.mkOutOfBounds . showString "BishBosh.Input.SearchOptions.setSearchDepth:\t" . showString searchDepthTag . Text.ShowList.showsAssociation $ shows searchDepth " must be positive."
-	| otherwise	= searchOptions { getSearchDepthByLogicalColour = Data.Map.map (const searchDepth) searchDepthByLogicalColour }
+	| otherwise	= searchOptions { getSearchDepthByLogicalColour = Data.Map.Strict.map (const searchDepth) searchDepthByLogicalColour }
 
 -- | Swap the /logical colour/ associated with any /searchDepth/ currently assigned.
 swapSearchDepth :: Transformation
 swapSearchDepth searchOptions@MkSearchOptions {
 	getSearchDepthByLogicalColour	= searchDepthByLogicalColour
 } = searchOptions {
-	getSearchDepthByLogicalColour	= Data.Map.fromAscList . map (Control.Arrow.first Property.Opposable.getOpposite) $ Data.Map.toDescList searchDepthByLogicalColour
+	getSearchDepthByLogicalColour	= Data.Map.Strict.mapKeys Property.Opposable.getOpposite searchDepthByLogicalColour
 }
 
 -- | Self-documentation.
 type Reader	= Control.Monad.Reader.Reader SearchOptions
-

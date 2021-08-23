@@ -23,66 +23,91 @@
 
 	* Defines the value for each type of piece, of occupying different squares.
 
-	* This metric includes aspects of both control of the centre, & material advantage,
-	in that a side's score can increase either by occupying more valuable squares or simply by having more pieces.
+	* This module is used to parse the user's configuration, which may involve reflecting their configuration to generate values for the RHS of the board.
 
-	* N.B.: the evaluation of fitness by "material" COULD be entirely built into these tables, so that the average value for a @Queen@ is ~9 times that for a @Pawn@,
+	* This metric includes aspects of both control of the centre, & material advantage,
+	in that a side's score can increase either by occupying squares of greater value, or simply by having more pieces.
+
+	* N.B.: the evaluation of fitness by material COULD be entirely built into these tables, so that the average value for a @Queen@ is ~9 times that for a @Pawn@,
 	but under these circumstances a non-zero material value for a @King@ must be arbitrarily chosen.
 
 	* N.B. The normal & end-game phases are typically represented by independent instances.
+	CAVEAT: any normalisation is performed on each of these instances independently, using their respective minimum & maximum values, rather than using the global minimum & maximum.
 -}
 
 module BishBosh.Input.PieceSquareTable(
 -- * Types
+-- ** Type-synonyms
+--	Normalise,
+--	ReflectOnY,
+	Assocs,
 -- ** Data-types
 	PieceSquareTable(
 --		MkPieceSquareTable,
+--		getNormalise,
 --		getReflectOnY,
-		getByRank
+		getPieceSquareValueByCoordinatesByRank
 	),
 -- * Constants
 	tag,
 	reflectOnYTag,
 -- * Functions
---	mirror,
---	unmirror,
+	normaliseToUnitInterval,
+	mirror,
+	unmirror,
 	findUndefinedRanks,
 	dereference,
 -- ** Constructors
-	mkPieceSquareTable
+	mkPieceSquareTable,
+-- ** Predicates
+	inClosedUnitInterval
 ) where
 
 import			BishBosh.Data.Bool()	-- HXT.XmlPickler.
-import			Control.Arrow((***))
-import qualified	BishBosh.Attribute.Rank		as Attribute.Rank
-import qualified	BishBosh.Cartesian.Abscissa	as Cartesian.Abscissa
-import qualified	BishBosh.Cartesian.Coordinates	as Cartesian.Coordinates
-import qualified	BishBosh.Data.Exception		as Data.Exception
-import qualified	BishBosh.Data.Num		as Data.Num
-import qualified	BishBosh.Property.ShowFloat	as Property.ShowFloat
-import qualified	BishBosh.Text.ShowList		as Text.ShowList
+import			Control.Arrow((&&&), (***))
+import qualified	BishBosh.Attribute.Rank			as Attribute.Rank
+import qualified	BishBosh.Cartesian.Abscissa		as Cartesian.Abscissa
+import qualified	BishBosh.Cartesian.Coordinates		as Cartesian.Coordinates
+import qualified	BishBosh.Data.Exception			as Data.Exception
+import qualified	BishBosh.Data.Foldable			as Data.Foldable
+import qualified	BishBosh.Data.Num			as Data.Num
+import qualified	BishBosh.Property.FixedMembership	as Property.FixedMembership
+import qualified	BishBosh.Property.ShowFloat		as Property.ShowFloat
+import qualified	BishBosh.Text.Case			as Text.Case
+import qualified	BishBosh.Text.ShowList			as Text.ShowList
 import qualified	Control.Arrow
 import qualified	Control.Exception
 import qualified	Data.Array.IArray
 import qualified	Data.Default
-import qualified	Data.Map
+import qualified	Data.Map.Strict
 import qualified	Data.Set
-import qualified	Text.XML.HXT.Arrow.Pickle	as HXT
+import qualified	Text.XML.HXT.Arrow.Pickle		as HXT
 
 -- | Used to qualify XML.
 tag :: String
 tag		= "pieceSquareTable"
 
 -- | Used to qualify XML.
+normaliseTag :: String
+normaliseTag	= "normalise"
+
+-- | Used to qualify XML.
 reflectOnYTag :: String
 reflectOnYTag	= "reflectOnY"
 
+-- | Type-synonym.
+type Normalise	= Bool
+
+-- | Type-synonym.
+type ReflectOnY	= Bool
+
 -- | Defines the value for each type of piece, of occupying each square.
 data PieceSquareTable x y pieceSquareValue	= MkPieceSquareTable {
-	getReflectOnY	:: Bool,	-- ^ Whether values for the RHS of the board should be inferred by reflection about the y-axis.
-	getByRank	:: Data.Map.Map Attribute.Rank.Rank (
-		Cartesian.Coordinates.ByCoordinates x y pieceSquareValue
-	)				-- ^ N.B.: on the assumption that the values for Black pieces are the reflection of those for White, merely the /rank/ of each /piece/ need be defined.
+	getNormalise				:: Normalise,	-- ^ Whether to map the specified values into the closed unit-interval.	CAVEAT: incompatible with RelaxNG, the specification for which already constrains values to the unit-interval.
+	getReflectOnY				:: ReflectOnY,	-- ^ Whether values for the RHS of the board should be inferred by reflection about the y-axis.
+	getPieceSquareValueByCoordinatesByRank	:: Data.Map.Strict.Map Attribute.Rank.Rank (
+		Cartesian.Coordinates.ArrayByCoordinates x y pieceSquareValue
+	)							-- ^ N.B.: on the assumption that the values for Black pieces are the reflection of those for White, merely the /rank/ of each /piece/ need be defined.
 } deriving (Eq, Show)
 
 instance (
@@ -94,9 +119,13 @@ instance (
 	Show	pieceSquareValue
  ) => Property.ShowFloat.ShowFloat (PieceSquareTable x y pieceSquareValue) where
 	showsFloat fromDouble MkPieceSquareTable {
-		getReflectOnY	= reflectOnY,
-		getByRank	= byRank
+		getNormalise				= normalise,
+		getReflectOnY				= reflectOnY,
+		getPieceSquareValueByCoordinatesByRank	= byRank
 	} = Text.ShowList.showsAssociationList Text.ShowList.showsSeparator $ (
+		normaliseTag,
+		shows normalise
+	 ) : (
 		reflectOnYTag,
 		shows reflectOnY
 	 ) : map (
@@ -108,13 +137,14 @@ instance (
 				else id
 		) . Data.Array.IArray.elems
 	 ) (
-		Data.Map.assocs byRank
+		Data.Map.Strict.assocs byRank
 	 )
 
 instance Data.Default.Default (PieceSquareTable x y pieceSquareValue) where
 	def = MkPieceSquareTable {
-		getReflectOnY	= True,
-		getByRank	= Data.Map.empty
+		getNormalise				= False,
+		getReflectOnY				= True,
+		getPieceSquareValueByCoordinatesByRank	= Data.Map.Strict.empty
 	}
 
 instance (
@@ -128,32 +158,65 @@ instance (
 	Show		pieceSquareValue
  ) => HXT.XmlPickler (PieceSquareTable x y pieceSquareValue) where
 	xpickle	= HXT.xpWrap (
-		uncurry mkPieceSquareTable,
+		\(a, b, c)	-> mkPieceSquareTable a b c,	-- Construct.
 		\MkPieceSquareTable {
-			getReflectOnY	= reflectOnY,
-			getByRank	= byRank
+			getNormalise				= normalise,
+			getReflectOnY				= reflectOnY,
+			getPieceSquareValueByCoordinatesByRank	= byRank
 		} -> (
+			normalise,
 			reflectOnY,
-			Data.Map.assocs $ Data.Map.map (
+			Data.Map.Strict.assocs $ Data.Map.Strict.map (
 				(
 					if reflectOnY
 						then unmirror
 						else id
 				) . Data.Array.IArray.elems
 			) byRank
-		) -- Pair.
-	 ) $ (
+		) -- Deconstruct to tuple.
+	 ) . HXT.xpTriple (
+		getNormalise Data.Default.def `HXT.xpDefault` HXT.xpAttr normaliseTag HXT.xpickle {-Bool-}
+	 ) (
 		getReflectOnY Data.Default.def `HXT.xpDefault` HXT.xpAttr reflectOnYTag HXT.xpickle {-Bool-}
-	 ) `HXT.xpPair` HXT.xpList1 (
-		HXT.xpElem "byRank" $ HXT.xpickle {-rank-} `HXT.xpPair` HXT.xpWrap (
+	 ) $ HXT.xpList1 (
+		HXT.xpElem (
+			showString "by" $ Text.Case.toUpperInitial Attribute.Rank.tag
+		) $ HXT.xpickle {-rank-} `HXT.xpPair` HXT.xpWrap (
 			\s -> [
 				realToFrac (pieceSquareValue :: Double) |
 					word			<- words s,
 					(pieceSquareValue, "")	<- reads word
 			], -- List-comprehension.
 			unwords . map (show . (\pieceSquareValue -> realToFrac pieceSquareValue :: Double))
-		 ) (HXT.xpTextAttr "byCoordinates")
+		) (
+			HXT.xpTextAttr . showString "by" $ Text.Case.toUpperInitial Cartesian.Coordinates.tag
+		)
 	 )
+
+-- | Type-synonym.
+type Assocs rank pieceSquareValue	= [(rank, [pieceSquareValue])]
+
+-- | Map the range of values onto the Closed Unit Interval.
+normaliseToUnitInterval
+	:: (Fractional pieceSquareValue, Ord pieceSquareValue)
+	=> Assocs rank pieceSquareValue
+	-> Assocs rank pieceSquareValue
+normaliseToUnitInterval []	= []
+normaliseToUnitInterval assocs
+	| range == 0	= Control.Exception.throw $ Data.Exception.mkNullDatum "BishBosh.Input.PieceSquareTable.normaliseToUnitInterval:\tthe specified piece-square values are identical."
+	| otherwise	= map (
+		Control.Arrow.second $ map ((/ range) . subtract minimum')
+	) assocs
+	where
+		bounds@(minimum', _)	= minimum &&& maximum $ concatMap snd assocs	-- Analyse the range of values.
+		range			= uncurry subtract bounds
+
+-- | Check that the range of values is in the Closed Unit Interval.
+inClosedUnitInterval
+	:: (Num pieceSquareValue, Ord pieceSquareValue)
+	=> Assocs rank pieceSquareValue
+	-> Bool
+inClosedUnitInterval	= all $ all Data.Num.inClosedUnitInterval . snd {-[pieceSquareValue]-}
 
 -- | Generates a mirror-symmetric RHS, to build a complete description.
 mirror :: Show pieceSquareValue => [pieceSquareValue] -> [pieceSquareValue]
@@ -169,35 +232,42 @@ unmirror pieceSquareValues		= Control.Exception.throw . Data.Exception.mkInvalid
 
 -- | Smart constructor.
 mkPieceSquareTable :: (
-	Enum	x,
-	Enum	y,
-	Num	pieceSquareValue,
-	Ord	pieceSquareValue,
-	Ord	x,
-	Ord	y,
-	Show	pieceSquareValue
+	Enum		x,
+	Enum		y,
+	Fractional	pieceSquareValue,
+	Ord		pieceSquareValue,
+	Ord		x,
+	Ord		y,
+	Show		pieceSquareValue
  )
-	=> Bool	-- ^ Whether values for the RHS of the board are inferred by reflection about the y-axis.
-	-> [(Attribute.Rank.Rank, [pieceSquareValue])]
+	=> Normalise	-- ^ Whether to normalise the specified values into the closed unit interval.
+	-> ReflectOnY	-- ^ Whether values for the RHS of the board are inferred by reflection about the y-axis.
+	-> Assocs Attribute.Rank.Rank pieceSquareValue
 	-> PieceSquareTable x y pieceSquareValue
-mkPieceSquareTable reflectOnY assocs
+mkPieceSquareTable normalise reflectOnY assocs
 	| any (
 		(/= nValuesRequired) . length . snd {-pieceSquareValues-}
-	) assocs	= Control.Exception.throw . Data.Exception.mkInvalidDatum . showString "BishBosh.Input.PieceSquareTable.mkPieceSquareTable:\texactly " . shows nValuesRequired . showString " values must be defined for each type of piece; " $ shows assocs "."
-	| any (
-		any (
-			not . Data.Num.inClosedUnitInterval
-		) . snd {-list-}
-	) assocs	= Control.Exception.throw . Data.Exception.mkOutOfBounds . showString "BishBosh.Input.PieceSquareTable.mkPieceSquareTable:\tall values must be within the closed unit-interval [0,1]; " $ shows assocs "."
-	| otherwise	= MkPieceSquareTable {
-		getReflectOnY	= reflectOnY,
-		getByRank	= Data.Map.fromList . map (Control.Arrow.second Cartesian.Coordinates.listArrayByCoordinates) $ (
+	) assocs						= Control.Exception.throw . Data.Exception.mkInvalidDatum . showString "BishBosh.Input.PieceSquareTable.mkPieceSquareTable:\texactly " . shows nValuesRequired . showString " values must be defined for each type of piece; " $ shows assocs "."
+	| not $ null duplicateRanks				= Control.Exception.throw . Data.Exception.mkDuplicateData . showString "BishBosh.Input.PieceSquareTable.mkPieceSquareTable:\tranks must be distinct; " $ shows duplicateRanks "."
+	| not $ normalise || inClosedUnitInterval assocs	= Control.Exception.throw . Data.Exception.mkOutOfBounds . showString "BishBosh.Input.PieceSquareTable.mkPieceSquareTable:\tall values must be within the closed unit-interval [0,1]; " $ shows assocs "."
+	| otherwise						= MkPieceSquareTable {
+		getNormalise				= normalise,
+		getReflectOnY				= reflectOnY,
+		getPieceSquareValueByCoordinatesByRank	= Data.Map.Strict.fromList . map (
+			Control.Arrow.second Cartesian.Coordinates.listArrayByCoordinates
+		) . (
 			if reflectOnY
 				then map $ Control.Arrow.second mirror
+				else id
+		) $ (
+			if normalise
+				then normaliseToUnitInterval
 				else id
 		) assocs
 	}
 	where
+		duplicateRanks	= Data.Foldable.findDuplicates $ map fst assocs
+
 		nValuesRequired	= (
 			if reflectOnY
 				then (`div` 2)
@@ -206,14 +276,12 @@ mkPieceSquareTable reflectOnY assocs
 
 -- | Identify any /rank/ lacking a definition.
 findUndefinedRanks :: PieceSquareTable x y pieceSquareValue -> Data.Set.Set Attribute.Rank.Rank
-findUndefinedRanks MkPieceSquareTable { getByRank = byRank }	= Data.Set.fromAscList Attribute.Rank.range `Data.Set.difference` Data.Map.keysSet byRank
+findUndefinedRanks MkPieceSquareTable { getPieceSquareValueByCoordinatesByRank = pieceSquareValueByCoordinatesByRank }	= Data.Set.fromAscList Property.FixedMembership.members `Data.Set.difference` Data.Map.Strict.keysSet pieceSquareValueByCoordinatesByRank
 
--- | Lookup the value for the specified /rank/.
-dereference :: (
-	Enum	x,
-	Enum	y,
-	Ord	x,
-	Ord	y
- ) => Attribute.Rank.Rank -> PieceSquareTable x y pieceSquareValue -> Maybe [pieceSquareValue]
-dereference rank MkPieceSquareTable { getByRank = byRank}	= Data.Array.IArray.elems `fmap` Data.Map.lookup rank byRank
+-- | Lookup the values for all /coordinates/, corresponding to the specified /rank/.
+dereference
+	:: Attribute.Rank.Rank
+	-> PieceSquareTable x y pieceSquareValue
+	-> Maybe (Cartesian.Coordinates.ArrayByCoordinates x y pieceSquareValue)
+dereference rank MkPieceSquareTable { getPieceSquareValueByCoordinatesByRank = pieceSquareValueByCoordinatesByRank }	= Data.Map.Strict.lookup rank pieceSquareValueByCoordinatesByRank
 

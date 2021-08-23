@@ -14,19 +14,20 @@ Each field governs automatic move-evaluation:
 .IP \(bu
 \fBincrementalEvaluation\fR \fIBool\fR, defaulting to "\fBTrue\fR".
 Whether to incrementally generate position-hashes & evaluate the piece-square value, from the previous values; otherwise these quantities are evaluated from scratch.
-This option slightly reduces memory-requirement, but doesn't affect the result.
+This option improves space/time performance marginally, but doesn't affect the result.
 .IP \(bu
-\fBrankValues\fR: defines the value within the closed unit interval "\fB[0, 1]\fR", of each type of piece, defaulting (ref. <\fBhttps://www.chessprogramming.org/Point_Value\fR>) to:
+\fBrankValues\fR: defines the value within the closed unit-interval "\fB[0, 1]\fR", of each type of piece, defaulting (ref. <\fBhttps://www.chessprogramming.org/Point_Value\fR>) to:
 .TS
 lb	lb
 l	l
 lb	l	.
 Piece	Value
 =====	=====
-Rook	0.525
-Knight	0.35
-Bishop	0.35
-Queen	1
+Pawn	0.1
+Rook	0.5
+Knight	0.3
+Bishop	0.3
+Queen	0.9
 King	\fIMoot, since it can't be taken.\fR
 .TE
 .IP \(bu
@@ -56,26 +57,30 @@ but often they quantify some strategic advantage which manifests further into th
 N.B.: "\fBdefence\fR" & the three Pawn-related criteria typically can't justify their existence; even if one ignores the time required to calculate them, their value is dubious.
 This is the nub of the esoteric choice of whether to accurately quantify each board, or to accept a vague quantification in order to explore deeper in the same time.
 .IP \(bu
-\fBpieceSquareTables\fR: defines the value within the closed unit interval "\fB[0, 1]\fR", of each type of piece occupying every square.
+\fBpieceSquareTables\fR: defines the value within the closed unit-interval "\fB[0, 1]\fR", of each type of piece occupying every square.
 .br
+.TS
+lb	lb	lb	lb
+l	l	l	l
+lb	li	lb	l	.
+Attribute	Type	Default	Meaning
+=========	====	=======	=======
+normalise	Bool	False	configured values may be automatically normalised into the closed unit-interval. CAVEAT: this option restricts one to validation of the XML-configuration by DTD, since the RelaxNG-specification checks that the specified values are already in the closed unit-interval (use \fBrunhaskell Setup configure -f -hxtrelaxng\fR or \fBstack install --flag='bishbosh:-hxtrelaxng'\fR). CAVEAT: normalisation is performed independently on the tables used to represent the opening-game & end-game, which may result in the application of a different transformation to each table.
+reflectOnY	Bool	True	values are optionally configured for just the left-hand side of the board, & are then used to generate by reflection, the right-hand side.
+.TE
+.IP
 N.B.: the values defined for a Pawn occupying any square in the first or last rank, are irrelevant.
 .br
 Values are defined for just the White pieces, which are then used to generate by reflection, those for the Black pieces.
 .br
-Values are optionally defined for just the left-hand side of the board, which are then used to generate by reflection, the right-hand side.
-.br
 For each type of piece, the values are defined in a SAN-coordinate-order list, rastering over the board from left to right, bottom to top; "\fIa1 b1 c1 d1 a2 b2 c3 ... c7 d8\fR".
 .br
-For each type of piece, an alternative definition may be provided for use during the end-game, to account for the different criteria relevant to that phase of the game.
-Under such circumstances, the two piece-square tables for that type of piece will be interpolated between, according to the number of pieces remaining (which is used to measure progress towards the end-game).
+An alternative table may be provided for use during the end-game, to account for the different criteria relevant to that phase of the game.
+Under such circumstances, the two piece-square tables for that type of piece will be interpolated between, according to the number of pieces remaining (which is used as a proxy for progress towards the end-game).
 The packaged configuration-files define modified tables for both Pawn & King.
 .SS Search-options
 .IP \(bu
-\fBpreferMovesTowardsCentre\fR: whether to sort the moves available from any position, using the magnitude of their progress towards the centre of the board.
-.IP \(bu
 \fBsortOnStandardOpeningMoveFrequency\fR: whether to sort the moves available from any position, using the frequency with which they occur in referenced standard openings.
-This is performed after \fBpreferMovesTowardsCentre\fR,
-but since the sort-algorithms are stable, i.e. they don't affect the order of those moves which compare equal, they can usefully be sequentially applied.
 .IP \(bu
 \fBcaptureMoveSortAlgorithm\fR: the optional algorithm by which to partition & sort capture-moves for preferential evaluation when searching for the optimum amongst available moves.
 If unspecified, the order of capture-moves will remain unaltered both wrt each other & wrt other moves.
@@ -90,7 +95,7 @@ MVVLVA	moves are advanced depending on the value of rank of the piece they captu
 SEE	moves are advanced depending on the net material gain resulting from any battle at the destination; <\fBhttps://www.chessprogramming.org/Static_Exchange_Evaluation\fR>. This is not currently competitive.
 .TE
 .IP
-Neither of these sort-algorithms affects the relative order of non-capture moves; cf. \fBpreferMovesTowardsCentre\fR & \fBsortOnStandardOpeningMoveFrequency\fR.
+Neither of these sort-algorithms affects the relative order of non-capture moves; cf. \fBsortOnStandardOpeningMoveFrequency\fR.
 This is performed after \fBsortOnStandardOpeningMoveFrequency\fR.
 .IP \(bu
 \fBminimumHammingDistance\fR \fIInt\fR: the optional positive lower bound on the Hamming-distance between any of the random numbers used to generate Zobrist hashes from positions; <\fBhttps://www.chessprogramming.org/Zobrist_Hashing\fR>.
@@ -118,19 +123,19 @@ based on the results previously found for identical \fIposition\fRs in sibling g
 .TS
 lb	lb	lb
 l	l	l
-lb	l	l	.
-Value	Type	Meaning
-=====	====	=======
-retireTranspositionsAfter	\fIInt\fR	the non-negative number of full moves (one by each player) after which transpositions are retired. N.B.: this is highly effective at about \fB1\fR, beyond which returns diminish.
-minimumTranspositionSearchDepth	\fIInt\fR	the search-depth beneath which transpositions are not recorded. When the remaining search-depth is low, the potential gain from finding a recorded transposition of the current position, doesn't justify the effort. N.B.: this is most effective at about \fB2\fR.
+lb	li	l	.
+Attribute	Type	Meaning
+=========	====	=======
+retireTranspositionsAfter	Int	the non-negative number of full moves (one by each player) after which transpositions are retired. N.B.: this is highly effective at about \fB1\fR, beyond which returns diminish.
+minimumTranspositionSearchDepth	Int	the search-depth beneath which transpositions are not recorded. When the remaining search-depth is low, the potential gain from finding a recorded transposition of the current position, doesn't justify the effort. N.B.: this is most effective at about \fB2\fR.
 .TE
 .IP \(bu
 .B standardOpeningOptions
 .TS
 lb	lb	lb	lb
 l	l	l	l
-lb	l	lb	l	.
-Field	Type	Default	Meaning
+lb	li	lb	l	.
+Attribute	Type	Default	Meaning
 =========	====	=======	=======
 tryToMatchMoves	Bool	True	whether to attempt to exactly match the moves already made, with a standard opening; i.e. without matching transpositions.
 tryToMatchViaJoiningMove	Bool	True	whether to attempt to join the current position (irrespective of the means by which it was achieved) to a standard opening that's only one move away.
@@ -153,10 +158,12 @@ The application defines a set of "\fBioOptions\fR", in which one can define:
 lb	lb	lb	lb
 l	l	l	l
 lb	l	lb	l	.
-Field	Type	Default	Meaning
+Attribute	Type	Default	Meaning
 =========	====	=======	=======
 databaseFilePath	\fIFile-path\fR		The path in the local file-system, to a PGN-database.
+decompressor	String		The optional name of an executable (available in the OS) used to decompress (to \fIstdout\fR) the specified file; the file's suffix isn't considered significant.
 minimumPlies	\fIInt\fR	1	The minimum number of half moves, for an archived game to be considered valuable.
+maximumGames	\fIInt\fR		The optional maximum number of games to read from the database.
 isStrictlySequential	(\fBTrue\fR|\fBFalse\fR)	True	Whether the recorded move-numbers are accurate.
 validateMoves	(\fBTrue\fR|\fBFalse\fR)	False	Whether to validate all the moves. In the absence of validation, PGN-databases can be read faster, but the consequence of reading invalid moves is unpredictable. This option is required to read games which continued after a draw can be inferred.
 textEncoding	(\fBISO8859-1(checked)\fR|\fButf8\fR|\fButf16\fR|\fButf32\fR)	utf8	Defines the conversion-scheme between byte-sequences & Unicode characters.
@@ -167,11 +174,11 @@ identificationTags	String		The PGN-field(s) from which to construct a composite 
 .TS
 lb	lb	lb	lb
 l	l	l	l
-lb	l	lb	l	.
-Field	Type	Default	Meaning
+lb	li	lb	l	.
+Attribute	Type	Default	Meaning
 =========	====	=======	=======
-filePath	\fIFile-path\fR		The local file in which game-state will be persisted.
-automatic	(\fBTrue\fR|\fBFalse\fR)	True	Whether the game-state is automatically saved.
+filePath	File-path		The local file in which game-state will be persisted.
+automatic	Bool	True	Whether the game-state is automatically saved.
 .TE
 .P
 "\fBioOptions\fR" has a sub-section "\fBuiOptions\fR", which defines the user-interface.
@@ -181,7 +188,7 @@ This application also understands \fBStandard Algebraic\fR notation, but it is o
 .IP \(bu
 \fBprintMoveTree\fR \fIInt\fR.
 Print the tree of all possible moves in the configured notation, truncated to the specified depth.
-The forest of moves available at each node, is sequentially sorted according to; \fBpreferMovesTowardsCentre\fR, \fBsortOnStandardOpeningMoveFrequency\fR, \fBcaptureMoveSortAlgorithm\fR; since the sort-algorithm is stable, the relative order of moves which compare equal, remains unchanged.
+The forest of moves available at each node, is sequentially sorted according to; \fBsortOnStandardOpeningMoveFrequency\fR, \fBcaptureMoveSortAlgorithm\fR; since the sort-algorithm is stable, the relative order of moves which compare equal, remains unchanged.
 The fitness of each move, from the perspective of the player of the move, is also printed to the configured number of decimal places; see \fBnDecimalDigits\fR.
 See "\fB--printMoveTree\fR" in \fBsection-1\fR of the man-pages.
 .IP \(bu
@@ -195,10 +202,10 @@ See "\fB--verbosity\fR" in \fBsection-1\fR on the man-pages.
 .TS
 lb	lb	lb
 l	l	l
-lb	l	l	.
-Field	Type	Meaning
-=========	=======	=======
-nColumns	\fIInt\fR	The horizontal magnification of the board-image.
+lb	li	l	.
+Attribute	Type	Meaning
+=========	====	=======
+nColumns	Int	The horizontal magnification of the board-image.
 .TE
 .IP \(bu
 \fBcolourScheme\fR: defines the physical colour of each component of the display.
@@ -206,15 +213,12 @@ nColumns	\fIInt\fR	The horizontal magnification of the board-image.
 lb	lb
 l	l
 lb	l	.
-Field	Options
+Attribute	Options
 =========	=======
-axisLabelColour	(\fBBlack\fR|\fBRed\fR|\fBGreen\fR|\fBYellow\fR|\fBBlue\fR|\fBMagenta\fR|\fBCyan\fR|\fBWhite\fR)
 darkPieceColour	(\fBBlack\fR|\fBRed\fR|\fBGreen\fR|\fBBlue\fR|\fBMagenta\fR|\fBCyan\fR)
 lightPieceColour	(\fBRed\fR|\fBGreen\fR|\fBYellow\fR|\fBMagenta\fR|\fBCyan\fR|\fBWhite\fR)
 darkSquareColour	(\fBBlack\fR|\fBRed\fR|\fBGreen\fR|\fBBlue\fR|\fBMagenta\fR|\fBCyan\fR)
 lightSquareColour	(\fBRed\fR|\fBGreen\fR|\fBYellow\fR|\fBMagenta\fR|\fBCyan\fR|\fBWhite\fR)
-menuLabelColour	(\fBBlack\fR|\fBRed\fR|\fBGreen\fR|\fBYellow\fR|\fBBlue\fR|\fBMagenta\fR|\fBCyan\fR|\fBWhite\fR)
-menuBackgroundColour	(\fBBlack\fR|\fBRed\fR|\fBGreen\fR|\fBYellow\fR|\fBBlue\fR|\fBMagenta\fR|\fBCyan\fR|\fBWhite\fR)
 .TE
 .SH FILES
 .TS
@@ -223,12 +227,12 @@ l	l
 lb	l	.
 File-name	Contents
 =========	========
-config/bishbosh.dtd	A basic formal description of the XML-format for the configuration-file.
-config/bishbosh.rng	A more sophisticated, but slower, \fBRELAX NG\fR definition of the XML-format for the configuration-file.
+config/bishbosh.dtd	A basic formal description of the XML-format for the configuration-file. Also defines \fBExternal Entities\fR referencing the XML files described below.
+config/bishbosh.rng	A more precise, but slower, \fBRELAX NG\fR definition of the XML-format for the configuration-file.
+config/*.xml	These files are defined as XML \fBExternal Entities\fR (<\fBhttps://www.w3resource.com/xml/external-entities.php\fR>) in the DTD, thus permitting them to be referenced in the configuration specified on the command.
 config/{CECP,Raw}/*.xml	Sample configuration-files.
 man/man1/bishbosh.1	Section-1 of the man-pages for this product, describing the command-line.
 pgn/*.pgn	Standard openings & archived games, described in <\fBhttps://en.wikipedia.org/wiki/Portable_Game_Notation\fR>.
-<https://www.oasis-open.org/committees/relax-ng/tutorial-20011203.html>	A \fBRELAX NG\fR tutorial.
 .TE
 .SH AUTHOR
 Written by Dr. Alistair Ward.

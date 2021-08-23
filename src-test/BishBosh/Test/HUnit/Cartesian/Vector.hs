@@ -30,8 +30,8 @@ module BishBosh.Test.HUnit.Cartesian.Vector(
 ) where
 
 import			Control.Arrow((&&&))
-import qualified	BishBosh.Attribute.LogicalColour	as Attribute.LogicalColour
 import qualified	BishBosh.Cartesian.Vector		as Cartesian.Vector
+import qualified	BishBosh.Property.FixedMembership	as Property.FixedMembership
 import qualified	BishBosh.Types				as T
 import qualified	Data.Maybe
 import qualified	Test.HUnit
@@ -58,7 +58,7 @@ testCases	= Test.HUnit.test [
 		uncurry (&&) . (
 			all ((== 2) . measureLength) &&& (== 2) . length
 		) . Cartesian.Vector.attackVectorsForPawn
-	) Attribute.LogicalColour.range ~? "'BishBosh.Cartesian.Vector.attackVectorsForPawn' failed.",
+	) Property.FixedMembership.members ~? "'BishBosh.Cartesian.Vector.attackVectorsForPawn' failed.",
 	uncurry (&&) (
 		(
 			all ((== 3) . measureLength) &&& (== 8) . length

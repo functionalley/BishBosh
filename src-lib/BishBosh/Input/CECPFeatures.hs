@@ -19,7 +19,7 @@
 {- |
  [@AUTHOR@]	Dr. Alistair Ward
 
- [@DESCRIPTION@]	Defines CECP-features.
+ [@DESCRIPTION@]	Defines [CECP](https://www.chessprogramming.org/Chess_Engine_Communication_Protocol)-features.
 -}
 
 module BishBosh.Input.CECPFeatures(
@@ -81,6 +81,7 @@ module BishBosh.Input.CECPFeatures(
 ) where
 
 import			BishBosh.Data.Bool()	-- For 'HXT.XmlPickler Bool'.
+import qualified	BishBosh.Data.Foldable		as Data.Foldable
 import qualified	BishBosh.Data.Exception		as Data.Exception
 import qualified	BishBosh.Text.ShowList		as Text.ShowList
 import qualified	Control.DeepSeq
@@ -341,9 +342,7 @@ instance HXT.XmlPickler CECPFeatures where
 mkCECPFeatures :: [Feature] -> Bool -> CECPFeatures
 mkCECPFeatures features done
 	| Just (key, _)	<- Data.List.find (
-		any (
-			not . Data.Char.isAlpha
-		) . fst {-key-}
+		not . all Data.Char.isAlpha . fst {-key-}
 	) features	= Control.Exception.throw . Data.Exception.mkInvalidDatum . showString "BishBosh.Input.CECPFeatures.mkCECPFeatures:\tinvalid key" . Text.ShowList.showsAssociation $ shows key "."
 	| Just (_, value)	<- Data.List.find (
 		either (
@@ -352,10 +351,13 @@ mkCECPFeatures features done
 			any (`elem` "\"\n\r")	-- Prevent command-injection.
 		) . snd {-value-}
 	) features	= Control.Exception.throw . Data.Exception.mkInvalidDatum . showString "BishBosh.Input.CECPFeatures.mkCECPFeatures:\tinvalid value" . Text.ShowList.showsAssociation $ shows value "."
+	| not $ null duplicateFeatures	= Control.Exception.throw . Data.Exception.mkDuplicateData . showString "BishBosh.Input.CECPFeatures.mkCECPFeatures:\tduplicate features " $ shows duplicateFeatures "."
 	| otherwise	= MkCECPFeatures {
 		getFeatures	= features,
 		getDone		= done
 	}
+	where
+		duplicateFeatures	= Data.Foldable.findDuplicates $ map fst {-key-} features
 
 -- | Self-documentation.
 type Transformation	= CECPFeatures -> CECPFeatures

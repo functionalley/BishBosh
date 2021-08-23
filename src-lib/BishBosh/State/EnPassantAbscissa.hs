@@ -32,7 +32,6 @@ module BishBosh.State.EnPassantAbscissa (
 	mkMaybeEnPassantAbscissa
 ) where
 
-import qualified	BishBosh.Attribute.Direction		as Attribute.Direction
 import qualified	BishBosh.Attribute.LogicalColour	as Attribute.LogicalColour
 import qualified	BishBosh.Attribute.Rank			as Attribute.Rank
 import qualified	BishBosh.Cartesian.Coordinates		as Cartesian.Coordinates
@@ -41,8 +40,10 @@ import qualified	BishBosh.Component.Piece		as Component.Piece
 import qualified	BishBosh.Component.QualifiedMove	as Component.QualifiedMove
 import qualified	BishBosh.Component.Turn			as Component.Turn
 import qualified	BishBosh.Component.Zobrist		as Component.Zobrist
+import qualified	BishBosh.Property.FixedMembership	as Property.FixedMembership
 import qualified	BishBosh.Property.Opposable		as Property.Opposable
 import qualified	BishBosh.State.MaybePieceByCoordinates	as State.MaybePieceByCoordinates
+import qualified	BishBosh.Types				as T
 import qualified	Control.DeepSeq
 import qualified	Data.Array.IArray
 import qualified	Data.Maybe
@@ -69,22 +70,21 @@ mkMaybeEnPassantAbscissa :: (
 	-> State.MaybePieceByCoordinates.MaybePieceByCoordinates x y
 	-> Component.Turn.Turn x y			-- ^ The last /turn/ taken.
 	-> Maybe (EnPassantAbscissa x)
+{-# SPECIALISE mkMaybeEnPassantAbscissa :: Attribute.LogicalColour.LogicalColour -> State.MaybePieceByCoordinates.MaybePieceByCoordinates T.X T.Y -> Component.Turn.Turn T.X T.Y -> Maybe (EnPassantAbscissa T.X) #-}
 mkMaybeEnPassantAbscissa nextLogicalColour maybePieceByCoordinates lastTurn
 	| Component.Turn.isPawnDoubleAdvance (Property.Opposable.getOpposite nextLogicalColour) lastTurn
 	, let lastMoveDestination	= Component.Move.getDestination . Component.QualifiedMove.getMove $ Component.Turn.getQualifiedMove lastTurn
 	, not $ null [
 		passedPawn |
 			adjacentCoordinates	<- Cartesian.Coordinates.getAdjacents lastMoveDestination,
-			passedPawn		<- filter (== Component.Piece.mkPawn nextLogicalColour) . Data.Maybe.maybeToList $ State.MaybePieceByCoordinates.dereference adjacentCoordinates maybePieceByCoordinates,
-			all (
-				/= Component.Piece.mkKing nextLogicalColour	-- Will I expose my King ?
-			) [
+			Component.Piece.mkKing nextLogicalColour {- Will I expose my King ? -} `notElem` [
 				blockingPiece |
-					threatDirection		<- Attribute.Direction.range,	-- Consider all directions.
+					threatDirection		<- Property.FixedMembership.members,	-- Consider all directions.
 					(_, attackerRank)	<- Data.Maybe.maybeToList $ State.MaybePieceByCoordinates.findAttackerInDirection nextLogicalColour threatDirection adjacentCoordinates maybePieceByCoordinates,	-- Find discovered attacks.
 					attackerRank `notElem` Attribute.Rank.fixedAttackRange,	-- Any viable attack through the vacated square must be long-range.
 					(_, blockingPiece)	<- Data.Maybe.maybeToList $ State.MaybePieceByCoordinates.findBlockingPiece (Property.Opposable.getOpposite threatDirection) adjacentCoordinates maybePieceByCoordinates	-- Find any discovered attack.
-			] -- Confirm that the En-passant capture doesn't expose my King.
+			], -- Confirm that the En-passant capture doesn't expose my King.
+			passedPawn		<- filter (== Component.Piece.mkPawn nextLogicalColour) . Data.Maybe.maybeToList $ State.MaybePieceByCoordinates.dereference adjacentCoordinates maybePieceByCoordinates
 	] = Just . MkEnPassantAbscissa $ Cartesian.Coordinates.getX lastMoveDestination
 	| otherwise	= Nothing
 

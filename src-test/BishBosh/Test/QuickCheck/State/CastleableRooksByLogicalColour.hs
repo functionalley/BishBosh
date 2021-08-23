@@ -36,6 +36,7 @@ import			Control.Arrow((&&&))
 import qualified	BishBosh.Attribute.LogicalColour		as Attribute.LogicalColour
 import qualified	BishBosh.Cartesian.Abscissa			as Cartesian.Abscissa
 import qualified	BishBosh.Cartesian.Coordinates			as Cartesian.Coordinates
+import qualified	BishBosh.Property.FixedMembership		as Property.FixedMembership
 import qualified	BishBosh.Property.ForsythEdwards		as Property.ForsythEdwards
 import qualified	BishBosh.Property.Reflectable			as Property.Reflectable
 import qualified	BishBosh.State.CastleableRooksByLogicalColour	as State.CastleableRooksByLogicalColour
@@ -56,7 +57,7 @@ instance (
 		State.CastleableRooksByLogicalColour.fromAssocs . Data.List.Extra.groupSort
 	 ) . Test.QuickCheck.elements $ Data.List.subsequences [
 		(logicalColour, x) |
-			logicalColour	<- Attribute.LogicalColour.range,
+			logicalColour	<- Property.FixedMembership.members,
 			x		<- [Cartesian.Abscissa.xMin, Cartesian.Abscissa.xMax]
 	 ] -- List-comprehension.
 
@@ -96,7 +97,7 @@ results	= sequence [
 			uncurry (&&) . (
 				(`State.CastleableRooksByLogicalColour.canCastle` castleableRooksByLogicalColour) &&& (`State.CastleableRooksByLogicalColour.hasCastled` castleableRooksByLogicalColour)
 			)
-		 ) Attribute.LogicalColour.range
+		 ) Property.FixedMembership.members
 	in Test.QuickCheck.quickCheckWithResult Test.QuickCheck.stdArgs { Test.QuickCheck.maxSuccess = 32 } f,
 	let
 		f :: Attribute.LogicalColour.LogicalColour -> Test.QuickCheck.Cartesian.Coordinates.Coordinates -> CastleableRooksByLogicalColour -> Test.QuickCheck.Property

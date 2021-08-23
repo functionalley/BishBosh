@@ -19,7 +19,7 @@
 {- |
  [@AUTHOR@]	Dr. Alistair Ward
 
- [@DESCRIPTION@]	Defines options common to native interface(s).
+ [@DESCRIPTION@]	Defines options common to native (i.e. not some separate GUI) interfaces.
 -}
 
 module BishBosh.Input.NativeUIOptions(

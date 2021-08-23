@@ -24,7 +24,7 @@
 
 	* Defines the state of the game, without regard to how it arrived there; <https://www.chessprogramming.org/Chess_Position>.
 
-	* Games with the same /position/ have the same opportunities.
+	* Games with the same /position/ may be considered to have converged, since they now have equal opportunity.
 
 	* N.B.: /piece/s are fungible, i.e. they lack identity, so the location of identical /piece/s may be exchanged, without altering the /position/.
 -}
@@ -57,11 +57,7 @@ import qualified	Control.DeepSeq
 import qualified	Data.Array.IArray
 import qualified	Data.Maybe
 
-{- |
-	* The state of the game, without regard to how it arrived there; <https://www.chessprogramming.org/Chess_Position>.
-
-	* Games with the same /position/ may be considered to have converged, since they now have equal opportunity.
--}
+-- | The state of the game, without regard to how it arrived there.
 data Position x y	= MkPosition {
 	getNextLogicalColour			:: Attribute.LogicalColour.LogicalColour,	-- ^ The next player to move.
 	getMaybePieceByCoordinates		:: State.MaybePieceByCoordinates.MaybePieceByCoordinates x y,
@@ -147,6 +143,7 @@ mkPosition :: (
 	-> State.CastleableRooksByLogicalColour.CastleableRooksByLogicalColour x
 	-> Maybe (Component.Turn.Turn x y)		-- ^ The last /turn/ made.
 	-> Position x y
+{-# SPECIALISE mkPosition :: Attribute.LogicalColour.LogicalColour -> State.MaybePieceByCoordinates.MaybePieceByCoordinates T.X T.Y -> State.CastleableRooksByLogicalColour.CastleableRooksByLogicalColour T.X -> Maybe (Component.Turn.Turn T.X T.Y) -> Position T.X T.Y #-}
 mkPosition nextLogicalColour maybePieceByCoordinates castleableRooksByLogicalColour maybeLastTurn	= MkPosition {
 	getNextLogicalColour			= nextLogicalColour,
 	getMaybePieceByCoordinates		= maybePieceByCoordinates,	-- N.B.: one could have used 'State.CoordinatesByRankByLogicalColour.CoordinatesByRankByLogicalColour', except that the coordinates have an undefined order.

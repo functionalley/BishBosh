@@ -45,9 +45,9 @@ module BishBosh.Notation.PureCoordinate(
 --	xMax,
 --	yMin,
 --	yMax,
---	xOrigin,
---	yOrigin,
 	origin,
+--	xOriginOffset,
+--	yOriginOffset,
 	regexSyntax,
 -- * Functions
 	encode,
@@ -97,8 +97,11 @@ min'@(xMin, yMin)	= ('a', '1')
 
 -- | The origin of the coordinate-system.
 origin :: (Int, Int)
-xOrigin, yOrigin :: Int
-origin@(xOrigin, yOrigin)	= Data.Char.ord *** Data.Char.ord $ min'
+origin	= Data.Char.ord *** Data.Char.ord $ min'
+
+-- | The offset of the application's internal coordinate-system from this conventional one.
+xOriginOffset, yOriginOffset :: Int
+(xOriginOffset, yOriginOffset)	= (Cartesian.Abscissa.xOrigin -) *** (Cartesian.Ordinate.yOrigin -) $ origin
 
 -- | The maximum permissible values for /x/ & /y/ coordinates.
 xMax, yMax :: Char
@@ -127,14 +130,14 @@ regexSyntax	= showString "([a-h][1-8]){2}[" $ showString (
 abscissaParser :: Enum x => Text.Poly.TextParser x
 {-# SPECIALISE abscissaParser :: Text.Poly.TextParser T.X #-}
 abscissaParser	= (
-	toEnum . (+ (Cartesian.Abscissa.xOrigin - xOrigin)) . Data.Char.ord
+	toEnum . (+ xOriginOffset) . Data.Char.ord
  ) `fmap` Poly.satisfyMsg inXRange "Abscissa"
 
 -- | Parse a /y/-coordinate.
 ordinateParser :: Enum y => Text.Poly.TextParser y
 {-# SPECIALISE ordinateParser :: Text.Poly.TextParser T.Y #-}
 ordinateParser	= (
-	toEnum . (+ (Cartesian.Ordinate.yOrigin - yOrigin)) . Data.Char.ord
+	toEnum . (+ yOriginOffset) . Data.Char.ord
  ) `fmap` Poly.satisfyMsg inYRange "Ordinate"
 
 -- | Parse a pair of /coordinates/.
@@ -150,20 +153,16 @@ coordinatesParser	= do
 	y	<- ordinateParser
 
 	return {-to Parser-monad-} $ Cartesian.Coordinates.mkCoordinates x y
-#else
+#else /* Parsec */
 -- | Parse an /x/-coordinate.
 abscissaParser :: Enum x => Parsec.Parser x
 {-# SPECIALISE abscissaParser :: Parsec.Parser T.X #-}
-abscissaParser	= (
-	toEnum . (+ (Cartesian.Abscissa.xOrigin - xOrigin)) . Data.Char.ord
- ) <$> Parsec.satisfy inXRange <?> "Abscissa"
+abscissaParser	= toEnum . (+ xOriginOffset) . Data.Char.ord <$> Parsec.satisfy inXRange <?> "Abscissa"
 
 -- | Parse a /y/-coordinate.
 ordinateParser :: Enum y => Parsec.Parser y
 {-# SPECIALISE ordinateParser :: Parsec.Parser T.X #-}
-ordinateParser	= (
-	toEnum . (+ (Cartesian.Ordinate.yOrigin - yOrigin)) . Data.Char.ord
- ) <$> Parsec.satisfy inYRange <?> "Ordinate"
+ordinateParser	= toEnum . (+ yOriginOffset) . Data.Char.ord <$> Parsec.satisfy inYRange <?> "Ordinate"
 
 -- | Parse a pair of /coordinates/.
 coordinatesParser :: (
@@ -183,7 +182,10 @@ data PureCoordinate x y	= MkPureCoordinate {
 } deriving Eq
 
 -- | Smart constructor.
-mkPureCoordinate :: Component.Move.Move x y -> Maybe Attribute.Rank.Rank -> PureCoordinate x y
+mkPureCoordinate
+	:: Component.Move.Move x y
+	-> Maybe Attribute.Rank.Rank	-- ^ The optional promotion-rank.
+	-> PureCoordinate x y
 mkPureCoordinate move maybePromotionRank
 	| Just rank	<- maybePromotionRank
 	, rank `notElem` Attribute.Rank.promotionProspects	= Control.Exception.throw . Data.Exception.mkInvalidDatum . showString "BishBosh.Notation.PureCoordinate.mkPureCoordinate:\tcan't promote to a " $ shows rank "."
@@ -193,12 +195,16 @@ mkPureCoordinate move maybePromotionRank
 	}
 
 -- | Smart constructor.
-mkPureCoordinate' :: Attribute.Rank.Promotable promotable => Component.Move.Move x y -> promotable -> PureCoordinate x y
+mkPureCoordinate'
+	:: Attribute.Rank.Promotable promotable
+	=> Component.Move.Move x y
+	-> promotable	-- ^ The datum from which to extract the optional promotion-rank.
+	-> PureCoordinate x y
 mkPureCoordinate' move	= mkPureCoordinate move . Attribute.Rank.getMaybePromotionRank
 
 -- | Encodes the ordinate & abscissa.
 encode :: (Enum x, Enum y) => Cartesian.Coordinates.Coordinates x y -> (ShowS, ShowS)
-encode	= showChar . Data.Char.chr . (+ (xOrigin - Cartesian.Abscissa.xOrigin)) . fromEnum . Cartesian.Coordinates.getX &&& showChar . Data.Char.chr . (+ (yOrigin - Cartesian.Ordinate.yOrigin)) . fromEnum . Cartesian.Coordinates.getY
+encode	= showChar . Data.Char.chr . subtract xOriginOffset . fromEnum . Cartesian.Coordinates.getX &&& showChar . Data.Char.chr . subtract yOriginOffset . fromEnum . Cartesian.Coordinates.getY
 
 -- | Shows the specified /coordinates/.
 showsCoordinates :: (Enum x, Enum y) => Cartesian.Coordinates.Coordinates x y -> ShowS
@@ -215,9 +221,9 @@ readsCoordinates s	= case Data.List.Extra.trimStart s of
 	x : y : remainder	-> map (
 		flip (,) remainder
 	 ) . Data.Maybe.maybeToList $ Cartesian.Coordinates.mkMaybeCoordinates (
-		toEnum $ Data.Char.ord x + (Cartesian.Abscissa.xOrigin - xOrigin)
+		toEnum $ Data.Char.ord x + xOriginOffset
 	 ) (
-		toEnum $ Data.Char.ord y + (Cartesian.Ordinate.yOrigin - yOrigin)
+		toEnum $ Data.Char.ord y + yOriginOffset
 	 )
 	_			-> []	-- Mo parse.
 
@@ -241,9 +247,9 @@ instance (
 	readsPrec _ s	= case Data.List.Extra.trimStart s of
 		x : y : x' : y' : remainder	-> let
 			translate x'' y''	= Cartesian.Coordinates.mkMaybeCoordinates (
-				toEnum $ Data.Char.ord x'' + (Cartesian.Abscissa.xOrigin - xOrigin)
+				toEnum $ Data.Char.ord x'' + xOriginOffset
 			 ) (
-				toEnum $ Data.Char.ord y'' + (Cartesian.Ordinate.yOrigin - yOrigin)
+				toEnum $ Data.Char.ord y'' + yOriginOffset
 			 )
 		 in [
 			Control.Arrow.first (

@@ -1,3 +1,4 @@
+{-# LANGUAGE LambdaCase #-}
 {-
 	Copyright (C) 2018 Dr. Alistair Ward
 
@@ -29,8 +30,6 @@ module BishBosh.Model.Result(
 --		VictoryBy,
 --		Draw
 	),
--- * Constants
-	range,
 -- * Function
 	findMaybeVictor,
 -- ** Constructor
@@ -40,11 +39,12 @@ module BishBosh.Model.Result(
 ) where
 
 import qualified	BishBosh.Attribute.LogicalColour	as Attribute.LogicalColour
+import qualified	BishBosh.Property.FixedMembership	as Property.FixedMembership
 import qualified	BishBosh.Property.Opposable		as Property.Opposable
 import qualified	Control.DeepSeq
 import qualified	Data.List.Extra
 
--- | The ways in which a game can legally be terminated.
+-- | The sum-type of ways in which a game can legally be terminated.
 data Result
 	= VictoryBy Attribute.LogicalColour.LogicalColour	-- ^ The /logical colour/ of the victor.
 	| Draw
@@ -56,9 +56,9 @@ instance Control.DeepSeq.NFData Result where
 
 -- | Convert a game-termination reason into PGN's @Result@ field; <https://www.chessclub.com/help/pgn-spec>.
 instance Show Result where
-	showsPrec _ result	= (
+	showsPrec _	= (
 		\(showsWhiteResult, showsBlackResult) -> showsWhiteResult . showChar '-' . showsBlackResult
-	 ) $ case result of
+	 ) . \case
 		VictoryBy Attribute.LogicalColour.Black -> (lose, win)
 		VictoryBy _				-> (win, lose)
 		_					-> (draw, draw)
@@ -78,9 +78,8 @@ instance Property.Opposable.Opposable Result where
 	getOpposite (VictoryBy logicalColour)	= VictoryBy $ Property.Opposable.getOpposite logicalColour
 	getOpposite _				= Draw
 
--- | The constant range of values.
-range :: [Result]
-range	= Draw : map VictoryBy Attribute.LogicalColour.range
+instance Property.FixedMembership.FixedMembership Result where
+	members	= Draw : map VictoryBy Property.FixedMembership.members
 
 -- | Constructor.
 mkResult :: Maybe Attribute.LogicalColour.LogicalColour -> Result

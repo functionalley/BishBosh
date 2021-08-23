@@ -21,9 +21,8 @@
 
  [@DESCRIPTION@]
 
-	* Defines configurable options for Chess-engine Communications-protocol, as used by XBoard;
-		<https://www.gnu.org/software/xboard/engine-intf.html>
-		<https://en.wikipedia.org/wiki/Chess_Engine_Communication_Protocol>.
+	* Defines configurable options for [Chess-engine Communications-protocol](https://en.wikipedia.org/wiki/Chess_Engine_Communication_Protocol),
+	as used by [XBoard](https://www.gnu.org/software/xboard/engine-intf.html)
 -}
 
 module BishBosh.Input.CECPOptions(

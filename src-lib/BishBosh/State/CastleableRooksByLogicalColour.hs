@@ -66,8 +66,10 @@ import qualified	BishBosh.Component.Piece			as Component.Piece
 import qualified	BishBosh.Component.QualifiedMove		as Component.QualifiedMove
 import qualified	BishBosh.Component.Turn				as Component.Turn
 import qualified	BishBosh.Component.Zobrist			as Component.Zobrist
+import qualified	BishBosh.Data.Enum				as Data.Enum
 import qualified	BishBosh.Data.Exception				as Data.Exception
 import qualified	BishBosh.Property.ExtendedPositionDescription	as Property.ExtendedPositionDescription
+import qualified	BishBosh.Property.FixedMembership		as Property.FixedMembership
 import qualified	BishBosh.Property.ForsythEdwards		as Property.ForsythEdwards
 import qualified	BishBosh.Property.Opposable			as Property.Opposable
 import qualified	BishBosh.Property.Reflectable			as Property.Reflectable
@@ -91,7 +93,7 @@ import qualified	Data.Ord
 
 	* Lack of an entry for the specified /logical colour/ implies that castling has already occurred, whereas a null list of abscissae implies that castling can no longer happen.
 
-	* N.B.: both the outer list (indexed by logical-colour) & the inner list of abscissae, are kept ordered, otherwise the derived instance of 'Eq' would be unpredictable.
+	* N.B.: both the outer list (indexed by logical colour) & the inner list of abscissae, are kept ordered, otherwise the derived instance of 'Eq' would be unpredictable.
 -}
 type AbscissaeByLogicalColour x	= [(Attribute.LogicalColour.LogicalColour, [x])]
 
@@ -150,7 +152,7 @@ instance Control.DeepSeq.NFData x => Control.DeepSeq.NFData (CastleableRooksByLo
 instance Enum x => Data.Default.Default (CastleableRooksByLogicalColour x) where
 	def = MkCastleableRooksByLogicalColour $ map (
 		flip (,) [Cartesian.Abscissa.xMin, Cartesian.Abscissa.xMax]
-	 ) Attribute.LogicalColour.range
+	 ) Property.FixedMembership.members
 
 instance Property.Reflectable.ReflectableOnX (CastleableRooksByLogicalColour x) where
 	reflectOnX MkCastleableRooksByLogicalColour { getAssocs = assocs }	= MkCastleableRooksByLogicalColour . reverse $ map (
@@ -165,7 +167,7 @@ instance (
 	readsEPD s	= case Data.List.Extra.trimStart s of
 		'-' : remainder	-> [
 			(
-				MkCastleableRooksByLogicalColour $ Attribute.LogicalColour.range `zip` repeat [],	-- CAVEAT: can't disambiguate between this potential value & '[]' which have different semantics for this application.
+				MkCastleableRooksByLogicalColour $ Property.FixedMembership.members `zip` repeat [],	-- CAVEAT: can't disambiguate between this potential value & '[]' which have different semantics for this application.
 				remainder
 			) -- Pair.
 		 ] -- Singleton.
@@ -173,7 +175,7 @@ instance (
 			readsAssocs s'
 				| null s' || Data.Char.isSpace (head s')	= terminate	-- CAVEAT: white space separates this field from the start of the En-passant destination, which should it begin with a 'b' might be interpreted as a Bishop.
 				| otherwise					= case reads s' of
-					[(piece, s'')]	-> case rank of
+					[(piece, s'')]	-> case Component.Piece.getRank piece of
 						Attribute.Rank.Queen	-> Control.Arrow.first (
 							(
 								logicalColour,
@@ -188,7 +190,7 @@ instance (
 						 ) `map` readsAssocs s''	-- Recurse.
 						_			-> []	-- Inappropriate rank => parse-failure.
 						where
-							(logicalColour, rank)	= Component.Piece.getLogicalColour &&& Component.Piece.getRank $ piece
+							logicalColour	= Component.Piece.getLogicalColour piece
 					_		-> terminate
 				where
 					terminate	= [([], s')]
@@ -220,7 +222,7 @@ instance (Enum x, Eq x) => Property.ForsythEdwards.ShowsFEN (CastleableRooksByLo
 instance Eq x => Component.Zobrist.Hashable1D CastleableRooksByLogicalColour x {-CAVEAT: FlexibleInstances, MultiParamTypeClasses-} where
 	listRandoms1D MkCastleableRooksByLogicalColour { getAssocs = assocs } zobrist	= Data.Maybe.catMaybes [
 		Component.Zobrist.dereferenceRandomByCastleableRooksXByLogicalColour logicalColour x zobrist |
-			logicalColour	<- Attribute.LogicalColour.range,
+			logicalColour	<- Property.FixedMembership.members,
 			x		<- Data.Maybe.fromMaybe [] $ lookup logicalColour assocs
 	 ] -- List-comprehension.
 
@@ -261,12 +263,12 @@ fromBoard board
 				Cartesian.Ordinate.pawnsFirstRank logicalColour
 			) |
 				bishopsAbscissa	<- [
-					Cartesian.Abscissa.translate (toEnum . (+ 2) . fromEnum) Cartesian.Abscissa.xMin,
-					Cartesian.Abscissa.translate (toEnum . subtract 2 . fromEnum) Cartesian.Abscissa.xMax
+					Cartesian.Abscissa.translate (Data.Enum.translate (+ 2)) Cartesian.Abscissa.xMin,
+					Cartesian.Abscissa.translate (Data.Enum.translate $ subtract 2) Cartesian.Abscissa.xMax
 				 ],
 				x		<- Cartesian.Abscissa.getAdjacents bishopsAbscissa
 		] -- List-comprehension.
-	) Attribute.LogicalColour.range	= Control.Exception.throw . Data.Exception.mkIncompatibleData . showString "BishBosh.State.CastleableRooksByLogicalColourFromBoard.fromBoard:\tfor castling to have occurred, a Bishop must have been moved, which can only happen when a blocking Pawn is moved; " $ shows (castleableRooksByLogicalColour, board) "."
+	) Property.FixedMembership.members	= Control.Exception.throw . Data.Exception.mkIncompatibleData . showString "BishBosh.State.CastleableRooksByLogicalColourFromBoard.fromBoard:\tfor castling to have occurred, a Bishop must have been moved, which can only happen when a blocking Pawn is moved; " $ shows (castleableRooksByLogicalColour, board) "."
 	| otherwise	= castleableRooksByLogicalColour
 	where
 		coordinatesByRankByLogicalColour	= State.Board.getCoordinatesByRankByLogicalColour board
@@ -280,7 +282,7 @@ fromBoard board
 						rooksCoordinates `elem` Cartesian.Coordinates.rooksStartingCoordinates logicalColour
 				] -- List-comprehension.
 			) -- Pair.
-		 ) Attribute.LogicalColour.range
+		 ) Property.FixedMembership.members
 
 -- | Narrow the type, so the /turn/ can be queried.
 type TurnsByLogicalColour x y	= State.TurnsByLogicalColour.TurnsByLogicalColour (Component.Turn.Turn x y)
@@ -306,7 +308,7 @@ fromTurnsByLogicalColour turnsByLogicalColour	= MkCastleableRooksByLogicalColour
 					not $ haveMovedFrom coordinates turns || haveMovedTo coordinates (State.TurnsByLogicalColour.dereference (Property.Opposable.getOpposite logicalColour) turnsByLogicalColour)
 			] -- List-comprehension.
 		) -- Pair.
- ) [] Attribute.LogicalColour.range where
+ ) [] Property.FixedMembership.members where
 	haveMovedFrom, haveMovedTo :: (Eq x, Eq y) => Cartesian.Coordinates.Coordinates x y -> [Component.Turn.Turn x y] -> Bool
 	haveMovedFrom coordinates	= any $ (== coordinates) . Component.Move.getSource . Component.QualifiedMove.getMove . Component.Turn.getQualifiedMove
 	haveMovedTo coordinates		= any $ (== coordinates) . Component.Move.getDestination . Component.QualifiedMove.getMove . Component.Turn.getQualifiedMove
@@ -319,7 +321,7 @@ hasCastled logicalColour MkCastleableRooksByLogicalColour { getAssocs = assocs }
 canCastle :: Attribute.LogicalColour.LogicalColour -> CastleableRooksByLogicalColour x -> Bool
 canCastle logicalColour MkCastleableRooksByLogicalColour { getAssocs = assocs }	= Data.Maybe.maybe False {-has castled-} (not . null) $ lookup logicalColour assocs
 
--- | Infer the @Rook@'s ordinate from the /piece/'s /logical-colour/.
+-- | Infer the @Rook@'s ordinate from the /piece/'s /logical colour/.
 inferRooksOrdinate :: Enum y => Attribute.LogicalColour.LogicalColour -> y
 inferRooksOrdinate logicalColour
 	| Attribute.LogicalColour.isBlack logicalColour	= Cartesian.Ordinate.yMax
@@ -358,7 +360,7 @@ unify MkCastleableRooksByLogicalColour { getAssocs = assocs }	= MkCastleableRook
 				(logicalColour, []) :
 			)
 	) assocs'
- ) assocs Attribute.LogicalColour.range
+ ) assocs Property.FixedMembership.members
 
 -- | Update with the latest /turn/.
 takeTurn :: (
@@ -424,7 +426,7 @@ cantConverge castleableRooksByLogicalColour castleableRooksByLogicalColour'	= an
 		(Just [], Nothing)	-> True
 		(Nothing, Just [])	-> True
 		_			-> False
- ) Attribute.LogicalColour.range
+ ) Property.FixedMembership.members
 
 -- | Generate the additional random-numbers required to correct the hash resulting from a change to the castleable @Rook@s.
 listIncrementalRandoms

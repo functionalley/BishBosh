@@ -28,7 +28,7 @@ module BishBosh.Test.HUnit.Attribute.Direction(
 ) where
 
 import qualified	BishBosh.Attribute.Direction		as Attribute.Direction
-import qualified	BishBosh.Attribute.LogicalColour	as Attribute.LogicalColour
+import qualified	BishBosh.Property.FixedMembership	as Property.FixedMembership
 import qualified	Data.List
 import qualified	Test.HUnit
 import			Test.HUnit((~?))
@@ -41,6 +41,6 @@ testCases	= Test.HUnit.test [
 	) ~? "BishBosh.Attribute.Direction.[diagonal, parallels] intersect.",
 	all (
 		(== 2) . length . Attribute.Direction.attackDirectionsForPawn
-	) Attribute.LogicalColour.range ~? "'BishBosh.Attribute.Direction.attackDirectionsForPawn' failed."
+	) Property.FixedMembership.members ~? "'BishBosh.Attribute.Direction.attackDirectionsForPawn' failed."
  ]
 

@@ -27,7 +27,8 @@ module BishBosh.Test.HUnit.Attribute.Rank(
 	testCases
 ) where
 
-import qualified	BishBosh.Attribute.Rank	as Attribute.Rank
+import qualified	BishBosh.Attribute.Rank			as Attribute.Rank
+import qualified	BishBosh.Property.FixedMembership	as Property.FixedMembership
 import qualified	Data.List
 import qualified	Test.HUnit
 import			Test.HUnit((~?))
@@ -35,6 +36,6 @@ import			Test.HUnit((~?))
 -- | Check the sanity of the implementation, by validating a list of static test-cases.
 testCases :: Test.HUnit.Test
 testCases	= Test.HUnit.test [
-	Attribute.Rank.range == Data.List.sort Attribute.Rank.range ~? "BishBosh.Attribute.Rank.range is misordered."
+	Property.FixedMembership.members == Data.List.sort Attribute.Rank.range ~? "BishBosh.Attribute.Rank.range is misordered."
  ]
 

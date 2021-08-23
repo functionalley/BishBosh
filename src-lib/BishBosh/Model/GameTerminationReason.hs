@@ -1,3 +1,4 @@
+{-# LANGUAGE LambdaCase #-}
 {-
 	Copyright (C) 2018 Dr. Alistair Ward
 
@@ -48,15 +49,16 @@ module BishBosh.Model.GameTerminationReason(
 import qualified	BishBosh.Attribute.LogicalColour	as Attribute.LogicalColour
 import qualified	BishBosh.Model.DrawReason		as Model.DrawReason
 import qualified	BishBosh.Model.Result			as Model.Result
+import qualified	BishBosh.Property.FixedMembership	as Property.FixedMembership
 import qualified	BishBosh.Property.Opposable		as Property.Opposable
 import qualified	Control.DeepSeq
 
--- | The ways in which a game can legally be terminated.
+-- | The sum-type of ways in which a game can legally be terminated.
 data GameTerminationReason
 	= CheckMateOf Attribute.LogicalColour.LogicalColour	-- ^ The /logical colour/ of the /check-mated/ player.
 	| ResignationBy Attribute.LogicalColour.LogicalColour	-- ^ The /logical colour/ of the player who resigned.
 	| Draw Model.DrawReason.DrawReason
-	deriving (Eq, Read, Show)
+	deriving (Eq, Ord, Read, Show)
 
 instance Control.DeepSeq.NFData GameTerminationReason where
 	rnf (CheckMateOf logicalColour)		= Control.DeepSeq.rnf logicalColour
@@ -68,9 +70,12 @@ instance Property.Opposable.Opposable GameTerminationReason where
 	getOpposite (ResignationBy logicalColour)	= ResignationBy $ Property.Opposable.getOpposite logicalColour
 	getOpposite draw				= draw
 
+instance Property.FixedMembership.FixedMembership GameTerminationReason where
+	members	= map CheckMateOf Property.FixedMembership.members ++ map ResignationBy Property.FixedMembership.members ++ map Draw Property.FixedMembership.members
+
 -- | Convert to a /result/.
 toResult :: GameTerminationReason -> Model.Result.Result
-toResult gameTerminationReason	= Property.Opposable.getOpposite . Model.Result.mkResult $ case gameTerminationReason of
+toResult	= Property.Opposable.getOpposite . Model.Result.mkResult . \case
 	CheckMateOf logicalColour	-> Just logicalColour
 	ResignationBy logicalColour	-> Just logicalColour
 	Draw _				-> Nothing

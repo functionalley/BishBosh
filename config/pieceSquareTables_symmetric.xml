@@ -1,0 +1,42 @@
+<!--
+	AUTHOR: Dr. Alistair Ward
+
+	Copyright (C) 2021 Dr. Alistair Ward
+
+	This file is part of BishBosh.
+
+	BishBosh is free software: you can redistribute it and/or modify
+	it under the terms of the GNU General Public License as published by
+	the Free Software Foundation, either version 3 of the License, or
+	(at your option) any later version.
+
+	BishBosh is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+	GNU General Public License for more details.
+
+	You should have received a copy of the GNU General Public License
+	along with BishBosh.  If not, see <http://www.gnu.org/licenses/>.
+-->
+<!--
+	Defines the relative value of a specific rank of piece, occupying a specific coordinate on the board, at a specific stage in the game.
+	These values are from https://www.chessprogramming.org/Simplified_Evaluation_Function#Piece-Square_Tables, but mapped into the closed unit interval.
+	Left-right symmetry has been used to reduce the required specifications.
+-->
+<pieceSquareTables>
+	<pieceSquareTable>
+<!--
+						a1   b1   c1   d1   a2   b2   c2   d2   a3   b3   c3   d3   a4   b4   c4   d4   a5   b5   c5   d5   a6   b6   c6   d6   a7   b7   c7   d7   a8   b8   c8   d8
+-->
+		<byRank rank="p" byCoordinates="0.50 0.50 0.50 0.50 0.55 0.60 0.60 0.30 0.55 0.45 0.40 0.50 0.50 0.50 0.50 0.70 0.55 0.55 0.60 0.75 0.60 0.60 0.70 0.80 1.00 1.00 1.00 1.00 0.50 0.50 0.50 0.50"/>
+		<byRank rank="r" byCoordinates="0.50 0.50 0.50 0.55 0.45 0.50 0.50 0.50 0.45 0.50 0.50 0.50 0.45 0.50 0.50 0.50 0.45 0.50 0.50 0.50 0.45 0.50 0.50 0.50 0.55 0.60 0.60 0.60 0.50 0.50 0.50 0.50"/>
+		<byRank rank="n" byCoordinates="0.00 0.10 0.20 0.20 0.10 0.30 0.50 0.55 0.20 0.55 0.60 0.65 0.20 0.50 0.65 0.70 0.20 0.55 0.65 0.70 0.20 0.50 0.60 0.65 0.10 0.30 0.50 0.50 0.00 0.10 0.20 0.20"/>
+		<byRank rank="b" byCoordinates="0.30 0.40 0.40 0.40 0.40 0.55 0.50 0.50 0.40 0.60 0.60 0.60 0.40 0.50 0.60 0.60 0.40 0.55 0.55 0.60 0.40 0.50 0.55 0.60 0.40 0.50 0.50 0.50 0.30 0.40 0.40 0.40"/>
+		<byRank rank="q" byCoordinates="0.30 0.40 0.40 0.45 0.40 0.50 0.50 0.50 0.40 0.50 0.55 0.55 0.45 0.50 0.55 0.55 0.45 0.50 0.55 0.55 0.40 0.50 0.55 0.55 0.40 0.50 0.50 0.50 0.30 0.40 0.40 0.45"/>
+		<byRank rank="k" byCoordinates="0.70 0.80 0.60 0.50 0.70 0.70 0.50 0.50 0.40 0.30 0.30 0.30 0.30 0.20 0.20 0.10 0.20 0.10 0.10 0.00 0.20 0.10 0.10 0.00 0.20 0.10 0.10 0.00 0.20 0.10 0.10 0.00"/>
+	</pieceSquareTable>
+	<pieceSquareTableEndGame>
+		<byRank rank="p" byCoordinates="0.50 0.50 0.50 0.50 0.00 0.00 0.00 0.00 0.10 0.10 0.10 0.10 0.20 0.20 0.20 0.20 0.30 0.30 0.30 0.30 0.60 0.60 0.60 0.60 1.00 1.00 1.00 1.00 0.50 0.50 0.50 0.50"/>
+		<byRank rank="k" byCoordinates="0.00 0.20 0.20 0.20 0.20 0.20 0.50 0.50 0.20 0.40 0.70 0.80 0.20 0.40 0.80 0.90 0.20 0.40 0.80 0.90 0.20 0.40 0.70 0.80 0.20 0.30 0.40 0.50 0.00 0.10 0.20 0.30"/>
+	</pieceSquareTableEndGame>
+</pieceSquareTables>

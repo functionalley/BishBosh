@@ -29,9 +29,10 @@ module BishBosh.Test.QuickCheck.Attribute.RankValues(
 	RankValues
 ) where
 
-import qualified	BishBosh.Attribute.Rank		as Attribute.Rank
-import qualified	BishBosh.Attribute.RankValues	as Attribute.RankValues
-import qualified	BishBosh.Types			as T
+import qualified	BishBosh.Attribute.Rank			as Attribute.Rank
+import qualified	BishBosh.Attribute.RankValues		as Attribute.RankValues
+import qualified	BishBosh.Property.FixedMembership	as Property.FixedMembership
+import qualified	BishBosh.Types				as T
 import qualified	Test.QuickCheck
 
 instance (
@@ -39,7 +40,7 @@ instance (
 	Ord		rankValue,
 	Show		rankValue
  ) => Test.QuickCheck.Arbitrary (Attribute.RankValues.RankValues rankValue) where
-	arbitrary	= Attribute.RankValues.fromAssocs . zip Attribute.Rank.range . map (
+	arbitrary	= Attribute.RankValues.fromAssocs . zip Property.FixedMembership.members . map (
 		recip . fromInteger . succ . (`mod` 100)	-- Normalise to the half open unit-interval (0,1].
 	 ) <$> Test.QuickCheck.vector Attribute.Rank.nDistinctRanks
 

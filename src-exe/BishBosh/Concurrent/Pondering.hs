@@ -30,8 +30,14 @@
 
 module BishBosh.Concurrent.Pondering(
 -- * Types
+-- ** Type-synonyms
+--	OnymousPremise,
 -- ** Data-types
-	Pondering(..),
+	Pondering(
+--		MkPondering,
+		getPremise
+--		getThreadId
+	),
 -- * Functions
 	ponder,
 	abort
@@ -48,16 +54,18 @@ data Pondering premise	= MkPondering {
 	getThreadId	:: Control.Concurrent.ThreadId
 }
 
+-- | A named premise.
+type OnymousPremise premise	= (String, premise)
+
 -- | Asynchronously evaluate the specified answer, then drop it into the MVar.
 ponder
 	:: Control.DeepSeq.NFData answer
-	=> (String -> IO ())	-- ^ Used to print arbitrary strings.
-	-> premise		-- ^ The basis of the question to which an answer is required.
-	-> String		-- ^ A string representing the premise.
-	-> answer		-- ^ Actually an unevaluated question.
+	=> (String -> IO ())		-- ^ Used to print arbitrary strings.
+	-> OnymousPremise premise	-- ^ (A name for the premise, the basis of the question to which an answer is required).
+	-> answer			-- ^ Actually an unevaluated question.
 	-> Control.Concurrent.MVar answer
 	-> IO (Pondering premise)
-ponder putStrLn' premise premiseString answer mVar	= do
+ponder putStrLn' (premiseString, premise) answer mVar	= do
 	threadId	<- Control.Concurrent.forkIO $ do
 		Control.Concurrent.putMVar mVar $!! answer
 
@@ -73,9 +81,9 @@ ponder putStrLn' premise premiseString answer mVar	= do
 -- | Either terminates the running pondering thread, or purges the result it returned.
 abort
 	:: Control.Concurrent.MVar a
-	-> Control.Concurrent.ThreadId
+	-> Pondering premise
 	-> IO String	-- ^ A string defining the action taken.
-abort mVar threadId	= Control.Concurrent.tryTakeMVar mVar >>= Data.Maybe.maybe (
+abort mVar MkPondering { getThreadId = threadId }	= Control.Concurrent.tryTakeMVar mVar >>= Data.Maybe.maybe (
 	do
 		Control.Concurrent.killThread threadId
 

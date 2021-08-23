@@ -1,3 +1,4 @@
+{-# LANGUAGE LambdaCase #-}
 {-
 	Copyright (C) 2018 Dr. Alistair Ward
 
@@ -31,14 +32,16 @@ module BishBosh.UI.Command (
 --	hintTag,
 	printTag,
 --	quitTag,
+--	reportTag,
 --	resignTag,
---	restartTag,
+	restartTag,
 --	rollBackTag,
 --	saveTag,
 	setTag,
 --	swapTag,
 --	alternationTag,
 --	printArgs,
+--	reportArgs,
 --	setArgs,
 --	commands,
 	usageMessage,
@@ -49,13 +52,15 @@ module BishBosh.UI.Command (
  ) where
 
 import qualified	BishBosh.Component.Move		as Component.Move
+import qualified	BishBosh.Data.List
 import qualified	BishBosh.Input.Options		as Input.Options
 import qualified	BishBosh.Input.SearchOptions	as Input.SearchOptions
+import qualified	BishBosh.Text.AutoComplete	as Text.AutoComplete
 import qualified	BishBosh.UI.PrintObject		as UI.PrintObject
+import qualified	BishBosh.UI.ReportObject	as UI.ReportObject
 import qualified	BishBosh.UI.SetObject		as UI.SetObject
 import qualified	Control.Arrow
 import qualified	Control.DeepSeq
-import qualified	Data.Char
 import qualified	Data.List
 import qualified	Data.List.Extra
 import qualified	Data.Maybe
@@ -76,6 +81,10 @@ printTag	= "print"
 -- | Input-format.
 quitTag :: String
 quitTag		= "quit"
+
+-- | Input-format.
+reportTag :: String
+reportTag	= "report"
 
 -- | Input-format.
 resignTag :: String
@@ -109,23 +118,28 @@ alternationTag	= "|"
 printArgs :: String
 printArgs	= Data.List.intercalate alternationTag $ map show UI.PrintObject.range
 
--- | The format of the argument to the command 'set'.
+-- | Show the arguments of a command.
+reportArgs :: String
+reportArgs	= Data.List.intercalate alternationTag $ map show UI.ReportObject.range
+
+-- | The format of the argument to the runtime-command /set/.
 setArgs :: String
 setArgs	= Data.List.intercalate alternationTag [
 	showString Input.SearchOptions.searchDepthTag " <Int>"
  ]
 
--- | The commands that a user may issue.
+-- | The sum-type of commands that a user may issue.
 data Command x y
 	= Hint						-- ^ Request a move-suggestion.
-	| Print UI.PrintObject.PrintObject		-- ^ Show the value of the specified object.
+	| Print UI.PrintObject.PrintObject		-- ^ Print the requested static data.
 	| Quit						-- ^ Terminate this application.
+	| Report UI.ReportObject.ReportObject		-- ^ Report on the requested dynamic data.
 	| Resign					-- ^ Admit defeat.
 	| Restart					-- ^ Abandon the current game, & start afresh.
-	| RollBack (Maybe Component.Move.NMoves)	-- ^ Roll-back the specified number of plies.
+	| RollBack (Maybe Component.Move.NPlies)	-- ^ Roll-back the optionally specified number of plies.
 	| Save						-- ^ Persist the current game-state.
 	| Set UI.SetObject.SetObject			-- ^ I.E. mutate a configuration-value.
-	| Swap						-- ^ Swap evaluation-options between the two sides.
+	| Swap						-- ^ Swap options between the two sides; which causes the players to swap sides.
 	deriving (Eq, Show)
 
 instance Control.DeepSeq.NFData (Command x y) where
@@ -143,11 +157,15 @@ commands	= [
 	), (
 		printTag,
 		Just printArgs,
-		"Print the specified data"
+		"Print the specified static data"
 	), (
 		quitTag,
 		Nothing,
 		"Terminate this application"
+	), (
+		reportTag,
+		Just reportArgs,
+		"Report on the specified dynamic data"
 	), (
 		resignTag,
 		Nothing,
@@ -159,7 +177,7 @@ commands	= [
 	), (
 		rollBackTag,
 		Just "[<Int>]",
-		"The number of plies to roll-back"
+		"The optionally specified number of plies to roll-back"
 	), (
 		saveTag,
 		Nothing,
@@ -196,6 +214,7 @@ usageMessage	= showString (
 
 -- | Reads a /command/.
 readsCommand :: String -> Either String (Command x y, String)
+readsCommand []	= Left . showString "null command received; specify one of " . show $ map (\(tag, _, _) -> tag) commands
 readsCommand s	= case Control.Arrow.first Data.List.Extra.lower `map` lex s of
 	[("hint", s')]		-> Right (Hint, s')
 	[("help", s')]		-> Right (Print UI.PrintObject.Help, s')	-- Include a specific abbreviation.
@@ -203,6 +222,9 @@ readsCommand s	= case Control.Arrow.first Data.List.Extra.lower `map` lex s of
 		[pair]	-> Right $ Control.Arrow.first Print pair
 		_	-> Left . showString "failed to read the object to " . showString printTag . showString " from " . shows s' . showString ". Usage: \"" . showChar commandPrefix . showString printTag . showChar ' ' $ showString printArgs "\""
 	[("quit", s')]		-> Right (Quit, s')
+	[("report", s')]	-> case reads $ UI.ReportObject.autoComplete s' of
+		[pair]	-> Right $ Control.Arrow.first Report pair
+		_	-> Left . showString "failed to read the object to " . showString reportTag . showString " from " . shows s' . showString ". Usage: \"" . showChar commandPrefix . showString reportTag . showChar ' ' $ showString reportArgs "\""
 	[("resign", s')]	-> Right (Resign, s')
 	[("restart", s')]	-> Right (Restart, s')
 	[("save", s')]		-> Right (Save, s')
@@ -212,18 +234,21 @@ readsCommand s	= case Control.Arrow.first Data.List.Extra.lower `map` lex s of
 	[("rollback", s')]	-> case Data.List.Extra.trimStart s' of
 		[]	-> Right (RollBack Nothing, s')
 		s''	-> case reads s'' of
-			[(nMoves, s''')]	-> Right (RollBack (Just nMoves), s''')
-			_			-> Left . showString "failed to read the integral number of moves to " . showString rollBackTag . showString " from " $ show s''
+			[(nMoves, s''')]
+				| nMoves <= 0	-> Left . showString "the specified number of plies (" $ shows nMoves ") must exceed zero"
+				| otherwise	-> Right (RollBack (Just nMoves), s''')
+			_			-> Left . showString "failed to read the integral number of plies to " . showString rollBackTag . showString " from " $ show s''
 	[("swap", s')]		-> Right (Swap, s')
-	[]			-> Left "no command received"
-	_			-> Left . showString "failed to read a command from " $ show s
+	(command, _) : _	-> Left . showString "failed to read a command from " . shows s . showString "; did you mean " . show . BishBosh.Data.List.findClosest command $ map (\(tag, _, _) -> tag) commands
+	_			-> Left "no command received"
 
 -- | Shows a /command/.
 showsCommand :: Command x y -> ShowS
-showsCommand command	= case command of
+showsCommand	= \case
 	Hint			-> showString hintTag
 	Print printObject	-> showString printTag . showChar ' ' . shows printObject
 	Quit			-> showString quitTag
+	Report reportObject	-> showString reportTag . showChar ' ' . shows reportObject
 	Resign			-> showString resignTag
 	Restart			-> showString restartTag
 	RollBack maybeNMoves	-> showString rollBackTag . Data.Maybe.maybe id (\nMoves -> showChar ' ' . shows nMoves) maybeNMoves
@@ -233,13 +258,6 @@ showsCommand command	= case command of
 
 -- | Replace the first word of the specified string with the name of a command of which it is an unambiguous case-insensitive prefix.
 autoComplete :: ShowS
-autoComplete	= uncurry (++) . Control.Arrow.first (
-	\word -> case [
-		tag |
-			(tag, _, _)	<- ("help", Nothing, "") : commands,
-			Data.List.Extra.lower word `Data.List.isPrefixOf` Data.List.Extra.lower tag
-	] of
-		[tag]	-> tag
-		_	-> word
- ) . break Data.Char.isSpace . Data.List.Extra.trimStart
-
+autoComplete	= Text.AutoComplete.autoComplete $ "help" : map (
+	\(tag, _, _) -> tag
+ ) commands

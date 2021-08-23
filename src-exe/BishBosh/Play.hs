@@ -1,3 +1,4 @@
+{-# LANGUAGE CPP, FlexibleContexts #-}
 {-
 	Copyright (C) 2018 Dr. Alistair Ward
 
@@ -48,11 +49,11 @@ import qualified	BishBosh.Input.SearchOptions					as Input.SearchOptions
 import qualified	BishBosh.Input.UIOptions					as Input.UIOptions
 import qualified	BishBosh.Model.GameTree						as Model.GameTree
 import qualified	BishBosh.Notation.MoveNotation					as Notation.MoveNotation
+import qualified	BishBosh.Property.Arboreal					as Property.Arboreal
 import qualified	BishBosh.Property.Empty						as Property.Empty
-import qualified	BishBosh.Property.Tree						as Property.Tree
 import qualified	BishBosh.Search.SearchState					as Search.SearchState
 import qualified	BishBosh.State.PlayState					as State.PlayState
-import qualified	BishBosh.Text.Show						as Text.Show
+import qualified	BishBosh.Text.ShowColouredPrefix				as Text.ShowColouredPrefix
 import qualified	BishBosh.Types							as T
 import qualified	BishBosh.UI.CECP						as UI.CECP
 import qualified	BishBosh.UI.Raw							as UI.Raw
@@ -67,41 +68,50 @@ import qualified	System.IO
 import qualified	System.Random
 import			System.FilePath((</>))
 
+#ifdef USE_UNBOXED_ARRAYS
+import qualified	Data.Array.Unboxed
+#endif
+
 -- | Plays the game according to the specified configuration.
 play :: (
-	Control.DeepSeq.NFData	column,
-	Control.DeepSeq.NFData	criterionWeight,
-	Control.DeepSeq.NFData	pieceSquareValue,
-	Control.DeepSeq.NFData	rankValue,
-	Control.DeepSeq.NFData	row,
-	Control.DeepSeq.NFData	weightedMean,
-	Control.DeepSeq.NFData	x,
-	Control.DeepSeq.NFData	y,
-	Data.Array.IArray.Ix	x,
-	Data.Bits.FiniteBits	positionHash,
-	Fractional		criterionValue,
-	Fractional		pieceSquareValue,
-	Fractional		rankValue,
-	Fractional		weightedMean,
-	Integral		column,
-	Integral		x,
-	Integral		y,
-	Num			positionHash,
-	Ord			positionHash,
-	Read			x,
-	Read			y,
-	Real			criterionValue,
-	Real			criterionWeight,
-	Real			pieceSquareValue,
-	Real			rankValue,
-	Real			weightedMean,
-	Show			column,
-	Show			pieceSquareValue,
-	Show			row,
-	Show			x,
-	Show			y,
-	System.Random.Random	positionHash,
-	System.Random.RandomGen	randomGen
+	Control.DeepSeq.NFData					column,
+#ifdef USE_PARALLEL
+	Control.DeepSeq.NFData					criterionValue,
+#endif
+	Control.DeepSeq.NFData					criterionWeight,
+	Control.DeepSeq.NFData					pieceSquareValue,
+	Control.DeepSeq.NFData					rankValue,
+	Control.DeepSeq.NFData					row,
+	Control.DeepSeq.NFData					weightedMean,
+	Control.DeepSeq.NFData					x,
+	Control.DeepSeq.NFData					y,
+	Data.Array.IArray.Ix					x,
+#ifdef USE_UNBOXED_ARRAYS
+	Data.Array.Unboxed.IArray Data.Array.Unboxed.UArray	pieceSquareValue,	-- Requires 'FlexibleContexts'. The unboxed representation of the array-element must be defined (& therefore must be of fixed size).
+#endif
+	Data.Bits.FiniteBits					positionHash,
+	Fractional						criterionValue,
+	Fractional						pieceSquareValue,
+	Fractional						rankValue,
+	Fractional						weightedMean,
+	Integral						column,
+	Integral						x,
+	Integral						y,
+	Ord							positionHash,
+	Read							x,
+	Read							y,
+	Real							criterionValue,
+	Real							criterionWeight,
+	Real							pieceSquareValue,
+	Real							rankValue,
+	Real							weightedMean,
+	Show							column,
+	Show							pieceSquareValue,
+	Show							row,
+	Show							x,
+	Show							y,
+	System.Random.Random					positionHash,
+	System.Random.RandomGen					randomGen
  )
 	=> randomGen
 	-> Input.Options.Options column criterionWeight pieceSquareValue rankValue row x y
@@ -134,7 +144,7 @@ play randomGen options qualifiedMoveForest	= Data.Maybe.maybe (
 
 				return {-to IO-monad-} $! read s	-- Force evaluation, to trigger any exception thrown from within 'catch'.
 		) $ \e -> do
-			System.IO.hPutStrLn System.IO.stderr . Text.Show.showsWarningPrefix . showString "'readFile' failed; " $ shows (e :: Control.Exception.SomeException) "."
+			System.IO.hPutStrLn System.IO.stderr . Text.ShowColouredPrefix.showsPrefixWarning . showString "'readFile' failed; " $ shows (e :: Control.Exception.SomeException) "."
 
 			return {-to IO-monad-} Data.Default.def {-game-}
  ) (
@@ -145,10 +155,10 @@ play randomGen options qualifiedMoveForest	= Data.Maybe.maybe (
 			return {-to IO-monad-} playState
 		) (
 			\depth -> do
-				System.IO.hPutStrLn System.IO.stderr . Text.Show.showsInfoPrefix . showString "Move-tree:\n" $ (
+				System.IO.hPutStrLn System.IO.stderr . Text.ShowColouredPrefix.showsPrefixInfo . showString "Move-tree:\n" $ (
 					uncurry Notation.MoveNotation.showsNotationFloatToNDecimals (
 						Input.UIOptions.getMoveNotation &&& Input.UIOptions.getNDecimalDigits $ uiOptions
-					) . Property.Tree.prune depth . Search.SearchState.getPositionHashQuantifiedGameTree $ State.PlayState.getSearchState playState
+					) . Property.Arboreal.prune depth . Search.SearchState.getPositionHashQuantifiedGameTree $ State.PlayState.getSearchState playState
 				 ) ""
 
 				return {-to IO-monad-} playState

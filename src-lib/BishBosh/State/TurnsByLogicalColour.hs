@@ -19,7 +19,7 @@
 {- |
  [@AUTHOR@]	Dr. Alistair Ward
 
- [@DESCRIPTION@]	The ordered sequence of /turn/s made by the players of each /logical colour/.
+ [@DESCRIPTION@]	The ordered sequence of /turn/s alternately made by the players of each /logical colour/.
 -}
 
 module BishBosh.State.TurnsByLogicalColour(
@@ -62,7 +62,7 @@ import qualified	Data.List.Extra
 
 -- | The type used to hold a record of each player's /turn/s.
 data TurnsByLogicalColour turn	= MkTurnsByLogicalColour {
-	getTurnsByLogicalColour	:: Attribute.LogicalColour.ByLogicalColour [turn],
+	getTurnsByLogicalColour	:: Attribute.LogicalColour.ArrayByLogicalColour [turn],
 	getNPlies		:: Component.Move.NPlies	-- ^ The number of plies applied to the game; this could alternatively be derived using 'countPlies'.
 }
 
@@ -93,8 +93,8 @@ instance Property.Null.Null (TurnsByLogicalColour turn) where
 
 instance Property.Reflectable.ReflectableOnX turn => Property.Reflectable.ReflectableOnX (TurnsByLogicalColour turn) where
 	reflectOnX turnsByLogicalColour@MkTurnsByLogicalColour { getTurnsByLogicalColour = byLogicalColour }	= turnsByLogicalColour {
-		getTurnsByLogicalColour	= Data.Array.IArray.array (minBound, maxBound) . map (
-			Property.Opposable.getOpposite {-logical colour-} *** map Property.Reflectable.reflectOnX {-turn-}
+		getTurnsByLogicalColour	= Attribute.LogicalColour.arrayByLogicalColour . map (
+			Property.Opposable.getOpposite {-logical colour-} *** Property.Reflectable.reflectOnX {-[turn]-}
 		) $ Data.Array.IArray.assocs byLogicalColour
 	 }
 
@@ -106,9 +106,9 @@ fromAssocs assocs
 	| (> 1) . abs {-allow for Property.Reflectable.reflectOnX-} . uncurry (-) $ (
 		length . (! Attribute.LogicalColour.White) &&& length . (! Attribute.LogicalColour.Black)
 	) byLogicalColour							= Control.Exception.throw . Data.Exception.mkIncompatibleData . showString "BishBosh.State.TurnsByLogicalColour.fromAssocs:\tany difference in the number of turns taken by each player, can't exceed one " $ shows assocs "."
-	| otherwise	= turnsByLogicalColour
+	| otherwise								= turnsByLogicalColour
 	where
-		byLogicalColour		= Data.Array.IArray.array (minBound, maxBound) assocs
+		byLogicalColour		= Attribute.LogicalColour.arrayByLogicalColour assocs
 		turnsByLogicalColour	= MkTurnsByLogicalColour {
 			getTurnsByLogicalColour	= byLogicalColour,
 			getNPlies		= countPlies turnsByLogicalColour	-- Infer.
@@ -127,7 +127,7 @@ inferNextLogicalColour MkTurnsByLogicalColour { getNPlies = nPlies }
 {- |
 	* Count the number of plies.
 
-	* N.B.: 'getNPlies' is more efficient.
+	* CAVEAT: 'getNPlies' is more efficient.
 -}
 countPlies :: TurnsByLogicalColour turn -> Component.Move.NPlies
 countPlies MkTurnsByLogicalColour { getTurnsByLogicalColour = byLogicalColour }	= Data.Foldable.foldl' (\acc -> (+ acc) . length) 0 byLogicalColour
@@ -136,7 +136,11 @@ countPlies MkTurnsByLogicalColour { getTurnsByLogicalColour = byLogicalColour }	
 dereference :: Attribute.LogicalColour.LogicalColour -> TurnsByLogicalColour turn -> [turn]
 dereference logicalColour MkTurnsByLogicalColour { getTurnsByLogicalColour = byLogicalColour }	= byLogicalColour ! logicalColour
 
--- | Update.
+{- |
+	* Update the specified logical colours.
+
+	* CAVEAT: obliterates any incumbent data for the specified logical colours.
+-}
 update :: TurnsByLogicalColour turn -> [(Attribute.LogicalColour.LogicalColour, [turn])] -> TurnsByLogicalColour turn
 update MkTurnsByLogicalColour { getTurnsByLogicalColour = byLogicalColour } assocs	= turnsByLogicalColour where
 	turnsByLogicalColour	= MkTurnsByLogicalColour {

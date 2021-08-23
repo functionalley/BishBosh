@@ -1,3 +1,4 @@
+{-# LANGUAGE CPP #-}
 {-
 	Copyright (C) 2018 Dr. Alistair Ward
 
@@ -19,7 +20,7 @@
 {- |
  [@AUTHOR@]	Dr. Alistair Ward
 
- [@DESCRIPTION@]	Facilitates matching of the current /position/ with a tree built from standard openings.
+ [@DESCRIPTION@]	Facilitates matching of the current /position/ in a tree built from standard openings.
 -}
 
 module BishBosh.ContextualNotation.PositionHashQualifiedMoveTree(
@@ -58,8 +59,7 @@ import qualified	BishBosh.Property.Reflectable			as Property.Reflectable
 import qualified	BishBosh.State.Board				as State.Board
 import qualified	BishBosh.Types					as T
 import qualified	Control.Arrow
-import qualified	Control.DeepSeq
-import qualified	Control.Parallel.Strategies
+import qualified	Control.Exception
 import qualified	Data.Array.IArray
 import qualified	Data.Bits
 import qualified	Data.Default
@@ -71,7 +71,12 @@ import qualified	Factory.Math.Statistics
 import qualified	System.Random
 import qualified	ToolShed.System.Random
 
--- | Each label of the tree contains a Zobrist-hash of the current position, augmented (except in the case of the apex-game) by the last move that was played & any conclusive result.
+#ifdef USE_PARALLEL
+import qualified	Control.DeepSeq
+import qualified	Control.Parallel.Strategies
+#endif
+
+-- | Each label of the tree contains a /Zobrist-hash/ of the current position, augmented (except in the case of the apex-game) by the last /move/ that was played, & any conclusive result.
 data NodeLabel x y positionHash	= MkNodeLabel {
 	getPositionHash				:: positionHash,
 	getMaybeQualifiedMoveWithOnymousResult	:: Maybe (Component.QualifiedMove.QualifiedMove x y, Maybe ContextualNotation.QualifiedMoveForest.OnymousResult)
@@ -84,10 +89,10 @@ type Tree x y positionHash	= Data.Tree.Tree (NodeLabel x y positionHash)
 data PositionHashQualifiedMoveTree x y positionHash	= MkPositionHashQualifiedMoveTree {
 	getZobrist		:: Component.Zobrist.Zobrist x y positionHash,	-- ^ Used to hash each position in the tree.
 	getTree			:: Tree x y positionHash,
-	getMinimumPieces	:: Component.Piece.NPieces			-- ^ The minimum number of pieces remaining after the last move in any game defined in the tree.
+	getMinimumPieces	:: Component.Piece.NPieces			-- ^ The minimum number of /piece/s remaining after the last /move/ in any game defined in the tree.
 }
 
--- | Augment the specified /qualified-move forest/ with a zobrist-hash of the /position/ & include the default initial game at the apex.
+-- | Augment the specified /qualified-move forest/ with a /Zobrist-hash/ of the /position/ & include the default initial game at the apex.
 fromQualifiedMoveForest :: (
 	Data.Array.IArray.Ix	x,
 	Data.Bits.Bits		positionHash,
@@ -120,7 +125,7 @@ fromQualifiedMoveForest incrementalEvaluation zobrist qualifiedMoveForest	= MkPo
 						Data.Tree.subForest	= map (slave game' positionHash') qualifiedMoveForest'	-- Recurse.
 					} where
 						game'		= Model.Game.applyQualifiedMove qualifiedMove game
-						positionHash'	= Model.Game.incrementalHash game positionHash game' zobrist
+						positionHash'	= Model.Game.updateIncrementalPositionHash game positionHash game' zobrist
 				in slave initialGame initialPositionHash
 				else let
 					slave game Data.Tree.Node {
@@ -157,6 +162,8 @@ type OnymousQualifiedMove x y	= (Component.QualifiedMove.QualifiedMove x y, [Con
 onymiseQualifiedMove :: Tree x y positionHash -> OnymousQualifiedMove x y
 onymiseQualifiedMove	= (
 	fst {-qualifiedMove-} . head &&& Data.Maybe.mapMaybe snd {-Maybe OnymousResult-}
+ ) . (
+	\l -> Control.Exception.assert (not $ null l) l
  ) . map (
 	\MkNodeLabel { getMaybeQualifiedMoveWithOnymousResult = Just qualifiedMoveWithOnymousResult } -> qualifiedMoveWithOnymousResult
  ) . Data.Tree.flatten
@@ -223,10 +230,12 @@ findNextOnymousQualifiedMovesForPosition requiredGame positionHashQualifiedMoveT
 
 -- | Finds any single /move/s which can join the current /position/ with a member of the forest.
 findNextJoiningOnymousQualifiedMovesFromPosition :: (
-	Data.Array.IArray.Ix	x,
-	Data.Bits.Bits		positionHash,
+#ifdef USE_PARALLEL
 	Control.DeepSeq.NFData	x,
 	Control.DeepSeq.NFData	y,
+#endif
+	Data.Array.IArray.Ix	x,
+	Data.Bits.Bits		positionHash,
 	Enum			x,
 	Enum			y,
 	Ord			y,
@@ -240,9 +249,13 @@ findNextJoiningOnymousQualifiedMovesFromPosition game positionHashQualifiedMoveT
 		concatMap snd {-[OnymousResult]-} matchingOnymousQualifiedMoves	-- Discard the opponent's matching move, but cite the names of archived games it reached.
 	) |
 		not $ Model.Game.isTerminated game,
-		(preMatchQualifiedMove, matchingOnymousQualifiedMoves)	<- Control.Parallel.Strategies.withStrategy (
-			Control.Parallel.Strategies.parList $ Control.Parallel.Strategies.parTuple2 Control.Parallel.Strategies.r0 Control.Parallel.Strategies.rdeepseq
-		) . map (
+		(preMatchQualifiedMove, matchingOnymousQualifiedMoves)	<-
+#ifdef USE_PARALLEL
+		Control.Parallel.Strategies.withStrategy (
+			Control.Parallel.Strategies.parList $ Control.Parallel.Strategies.evalTuple2 Control.Parallel.Strategies.r0 {-pre-match move-} Control.Parallel.Strategies.rdeepseq {-matching moves-}
+		) .
+#endif
+		map (
 			id &&& (`findNextOnymousQualifiedMovesForPosition` positionHashQualifiedMoveTree) . (`Model.Game.applyQualifiedMove` game)	-- Apply this player's move.
 		) $ Model.Game.findQualifiedMovesAvailableToNextPlayer game,
 		not $ null matchingOnymousQualifiedMoves
@@ -262,10 +275,12 @@ findNextJoiningOnymousQualifiedMovesFromPosition game positionHashQualifiedMoveT
 	* CAVEAT: the order of these searches has been hard-coded.
 -}
 findNextOnymousQualifiedMoves :: (
-	Data.Array.IArray.Ix	x,
-	Data.Bits.Bits		positionHash,
+#ifdef USE_PARALLEL
 	Control.DeepSeq.NFData	x,
 	Control.DeepSeq.NFData	y,
+#endif
+	Data.Array.IArray.Ix	x,
+	Data.Bits.Bits		positionHash,
 	Enum			x,
 	Enum			y,
 	Ord			y,
@@ -299,8 +314,10 @@ findNextOnymousQualifiedMoves (tryToMatchMoves, tryToMatchViaJoiningMove, tryToM
 
 -- | Randomly select a /qualifiedMove/ from matching /position/s in the tree, & supply the names of those archived games from which it originated.
 maybeRandomlySelectOnymousQualifiedMove :: (
+#ifdef USE_PARALLEL
 	Control.DeepSeq.NFData	x,
 	Control.DeepSeq.NFData	y,
+#endif
 	Data.Array.IArray.Ix	x,
 	Data.Bits.Bits		positionHash,
 	Enum			x,

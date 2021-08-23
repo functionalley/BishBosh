@@ -80,9 +80,7 @@ results	= sequence [
 	let
 		f :: Zobrist -> Test.QuickCheck.Model.Game.Game -> Test.QuickCheck.Property
 		f zobrist game	= Test.QuickCheck.label "Zobrist.prop_(hash2D(Game) == hash2D(Position))" . all (
-			uncurry (==)
-		 ) . map (
-			(
+			uncurry (==) . (
 				(
 					`Component.Zobrist.hash2D` zobrist
 				) &&& (
@@ -95,7 +93,7 @@ results	= sequence [
 		f :: Zobrist -> Test.QuickCheck.Model.Game.Game -> Test.QuickCheck.Property
 		f zobrist game	= Test.QuickCheck.label "Zobrist.prop_incrementalEvaluation" . all (
 			(
-				\game' -> Component.Zobrist.hash2D game' zobrist == Model.Game.incrementalHash game (
+				\game' -> Component.Zobrist.hash2D game' zobrist == Model.Game.updateIncrementalPositionHash game (
 					Component.Zobrist.hash2D game zobrist
 				) game' zobrist
 			) . (`Model.Game.applyQualifiedMove` game)

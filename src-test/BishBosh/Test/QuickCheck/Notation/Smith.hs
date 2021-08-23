@@ -67,6 +67,6 @@ results	= sequence [
 	in Test.QuickCheck.quickCheckWithResult Test.QuickCheck.stdArgs { Test.QuickCheck.maxSuccess = 256 } f,
 	let
 		f :: Smith -> String -> Test.QuickCheck.Property
-		f smith	= Test.QuickCheck.label "Smith.prop_readTrailingGarbage" . ToolShed.Test.ReversibleIO.readTrailingGarbage (`elem` ("cCE" ++ concatMap show Component.Piece.range)) smith
+		f smith	= Test.QuickCheck.label "Smith.prop_readTrailingGarbage" . ToolShed.Test.ReversibleIO.readTrailingGarbage (`elem` ("cCE" ++ Component.Piece.showPieces)) smith
 	in Test.QuickCheck.quickCheckWithResult Test.QuickCheck.stdArgs { Test.QuickCheck.maxSuccess = 512 } f
  ]

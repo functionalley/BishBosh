@@ -1,3 +1,4 @@
+{-# LANGUAGE CPP #-}
 {-
 	Copyright (C) 2018 Dr. Alistair Ward
 
@@ -50,6 +51,11 @@ import qualified	BishBosh.Types						as T
 import qualified	Control.Exception
 import qualified	Factory.Math.Statistics
 
+#ifdef USE_PARALLEL
+import qualified	Control.DeepSeq
+import qualified	Control.Parallel.Strategies
+#endif
+
 -- | Quantifies some criterion; the larger the signed value, the better.
 newtype CriterionValue criterionValue	= MkCriterionValue criterionValue deriving (Eq, Show)
 
@@ -77,17 +83,27 @@ zero	= MkCriterionValue 0
 	* CAVEAT: if all weights are @0@, then the result is indeterminate.
 -}
 calculateWeightedMean :: (
-	Fractional	weightedMean,
-	Real		criterionValue,
-	Real		criterionWeight
+#ifdef USE_PARALLEL
+	Control.DeepSeq.NFData	criterionValue,
+#endif
+	Fractional		weightedMean,
+	Real			criterionValue,
+	Real			criterionWeight
  ) => [(CriterionValue criterionValue, Attribute.CriterionWeight.CriterionWeight criterionWeight)] -> Attribute.WeightedMeanAndCriterionValues.WeightedMeanAndCriterionValues weightedMean criterionValue
+{-# INLINABLE calculateWeightedMean #-}
 {-# SPECIALISE calculateWeightedMean :: [(CriterionValue T.CriterionValue, Attribute.CriterionWeight.CriterionWeight T.CriterionWeight)] -> Attribute.WeightedMeanAndCriterionValues.WeightedMeanAndCriterionValues T.WeightedMean T.CriterionValue #-}
 calculateWeightedMean assocs	= uncurry Attribute.WeightedMeanAndCriterionValues.mkWeightedMeanAndCriterionValues $ (
 	Factory.Math.Statistics.getWeightedMean &&& map fst
- ) [
-	(bareCriterionValue, bareCriterionWeight) |
-		(MkCriterionValue bareCriterionValue, criterionWeight)	<- assocs,
-		let bareCriterionWeight	= Attribute.CriterionWeight.deconstruct criterionWeight,
-		bareCriterionWeight /= 0
- ] -- List-comprehension.
+ )
+#ifdef USE_PARALLEL
+	$ Control.Parallel.Strategies.withStrategy (
+		Control.Parallel.Strategies.parList $ Control.Parallel.Strategies.evalTuple2 Control.Parallel.Strategies.rdeepseq Control.Parallel.Strategies.r0
+	)
+#endif
+	[
+		(bareCriterionValue, bareCriterionWeight) |
+			(MkCriterionValue bareCriterionValue, criterionWeight)	<- assocs,
+			let bareCriterionWeight	= Attribute.CriterionWeight.deconstruct criterionWeight,
+			bareCriterionWeight /= 0
+	] -- List-comprehension.
 

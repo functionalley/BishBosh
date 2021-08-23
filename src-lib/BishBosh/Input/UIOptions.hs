@@ -60,8 +60,8 @@ import qualified	BishBosh.Input.CECPOptions	as Input.CECPOptions
 import qualified	BishBosh.Input.NativeUIOptions	as Input.NativeUIOptions
 import qualified	BishBosh.Input.Verbosity	as Input.Verbosity
 import qualified	BishBosh.Notation.MoveNotation	as Notation.MoveNotation
+import qualified	BishBosh.Property.Arboreal	as Property.Arboreal
 import qualified	BishBosh.Property.ShowFloat	as Property.ShowFloat
-import qualified	BishBosh.Property.Tree		as Property.Tree
 import qualified	BishBosh.Text.ShowList		as Text.ShowList
 import qualified	Control.DeepSeq
 import qualified	Control.Exception
@@ -95,7 +95,7 @@ type EitherNativeUIOrCECPOptions row column	= Either (Input.NativeUIOptions.Nati
 -- | Defines the application's user-interface.
 data UIOptions row column = MkUIOptions {
 	getMoveNotation			:: Notation.MoveNotation.MoveNotation,		-- ^ The notation used to describe /move/s.
-	getMaybePrintMoveTree		:: Maybe Property.Tree.Depth,			-- ^ Print the move-tree to the specified depth.
+	getMaybePrintMoveTree		:: Maybe Property.Arboreal.Depth,		-- ^ Print the move-tree to the specified depth.
 	getNDecimalDigits		:: Property.ShowFloat.NDecimalDigits,		-- ^ The precision to which fractional auxiliary data is displayed.
 	getEitherNativeUIOrCECPOptions	:: EitherNativeUIOrCECPOptions row column,	-- ^ When a native display is configured some additional style-parameters are required.
 	getVerbosity			:: Input.Verbosity.Verbosity			-- ^ Set the threshold for ancillary information-output.
@@ -192,7 +192,7 @@ instance (
 -- | Smart constructor.
 mkUIOptions
 	:: Notation.MoveNotation.MoveNotation	-- ^ The chess-notation used to describe /move/s.
-	-> Maybe Property.Tree.Depth
+	-> Maybe Property.Arboreal.Depth
 	-> Property.ShowFloat.NDecimalDigits	-- ^ The precision to which fractional auxiliary data is displayed.
 	-> EitherNativeUIOrCECPOptions row column
 	-> Input.Verbosity.Verbosity		-- ^ Set the threshold for logging.

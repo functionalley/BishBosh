@@ -43,8 +43,8 @@ import			Test.QuickCheck((==>))
 results :: IO [Test.QuickCheck.Result]
 results	= sequence [
 {- CAVEAT: has failed with [
-	{captureMoveSortAlgorithm = MVVLVA, minimumHammingDistance = 2, retireKillerMovesAfter = 1, preferMovesTowardsCentre = True, sortOnStandardOpeningMoveFrequency = False, retireTranspositionsAfter = 0, minimumTranspositionSearchDepth = 2, trapRepeatedPositions = False},
-	{captureMoveSortAlgorithm = SEE, retireKillerMovesAfter = 2, preferMovesTowardsCentre = False, sortOnStandardOpeningMoveFrequency = False, retireTranspositionsAfter = 1, minimumTranspositionSearchDepth = 1, trapRepeatedPositions = False, usePondering = False}
+	{captureMoveSortAlgorithm = MVVLVA, minimumHammingDistance = 2, retireKillerMovesAfter = 1, sortOnStandardOpeningMoveFrequency = False, retireTranspositionsAfter = 0, minimumTranspositionSearchDepth = 2, trapRepeatedPositions = False},
+	{captureMoveSortAlgorithm = SEE, retireKillerMovesAfter = 2, sortOnStandardOpeningMoveFrequency = False, retireTranspositionsAfter = 1, minimumTranspositionSearchDepth = 1, trapRepeatedPositions = False, usePondering = False}
  ]
 -}
 	let

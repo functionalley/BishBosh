@@ -30,12 +30,13 @@ module BishBosh.Test.QuickCheck.Attribute.LogicalColour(
 
 import			Control.Arrow((&&&))
 import qualified	BishBosh.Attribute.LogicalColour	as Attribute.LogicalColour
+import qualified	BishBosh.Property.FixedMembership	as Property.FixedMembership
 import qualified	BishBosh.Property.ForsythEdwards	as Property.ForsythEdwards
 import qualified	BishBosh.Property.Opposable		as Property.Opposable
 import qualified	Test.QuickCheck
 
 instance Test.QuickCheck.Arbitrary Attribute.LogicalColour.LogicalColour where
-	arbitrary	= Test.QuickCheck.elements Attribute.LogicalColour.range
+	arbitrary	= Test.QuickCheck.elements Property.FixedMembership.members
 
 -- | The constant test-results for this data-type.
 results :: IO [Test.QuickCheck.Result]

@@ -29,35 +29,45 @@ module BishBosh.Input.PGNOptions(
 	PGNOptions(
 --		MkPGNOptions,
 		getDatabaseFilePath,
+		getMaybeDecompressor,
 		getIsStrictlySequential,
 		getValidateMoves,
 		getTextEncoding,
 		getIdentificationTags,
-		getMinimumPlies
+		getMinimumPlies,
+		getMaybeMaximumGames
 	),
 -- * Constants
 	tag,
 	databaseFilePathTag,
+--	decompressorTag,
+--	validateMovesTag,
+--	isStrictlySequentialTag,
 --	identificationTagTag,
 --	minimumPliesTag,
+--	maximumGamesTag,
 -- * Functions
 -- ** Constructor
 	mkPGNOptions
 ) where
 
+import			BishBosh.Data.Bool()
 import qualified	BishBosh.Component.Move				as Component.Move
 import qualified	BishBosh.ContextualNotation.PGN			as ContextualNotation.PGN
+import qualified	BishBosh.ContextualNotation.PGNDatabase		as ContextualNotation.PGNDatabase
 import qualified	BishBosh.ContextualNotation.StandardAlgebraic	as ContextualNotation.StandardAlgebraic
 import qualified	BishBosh.Data.Exception				as Data.Exception
+import qualified	BishBosh.Data.Foldable				as Data.Foldable
 import qualified	BishBosh.Text.Encoding				as Text.Encoding
 import qualified	BishBosh.Text.ShowList				as Text.ShowList
 import qualified	Control.DeepSeq
 import qualified	Control.Exception
+import qualified	Data.Char
 import qualified	Data.Default
+import qualified	Data.Maybe
 import qualified	System.FilePath
 import qualified	System.IO
 import qualified	Text.XML.HXT.Arrow.Pickle			as HXT
-import qualified	ToolShed.Data.Foldable
 
 -- | Used to qualify XML.
 tag :: String
@@ -66,6 +76,10 @@ tag			= "pgnOptions"
 -- | Used to qualify XML.
 databaseFilePathTag :: String
 databaseFilePathTag	= "databaseFilePath"
+
+-- | Used to qualify XML.
+decompressorTag :: String
+decompressorTag		= "decompressor"
 
 -- | Defines the command-line options.
 validateMovesTag :: String
@@ -83,37 +97,50 @@ identificationTagTag	= "identificationTag"
 minimumPliesTag :: String
 minimumPliesTag		= "minimumPlies"
 
+-- | Defines the command-line options.
+maximumGamesTag :: String
+maximumGamesTag		= "maximumGames"
+
 -- | Defines the options related to PGN.
 data PGNOptions	= MkPGNOptions {
 	getDatabaseFilePath	:: System.FilePath.FilePath,				-- ^ Path to a PGN-database file.
+	getMaybeDecompressor	:: Maybe ContextualNotation.PGNDatabase.Decompressor,	-- ^ Optional executable by which to decompress the specified file.
 	getIsStrictlySequential	:: ContextualNotation.PGN.IsStrictlySequential,		-- ^ Whether moves with an unexpected number should be considered to be an error.
 	getValidateMoves	:: ContextualNotation.StandardAlgebraic.ValidateMoves,	-- ^ Whether moves should be validated, which can become tedious if they're already known to be valid.
 	getTextEncoding		:: System.IO.TextEncoding,				-- ^ The conversion-scheme between byte-sequences & Unicode characters.
 	getIdentificationTags	:: [ContextualNotation.PGN.Tag],			-- ^ The tags to extract from this PGN-database to form a unique composite game-identifier.
-	getMinimumPlies		:: Component.Move.NMoves				-- ^ The minimum number of half moves, for the game to be considered useful; most short games result from "forfeit by disconnection".
+	getMinimumPlies		:: Component.Move.NPlies,				-- ^ The minimum number of plies required from a recorded game.
+	getMaybeMaximumGames	:: Maybe Int						-- ^ The optional maximum number of games to read from the PGN-database.
 } deriving Eq
 
 instance Control.DeepSeq.NFData PGNOptions where
 	rnf MkPGNOptions {
 		getDatabaseFilePath	= databaseFilePath,
+		getMaybeDecompressor	= maybeDecompressor,
 		getIsStrictlySequential	= isStrictlySequential,
 		getValidateMoves	= validateMoves,
 		getIdentificationTags	= identificationTags,
-		getMinimumPlies		= minimumPlies
-	} = Control.DeepSeq.rnf (databaseFilePath, isStrictlySequential, validateMoves, identificationTags, minimumPlies)
+		getMinimumPlies		= minimumPlies,
+		getMaybeMaximumGames	= maybeMaximumGames
+	} = Control.DeepSeq.rnf (databaseFilePath, maybeDecompressor, isStrictlySequential, validateMoves, identificationTags, minimumPlies, maybeMaximumGames)
 
 instance Show PGNOptions where
 	showsPrec _ MkPGNOptions {
 		getDatabaseFilePath	= databaseFilePath,
+		getMaybeDecompressor	= maybeDecompressor,
 		getIsStrictlySequential	= isStrictlySequential,
 		getValidateMoves	= validateMoves,
 		getTextEncoding		= textEncoding,
 		getIdentificationTags	= identificationTags,
-		getMinimumPlies		= minimumPlies
+		getMinimumPlies		= minimumPlies,
+		getMaybeMaximumGames	= maybeMaximumGames
 	} = Text.ShowList.showsAssociationList' [
 		(
 			databaseFilePathTag,
 			shows databaseFilePath
+		), (
+			decompressorTag,
+			shows maybeDecompressor
 		), (
 			isStrictlySequentialTag,
 			shows isStrictlySequential
@@ -129,32 +156,41 @@ instance Show PGNOptions where
 		), (
 			minimumPliesTag,
 			shows minimumPlies
+		), (
+			maximumGamesTag,
+			shows maybeMaximumGames
 		)
 	 ]
 
 instance Data.Default.Default PGNOptions where
 	def = MkPGNOptions {
 		getDatabaseFilePath	= "pgn/bishbosh.pgn",	-- CAVEAT: rather arbitrary.
+		getMaybeDecompressor	= Nothing,
 		getIsStrictlySequential	= True,
 		getValidateMoves	= True,
 		getTextEncoding		= Data.Default.def,
 		getIdentificationTags	= ["ECO", "Variation"],	-- CAVEAT: rather arbitrary.
-		getMinimumPlies		= 1
+		getMinimumPlies		= 1,
+		getMaybeMaximumGames	= Nothing
 	}
 
 instance HXT.XmlPickler PGNOptions where
 	xpickle	= HXT.xpElem tag . HXT.xpWrap (
-		\(a, b, c, d, e, f) -> mkPGNOptions a b c d e f,	-- Construct.
+		\(a, b, c, d, e, f, g, h) -> mkPGNOptions a b c d e f g h,	-- Construct.
 		\MkPGNOptions {
 			getDatabaseFilePath	= databaseFilePath,
+			getMaybeDecompressor	= maybeDecompressor,
 			getIsStrictlySequential	= isStrictlySequential,
 			getValidateMoves	= validateMoves,
 			getTextEncoding		= textEncoding,
 			getIdentificationTags	= identificationTags,
-			getMinimumPlies		= minimumPlies
-		} -> (databaseFilePath, isStrictlySequential, validateMoves, textEncoding, identificationTags, minimumPlies) -- Deconstruct.
-	 ) $ HXT.xp6Tuple (
+			getMinimumPlies		= minimumPlies,
+			getMaybeMaximumGames	= maybeMaximumGames
+		} -> (databaseFilePath, maybeDecompressor, isStrictlySequential, validateMoves, textEncoding, identificationTags, minimumPlies, maybeMaximumGames) -- Deconstruct.
+	 ) $ HXT.xp8Tuple (
 		HXT.xpTextAttr databaseFilePathTag
+	 ) (
+		HXT.xpOption $ HXT.xpTextAttr decompressorTag
 	 ) (
 		getIsStrictlySequential def `HXT.xpDefault` HXT.xpAttr isStrictlySequentialTag HXT.xpickle {-Bool-}
 	 ) (
@@ -163,30 +199,42 @@ instance HXT.XmlPickler PGNOptions where
 		HXT.xpList . HXT.xpElem identificationTagTag $ HXT.xpTextAttr "tag"
 	 ) (
 		getMinimumPlies def `HXT.xpDefault` HXT.xpAttr minimumPliesTag HXT.xpickle {-NMoves-}
+	 ) (
+		HXT.xpOption $ HXT.xpAttr maximumGamesTag HXT.xpickle {-NGames-}
 	 ) where
 		def	= Data.Default.def
 
 -- | Smart constructor.
 mkPGNOptions
-	:: System.FilePath.FilePath	-- ^ Database file-path.
+	:: System.FilePath.FilePath				-- ^ Database file-path.
+	-> Maybe ContextualNotation.PGNDatabase.Decompressor	-- ^ Optional name of an executable by which to decompress the specified file.
 	-> ContextualNotation.PGN.IsStrictlySequential
 	-> ContextualNotation.StandardAlgebraic.ValidateMoves
 	-> System.IO.TextEncoding
-	-> [ContextualNotation.PGN.Tag]	-- ^ Optional identification tags.
-	-> Component.Move.NMoves	-- ^ The minimum plies.
+	-> [ContextualNotation.PGN.Tag]				-- ^ Optional identification tags.
+	-> Component.Move.NPlies				-- ^ The minimum plies.
+	-> Maybe Int						-- ^ The optional maximum number of games to read from the database.
 	-> PGNOptions
-mkPGNOptions databaseFilePath isStrictlySequential validateMoves textEncoding identificationTags minimumPlies
+mkPGNOptions databaseFilePath maybeDecompressor isStrictlySequential validateMoves textEncoding identificationTags minimumPlies maybeMaximumGames
 	| not $ System.FilePath.isValid databaseFilePath	= Control.Exception.throw . Data.Exception.mkInvalidDatum . showString "BishBosh.Input.PGNOptions.mkPGNOptions:\tinvalid " . showString databaseFilePathTag . Text.ShowList.showsAssociation $ shows databaseFilePath "."
+	| Data.Maybe.maybe False null maybeDecompressor		= Control.Exception.throw . Data.Exception.mkNullDatum . showString "BishBosh.Input.PGNOptions.mkPGNOptions:\t" $ shows decompressorTag " can't be null."
+	| Data.Maybe.maybe False (
+		not . all Data.Char.isAlphaNum
+	) maybeDecompressor					= Control.Exception.throw . Data.Exception.mkNullDatum . showString "BishBosh.Input.PGNOptions.mkPGNOptions:\t" $ shows decompressorTag " should be alpha-numeric."
 	| any null identificationTags				= Control.Exception.throw . Data.Exception.mkNullDatum . showString "BishBosh.Input.PGNOptions.mkPGNOptions:\tno " $ shows identificationTagTag " can be null."
-	| duplicateTags@(_ : _)	<- map head . filter ((/= 1) . length) $ ToolShed.Data.Foldable.gather identificationTags
-	= Control.Exception.throw . Data.Exception.mkDuplicateData . showString "BishBosh.Input.PGNOptions.mkPGNOptions:\tduplicate " . showString identificationTagTag . showChar 's' . Text.ShowList.showsAssociation $ shows duplicateTags "."
+	| not $ null duplicateIdentificationTags		= Control.Exception.throw . Data.Exception.mkDuplicateData . showString "BishBosh.Input.PGNOptions.mkPGNOptions:\tduplicate " . showString identificationTagTag . Text.ShowList.showsAssociation $ shows duplicateIdentificationTags "."
 	| minimumPlies < 0					= Control.Exception.throw . Data.Exception.mkOutOfBounds . showString "BishBosh.Input.PGNOptions.mkPGNOptions:\t" $ shows minimumPliesTag " can't be negative."
+	| Data.Maybe.maybe False (<= 0) maybeMaximumGames	= Control.Exception.throw . Data.Exception.mkOutOfBounds . showString "BishBosh.Input.PGNOptions.mkPGNOptions:\t" $ shows maximumGamesTag " must be positive."
 	| otherwise						= MkPGNOptions {
 		getDatabaseFilePath	= System.FilePath.normalise databaseFilePath,
+		getMaybeDecompressor	= maybeDecompressor,
 		getIsStrictlySequential	= isStrictlySequential,
 		getValidateMoves	= validateMoves,
 		getTextEncoding		= textEncoding,
 		getIdentificationTags	= identificationTags,
-		getMinimumPlies		= minimumPlies
+		getMinimumPlies		= minimumPlies,
+		getMaybeMaximumGames	= maybeMaximumGames
 	}
+	where
+		duplicateIdentificationTags	= Data.Foldable.findDuplicates identificationTags
 

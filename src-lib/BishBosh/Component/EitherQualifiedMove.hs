@@ -21,12 +21,12 @@
 
  [@DESCRIPTION@]
 
-	* Defines the type returned when reading a move encoded in a string, using any of a variety of notations.
+	* The type returned when reading a move encoded in a string, using any of a variety of notations.
 
 	* The internal representation of a /move/ is merely a pair of coordinates, but in various chess-notations, additional information is provided.
 
 	* The quantity of additional information is dependent of the specific notation:
-		some identify Castling, En-passant, promotion /rank/, taken /rank/;
+		some identify castling, en-passant, promotion /rank/, taken /rank/;
 		some merely define the /rank/ to which a @Pawn@ should be promoted.
 -}
 
@@ -54,7 +54,7 @@ data EitherQualifiedMove x y	= MkEitherQualifiedMove {
 	getPromotionRankOrMoveType	:: Either (Maybe Attribute.Rank.Rank) Attribute.MoveType.MoveType	-- ^ Either the optional /rank/ to which a @Pawn@ should be promoted, or the complete /move-type/.
 }
 
--- | Constructor for notations which don't encode sufficient information to reliably re-construct the /move-type/, but merely the rank to which a @Pawn@ is to be promoted.
+-- | Constructor for notations which don't encode sufficient information to reliably re-construct the /move-type/, but merely the /rank/ to which a @Pawn@ is to be promoted.
 mkPartiallyQualifiedMove :: Component.Move.Move x y -> Maybe Attribute.Rank.Rank -> EitherQualifiedMove x y
 mkPartiallyQualifiedMove move	= MkEitherQualifiedMove move . Left
 

@@ -1,0 +1,30 @@
+<!--
+	AUTHOR: Dr. Alistair Ward
+
+	Copyright (C) 2021 Dr. Alistair Ward
+
+	This file is part of BishBosh.
+
+	BishBosh is free software: you can redistribute it and/or modify
+	it under the terms of the GNU General Public License as published by
+	the Free Software Foundation, either version 3 of the License, or
+	(at your option) any later version.
+
+	BishBosh is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+	GNU General Public License for more details.
+
+	You should have received a copy of the GNU General Public License
+	along with BishBosh.  If not, see <http://www.gnu.org/licenses/>.
+-->
+<!--
+	These are the values (in the closed unit-interval rather than the traditional centi-pawns) of various ranks of piece
+	N.B.: derived from Larry Kaufman's values; <https://www.chessprogramming.org/Point_Value>
+-->
+<rankValues rank="p" value="0.1"/>	<!-- Pawn -->
+<rankValues rank="r" value="0.525"/>	<!-- Rook -->
+<rankValues rank="b" value="0.35"/>	<!-- Bishop -->
+<rankValues rank="n" value="0.35"/>	<!-- Knight -->
+<rankValues rank="q" value="1"/>	<!-- Queen -->
+<rankValues rank="k" value="0"/>	<!-- King -->

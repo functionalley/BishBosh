@@ -59,9 +59,11 @@ instance (
 --	{-# SPECIALISE instance Test.QuickCheck.Arbitrary KillerMoveKey #-}
 	arbitrary	= fmap Search.DynamicMoveData.mkKillerMoveKeyFromTurn Test.QuickCheck.arbitrary
 
+-- |
 normalise :: Int -> Component.Move.NPlies
 normalise	= succ . (`mod` 4)
 
+-- |
 populate :: Ord key => [(Component.Move.NPlies, key)] -> Search.KillerMoves.KillerMoves key
 populate	= foldr (\(nPlies, killerMoveKey) -> Search.KillerMoves.insert (normalise nPlies) killerMoveKey) Property.Empty.empty {-KillerMoves-}
 

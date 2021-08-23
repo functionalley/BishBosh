@@ -1,3 +1,4 @@
+{-# LANGUAGE LambdaCase #-}
 {-
 	Copyright (C) 2018 Dr. Alistair Ward
 
@@ -54,7 +55,6 @@ module BishBosh.Model.GameTree(
 
 import			Control.Arrow((&&&))
 import qualified	BishBosh.Attribute.CaptureMoveSortAlgorithm	as Attribute.CaptureMoveSortAlgorithm
-import qualified	BishBosh.Attribute.LogicalColour		as Attribute.LogicalColour
 import qualified	BishBosh.Attribute.MoveType			as Attribute.MoveType
 import qualified	BishBosh.Attribute.Rank				as Attribute.Rank
 import qualified	BishBosh.Component.Move				as Component.Move
@@ -65,9 +65,10 @@ import qualified	BishBosh.Data.RoseTree				as Data.RoseTree
 import qualified	BishBosh.Model.Game				as Model.Game
 import qualified	BishBosh.Model.MoveFrequency			as Model.MoveFrequency
 import qualified	BishBosh.Notation.MoveNotation			as Notation.MoveNotation
+import qualified	BishBosh.Property.Arboreal			as Property.Arboreal
 import qualified	BishBosh.Property.Empty				as Property.Empty
+import qualified	BishBosh.Property.FixedMembership		as Property.FixedMembership
 import qualified	BishBosh.Property.Null				as Property.Null
-import qualified	BishBosh.Property.Tree				as Property.Tree
 import qualified	BishBosh.State.TurnsByLogicalColour		as State.TurnsByLogicalColour
 import qualified	BishBosh.Types					as T
 import qualified	Control.Exception
@@ -158,8 +159,8 @@ instance (
 	{-# SPECIALISE instance Data.Default.Default (GameTree T.X T.Y) #-}
 	def	= fromGame Data.Default.def
 
-instance Property.Tree.Prunable (GameTree x y) where
-	prune depth MkGameTree { deconstruct = bareGameTree }	= MkGameTree $ Property.Tree.prune depth bareGameTree
+instance Property.Arboreal.Prunable (GameTree x y) where
+	prune depth MkGameTree { deconstruct = bareGameTree }	= MkGameTree $ Property.Arboreal.prune depth bareGameTree
 
 instance (Enum x, Enum y) => Notation.MoveNotation.ShowNotation (GameTree x y) where
 	showsNotation moveNotation MkGameTree {
@@ -203,12 +204,12 @@ fromGame	= MkGameTree . Data.Tree.unfoldTree (
 
 	* N.B.: some of the /game-state/s may have identical positions, reached by different sequences of /move/s.
 -}
-countGames :: Property.Tree.Depth -> Model.Game.NGames
-countGames depth	= Data.RoseTree.countTerminalNodes . deconstruct $ Property.Tree.prune depth (Data.Default.def :: GameTree T.X T.Y)
+countGames :: Property.Arboreal.Depth -> Model.Game.NGames
+countGames depth	= Data.RoseTree.countTerminalNodes . deconstruct $ Property.Arboreal.prune depth (Data.Default.def :: GameTree T.X T.Y)
 
 -- | Counts the number of possible plies in chess, down to the specified depth.
-countMoves :: Property.Tree.Depth -> Model.Game.NGames
-countMoves depth	= pred {-the apex is constructed without moving-} . Data.Foldable.length . deconstruct $ Property.Tree.prune depth (Data.Default.def :: GameTree T.X T.Y)
+countMoves :: Property.Arboreal.Depth -> Model.Game.NGames
+countMoves depth	= pred {-the apex is constructed without moving-} . Data.Foldable.length . deconstruct $ Property.Arboreal.prune depth (Data.Default.def :: GameTree T.X T.Y)
 
 -- | Trace the route down the tree which matches the specified list of turns.
 traceRoute
@@ -227,9 +228,7 @@ type Transformation x y	= GameTree x y -> GameTree x y
 {- |
 	* Independently sorts the forest of moves at each node of the tree, without regard to runtime-data.
 
-	* Depending on preferences, the list of moves available to each game is sequentially sorted by:
-		those which reduce the radius from the centre of the board.
-		either those which capture a valuable piece using a cheap piece, or those which win extended battles at a specific location.
+	* Depending on preferences, the list of moves available to each game is sorted by; either those which capture a valuable piece using a cheap piece, or those which win extended battles at a specific location.
 
 	* The above sort-algorithms are stable & can therefore be applied independently.
 -}
@@ -239,25 +238,20 @@ sortGameTree :: (
 	Num		rankValue,
 	Ord		rankValue
  )
-	=> Bool	-- ^ preferMovesTowardsCentre.
-	-> Maybe Attribute.CaptureMoveSortAlgorithm.CaptureMoveSortAlgorithm
+	=> Maybe Attribute.CaptureMoveSortAlgorithm.CaptureMoveSortAlgorithm
 	-> Attribute.Rank.EvaluateRank rankValue
 	-> MoveFrequency x y
 	-> Transformation x y
-{-# SPECIALISE sortGameTree :: Bool -> Maybe Attribute.CaptureMoveSortAlgorithm.CaptureMoveSortAlgorithm -> Attribute.Rank.EvaluateRank T.RankValue -> MoveFrequency T.X T.Y -> Transformation T.X T.Y #-}
-sortGameTree preferMovesTowardsCentre maybeCaptureMoveSortAlgorithm evaluateRank standardOpeningMoveFrequency MkGameTree { deconstruct = bareGameTree }	= MkGameTree $ Data.RoseTree.mapForest (
+{-# SPECIALISE sortGameTree :: Maybe Attribute.CaptureMoveSortAlgorithm.CaptureMoveSortAlgorithm -> Attribute.Rank.EvaluateRank T.RankValue -> MoveFrequency T.X T.Y -> Transformation T.X T.Y #-}
+sortGameTree maybeCaptureMoveSortAlgorithm evaluateRank standardOpeningMoveFrequency MkGameTree { deconstruct = bareGameTree }	= MkGameTree $ Data.RoseTree.mapForest (
 	\game -> Data.Maybe.maybe id (
-		\captureMoveSortAlgorithm -> case captureMoveSortAlgorithm of
+		\case
 			Attribute.CaptureMoveSortAlgorithm.MVVLVA	-> Data.List.sortBy $ compareByMVVLVA evaluateRank
 			Attribute.CaptureMoveSortAlgorithm.SEE		-> Data.List.sortOn $ negate {-largest first-} . staticExchangeEvaluation evaluateRank
 	 ) maybeCaptureMoveSortAlgorithm . (
 		if Property.Null.isNull standardOpeningMoveFrequency
 			then id
 			else Model.MoveFrequency.sortByDescendingMoveFrequency (Model.Game.getNextLogicalColour game) getRankAndMove standardOpeningMoveFrequency
-	 ) . (
-		if preferMovesTowardsCentre
-			then Data.List.sortOn $ \node -> Component.Move.getDeltaRadiusSquared $ getLastMove node	:: Double
-			else id
 	 )
  ) bareGameTree
 
@@ -278,7 +272,7 @@ toMoveFrequency MkGameTree {
 		\moveFrequency logicalColour -> Model.MoveFrequency.insertMoves logicalColour (
 			Component.Turn.getRank &&& Component.QualifiedMove.getMove . Component.Turn.getQualifiedMove
 		) moveFrequency . State.TurnsByLogicalColour.dereference logicalColour $ Model.Game.getTurnsByLogicalColour rootGame
-	) Property.Empty.empty {-MoveFrequency-} Attribute.LogicalColour.range
+	) Property.Empty.empty {-MoveFrequency-} Property.FixedMembership.members
  ) bareGameTree where
 	slave moveFrequency Data.Tree.Node {
 		Data.Tree.rootLabel	= game,

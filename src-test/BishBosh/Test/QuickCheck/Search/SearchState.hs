@@ -1,4 +1,4 @@
-{-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE CPP, ScopedTypeVariables #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 {-
 	Copyright (C) 2018 Dr. Alistair Ward
@@ -44,10 +44,17 @@ import qualified	Data.Bits
 import qualified	System.Random
 import qualified	Test.QuickCheck
 
+#ifdef USE_PARALLEL
+import qualified	Control.DeepSeq
+#endif
+
 -- | A suitable concrete type for testing.
 type SearchState	= Search.SearchState.SearchState T.X T.Y T.PositionHash T.CriterionValue T.WeightedMean
 
 instance forall x y positionHash criterionValue weightedMean. (
+#ifdef USE_PARALLEL
+	Control.DeepSeq.NFData		criterionValue,
+#endif
 	Data.Array.IArray.Ix		x,
 	Data.Bits.FiniteBits		positionHash,
 	Fractional			criterionValue,

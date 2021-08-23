@@ -33,8 +33,8 @@ import qualified	BishBosh.Evaluation.QuantifiedGame			as Evaluation.QuantifiedGa
 -- import qualified	BishBosh.Input.EvaluationOptions			as Input.EvaluationOptions
 import qualified	BishBosh.Input.SearchOptions				as Input.SearchOptions
 import qualified	BishBosh.Model.Game					as Model.Game
+-- import qualified	BishBosh.Property.Arboreal				as Property.Arboreal
 import qualified	BishBosh.Property.Empty					as Property.Empty
--- import qualified	BishBosh.Property.Tree					as Property.Tree
 import qualified	BishBosh.State.Position					as State.Position
 import qualified	BishBosh.Test.QuickCheck.Component.Zobrist		as Test.QuickCheck.Component.Zobrist
 import qualified	BishBosh.Test.QuickCheck.Input.EvaluationOptions	as Test.QuickCheck.Input.EvaluationOptions
@@ -66,7 +66,7 @@ results	= sequence [
 				Input.EvaluationOptions.getIncrementalEvaluation	= True	-- CAVEAT: unrealistic given rounding-errors in incremental calculation of pieceSquareValue.
 			} searchOptions zobrist Property.Empty.empty {-MoveFrequency-} game
 		 ) where
-			prune	= Property.Tree.prune 3
+			prune	= Property.Arboreal.prune 3
 	in Test.QuickCheck.quickCheckWithResult Test.QuickCheck.stdArgs { Test.QuickCheck.maxSuccess = 4 } f,
 -}
 	let

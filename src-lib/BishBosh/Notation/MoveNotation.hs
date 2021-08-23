@@ -19,7 +19,11 @@
 {- |
  [@AUTHOR@]	Dr. Alistair Ward
 
- [@DESCRIPTION@]	Implements various move-notations <https://en.wikipedia.org/wiki/Chess_notation_Chess-notation>.
+ [@DESCRIPTION@]
+
+	* Defines various context-free move-notations <https://en.wikipedia.org/wiki/Chess_notation_Chess-notation>.
+
+	* Also defines some features required of a notation; e.g. that it has an origin, & implements (Read, Show).
 -}
 
 module BishBosh.Notation.MoveNotation(
@@ -32,7 +36,7 @@ module BishBosh.Notation.MoveNotation(
 -- * Constants
 	tag,
 	pureCoordinate,
-	range,
+--	range,
 -- * Functions
 	readsQualifiedMove,
 	showNotation,
@@ -52,6 +56,7 @@ import qualified	BishBosh.Component.Turn			as Component.Turn
 import qualified	BishBosh.Notation.ICCFNumeric		as Notation.ICCFNumeric
 import qualified	BishBosh.Notation.PureCoordinate	as Notation.PureCoordinate
 import qualified	BishBosh.Notation.Smith			as Notation.Smith
+import qualified	BishBosh.Property.FixedMembership	as Property.FixedMembership
 import qualified	BishBosh.Property.ShowFloat		as Property.ShowFloat
 import qualified	Control.Arrow
 import qualified	Control.DeepSeq
@@ -65,9 +70,9 @@ tag :: String
 tag	= "moveNotation"
 
 {- |
-	* Identifies the move-notations which can be used.
+	* Identifies the sum-type of context-free move-notations which can be used.
 
-	* /Standard Algebraic/ isn't included here because conversion to or from a /QualifiedMove/ requires access to the /game/.
+	* Neither /Standard Algebraic/ nor /Long Algebraic/ notations are included, because conversion to or from a /QualifiedMove/, requires /game/-context.
 -}
 data MoveNotation
 	= ICCFNumeric		-- ^ <https://en.wikipedia.org/wiki/ICCF_numeric_notation>.
@@ -84,13 +89,16 @@ instance Data.Default.Default MoveNotation where
 instance HXT.XmlPickler MoveNotation where
 	xpickle	= HXT.xpDefault Data.Default.def . HXT.xpWrap (read, show) . HXT.xpAttr tag . HXT.xpTextDT . Text.XML.HXT.Arrow.Pickle.Schema.scEnum $ map show range	-- CAVEAT: whether it'll be used as an XML-attribute or an XML-element isn't currently known.
 
--- | Constant.
-pureCoordinate :: MoveNotation
-pureCoordinate	= PureCoordinate
-
 -- | The constant complete range of values.
 range :: [MoveNotation]
 range	= [ICCFNumeric, PureCoordinate, Smith]
+
+instance Property.FixedMembership.FixedMembership MoveNotation where
+	members	= range
+
+-- | Constant.
+pureCoordinate :: MoveNotation
+pureCoordinate	= PureCoordinate
 
 -- | Reads a /move/ & /move-type/ from the specified 'MoveNotation'.
 readsQualifiedMove :: (

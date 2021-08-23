@@ -1,4 +1,4 @@
-{-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE CPP, FlexibleContexts, ScopedTypeVariables #-}
 {-
 	Copyright (C) 2018 Dr. Alistair Ward
 
@@ -30,6 +30,7 @@ module BishBosh.UI.Raw(
  ) where
 
 import			Control.Arrow((&&&))
+import			Control.Monad((>=>), (<=<))
 import qualified	BishBosh.Attribute.WeightedMeanAndCriterionValues		as Attribute.WeightedMeanAndCriterionValues
 import qualified	BishBosh.Component.Move						as Component.Move
 import qualified	BishBosh.Component.QualifiedMove				as Component.QualifiedMove
@@ -58,13 +59,16 @@ import qualified	BishBosh.Search.Search						as Search.Search
 import qualified	BishBosh.Search.SearchState					as Search.SearchState
 import qualified	BishBosh.State.ApplicationTerminationReason			as State.ApplicationTerminationReason
 import qualified	BishBosh.State.Board						as State.Board
+import qualified	BishBosh.State.InstancesByPosition				as State.InstancesByPosition
 import qualified	BishBosh.State.MaybePieceByCoordinates				as State.MaybePieceByCoordinates
 import qualified	BishBosh.State.PlayState					as State.PlayState
-import qualified	BishBosh.Text.Show						as Text.Show
+import qualified	BishBosh.Text.ShowColouredPrefix				as Text.ShowColouredPrefix
 import qualified	BishBosh.Text.ShowList						as Text.ShowList
+import qualified	BishBosh.Text.ShowPrefix					as Text.ShowPrefix
 import qualified	BishBosh.Types							as T
 import qualified	BishBosh.UI.Command						as UI.Command
 import qualified	BishBosh.UI.PrintObject						as UI.PrintObject
+import qualified	BishBosh.UI.ReportObject					as UI.ReportObject
 import qualified	BishBosh.UI.SetObject						as UI.SetObject
 import qualified	Control.Concurrent
 import qualified	Control.DeepSeq
@@ -83,42 +87,52 @@ import qualified	System.IO
 import qualified	System.Random
 import qualified	ToolShed.System.Random
 
+#ifdef USE_UNBOXED_ARRAYS
+import qualified	Data.Array.Unboxed
+#endif
+
 {- |
 	* Reads a command-sequence from the user, terminating in either a request to move or to exit the game.
 
 	* Since the user can also request roll-back to an earlier game before then requesting a new move, a new game is returned rather than just the requested move.
 -}
 readMove :: forall column criterionValue criterionWeight pieceSquareValue positionHash randomGen rankValue row weightedMean x y. (
-	Control.DeepSeq.NFData	column,
-	Control.DeepSeq.NFData	criterionWeight,
-	Control.DeepSeq.NFData	pieceSquareValue,
-	Control.DeepSeq.NFData	rankValue,
-	Control.DeepSeq.NFData	row,
-	Control.DeepSeq.NFData	x,
-	Control.DeepSeq.NFData	y,
-	Data.Array.IArray.Ix	x,
-	Data.Bits.Bits		positionHash,
-	Fractional		criterionValue,
-	Fractional		pieceSquareValue,
-	Fractional		rankValue,
-	Fractional		weightedMean,
-	Integral		column,
-	Integral		x,
-	Integral		y,
-	Ord			positionHash,
-	Read			x,
-	Read			y,
-	Real			criterionValue,
-	Real			criterionWeight,
-	Real			pieceSquareValue,
-	Real			rankValue,
-	Real			weightedMean,
-	Show			column,
-	Show			pieceSquareValue,
-	Show			row,
-	Show			x,
-	Show			y,
-	System.Random.RandomGen	randomGen
+	Control.DeepSeq.NFData					column,
+#ifdef USE_PARALLEL
+	Control.DeepSeq.NFData					criterionValue,
+#endif
+	Control.DeepSeq.NFData					criterionWeight,
+	Control.DeepSeq.NFData					pieceSquareValue,
+	Control.DeepSeq.NFData					rankValue,
+	Control.DeepSeq.NFData					row,
+	Control.DeepSeq.NFData					x,
+	Control.DeepSeq.NFData					y,
+	Data.Array.IArray.Ix					x,
+#ifdef USE_UNBOXED_ARRAYS
+	Data.Array.Unboxed.IArray Data.Array.Unboxed.UArray	pieceSquareValue,	-- Requires 'FlexibleContexts'. The unboxed representation of the array-element must be defined (& therefore must be of fixed size).
+#endif
+	Data.Bits.Bits						positionHash,
+	Fractional						criterionValue,
+	Fractional						pieceSquareValue,
+	Fractional						rankValue,
+	Fractional						weightedMean,
+	Integral						column,
+	Integral						x,
+	Integral						y,
+	Ord							positionHash,
+	Read							x,
+	Read							y,
+	Real							criterionValue,
+	Real							criterionWeight,
+	Real							pieceSquareValue,
+	Real							rankValue,
+	Real							weightedMean,
+	Show							column,
+	Show							pieceSquareValue,
+	Show							row,
+	Show							x,
+	Show							y,
+	System.Random.RandomGen					randomGen
  )
 	=> ContextualNotation.PositionHashQualifiedMoveTree.PositionHashQualifiedMoveTree x y positionHash
 	-> randomGen
@@ -127,11 +141,8 @@ readMove :: forall column criterionValue criterionWeight pieceSquareValue positi
 	-> IO (State.PlayState.PlayState column criterionValue criterionWeight pieceSquareValue positionHash rankValue row weightedMean x y)
 {-# SPECIALISE readMove :: (
 	Control.DeepSeq.NFData	column,
-	Control.DeepSeq.NFData	rankValue,
 	Control.DeepSeq.NFData	row,
-	Fractional		rankValue,
 	Integral		column,
-	Real			rankValue,
 	Show			column,
 	Show			row,
 	System.Random.RandomGen	randomGen
@@ -139,8 +150,8 @@ readMove :: forall column criterionValue criterionWeight pieceSquareValue positi
 	=> ContextualNotation.PositionHashQualifiedMoveTree.PositionHashQualifiedMoveTree T.X T.Y T.PositionHash
 	-> randomGen
 	-> Data.Time.Clock.UTCTime
-	-> State.PlayState.PlayState column T.CriterionValue T.CriterionWeight T.PieceSquareValue T.PositionHash rankValue row T.WeightedMean T.X T.Y
-	-> IO (State.PlayState.PlayState column T.CriterionValue T.CriterionWeight T.PieceSquareValue T.PositionHash rankValue row T.WeightedMean T.X T.Y)
+	-> State.PlayState.PlayState column T.CriterionValue T.CriterionWeight T.PieceSquareValue T.PositionHash T.RankValue row T.WeightedMean T.X T.Y
+	-> IO (State.PlayState.PlayState column T.CriterionValue T.CriterionWeight T.PieceSquareValue T.PositionHash T.RankValue row T.WeightedMean T.X T.Y)
  #-}
 readMove positionHashQualifiedMoveTree randomGen startUTCTime playState	= let
 	(game, options)			= State.PlayState.getGame &&& State.PlayState.getOptions $ playState
@@ -167,7 +178,7 @@ readMove positionHashQualifiedMoveTree randomGen startUTCTime playState	= let
 		onCommand UI.Command.Hint	= do
 			Control.Monad.unless (Model.Game.isTerminated game) . Data.Maybe.maybe (
 				do
-					Control.Monad.when (verbosity > Data.Default.def && not (ContextualNotation.PositionHashQualifiedMoveTree.isTerminal positionHashQualifiedMoveTree)) . System.IO.hPutStrLn System.IO.stderr $ Text.Show.showsInfoPrefix "failed to find any suitable archived move."
+					Control.Monad.when (verbosity > Data.Default.def && not (ContextualNotation.PositionHashQualifiedMoveTree.isTerminal positionHashQualifiedMoveTree)) . System.IO.hPutStrLn System.IO.stderr $ Text.ShowColouredPrefix.showsPrefixInfo "failed to find any suitable archived move."
 
 					let
 						searchResult	= Control.Monad.Reader.runReader (
@@ -175,7 +186,7 @@ readMove positionHashQualifiedMoveTree randomGen startUTCTime playState	= let
 						 ) searchOptions
 
 					case Search.Search.getQuantifiedGames searchResult of
-						quantifiedGame : _	-> putStrLn . Text.Show.showsInfoPrefix . showString "Try " $ if verbosity == maxBound
+						quantifiedGame : _	-> putStrLn . Text.ShowColouredPrefix.showsPrefixInfo . showString "Try " $ if verbosity == maxBound
 							then Notation.MoveNotation.showsNotationFloatToNDecimals moveNotation nDecimalDigits searchResult ""
 							else Data.Maybe.maybe (
 								Control.Exception.throw $ Data.Exception.mkNullDatum "BishBosh.UI.Raw.readMove.onCommand:\tzero turns have been made."
@@ -184,7 +195,7 @@ readMove positionHashQualifiedMoveTree randomGen startUTCTime playState	= let
 							) . Model.Game.maybeLastTurn $ Evaluation.QuantifiedGame.getGame quantifiedGame
 						_		-> Control.Exception.throwIO . Data.Exception.mkRequestFailure . showString "BishBosh.UI.Raw.readMove.onCommand:\tunexpectedly failed to find any moves; " $ shows game "."	-- CAVEAT: the game should have terminated.
 			 ) (
-				\(qualifiedMove, names) -> putStrLn . Text.Show.showsInfoPrefix . showString "Try \"" . Notation.MoveNotation.showsNotation moveNotation qualifiedMove . showString "\" from:" $ ContextualNotation.QualifiedMoveForest.showsNames maybeMaximumPGNNames names ""
+				\(qualifiedMove, names) -> putStrLn . Text.ShowColouredPrefix.showsPrefixInfo . showString "Try \"" . Notation.MoveNotation.showsNotation moveNotation qualifiedMove . showString "\" from:" $ ContextualNotation.QualifiedMoveForest.showsNames maybeMaximumPGNNames names ""
 			 ) $ ContextualNotation.PositionHashQualifiedMoveTree.maybeRandomlySelectOnymousQualifiedMove randomGen (
 				Input.StandardOpeningOptions.getMatchSwitches $ Input.SearchOptions.getStandardOpeningOptions searchOptions
 			 ) game positionHashQualifiedMoveTree
@@ -192,49 +203,56 @@ readMove positionHashQualifiedMoveTree randomGen startUTCTime playState	= let
 			return {-to IO-monad-} playState	-- N.B.: though one could merely call "eventLoop", a new random-generator is desirable in case an alternative hint is requested.
 		onCommand (UI.Command.Print printObject)	= do
 			case printObject of
-				UI.PrintObject.Board		-> putStrLn $ show2D game
 				UI.PrintObject.Configuration	-> putStrLn $ Property.ShowFloat.showsFloatToN nDecimalDigits options "."
-				UI.PrintObject.EPD		-> putStrLn $ Property.ExtendedPositionDescription.showEPD game
-				UI.PrintObject.FEN		-> putStrLn $ Property.ForsythEdwards.showFEN game
-				UI.PrintObject.Game		-> print game
 				UI.PrintObject.Help		-> putStrLn . showString "Enter either a move in " . shows moveNotation $ showString "-notation, or:\n" UI.Command.usageMessage
-				UI.PrintObject.Moves		-> putStrLn . showString (
-					showString Component.Move.tag "s"
-				 ) . Text.ShowList.showsAssociation $ Text.ShowList.showsFormattedList' (
-					Notation.MoveNotation.showsNotation moveNotation
-				 ) (
-					Model.Game.listTurnsChronologically game
-				 ) "."
-				UI.PrintObject.PGN		-> ContextualNotation.PGN.showsGame game >>= putStrLn . ($ "")
 
 			eventLoop
 		onCommand UI.Command.Quit	= do
-			Control.Monad.when (verbosity == maxBound) . System.IO.hPutStrLn System.IO.stderr $ Text.Show.showsInfoPrefix "quitting on request."
+			Control.Monad.when (verbosity == maxBound) . System.IO.hPutStrLn System.IO.stderr $ Text.ShowColouredPrefix.showsPrefixInfo "quitting on request."
 
 			return {-to IO-monad-} playState { State.PlayState.getMaybeApplicationTerminationReason = Just State.ApplicationTerminationReason.byRequest }
+		onCommand (UI.Command.Report reportObject)	= do
+			($ game) $ case reportObject of
+				UI.ReportObject.AvailableMoves	-> putStrLn . ($ ".") . Text.ShowList.showsFormattedList (
+					showChar '|'
+				 ) (
+					Notation.MoveNotation.showsNotation moveNotation
+				 ) . Model.Game.findQualifiedMovesAvailableToNextPlayer
+				UI.ReportObject.Board			-> putStrLn . show2D
+				UI.ReportObject.EPD			-> putStrLn . Property.ExtendedPositionDescription.showEPD
+				UI.ReportObject.FEN			-> putStrLn . Property.ForsythEdwards.showFEN
+				UI.ReportObject.Game			-> print
+				UI.ReportObject.MaxPositionInstances	-> print . State.InstancesByPosition.findMaximumInstances . Model.Game.getInstancesByPosition
+				UI.ReportObject.Moves			-> putStrLn . showString (
+					showString Component.Move.tag "s"
+				 ) . Text.ShowList.showsAssociation . ($ ".") . Text.ShowList.showsFormattedList' (
+					Notation.MoveNotation.showsNotation moveNotation
+				 ) . Model.Game.listTurnsChronologically
+				UI.ReportObject.PGN			-> putStrLn . ($ ".") <=< ContextualNotation.PGN.showsGame
+				UI.ReportObject.ReversiblePlyCount	-> print . State.InstancesByPosition.countConsecutiveRepeatablePlies . Model.Game.getInstancesByPosition
+
+			eventLoop
 		onCommand UI.Command.Resign	= do
-			Control.Monad.when (verbosity == maxBound) . System.IO.hPutStrLn System.IO.stderr $ Text.Show.showsInfoPrefix "resigning."
+			Control.Monad.when (verbosity == maxBound) . System.IO.hPutStrLn System.IO.stderr $ Text.ShowColouredPrefix.showsPrefixInfo "resigning."
 
 			return {-to IO-monad-} $ State.PlayState.resign playState
 		onCommand UI.Command.Restart	= do
-			Control.Monad.when (verbosity == maxBound) . System.IO.hPutStrLn System.IO.stderr $ Text.Show.showsInfoPrefix "restarting game."
-
-			let game''	= Data.Default.def
+			Control.Monad.when (verbosity == maxBound) . System.IO.hPutStrLn System.IO.stderr $ Text.ShowColouredPrefix.showsPrefixInfo "restarting game."
 
 			Data.Maybe.maybe (
 				return {-to IO-monad-} ()
 			 ) (
 				\(filePath, _) -> Control.Exception.catch (
 					do
-						System.IO.withFile filePath System.IO.WriteMode (`System.IO.hPrint` game'')
+						System.IO.withFile filePath System.IO.WriteMode (`System.IO.hPrint` (Data.Default.def :: Model.Game.Game T.X T.Y))
 
-						Control.Monad.when (verbosity == maxBound) . System.IO.hPutStrLn System.IO.stderr . Text.Show.showsInfoPrefix . showString "the game-state has been saved in " $ shows filePath "."
-				) $ \e -> System.IO.hPutStrLn System.IO.stderr . Text.Show.showsErrorPrefix $ show (e :: Control.Exception.SomeException)
+						Control.Monad.when (verbosity == maxBound) . System.IO.hPutStrLn System.IO.stderr . Text.ShowColouredPrefix.showsPrefixInfo . showString "the initial game-state has been saved in " $ shows filePath "."
+				) $ \e -> System.IO.hPutStrLn System.IO.stderr . Text.ShowColouredPrefix.showsPrefixError $ show (e :: Control.Exception.SomeException)
 			 ) $ Input.IOOptions.getMaybePersistence ioOptions
 
-			return {-to IO-monad-} $ State.PlayState.reconstructPositionHashQuantifiedGameTree game'' playState
+			return {-to IO-monad-} $ State.PlayState.resetPositionHashQuantifiedGameTree playState
 		onCommand (UI.Command.RollBack maybeNPlies)	= let
-			rollBack :: Component.Move.NMoves -> IO (State.PlayState.PlayState column criterionValue criterionWeight pieceSquareValue positionHash rankValue row weightedMean x y)
+			rollBack :: Component.Move.NPlies -> IO (State.PlayState.PlayState column criterionValue criterionWeight pieceSquareValue positionHash rankValue row weightedMean x y)
 			rollBack nPlies
 				| (game', _) : _ <- drop (pred nPlies) $ Model.Game.rollBack game	= do
 					Control.Monad.when (verbosity == maxBound) . putStrLn $ show2D game'
@@ -245,29 +263,22 @@ readMove positionHashQualifiedMoveTree randomGen startUTCTime playState	= let
 			let
 				nPlies	= succ $ Data.Map.size searchDepthByLogicalColour	-- In fully manual play, rollback one ply, in semi-manual play rollback two plies.
 			in do
-				Control.Monad.when (verbosity == maxBound) . System.IO.hPutStrLn System.IO.stderr . Text.Show.showsInfoPrefix . showString "rolling-back " $ shows nPlies " plies."
+				Control.Monad.when (verbosity == maxBound) . System.IO.hPutStrLn System.IO.stderr . Text.ShowColouredPrefix.showsPrefixInfo . showString "rolling-back " $ shows nPlies " plies."
 
 				rollBack nPlies
-		 ) (
-			\nPlies -> if nPlies <= 0
-				then do
-					System.IO.hPutStrLn System.IO.stderr $ Text.Show.showsErrorPrefix "the number of plies to rollback, must exceed zero."
-
-					eventLoop
-				else rollBack nPlies
-		 ) maybeNPlies
+		 ) rollBack maybeNPlies
 		onCommand UI.Command.Save	= do
 			Data.Maybe.maybe (
-				return {-to IO-monad-} $ Text.Show.showsErrorPrefix "the file-path at which to save the game, hasn't been defined."
+				return {-to IO-monad-} $ Text.ShowColouredPrefix.showsPrefixError "the file-path at which to save the game, hasn't been defined."
 			 ) (
 				\(filePath, automatic) -> if automatic
-					then return {-to IO-monad-} $ Text.Show.showsWarningPrefix "the state of the game is, in accordance with configuration, saved automatically."
+					then return {-to IO-monad-} $ Text.ShowColouredPrefix.showsPrefixWarning "the state of the game is, in accordance with configuration, saved automatically."
 					else Control.Exception.catch (
 						do
 							System.IO.withFile filePath System.IO.WriteMode (`System.IO.hPutStrLn` show game)
 
-							return {-to IO-monad-} . Text.Show.showsInfoPrefix . showString "the game-state has been saved in " $ shows filePath "."
-					 ) $ \e -> return {-to IO-monad-} . Text.Show.showsErrorPrefix $ show (e :: Control.Exception.SomeException)
+							return {-to IO-monad-} . Text.ShowColouredPrefix.showsPrefixInfo . showString "the game-state has been saved in " $ shows filePath "."
+					 ) $ \e -> return {-to IO-monad-} . Text.ShowColouredPrefix.showsPrefixError $ show (e :: Control.Exception.SomeException)
 			 ) (
 				Input.IOOptions.getMaybePersistence ioOptions
 			 ) >>= System.IO.hPutStrLn System.IO.stderr
@@ -275,36 +286,36 @@ readMove positionHashQualifiedMoveTree randomGen startUTCTime playState	= let
 			eventLoop
 		onCommand (UI.Command.Set setObject)
 			| fullyManual	= do
-				System.IO.hPutStrLn System.IO.stderr . Text.Show.showsWarningPrefix $ shows UI.Command.setTag " requires an automated opponent."
+				System.IO.hPutStrLn System.IO.stderr . Text.ShowColouredPrefix.showsPrefixWarning $ shows UI.Command.setTag " requires an automated opponent."
 
 				return {-to IO-monad-} playState
-			| otherwise					= Control.Exception.catchJust (
+			| otherwise	= Control.Exception.catchJust (
 				\e -> if Data.Exception.isBadData e
 					then Just $ show e
 					else Nothing
 			) (
 				do
-					Control.Monad.when (verbosity == maxBound) . System.IO.hPutStrLn System.IO.stderr . Text.Show.showsInfoPrefix . showString "setting " $ shows setObject "."
+					Control.Monad.when (verbosity == maxBound) . System.IO.hPutStrLn System.IO.stderr . Text.ShowColouredPrefix.showsPrefixInfo . showString "setting " $ shows setObject "."
 
 					readMove positionHashQualifiedMoveTree randomGen startUTCTime playState {
 						State.PlayState.getOptions	= Control.DeepSeq.force $ case setObject of
 							UI.SetObject.SearchDepth searchDepth	-> options {
 								Input.Options.getSearchOptions	= Input.SearchOptions.setSearchDepth searchDepth $ Input.Options.getSearchOptions options
 							}
-					}
+					} -- Recurse.
 			) (
 				\s -> do
-					Control.Monad.unless (verbosity == minBound) . System.IO.hPutStrLn System.IO.stderr $ Text.Show.showsErrorPrefix s
+					Control.Monad.unless (verbosity == minBound) . System.IO.hPutStrLn System.IO.stderr $ Text.ShowColouredPrefix.showsPrefixError s
 
 					eventLoop
 			)
 		onCommand UI.Command.Swap
 			| fullyManual	= do
-				Control.Monad.when (verbosity >= Data.Default.def) . System.IO.hPutStrLn System.IO.stderr . Text.Show.showsWarningPrefix . showString " there aren't any " $ shows Input.SearchOptions.searchDepthTag " to swap."
+				Control.Monad.when (verbosity >= Data.Default.def) . System.IO.hPutStrLn System.IO.stderr . Text.ShowColouredPrefix.showsPrefixWarning . showString " there aren't any " $ shows Input.SearchOptions.searchDepthTag " to swap."
 
 				eventLoop
-			| otherwise					= do
-				Control.Monad.when (verbosity == maxBound) . System.IO.hPutStrLn System.IO.stderr . Text.Show.showsInfoPrefix . showString "swapping " $ shows Input.SearchOptions.searchDepthTag "."
+			| otherwise	= do
+				Control.Monad.when (verbosity == maxBound) . System.IO.hPutStrLn System.IO.stderr . Text.ShowColouredPrefix.showsPrefixInfo . showString "swapping " $ shows Input.SearchOptions.searchDepthTag "."
 
 				return {-to IO-monad-} playState { State.PlayState.getOptions = Input.Options.swapSearchDepth options }
 
@@ -313,7 +324,7 @@ readMove positionHashQualifiedMoveTree randomGen startUTCTime playState	= let
 			"?"	-> onCommand $ UI.Command.Print UI.PrintObject.Help
 			':' : s	-> either (
 				\errorMessage -> do
-					System.IO.hPutStrLn System.IO.stderr . Text.Show.showsErrorPrefix $ showString errorMessage "."
+					System.IO.hPutStrLn System.IO.stderr . Text.ShowColouredPrefix.showsPrefixError $ showString errorMessage "."
 
 					eventLoop
 			 ) (
@@ -329,9 +340,9 @@ readMove positionHashQualifiedMoveTree randomGen startUTCTime playState	= let
 			 in case Notation.MoveNotation.readsQualifiedMove moveNotation s of
 				[(eitherQualifiedMove, "")]
 					| Just errorMessage <- Model.Game.validateEitherQualifiedMove eitherQualifiedMove game	-> do
-						System.IO.hPutStrLn System.IO.stderr . Text.Show.showsErrorPrefix . shows s . showString " is illegal; " $ shows errorMessage "."
+						System.IO.hPutStrLn System.IO.stderr . Text.ShowColouredPrefix.showsPrefixError . shows s . showString " is illegal; " $ shows errorMessage "."
 
-						Control.Monad.unless (null corrections) . System.IO.hPutStrLn System.IO.stderr . Text.Show.showsInfoPrefix . showString "did you mean " $ shows corrections " ?"
+						Control.Monad.unless (null corrections) . System.IO.hPutStrLn System.IO.stderr . Text.ShowColouredPrefix.showsPrefixInfo . showString "did you mean " $ shows corrections " ?"
 
 						eventLoop	-- Recurse.
 					| otherwise	-> do
@@ -342,7 +353,7 @@ readMove positionHashQualifiedMoveTree randomGen startUTCTime playState	= let
 							playState'	= State.PlayState.updateWithManualMove game' playState
 
 						Control.Monad.when (verbosity == maxBound) $ do
-							System.IO.hPutStrLn System.IO.stderr . Text.Show.showsInfoPrefix . showString Component.Move.tag . Text.ShowList.showsAssociation . shows (
+							System.IO.hPutStrLn System.IO.stderr . Text.ShowColouredPrefix.showsPrefixInfo . showString Component.Move.tag . Text.ShowList.showsAssociation . shows (
 								Notation.MoveNotation.showNotation moveNotation . Data.Maybe.fromMaybe (
 									Control.Exception.throw $ Data.Exception.mkResultUndefined "BishBosh.UI.Raw.readMove.eventLoop:\tModel.Game.maybeLastTurn failed."
 								) $ Model.Game.maybeLastTurn game'
@@ -350,7 +361,7 @@ readMove positionHashQualifiedMoveTree randomGen startUTCTime playState	= let
 
 							case ContextualNotation.PositionHashQualifiedMoveTree.findNextOnymousQualifiedMovesForPosition game' positionHashQualifiedMoveTree of
 								[]			-> return {-to IO-monad-} ()
-								onymousQualifiedMoves	-> System.IO.hPutStrLn System.IO.stderr . Text.Show.showsInfoPrefix . showString "matches archived game(s):" $ ContextualNotation.QualifiedMoveForest.showsNames maybeMaximumPGNNames (
+								onymousQualifiedMoves	-> System.IO.hPutStrLn System.IO.stderr . Text.ShowColouredPrefix.showsPrefixInfo . showString "matches archived game(s):" $ ContextualNotation.QualifiedMoveForest.showsNames maybeMaximumPGNNames (
 									concatMap (
 										map fst {-Name-} . snd {-[OnymousResult]-}
 									) onymousQualifiedMoves
@@ -358,18 +369,18 @@ readMove positionHashQualifiedMoveTree randomGen startUTCTime playState	= let
 
 						return {-to IO-monad-} playState'	-- It's now the other player's move.
 				[(_, remainder)]		-> do
-					System.IO.hPutStrLn System.IO.stderr . Text.Show.showsErrorPrefix . showString "the specified " . showString Component.Move.tag . showString " was correctly formatted, but was followed by unexpected text" . Text.ShowList.showsAssociation $ shows remainder "."
+					System.IO.hPutStrLn System.IO.stderr . Text.ShowColouredPrefix.showsPrefixError . showString "the specified " . showString Component.Move.tag . showString " was correctly formatted, but was followed by unexpected text" . Text.ShowList.showsAssociation $ shows remainder "."
 
 					eventLoop	-- Recurse.
 				_ {-no parse-}			-> do
 					Control.Monad.unless (null s) $ do
-						System.IO.hPutStrLn System.IO.stderr . Text.Show.showsErrorPrefix . shows s . showString " /~ " $ Notation.MoveNotation.showsMoveSyntax moveNotation "."	-- CAVEAT: this error also results from source == destination.
+						System.IO.hPutStrLn System.IO.stderr . Text.ShowColouredPrefix.showsPrefixError . shows s . showString " /~ " $ Notation.MoveNotation.showsMoveSyntax moveNotation "."	-- CAVEAT: this error also results from source == destination.
 
-						Control.Monad.unless (null corrections) . System.IO.hPutStrLn System.IO.stderr . Text.Show.showsInfoPrefix . showString "did you mean " $ shows corrections " ?"
+						Control.Monad.unless (null corrections) . System.IO.hPutStrLn System.IO.stderr . Text.ShowColouredPrefix.showsPrefixInfo . showString "did you mean " $ shows corrections " ?"
 
 					eventLoop	-- Recurse.
 	 in do
-		putStrLn . showString "Enter either a move in " . shows moveNotation . showString "-notation, or '?' for " $ showString UI.PrintObject.helpTag ":"
+		Control.Monad.unless (verbosity == minBound) . putStrLn . showString "Enter either a move in " . shows moveNotation . showString "-notation, or '?' for " $ showString UI.PrintObject.helpTag ":"
 
 		eventLoop
  ) `either` (
@@ -378,37 +389,43 @@ readMove positionHashQualifiedMoveTree randomGen startUTCTime playState	= let
 
 -- | Plays the game.
 takeTurns :: forall column criterionValue criterionWeight pieceSquareValue positionHash randomGen rankValue row weightedMean x y. (
-	Control.DeepSeq.NFData	column,
-	Control.DeepSeq.NFData	criterionWeight,
-	Control.DeepSeq.NFData	pieceSquareValue,
-	Control.DeepSeq.NFData	rankValue,
-	Control.DeepSeq.NFData	row,
-	Control.DeepSeq.NFData	weightedMean,
-	Control.DeepSeq.NFData	x,
-	Control.DeepSeq.NFData	y,
-	Data.Array.IArray.Ix	x,
-	Data.Bits.Bits		positionHash,
-	Fractional		criterionValue,
-	Fractional		pieceSquareValue,
-	Fractional		rankValue,
-	Fractional		weightedMean,
-	Integral		column,
-	Integral		x,
-	Integral		y,
-	Ord			positionHash,
-	Read			x,
-	Read			y,
-	Real			criterionValue,
-	Real			criterionWeight,
-	Real			pieceSquareValue,
-	Real			rankValue,
-	Real			weightedMean,
-	Show			column,
-	Show			pieceSquareValue,
-	Show			row,
-	Show			x,
-	Show			y,
-	System.Random.RandomGen	randomGen
+	Control.DeepSeq.NFData					column,
+#ifdef USE_PARALLEL
+	Control.DeepSeq.NFData					criterionValue,
+#endif
+	Control.DeepSeq.NFData					criterionWeight,
+	Control.DeepSeq.NFData					pieceSquareValue,
+	Control.DeepSeq.NFData					rankValue,
+	Control.DeepSeq.NFData					row,
+	Control.DeepSeq.NFData					weightedMean,
+	Control.DeepSeq.NFData					x,
+	Control.DeepSeq.NFData					y,
+	Data.Array.IArray.Ix					x,
+#ifdef USE_UNBOXED_ARRAYS
+	Data.Array.Unboxed.IArray Data.Array.Unboxed.UArray	pieceSquareValue,	-- Requires 'FlexibleContexts'. The unboxed representation of the array-element must be defined (& therefore must be of fixed size).
+#endif
+	Data.Bits.Bits						positionHash,
+	Fractional						criterionValue,
+	Fractional						pieceSquareValue,
+	Fractional						rankValue,
+	Fractional						weightedMean,
+	Integral						column,
+	Integral						x,
+	Integral						y,
+	Ord							positionHash,
+	Read							x,
+	Read							y,
+	Real							criterionValue,
+	Real							criterionWeight,
+	Real							pieceSquareValue,
+	Real							rankValue,
+	Real							weightedMean,
+	Show							column,
+	Show							pieceSquareValue,
+	Show							row,
+	Show							x,
+	Show							y,
+	System.Random.RandomGen					randomGen
  )
 	=> ContextualNotation.PositionHashQualifiedMoveTree.PositionHashQualifiedMoveTree x y positionHash
 	-> randomGen
@@ -430,7 +447,7 @@ takeTurns :: forall column criterionValue criterionWeight pieceSquareValue posit
 takeTurns positionHashQualifiedMoveTree randomGen playState	= let
 	options	= State.PlayState.getOptions playState
 
-	(ioOptions, searchOptions)	= Input.Options.getIOOptions &&& Input.Options.getSearchOptions $ options
+	(searchOptions, ioOptions)	= Input.Options.getSearchOptions &&& Input.Options.getIOOptions $ options
 
 	uiOptions	= Input.IOOptions.getUIOptions ioOptions
 
@@ -449,27 +466,32 @@ takeTurns positionHashQualifiedMoveTree randomGen playState	= let
 				Notation.MoveNotation.getOrigin moveNotation
 			 ) . State.Board.getMaybePieceByCoordinates . Model.Game.getBoard
 
-			slave :: Maybe (Concurrent.Pondering.Pondering (Component.Move.Move x y)) -> Maybe Component.Move.NMoves -> [randomGen] -> State.PlayState.PlayState column criterionValue criterionWeight pieceSquareValue positionHash rankValue row weightedMean x y -> IO (State.PlayState.PlayState column criterionValue criterionWeight pieceSquareValue positionHash rankValue row weightedMean x y)
+			slave
+				:: Maybe (Concurrent.Pondering.Pondering (Component.Move.Move x y))
+				-> Maybe Component.Move.NPlies
+				-> [randomGen]
+				-> State.PlayState.PlayState column criterionValue criterionWeight pieceSquareValue positionHash rankValue row weightedMean x y
+				-> IO (State.PlayState.PlayState column criterionValue criterionWeight pieceSquareValue positionHash rankValue row weightedMean x y)
 			slave maybePondering maybeMaximumPlies ~(randomGen' : randomGens) playState'	= let
-				(game', searchOptions')		= State.PlayState.getGame &&& Input.Options.getSearchOptions . State.PlayState.getOptions $ playState'
+				(game', searchOptions')		= State.PlayState.getGame &&& Input.Options.getSearchOptions . State.PlayState.getOptions $ playState'	-- Deconstruct.
 			 in Data.Maybe.maybe (
 				do
 					startUTCTime	<- Data.Time.Clock.getCurrentTime
 
 					Data.Maybe.maybe (
 						do
-							playState''	<- readMove positionHashQualifiedMoveTree randomGen' startUTCTime playState'
+							playState''	<- readMove positionHashQualifiedMoveTree randomGen' startUTCTime playState'	-- Block reading a command-sequence terminating in a move from a manual player.
 
-							(,) playState'' `fmap` if playState' `State.PlayState.hasMorePlies` playState''
-								then {-rolled-back-} do
-									Data.Maybe.maybe (
-										return {-to IO-monad-} ()
-									 ) (
-										\Concurrent.Pondering.MkPondering { Concurrent.Pondering.getThreadId = threadId } -> Concurrent.Pondering.abort mVar threadId >>= Control.Monad.when (verbosity == maxBound) . System.IO.hPutStrLn System.IO.stderr . Text.ShowList.showsInfoPrefix . showString "pondering invalidated by roll-back => "
-									 ) maybePondering
+							(,) playState'' `fmap` (
+								if playState' `State.PlayState.hasMorePlies` playState''
+									then {-rolled-back-} Data.Maybe.maybe (
+										return {-to IO-monad-} Nothing
+									) $ \pondering -> do
+										Concurrent.Pondering.abort mVar pondering >>= Control.Monad.when (verbosity == maxBound) . System.IO.hPutStrLn System.IO.stderr . Text.ShowPrefix.showsPrefixInfo . showString "pondering invalidated by roll-back => "
 
-									return {-to IO-monad-} Nothing
-								else return {-to IO-monad-} maybePondering
+										return {-to IO-monad-} Nothing	-- Pondering has been terminated.
+									else return {-to IO-monad-}
+							 ) maybePondering
 					 ) (
 						\searchDepth' -> Data.Maybe.maybe (
 							do
@@ -477,53 +499,54 @@ takeTurns positionHashQualifiedMoveTree randomGen playState	= let
 									verbosity > Data.Default.def && not (
 										ContextualNotation.PositionHashQualifiedMoveTree.isTerminal positionHashQualifiedMoveTree
 									)
-								 ) . System.IO.hPutStrLn System.IO.stderr $ Text.Show.showsInfoPrefix "failed to find any suitable archived move."
+								 ) . System.IO.hPutStrLn System.IO.stderr $ Text.ShowColouredPrefix.showsPrefixInfo "failed to find any suitable archived move."
 
 								let
 									search ss	= Control.Monad.Reader.runReader (Search.Search.search searchDepth' ss) searchOptions'
 									searchResult	= search $ State.PlayState.getSearchState playState'
 
 								Data.Maybe.maybe (
-									return {-to IO-monad-} searchResult
+									return {-to IO-monad-} searchResult	-- Pondering hasn't been configured, so the search must be evaluated.
 								 ) (
-									\Concurrent.Pondering.MkPondering {
-										Concurrent.Pondering.getPremise		= movePremise,
-										Concurrent.Pondering.getThreadId	= threadId
-									} -> if Data.Maybe.maybe False ((== movePremise) . Component.QualifiedMove.getMove . Component.Turn.getQualifiedMove) $ Model.Game.maybeLastTurn game'
+									\pondering -> if Data.Maybe.maybe False (
+										(== Concurrent.Pondering.getPremise pondering) . Component.QualifiedMove.getMove . Component.Turn.getQualifiedMove
+									) $ Model.Game.maybeLastTurn game'	-- Confirm whether the pondering initiated at the start of the opponent's turn, was founded on the move they eventually made.
 										then do
-											Control.Monad.when (verbosity == maxBound) . System.IO.hPutStrLn System.IO.stderr . Text.ShowList.showsInfoPrefix . showString "move-premise validated => waiting on " $ shows threadId "."
+											Control.Monad.when (verbosity == maxBound) . System.IO.hPutStrLn System.IO.stderr $ Text.ShowPrefix.showsPrefixInfo "move-premise validated => waiting."
 
-											Control.Concurrent.takeMVar mVar
+											Control.Concurrent.takeMVar mVar	-- Blocking read, while the pondering terminates.
 										else do
-											Concurrent.Pondering.abort mVar threadId >>= Control.Monad.when (verbosity == maxBound) . System.IO.hPutStrLn System.IO.stderr . Text.ShowList.showsInfoPrefix . showString "pondering invalidated by incorrect move-premise => "
+											Concurrent.Pondering.abort mVar pondering >>= Control.Monad.when (verbosity == maxBound) . System.IO.hPutStrLn System.IO.stderr . Text.ShowPrefix.showsPrefixInfo . showString "pondering invalidated by incorrect move-premise => "
 
-											return {-to IO-monad-} searchResult
+											return {-to IO-monad-} searchResult	-- Pondering wasn't well-founded, so the search must be evaluated.
 								 ) maybePondering >>= (
 									\searchResult' -> let
 										searchState'	= Search.Search.getSearchState searchResult'
 									in case Search.Search.getQuantifiedGames searchResult' of
-										quantifiedGame : continuation	-> let
+										quantifiedGame : continuation {-optimal move-sequence-}	-> let
 											bestTurn	= Evaluation.QuantifiedGame.getLastTurn quantifiedGame
+											showsMove	= Notation.MoveNotation.showsNotation moveNotation bestTurn
 										 in do
 											elapsedTime	<- bestTurn `seq` Data.Time.measureElapsedTime startUTCTime
 
-											System.IO.hPutStrLn System.IO.stderr . Text.Show.showsInfoPrefix . (
-												if verbosity == maxBound
-													then Property.ShowFloat.showsFloatToN nDecimalDigits (
-														Control.Monad.Reader.runReader (
-															Evaluation.Fitness.evaluateFitness Nothing game'
-														) $ Input.Options.getEvaluationOptions options	:: Attribute.WeightedMeanAndCriterionValues.WeightedMeanAndCriterionValues weightedMean criterionValue
-													) . Search.Search.showsSeparator	-- Prepend the fitness of the original game prior to the result.
-													else id
-											 ) $ (
-												if verbosity > Data.Default.def
-													then Notation.MoveNotation.showsNotationFloatToNDecimals moveNotation nDecimalDigits searchResult' . showString " in " . Data.Time.showsTimeAsSeconds nDecimalDigits elapsedTime
-													else Notation.MoveNotation.showsNotation moveNotation bestTurn
-											 ) "."
+											if verbosity == minBound
+												then putStrLn $ showsMove ""	-- CAVEAT: potentially machine-interpreted.
+												else do
+													System.IO.hPutStrLn System.IO.stderr . Text.ShowColouredPrefix.showsPrefixInfo . (
+														if verbosity == maxBound
+															then Property.ShowFloat.showsFloatToN nDecimalDigits (
+																Control.Monad.Reader.runReader (
+																	Evaluation.Fitness.evaluateFitness Nothing game'
+																) $ Input.Options.getEvaluationOptions options	:: Attribute.WeightedMeanAndCriterionValues.WeightedMeanAndCriterionValues weightedMean criterionValue
+															) . Search.Search.showsSeparator	-- Prepend the fitness of the original game prior to the new result.
+															else id
+													 ) $ (
+														if verbosity > Data.Default.def
+															then Notation.MoveNotation.showsNotationFloatToNDecimals moveNotation nDecimalDigits searchResult' . showString " in " . Data.Time.showsTimeAsSeconds nDecimalDigits elapsedTime
+															else showsMove
+													 ) "."
 
-											let selectedGame	= Evaluation.QuantifiedGame.getGame quantifiedGame
-
-											Control.Monad.unless (verbosity == minBound) . putStrLn $ show2D selectedGame
+													putStrLn . show2D $ Evaluation.QuantifiedGame.getGame quantifiedGame
 
 											(,) (
 												State.PlayState.updateWithAutomaticMove (
@@ -531,15 +554,11 @@ takeTurns positionHashQualifiedMoveTree randomGen playState	= let
 												) searchState' playState'
 											 ) `fmap` if Input.SearchOptions.getUsePondering searchOptions
 												then case continuation of
-													quantifiedGame' : _	-> let
-														turnPremise	= Evaluation.QuantifiedGame.getLastTurn quantifiedGame'
-													 in fmap Just . (
+													quantifiedGame' {-1st move after ours in optimal move-sequence-} : _	-> fmap Just . (
 														\positionHashQuantifiedGameTree'' -> Concurrent.Pondering.ponder (
-															Control.Monad.when (verbosity == maxBound) . System.IO.hPutStrLn System.IO.stderr . Text.ShowList.showsInfoPrefix
+															Control.Monad.when (verbosity == maxBound) . System.IO.hPutStrLn System.IO.stderr . Text.ShowPrefix.showsPrefixInfo
 														) (
-															Component.QualifiedMove.getMove $ Component.Turn.getQualifiedMove turnPremise
-														) (
-															showString "move-premise" . Text.ShowList.showsAssociation $ Notation.MoveNotation.showsNotation moveNotation turnPremise "."
+															showString "move-premise" . Text.ShowList.showsAssociation . ($ ".") . Notation.MoveNotation.showsNotation moveNotation &&& Component.QualifiedMove.getMove . Component.Turn.getQualifiedMove $ Evaluation.QuantifiedGame.getLastTurn quantifiedGame'
 														) (
 															search searchState' { Search.SearchState.getPositionHashQuantifiedGameTree = positionHashQuantifiedGameTree'' }
 														) mVar
@@ -550,7 +569,7 @@ takeTurns positionHashQualifiedMoveTree randomGen playState	= let
 													 ) $ Search.SearchState.getPositionHashQuantifiedGameTree searchState'
 													_		-> return {-to IO-monad-} Nothing
 												else return {-to IO-monad-} Nothing
-										_	-> Control.Exception.throwIO . Data.Exception.mkRequestFailure . showString "BishBosh.UI.Raw.takeTurns.slave:\tunexpectedly failed to find any moves; " $ shows game' "."	-- A gameTerminationReason should have been defined.
+										_	-> Control.Exception.throwIO . Data.Exception.mkRequestFailure . showString "BishBosh.UI.Raw.takeTurns.slave:\tunexpectedly failed to find any future moves; " $ shows game' "."	-- A gameTerminationReason should have been defined.
 								 )
 						 ) (
 							\(qualifiedMove, names) -> do
@@ -559,15 +578,16 @@ takeTurns positionHashQualifiedMoveTree randomGen playState	= let
 								Data.Maybe.maybe (
 									return {-to IO-monad-} ()
 								 ) (
-									\Concurrent.Pondering.MkPondering { Concurrent.Pondering.getThreadId = threadId } -> Concurrent.Pondering.abort mVar threadId >>= Control.Monad.when (verbosity == maxBound) . System.IO.hPutStrLn System.IO.stderr . Text.ShowList.showsInfoPrefix . showString "pondering pre-empted by standard-opening match => "
+									Concurrent.Pondering.abort mVar >=> Control.Monad.when (verbosity == maxBound) . System.IO.hPutStrLn System.IO.stderr . Text.ShowPrefix.showsPrefixInfo . showString "pondering pre-empted by standard-opening match => "
 								 ) maybePondering
 
 								let selectedGame	= Model.Game.applyQualifiedMove qualifiedMove game'
 
 								if verbosity == minBound
-									then System.IO.hPutStrLn System.IO.stderr . Text.Show.showsInfoPrefix $ Notation.MoveNotation.showsNotation moveNotation qualifiedMove "."
+									then putStrLn $ Notation.MoveNotation.showsNotation moveNotation qualifiedMove ""	-- CAVEAT: potentially machine-interpreted.
+
 									else do
-										Control.Monad.when (verbosity > Data.Default.def) . System.IO.hPutStrLn System.IO.stderr . Text.Show.showsInfoPrefix . showString "selected " . Notation.MoveNotation.showsNotation moveNotation qualifiedMove . showString " from:" . ContextualNotation.QualifiedMoveForest.showsNames (
+										Control.Monad.when (verbosity > Data.Default.def) . System.IO.hPutStrLn System.IO.stderr . Text.ShowColouredPrefix.showsPrefixInfo . showString "selected " . Notation.MoveNotation.showsNotation moveNotation qualifiedMove . showString " from:" . ContextualNotation.QualifiedMoveForest.showsNames (
 											Input.IOOptions.getMaybeMaximumPGNNames ioOptions
 										 ) names . showString "\n\tin " $ Data.Time.showsTimeAsSeconds nDecimalDigits elapsedTime "."
 
@@ -576,9 +596,9 @@ takeTurns positionHashQualifiedMoveTree randomGen playState	= let
 								return {-to IO-monad-} (State.PlayState.updateWithManualMove selectedGame playState', Nothing)	-- N.B.: one could ponder, but would have to construct a game-tree, & the chance of a subsequent standard-opening move is high.
 						 ) $ ContextualNotation.PositionHashQualifiedMoveTree.maybeRandomlySelectOnymousQualifiedMove randomGen' (
 							Input.StandardOpeningOptions.getMatchSwitches $ Input.SearchOptions.getStandardOpeningOptions searchOptions
-						 ) game' positionHashQualifiedMoveTree
+						 ) game' positionHashQualifiedMoveTree	-- Determine whether the automated player's move can be decided by a search of recorded games or we must decide ourself.
 					 ) (
-						Model.Game.getNextLogicalColour game' `Data.Map.lookup` Input.SearchOptions.getSearchDepthByLogicalColour searchOptions'
+						Model.Game.getNextLogicalColour game' `Data.Map.lookup` Input.SearchOptions.getSearchDepthByLogicalColour searchOptions'	-- Determinate whether the next player is manual.
 					 ) >>= (
 						\(playState'', maybePondering') -> do
 							Data.Maybe.maybe (
@@ -590,8 +610,8 @@ takeTurns positionHashQualifiedMoveTree randomGen playState	= let
 									do
 										System.IO.withFile filePath System.IO.WriteMode (`System.IO.hPrint` game'')
 
-										Control.Monad.when (verbosity == maxBound) . System.IO.hPutStrLn System.IO.stderr . Text.Show.showsInfoPrefix . showString "the game-state has been saved in " $ shows filePath "."
-								) $ \e -> System.IO.hPutStrLn System.IO.stderr . Text.Show.showsErrorPrefix $ show (e :: Control.Exception.SomeException)
+										Control.Monad.when (verbosity == maxBound) . System.IO.hPutStrLn System.IO.stderr . Text.ShowColouredPrefix.showsPrefixInfo . showString "the game-state has been saved in " $ shows filePath "."
+								) $ \e -> System.IO.hPutStrLn System.IO.stderr . Text.ShowColouredPrefix.showsPrefixError $ show (e :: Control.Exception.SomeException)
 							 ) $ Input.IOOptions.getMaybePersistence ioOptions
 
 							if State.PlayState.hasApplicationTerminationBeenRequested playState''
@@ -604,7 +624,9 @@ takeTurns positionHashQualifiedMoveTree randomGen playState	= let
 				\gameTerminationReason -> if State.PlayState.hasApplicationTerminationBeenRequested playState'
 					then return {-to IO-monad-} playState'
 					else {-don't terminate the application-} do
-						putStrLn . Text.Show.showsInfoPrefix $ shows gameTerminationReason "."
+						putStrLn $ if verbosity == minBound
+							then show gameTerminationReason	-- CAVEAT: potentially machine-interpreted.
+							else Text.ShowColouredPrefix.showsPrefixInfo $ shows gameTerminationReason "."
 
 						let
 							criterionValueStatistics	= State.PlayState.calculateCriterionValueStatistics playState'
@@ -614,7 +636,7 @@ takeTurns positionHashQualifiedMoveTree randomGen playState	= let
 
 						Control.Monad.when (
 							verbosity == maxBound && not (null criterionValueStatistics)
-						 ) . System.IO.hPutStrLn System.IO.stderr . Text.Show.showsInfoPrefix . showString "mean & standard-deviation of criterion-values" . Text.ShowList.showsAssociation $ Text.ShowList.showsFormattedList' (
+						 ) . System.IO.hPutStrLn System.IO.stderr . Text.ShowColouredPrefix.showsPrefixInfo . showString "mean & standard-deviation of criterion-values" . Text.ShowList.showsAssociation $ Text.ShowList.showsFormattedList' (
 							\(mean, standardDeviation) -> showChar '(' . showsFloat mean . Text.ShowList.showsSeparator . showsFloat standardDeviation . showChar ')'
 						 ) criterionValueStatistics "."
 

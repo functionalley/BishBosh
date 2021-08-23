@@ -1,4 +1,4 @@
-{-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE CPP, FlexibleContexts, ScopedTypeVariables #-}
 {-
 	Copyright (C) 2018 Dr. Alistair Ward
 
@@ -60,7 +60,7 @@ import qualified	BishBosh.Cartesian.Coordinates				as Cartesian.Coordinates
 import qualified	BishBosh.Cartesian.Ordinate				as Cartesian.Ordinate
 import qualified	BishBosh.Component.Move					as Component.Move
 import qualified	BishBosh.Component.Piece				as Component.Piece
-import qualified	BishBosh.Component.PieceSquareArray			as Component.PieceSquareArray
+import qualified	BishBosh.Component.PieceSquareByCoordinatesByRank	as Component.PieceSquareByCoordinatesByRank
 import qualified	BishBosh.Component.QualifiedMove			as Component.QualifiedMove
 import qualified	BishBosh.Component.Turn					as Component.Turn
 import qualified	BishBosh.Input.CriteriaWeights				as Input.CriteriaWeights
@@ -74,8 +74,16 @@ import qualified	BishBosh.Types						as T
 import qualified	Control.Monad.Reader
 import qualified	Data.Array.IArray
 import qualified	Data.List
-import qualified	Data.Map
+import qualified	Data.Map.Strict
 import qualified	Data.Maybe
+
+#ifdef USE_PARALLEL
+import qualified	Control.DeepSeq
+#endif
+
+#ifdef USE_UNBOXED_ARRAYS
+import qualified	Data.Array.Unboxed
+#endif
 
 -- | Construct a criterion-value from a piece-square value.
 mkPieceSquareCriterionValue :: (
@@ -89,21 +97,24 @@ mkPieceSquareCriterionValue	= Attribute.CriterionValue.mkCriterionValue . (
 
 -- | Measures the piece-square value from the perspective of the last player to move.
 measurePieceSquareValue :: (
-	Enum	x,
-	Enum	y,
-	Num	pieceSquareValue,
-	Ord	x,
-	Ord	y
+#ifdef USE_UNBOXED_ARRAYS
+	Data.Array.Unboxed.IArray Data.Array.Unboxed.UArray	pieceSquareValue,	-- Requires 'FlexibleContexts'. The unboxed representation of the array-element must be defined (& therefore must be of fixed size).
+#endif
+	Enum							x,
+	Enum							y,
+	Num							pieceSquareValue,
+	Ord							x,
+	Ord							y
  )
-	=> Component.PieceSquareArray.PieceSquareArray x y pieceSquareValue
+	=> Component.PieceSquareByCoordinatesByRank.PieceSquareByCoordinatesByRank x y pieceSquareValue
 	-> Model.Game.Game x y
 	-> pieceSquareValue
-{-# SPECIALISE measurePieceSquareValue :: Component.PieceSquareArray.PieceSquareArray T.X T.Y T.PieceSquareValue -> Model.Game.Game T.X T.Y -> T.PieceSquareValue #-}
-measurePieceSquareValue pieceSquareArray game
+{-# SPECIALISE measurePieceSquareValue :: Component.PieceSquareByCoordinatesByRank.PieceSquareByCoordinatesByRank T.X T.Y T.PieceSquareValue -> Model.Game.Game T.X T.Y -> T.PieceSquareValue #-}
+measurePieceSquareValue pieceSquareByCoordinatesByRank game
 	| Attribute.LogicalColour.isBlack $ Model.Game.getNextLogicalColour game	= difference
 	| otherwise									= negate difference	-- Represent the piece-square value from Black's perspective.
 	where
-		[blacksPieceSquareValue, whitesPieceSquareValue]	= Data.Array.IArray.elems . State.Board.sumPieceSquareValueByLogicalColour pieceSquareArray $ Model.Game.getBoard game
+		[blacksPieceSquareValue, whitesPieceSquareValue]	= Data.Array.IArray.elems . State.Board.sumPieceSquareValueByLogicalColour pieceSquareByCoordinatesByRank $ Model.Game.getBoard game
 		difference						= whitesPieceSquareValue - blacksPieceSquareValue
 
 {- |
@@ -114,30 +125,34 @@ measurePieceSquareValue pieceSquareArray game
 	* N.B.: because of diminishing returns, the piece-square value for everything but quiet moves is calculated from scratch.
 -}
 measurePieceSquareValueIncrementally :: (
-	Enum	x,
-	Enum	y,
-	Num	pieceSquareValue,
-	Ord	x,
-	Ord	y
+#ifdef USE_UNBOXED_ARRAYS
+	Data.Array.Unboxed.IArray Data.Array.Unboxed.UArray	pieceSquareValue,	-- Requires 'FlexibleContexts'. The unboxed representation of the array-element must be defined (& therefore must be of fixed size).
+#endif
+	Enum							x,
+	Enum							y,
+	Num							pieceSquareValue,
+	Ord							x,
+	Ord							y
  )
 	=> pieceSquareValue	-- ^ The value before the last move was applied, & therefore also from the perspective of the previous player.
-	-> Component.PieceSquareArray.PieceSquareArray x y pieceSquareValue
+	-> Component.PieceSquareByCoordinatesByRank.PieceSquareByCoordinatesByRank x y pieceSquareValue
 	-> Model.Game.Game x y
 	-> pieceSquareValue
-{-# SPECIALISE measurePieceSquareValueIncrementally :: T.PieceSquareValue -> Component.PieceSquareArray.PieceSquareArray T.X T.Y T.PieceSquareValue -> Model.Game.Game T.X T.Y -> T.PieceSquareValue #-}
-measurePieceSquareValueIncrementally previousPieceSquareValue pieceSquareArray game
+{-# SPECIALISE measurePieceSquareValueIncrementally :: T.PieceSquareValue -> Component.PieceSquareByCoordinatesByRank.PieceSquareByCoordinatesByRank T.X T.Y T.PieceSquareValue -> Model.Game.Game T.X T.Y -> T.PieceSquareValue #-}
+measurePieceSquareValueIncrementally previousPieceSquareValue pieceSquareByCoordinatesByRank game
 	| Attribute.MoveType.isQuiet $ Component.QualifiedMove.getMoveType qualifiedMove	= let
-		findPieceSquareValue coordinates	= Component.PieceSquareArray.findPieceSquareValue (
+		findPieceSquareValues coordinatesList	= Component.PieceSquareByCoordinatesByRank.findPieceSquareValues (
 			State.Board.getNPieces $ Model.Game.getBoard game	-- N.B.: no capture occurred.
 		 ) (
 			Property.Opposable.getOpposite $ Model.Game.getNextLogicalColour game	-- The last player to move.
 		 ) (
 			Component.Turn.getRank turn	-- N.B.: no promotion occurred.
-		 ) coordinates pieceSquareArray
-	in uncurry (-) (
-		findPieceSquareValue . Component.Move.getDestination &&& findPieceSquareValue . Component.Move.getSource $ Component.QualifiedMove.getMove qualifiedMove
-	) - previousPieceSquareValue {-from the previous player's perspective-}
-	| otherwise					= measurePieceSquareValue pieceSquareArray game	-- N.B.: though Castling, En-passant, & promotion, can also be calculated, the returns don't justify the effort.
+		 ) coordinatesList pieceSquareByCoordinatesByRank
+
+		(destination, source)					= Component.Move.getDestination &&& Component.Move.getSource $ Component.QualifiedMove.getMove qualifiedMove
+		[destinationPieceSquareValue, sourcePiecesquareValue]	= findPieceSquareValues [destination, source]
+	in (destinationPieceSquareValue - sourcePiecesquareValue) - previousPieceSquareValue {-from the previous player's perspective-}
+	| otherwise					= measurePieceSquareValue pieceSquareByCoordinatesByRank game	-- N.B.: though Castling, En-passant, & promotion, can also be calculated, the returns don't justify the effort.
 	where
 		Just turn	= Model.Game.maybeLastTurn game
 		qualifiedMove	= Component.Turn.getQualifiedMove turn
@@ -210,12 +225,6 @@ measureValueOfCastlingPotential :: (
 measureValueOfCastlingPotential game	= Attribute.CriterionValue.mkCriterionValue . uncurry (-) . (
 	castlingPotential . Property.Opposable.getOpposite {-recent mover-} &&& castlingPotential
  ) $ Model.Game.getNextLogicalColour game where
-{-
-	castlingPotential logicalColour	= case State.CastleableRooksByLogicalColour.locateForLogicalColour logicalColour $ Model.Game.getCastleableRooksByLogicalColour game of
-		Just []		-> 0		-- Can't castle.
-		Just [_]	-> recip 2	-- Have one Rook which can castle.
-		_		-> 1		-- Either have castled or can with either Rook.
--}
 	castlingPotential	= Data.Maybe.maybe 1 {-have Castled-} (
 		(/ 2) . fromIntegral . length
 	 ) . (
@@ -235,12 +244,12 @@ measureValueOfDoubledPawns :: (
  ) => Model.Game.Game x y -> Attribute.CriterionValue.CriterionValue criterionValue
 -- {-# SPECIALISE measureValueOfDoubledPawns :: Model.Game.Game T.X T.Y -> Attribute.CriterionValue.CriterionValue T.CriterionValue #-}
 measureValueOfDoubledPawns game	= Attribute.CriterionValue.mkCriterionValue . (
-	/ 6	-- Normalise to [-1 .. 1]; the optimal scenario is eight files each containing one Pawn; the worst scenario is two files each containing four Pawns, all but one per file of which are counted as doubled.
+	/ 6	-- Normalise to [-1 .. 1]; the optimal scenario is all files containing one Pawn; the worst scenario is two files each containing four Pawns, all but one per file of which are counted as doubled.
  ) . fromIntegral . uncurry (-) . (
 	countDoubledPawns &&& countDoubledPawns . Property.Opposable.getOpposite {-recent mover-}
  ) $ Model.Game.getNextLogicalColour game where
 	countDoubledPawns logicalColour	= uncurry (-) . (
-		Data.Map.foldl' (+) 0 &&& Data.Map.size {-one Pawn can't be considered to be doubled, so substract one Pawn per column-}
+		Data.Map.Strict.foldl' (+) 0 &&& Data.Map.Strict.size {-one Pawn can't be considered to be doubled, so substract one Pawn per column-}
 	 ) $ State.Board.getNPawnsByFileByLogicalColour (Model.Game.getBoard game) ! logicalColour
 
 {- |
@@ -261,11 +270,11 @@ measureValueOfIsolatedPawns game	= Attribute.CriterionValue.mkCriterionValue . (
 	countIsolatedPawns &&& countIsolatedPawns . Property.Opposable.getOpposite {-recent mover-}
  ) $ Model.Game.getNextLogicalColour game where
 	countIsolatedPawns :: Attribute.LogicalColour.LogicalColour -> Component.Piece.NPieces
-	countIsolatedPawns logicalColour	= Data.Map.foldlWithKey' (
+	countIsolatedPawns logicalColour	= Data.Map.Strict.foldlWithKey' (
 		\acc x nPawns -> (
-			if (`Data.Map.notMember` nPawnsByFile) `all` Cartesian.Abscissa.getAdjacents x
-				then (+ nPawns)	-- All the Pawns on this file are isolated & thus lack the protection that may be offered by adjacent Pawns.
-				else id		-- This file has at least one neighbouring Pawn which can (if at a suitable rank) be used to protect any of those in this file.
+			if (`Data.Map.Strict.member` nPawnsByFile) `any` Cartesian.Abscissa.getAdjacents x
+				then id		-- This file has at least one neighbouring Pawn which can (if at a suitable rank) be used to protect any of those in this file.
+				else (+ nPawns)	-- All the Pawns on this file are isolated & thus lack the protection that may be offered by adjacent Pawns.
 		) acc
 	 ) 0 nPawnsByFile where
 		nPawnsByFile	= State.Board.getNPawnsByFileByLogicalColour (Model.Game.getBoard game) ! logicalColour
@@ -284,20 +293,23 @@ measureValueOfPassedPawns game	= Attribute.CriterionValue.mkCriterionValue . (
  ) $ Model.Game.getNextLogicalColour game where
 	valuePassedPawns :: Attribute.LogicalColour.LogicalColour -> criterionValue
 	valuePassedPawns logicalColour	= Data.List.foldl' (
-		\acc -> (acc +) . recip {-low distance has high value-} . fromIntegral . abs . (
-			+ fromEnum (
+		\acc -> (acc +) . recip {-value increases exponentially as distance to promotion decreases-} . fromIntegral . abs . subtract (
+			fromEnum (
 				Cartesian.Ordinate.lastRank logicalColour	:: y
 			)
-		) . negate . fromEnum . Cartesian.Coordinates.getY	-- Measure the distance to promotion.
+		) . fromEnum . Cartesian.Coordinates.getY	-- Measure the distance to promotion.
 	 ) 0 $ State.Board.getPassedPawnCoordinatesByLogicalColour (Model.Game.getBoard game) ! logicalColour
 
 {- |
 	* The constant maximum total number of times the /piece/s of either side, can be defended.
 
 	* This calculation assumes that:
-		every /piece/ can defend another in every /direction/ it can attack,
-		which is impossible, since in a 2-D board one can always draw a perimeter around the /piece/s, beyond which there're zero /pieces/ to defend, so the outer /piece/s can never be fully utilised;
-		all @Pawn@s have been /queened/, which is unrealistic.
+
+	** every /piece/ can defend another in every /direction/ it can attack,
+	which is impossible, since in a 2-D board one can always draw a perimeter around the /piece/s,
+	beyond which there're zero /pieces/ to defend, so the outer /piece/s can never be fully utilised;
+
+	** all @Pawn@s have been /queened/, which is unrealistic.
 -}
 maximumDefended :: Component.Piece.NPieces
 maximumDefended	= (9 {-Queens-} + 1 {-King-} + 2 {-Knights-} + 2 {-Rooks + Bishops-}) * Attribute.Direction.nDistinctDirections
@@ -306,10 +318,11 @@ maximumDefended	= (9 {-Queens-} + 1 {-King-} + 2 {-Knights-} + 2 {-Rooks + Bisho
 	* Measure the normalised arithmetic difference between the number of /piece/s defending each of one's own, on either side.
 
 	* N.B. the /rank-value/ of the defended /piece/ is irrelevant because; it's the unknown value of the attacker that counts, since that's what the defender has the opportunity to counter-strike.
+	CAVEAT: the validity of this depends on the duration of the battle.
 
 	* N.B. defence of the @King@ is irrelevent, because it can't be taken.
 
-	* N.B. it's the total number of defenders which is relevant, rather than whether each piece has some protection, since it's the individual battles but the war which counts.
+	* N.B. it's the total number of defenders which is relevant, rather than whether each piece has some protection, since it's not the individual battles but the war which counts.
 
 	* CAVEAT: this criterion competes with /mobility/, since each defended /piece/ blocks the path of the defender.
 -}
@@ -332,27 +345,31 @@ measureValueOfDefence game	= Attribute.CriterionValue.mkCriterionValue . (
 
 	* Also returns the break-down of those /criterion-value/s with a non-zero /criterion-weight/.
 
-	* Besides measuring the difference between the total /rank-value/ on either side,
-	other criteria are selected to represent known attributes of a good position,
-	but which won't be pay dividends any time soon, & therefore won't be represented by 'measureValueOfMaterial' within the limited future predicted.
+	* Besides measuring the difference between the total /rank-value/ on either side, other criteria are selected to represent known attributes of a good position.
 
-	* Many possible criteria aren't measured because they're, either currently or soon, represented by those that are, typically 'measureValueOfMaterial'.
+	* Many possible criteria aren't measured because they're, either currently or imminently, represented by those that are, typically by 'measureValueOfMaterial'.
 -}
 evaluateFitness :: (
-	Enum		x,
-	Enum		y,
-	Fractional	criterionValue,
-	Fractional	pieceSquareValue,
-	Fractional	rankValue,
-	Fractional	weightedMean,
-	Ord		x,
-	Ord		y,
-	Real		criterionValue,
-	Real		criterionWeight,
-	Real		pieceSquareValue,
-	Real		rankValue,
-	Show		x,
-	Show		y
+#ifdef USE_PARALLEL
+	Control.DeepSeq.NFData					criterionValue,
+#endif
+#ifdef USE_UNBOXED_ARRAYS
+	Data.Array.Unboxed.IArray Data.Array.Unboxed.UArray	pieceSquareValue,	-- Requires 'FlexibleContexts'. The unboxed representation of the array-element must be defined (& therefore must be of fixed size).
+#endif
+	Enum							x,
+	Enum							y,
+	Fractional						criterionValue,
+	Fractional						pieceSquareValue,
+	Fractional						rankValue,
+	Fractional						weightedMean,
+	Ord							x,
+	Ord							y,
+	Real							criterionValue,
+	Real							criterionWeight,
+	Real							pieceSquareValue,
+	Real							rankValue,
+	Show							x,
+	Show							y
  )
 	=> Maybe pieceSquareValue	-- ^ An optional value for the specified game.
 	-> Model.Game.Game x y
@@ -367,9 +384,9 @@ evaluateFitness maybePieceSquareValue game
 			else 0	-- A draw.
 	) []
 	| otherwise	= do
-		criteriaWeights		<- Control.Monad.Reader.asks Input.EvaluationOptions.getCriteriaWeights
-		rankValues		<- Control.Monad.Reader.asks Input.EvaluationOptions.getRankValues
-		maybePieceSquareArray	<- Control.Monad.Reader.asks Input.EvaluationOptions.getMaybePieceSquareArray
+		criteriaWeights				<- Control.Monad.Reader.asks Input.EvaluationOptions.getCriteriaWeights
+		rankValues				<- Control.Monad.Reader.asks Input.EvaluationOptions.getRankValues
+		maybePieceSquareByCoordinatesByRank	<- Control.Monad.Reader.asks Input.EvaluationOptions.getMaybePieceSquareByCoordinatesByRank
 
 		return {-to Reader-monad-} $ Input.CriteriaWeights.calculateWeightedMean criteriaWeights (
 			measureValueOfMaterial rankValues game
@@ -378,7 +395,7 @@ evaluateFitness maybePieceSquareValue game
 		 ) (
 			Data.Maybe.maybe Attribute.CriterionValue.zero mkPieceSquareCriterionValue $ maybePieceSquareValue <|> fmap (
 				`measurePieceSquareValue` game
-			) maybePieceSquareArray
+			) maybePieceSquareByCoordinatesByRank
 		 ) (
 			measureValueOfCastlingPotential game
 		 ) (

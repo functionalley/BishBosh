@@ -28,6 +28,7 @@ module BishBosh.Test.HUnit.Attribute.LogicalColour(
 ) where
 
 import qualified	BishBosh.Attribute.LogicalColour	as Attribute.LogicalColour
+import qualified	BishBosh.Property.FixedMembership	as Property.FixedMembership
 import qualified	Data.List
 import qualified	Test.HUnit
 import			Test.HUnit((~?))
@@ -35,6 +36,6 @@ import			Test.HUnit((~?))
 -- | Check the sanity of the implementation, by validating a list of static test-cases.
 testCases :: Test.HUnit.Test
 testCases	= Test.HUnit.test [
-	Attribute.LogicalColour.range == Data.List.sort Attribute.LogicalColour.range ~? "BishBosh.Attribute.LogicalColour.range is misordered."
+	Property.FixedMembership.members == Data.List.sort Attribute.LogicalColour.range ~? "BishBosh.Attribute.LogicalColour.range is misordered."
  ]
 

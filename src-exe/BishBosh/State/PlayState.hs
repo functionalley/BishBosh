@@ -1,3 +1,4 @@
+{-# LANGUAGE CPP, FlexibleContexts #-}
 {-
 	Copyright (C) 2018 Dr. Alistair Ward
 
@@ -30,7 +31,8 @@ module BishBosh.State.PlayState(
 	PlayState(
 --		MkPlayState,
 --		getCriterionValues,
-		getMoveFrequency,
+--		getZobrist,
+--		getMoveFrequency,
 		getSearchState,
 		getOptions,
 		getMaybeApplicationTerminationReason
@@ -44,6 +46,7 @@ module BishBosh.State.PlayState(
 	getGame,
 -- ** Mutators
 	reconstructPositionHashQuantifiedGameTree,
+	resetPositionHashQuantifiedGameTree,
 --	setPositionHashQuantifiedGameTree,
 	updateWithAutomaticMove,
 	updateWithManualMove,
@@ -56,6 +59,7 @@ module BishBosh.State.PlayState(
 import			Control.Arrow((&&&))
 import qualified	BishBosh.Component.Zobrist				as Component.Zobrist
 import qualified	BishBosh.Data.Exception					as Data.Exception
+import qualified	BishBosh.Data.List
 import qualified	BishBosh.Evaluation.PositionHashQuantifiedGameTree	as Evaluation.PositionHashQuantifiedGameTree
 import qualified	BishBosh.Evaluation.QuantifiedGame			as Evaluation.QuantifiedGame
 import qualified	BishBosh.Input.IOOptions				as Input.IOOptions
@@ -71,39 +75,52 @@ import qualified	BishBosh.Types						as T
 import qualified	Control.Exception
 import qualified	Data.Array.IArray
 import qualified	Data.Bits
+import qualified	Data.Default
 import qualified	Data.List
-import qualified	Data.List.Extra
 import qualified	Data.Maybe
 import qualified	Data.Ord
 import qualified	Factory.Math.Statistics
-import qualified	ToolShed.Data.List
+
+#ifdef USE_PARALLEL
+import qualified	Control.DeepSeq
+#endif
+
+#ifdef USE_UNBOXED_ARRAYS
+import qualified	Data.Array.Unboxed
+#endif
 
 -- | The type threaded through the sequence of /game/s during play.
 data PlayState column criterionValue criterionWeight pieceSquareValue positionHash rankValue row weightedMean x y	= MkPlayState {
-	getCriterionValues			:: [[criterionValue]],	-- ^ The /criterion-value/s accumulated during the game.
-	getZobrist				:: Component.Zobrist.Zobrist x y positionHash,
-	getMoveFrequency			:: Model.GameTree.MoveFrequency x y,
+	getCriterionValues			:: [[criterionValue]],									-- ^ The /criterion-value/s accumulated during the game.
+	getZobrist				:: Component.Zobrist.Zobrist x y positionHash,						-- ^ The constant hash-codes used construct position-hashes.
+	getMoveFrequency			:: Model.GameTree.MoveFrequency x y,							-- ^ The constant frequency of moves extracted from file.
 	getSearchState				:: Search.SearchState.SearchState x y positionHash criterionValue weightedMean,
-	getOptions				:: Input.Options.Options column criterionWeight pieceSquareValue rankValue row x y,
-	getMaybeApplicationTerminationReason	:: Maybe State.ApplicationTerminationReason.ApplicationTerminationReason
+	getOptions				:: Input.Options.Options column criterionWeight pieceSquareValue rankValue row x y,	-- ^ The constant options by which the game is configured.
+	getMaybeApplicationTerminationReason	:: Maybe State.ApplicationTerminationReason.ApplicationTerminationReason		-- ^ Whether the game has terminated.
 }
 
 -- | Constructor.
 initialise :: (
-	Data.Array.IArray.Ix	x,
-	Data.Bits.Bits		positionHash,
-	Fractional		criterionValue,
-	Fractional		pieceSquareValue,
-	Fractional		rankValue,
-	Fractional		weightedMean,
-	Integral		x,
-	Integral		y,
-	Real			criterionValue,
-	Real			criterionWeight,
-	Real			pieceSquareValue,
-	Real			rankValue,
-	Show			x,
-	Show			y
+#ifdef USE_PARALLEL
+	Control.DeepSeq.NFData					criterionValue,
+#endif
+	Data.Array.IArray.Ix					x,
+#ifdef USE_UNBOXED_ARRAYS
+	Data.Array.Unboxed.IArray Data.Array.Unboxed.UArray	pieceSquareValue,	-- Requires 'FlexibleContexts'. The unboxed representation of the array-element must be defined (& therefore must be of fixed size).
+#endif
+	Data.Bits.Bits						positionHash,
+	Fractional						criterionValue,
+	Fractional						pieceSquareValue,
+	Fractional						rankValue,
+	Fractional						weightedMean,
+	Integral						x,
+	Integral						y,
+	Real							criterionValue,
+	Real							criterionWeight,
+	Real							pieceSquareValue,
+	Real							rankValue,
+	Show							x,
+	Show							y
  )
 	=> Input.Options.Options column criterionWeight pieceSquareValue rankValue row x y
 	-> Component.Zobrist.Zobrist x y positionHash
@@ -135,40 +152,71 @@ getGame MkPlayState { getSearchState = searchState }	= Evaluation.QuantifiedGame
 -- | The type of a function used to transform a 'PlayState'.
 type Transformation column criterionValue criterionWeight pieceSquareValue positionHash rankValue row weightedMean x y	= PlayState column criterionValue criterionWeight pieceSquareValue positionHash rankValue row weightedMean x y -> PlayState column criterionValue criterionWeight pieceSquareValue positionHash rankValue row weightedMean x y
 
--- | Reconstruct the /positionHashQuantifiedGameTree/ (in the /searchState/), with the apex set to the specified game.
-reconstructPositionHashQuantifiedGameTree :: (
-	Data.Array.IArray.Ix	x,
-	Data.Bits.Bits		positionHash,
-	Fractional		criterionValue,
-	Fractional		pieceSquareValue,
-	Fractional		rankValue,
-	Fractional		weightedMean,
-	Integral		x,
-	Integral		y,
-	Real			criterionValue,
-	Real			criterionWeight,
-	Real			pieceSquareValue,
-	Real			rankValue,
-	Show			x,
-	Show			y
- ) => Model.Game.Game x y -> Transformation column criterionValue criterionWeight pieceSquareValue positionHash rankValue row weightedMean x y
-reconstructPositionHashQuantifiedGameTree game playState@MkPlayState {
-	getZobrist		= zobrist,
-	getMoveFrequency	= moveFrequency,
-	getSearchState		= searchState,
-	getOptions		= options
-} = playState {
-	getSearchState	= searchState {
-		Search.SearchState.getPositionHashQuantifiedGameTree	= uncurry Evaluation.PositionHashQuantifiedGameTree.mkPositionHashQuantifiedGameTree (
-			Input.Options.getEvaluationOptions &&& Input.Options.getSearchOptions $ options
-		) zobrist moveFrequency game
-	}
-}
-
 -- | Mutator.
 setPositionHashQuantifiedGameTree :: Evaluation.PositionHashQuantifiedGameTree.PositionHashQuantifiedGameTree x y positionHash criterionValue weightedMean -> Transformation column criterionValue criterionWeight pieceSquareValue positionHash rankValue row weightedMean x y
 setPositionHashQuantifiedGameTree positionHashQuantifiedGameTree playState@MkPlayState { getSearchState = searchState }	= playState {
 	getSearchState	= searchState { Search.SearchState.getPositionHashQuantifiedGameTree = positionHashQuantifiedGameTree }
+}
+
+-- | Reconstruct the /positionHashQuantifiedGameTree/ (in the /searchState/), with the apex set to the specified game.
+reconstructPositionHashQuantifiedGameTree :: (
+#ifdef USE_PARALLEL
+	Control.DeepSeq.NFData					criterionValue,
+#endif
+	Data.Array.IArray.Ix					x,
+#ifdef USE_UNBOXED_ARRAYS
+	Data.Array.Unboxed.IArray Data.Array.Unboxed.UArray	pieceSquareValue,	-- Requires 'FlexibleContexts'. The unboxed representation of the array-element must be defined (& therefore must be of fixed size).
+#endif
+	Data.Bits.Bits						positionHash,
+	Fractional						criterionValue,
+	Fractional						pieceSquareValue,
+	Fractional						rankValue,
+	Fractional						weightedMean,
+	Integral						x,
+	Integral						y,
+	Real							criterionValue,
+	Real							criterionWeight,
+	Real							pieceSquareValue,
+	Real							rankValue,
+	Show							x,
+	Show							y
+ ) => Model.Game.Game x y -> Transformation column criterionValue criterionWeight pieceSquareValue positionHash rankValue row weightedMean x y
+reconstructPositionHashQuantifiedGameTree game playState@MkPlayState {
+	getZobrist		= zobrist,
+	getMoveFrequency	= moveFrequency,
+	getOptions		= options
+} = setPositionHashQuantifiedGameTree (
+	uncurry Evaluation.PositionHashQuantifiedGameTree.mkPositionHashQuantifiedGameTree (
+		Input.Options.getEvaluationOptions &&& Input.Options.getSearchOptions $ options
+	) zobrist moveFrequency game
+ ) playState
+
+-- | Reset to the initial state.
+resetPositionHashQuantifiedGameTree :: (
+#ifdef USE_PARALLEL
+	Control.DeepSeq.NFData					criterionValue,
+#endif
+	Data.Array.IArray.Ix					x,
+#ifdef USE_UNBOXED_ARRAYS
+	Data.Array.Unboxed.IArray Data.Array.Unboxed.UArray	pieceSquareValue,	-- Requires 'FlexibleContexts'. The unboxed representation of the array-element must be defined (& therefore must be of fixed size).
+#endif
+	Data.Bits.Bits						positionHash,
+	Fractional						criterionValue,
+	Fractional						pieceSquareValue,
+	Fractional						rankValue,
+	Fractional						weightedMean,
+	Integral						x,
+	Integral						y,
+	Real							criterionValue,
+	Real							criterionWeight,
+	Real							pieceSquareValue,
+	Real							rankValue,
+	Show							x,
+	Show							y
+ ) => Transformation column criterionValue criterionWeight pieceSquareValue positionHash rankValue row weightedMean x y
+resetPositionHashQuantifiedGameTree playState	= reconstructPositionHashQuantifiedGameTree Data.Default.def playState {
+	getCriterionValues			= [],
+	getMaybeApplicationTerminationReason	= Nothing
 }
 
 -- | Mutator.
@@ -230,15 +278,9 @@ suggestCorrections :: (
 	-> [String]	-- ^ Suggested corrections.
 suggestCorrections moveString playState@MkPlayState { getOptions = options }
 	| Model.Game.isTerminated game	= []
-	| otherwise			= case Data.List.Extra.groupSort . map (
-		(
-			(\d -> d :: Rational) . ToolShed.Data.List.measureJaroDistance . (,) moveString &&& id {-alternative move-string-}
-		) . Notation.MoveNotation.showNotation (
-			Input.UIOptions.getMoveNotation . Input.IOOptions.getUIOptions $ Input.Options.getIOOptions options
-		)
-	) $ Model.Game.findQualifiedMovesAvailableToNextPlayer game of
-		[]	-> []
-		l	-> snd {-move-strings-} $ last {-largest Jaro-distance is most similar-} l
+	| otherwise			= BishBosh.Data.List.findClosest moveString . map (
+		Notation.MoveNotation.showNotation . Input.UIOptions.getMoveNotation . Input.IOOptions.getUIOptions $ Input.Options.getIOOptions options
+	) $ Model.Game.findQualifiedMovesAvailableToNextPlayer game
 	where
 		game	= getGame playState
 

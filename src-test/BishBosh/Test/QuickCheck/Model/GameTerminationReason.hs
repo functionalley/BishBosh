@@ -28,19 +28,14 @@ module BishBosh.Test.QuickCheck.Model.GameTerminationReason(
 	results
 ) where
 
-import			BishBosh.Test.QuickCheck.Attribute.LogicalColour()
-import			BishBosh.Test.QuickCheck.Model.DrawReason()
 import			Control.Arrow((&&&))
 import qualified	BishBosh.Model.GameTerminationReason	as Model.GameTerminationReason
+import qualified	BishBosh.Property.FixedMembership	as Property.FixedMembership
 import qualified	BishBosh.Property.Opposable		as Property.Opposable
 import qualified	Test.QuickCheck
 
 instance Test.QuickCheck.Arbitrary Model.GameTerminationReason.GameTerminationReason where
-	arbitrary	= Test.QuickCheck.oneof [
-		fmap Model.GameTerminationReason.mkCheckMate Test.QuickCheck.arbitrary,
-		fmap Model.GameTerminationReason.mkResignation Test.QuickCheck.arbitrary,
-		fmap Model.GameTerminationReason.mkDraw Test.QuickCheck.arbitrary
-	 ]
+	arbitrary	= Test.QuickCheck.elements Property.FixedMembership.members
 
 -- | The constant test-results for this data-type.
 results :: IO [Test.QuickCheck.Result]

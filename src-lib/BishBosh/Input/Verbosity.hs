@@ -33,16 +33,17 @@ module BishBosh.Input.Verbosity(
 	range
 ) where
 
+import qualified	BishBosh.Property.FixedMembership	as Property.FixedMembership
 import qualified	Control.DeepSeq
 import qualified	Data.Default
-import qualified	Text.XML.HXT.Arrow.Pickle	as HXT
+import qualified	Text.XML.HXT.Arrow.Pickle		as HXT
 import qualified	Text.XML.HXT.Arrow.Pickle.Schema
 
 -- | Used to qualify XML.
 tag :: String
 tag	= "verbosity"
 
--- | Define the levels of program-output.
+-- | Define the sum-type of levels of program-output.
 data Verbosity
 	= Silent
 	| Normal
@@ -66,4 +67,7 @@ instance Control.DeepSeq.NFData Verbosity where
 -- | The constant complete range of values.
 range :: [Verbosity]
 range	= [minBound .. maxBound]
+
+instance Property.FixedMembership.FixedMembership Verbosity where
+	members	= range
 

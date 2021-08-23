@@ -25,9 +25,10 @@
 
 module BishBosh.Test.QuickCheck.Model.DrawReason() where
 
-import qualified	BishBosh.Model.DrawReason	as Model.DrawReason
+import qualified	BishBosh.Model.DrawReason		as Model.DrawReason
+import qualified	BishBosh.Property.FixedMembership	as Property.FixedMembership
 import qualified	Test.QuickCheck
 
 instance Test.QuickCheck.Arbitrary Model.DrawReason.DrawReason where
-	arbitrary	= Test.QuickCheck.elements Model.DrawReason.range
+	arbitrary	= Test.QuickCheck.elements Property.FixedMembership.members
 

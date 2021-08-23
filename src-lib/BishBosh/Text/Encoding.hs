@@ -25,16 +25,18 @@
 
 module BishBosh.Text.Encoding (
 -- * Constants
-	tag,
-	range
+	tag
+--	range
  ) where
 
+import qualified	BishBosh.Property.FixedMembership	as Property.FixedMembership
 import qualified	Data.Default
 import qualified	Data.List.Extra
-import qualified	Text.XML.HXT.Arrow.Pickle	as HXT
+import qualified	Text.XML.HXT.Arrow.Pickle		as HXT
 import qualified	Text.XML.HXT.Arrow.Pickle.Schema
 import qualified	System.IO
 
+-- | Used to label an XML-attribute.
 tag :: String
 tag	= "textEncoding"
 
@@ -72,3 +74,7 @@ range	= [
 	System.IO.utf16,
 	System.IO.utf32
  ]
+
+instance Property.FixedMembership.FixedMembership System.IO.TextEncoding where
+	members	= range
+

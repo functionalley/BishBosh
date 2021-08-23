@@ -25,7 +25,7 @@
 
 	* N.B.: the empty state of the type must be unique.
 
-	* cf. "Data.Default" or 'zero' for a numeric type.
+	* cf. 'Data.Default.def' or /zero/ for a numeric type.
 -}
 
 module BishBosh.Property.Empty(
@@ -33,10 +33,25 @@ module BishBosh.Property.Empty(
 	Empty(..)
 ) where
 
+import qualified	Data.IntMap
+import qualified	Data.Map
+
 -- | An interface which data which can support the concept of being empty, may implement.
 class Empty a where
 	empty	:: a	-- ^ Constant.
 
 instance (Empty a, Empty b) => Empty (a, b) where
 	empty	= (empty, empty)
+
+instance Empty (Maybe a) where
+	empty	= Nothing
+
+instance Empty [a] where
+	empty	= []
+
+instance Empty (Data.Map.Map i e) where
+	empty	= Data.Map.empty
+
+instance Empty (Data.IntMap.IntMap e) where
+	empty	= Data.IntMap.empty
 

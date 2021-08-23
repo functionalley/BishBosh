@@ -39,14 +39,14 @@ module BishBosh.Model.DrawReason(
 	insufficientMaterial,
 	staleMate,
 --	threeFoldRepetition,
-	fiveFoldRepetition,
-	range
+	fiveFoldRepetition
 ) where
 
-import qualified	BishBosh.Component.Move	as Component.Move
+import qualified	BishBosh.Component.Move			as Component.Move
+import qualified	BishBosh.Property.FixedMembership	as Property.FixedMembership
 import qualified	Control.DeepSeq
 
--- | The ways in which a game can be drawn.
+-- | The sum-type of ways in which a game can be drawn.
 data DrawReason
 	= ByAgreement		-- ^ Both players have agreed to a draw.
 	| FiftyMoveRule		-- ^ A draw can be claimed if fifty consecutive full /move/s have occured without any capture or any @Pawn@ being moved.
@@ -55,10 +55,13 @@ data DrawReason
 	| StaleMate		-- ^ The next player hasn't any legal moves, but isn't /in check/.
 	| ThreeFoldRepetition	-- ^ A draw can be claimed if the same /position/ has been reached on any three occasions.
 	| FiveFoldRepetition	-- ^ The same /position/ has been reached on five successive occasions.
-	deriving (Eq, Read, Show)
+	deriving (Eq, Ord, Read, Show)
 
 instance Control.DeepSeq.NFData DrawReason where
 	rnf _	= ()
+
+instance Property.FixedMembership.FixedMembership DrawReason where
+	members	= [ByAgreement, FiftyMoveRule, SeventyFiveMoveRule, InsufficientMaterial, StaleMate, ThreeFoldRepetition, FiveFoldRepetition]
 
 -- | Constant.
 byAgreement :: DrawReason
@@ -88,12 +91,8 @@ threeFoldRepetition	= ThreeFoldRepetition
 fiveFoldRepetition :: DrawReason
 fiveFoldRepetition	= FiveFoldRepetition
 
--- | The constant range of possible values.
-range :: [DrawReason]
-range	= [byAgreement, fiftyMoveRule, seventyFiveMoveRule, insufficientMaterial, staleMate, threeFoldRepetition, fiveFoldRepetition]
-
 -- | The number of consecutive plies required to trigger a draw by the seventy-five move rule.
-maximumConsecutiveRepeatablePlies :: Component.Move.NMoves
+maximumConsecutiveRepeatablePlies :: Component.Move.NPlies
 maximumConsecutiveRepeatablePlies	= Component.Move.nPliesPerMove * 75
 
 -- | The number of consecutive repeatable positions required for a draw by the five-fold repetition rule.

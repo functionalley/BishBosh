@@ -25,8 +25,9 @@
 
 module BishBosh.Test.QuickCheck.Input.Verbosity() where
 
-import qualified	BishBosh.Input.Verbosity	as Input.Verbosity
+import qualified	BishBosh.Input.Verbosity		as Input.Verbosity
+import qualified	BishBosh.Property.FixedMembership	as Property.FixedMembership
 import qualified	Test.QuickCheck
 
 instance Test.QuickCheck.Arbitrary Input.Verbosity.Verbosity where
-	arbitrary	= Test.QuickCheck.elements Input.Verbosity.range
+	arbitrary	= Test.QuickCheck.elements Property.FixedMembership.members

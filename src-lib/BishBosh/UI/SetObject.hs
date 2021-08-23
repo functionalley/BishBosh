@@ -34,11 +34,10 @@ module BishBosh.UI.SetObject (
 
 import qualified	BishBosh.Data.Exception		as Data.Exception
 import qualified	BishBosh.Input.SearchOptions	as Input.SearchOptions
+import qualified	BishBosh.Text.AutoComplete	as Text.AutoComplete
 import qualified	Control.Arrow
 import qualified	Control.DeepSeq
 import qualified	Control.Exception
-import qualified	Data.Char
-import qualified	Data.List
 import qualified	Data.List.Extra
 
 -- | The fields a user can mutate; currently there's only one.
@@ -63,13 +62,5 @@ mkSearchDepth searchDepth
 
 -- | Replace the first word of the specified string with the name of a command of which it is an unambiguous case-insensitive prefix.
 autoComplete :: ShowS
-autoComplete	= uncurry (++) . Control.Arrow.first (
-	\word -> case [
-		tag |
-			tag	<- [Input.SearchOptions.searchDepthTag],
-			Data.List.Extra.lower word `Data.List.isPrefixOf` Data.List.Extra.lower tag
-	] of
-		[tag]	-> tag
-		_	-> word
- ) . break Data.Char.isSpace . Data.List.Extra.trimStart
+autoComplete	= Text.AutoComplete.autoComplete [Input.SearchOptions.searchDepthTag]
 

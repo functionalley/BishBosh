@@ -31,9 +31,10 @@ module BishBosh.State.ApplicationTerminationReason(
 	maximumPlies
 ) where
 
+import qualified	BishBosh.Property.FixedMembership	as Property.FixedMembership
 import qualified	Control.DeepSeq
 
--- | Categorises the possible reasons for terminating the application.
+-- | The sum-type categorising the possible reasons for terminating the application.
 data ApplicationTerminationReason
 	= ByRequest	-- ^ The user requested exit.
 	| MaximumPlies	-- ^ The configured maximum number of /turn/s has been reached.
@@ -44,6 +45,9 @@ instance Show ApplicationTerminationReason where
 
 instance Control.DeepSeq.NFData ApplicationTerminationReason where
 	rnf _	= ()
+
+instance Property.FixedMembership.FixedMembership ApplicationTerminationReason where
+	members	= [ByRequest, MaximumPlies]
 
 -- | Constant.
 byRequest :: ApplicationTerminationReason

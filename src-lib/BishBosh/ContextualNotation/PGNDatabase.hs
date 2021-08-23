@@ -20,25 +20,40 @@
 {- |
  [@AUTHOR@]	Dr. Alistair Ward
 
- [@DESCRIPTION@]	Parses a PGN-database.
+ [@DESCRIPTION@]
+
+	* Parses an optionally compressed file containing games encoded in PGN.
+
+	* The parsed games can optionally be validated.
+
+	* Permits the games to be filtered & their number capped.
 -}
 
 module BishBosh.ContextualNotation.PGNDatabase(
 -- * Types
 -- ** Type-synonyms
 	PGNDatabase,
+--	PGNPredicate,
+	Decompressor,
+--	MaybeMaximumGames,
 -- * Functions
 --	parser,
 --	parse,
 	parseIO
  ) where
 
+import			Control.DeepSeq(($!!))
 import qualified	BishBosh.ContextualNotation.PGN			as ContextualNotation.PGN
 import qualified	BishBosh.ContextualNotation.StandardAlgebraic	as ContextualNotation.StandardAlgebraic
+import qualified	BishBosh.Data.Exception				as Data.Exception
 import qualified	BishBosh.Types					as T
-import qualified	Control.DeepSeq
+import qualified	Control.Exception
+import qualified	Control.Monad
+import qualified	Data.Maybe
+import qualified	System.Exit
 import qualified	System.FilePath
 import qualified	System.IO
+import qualified	System.Process
 
 #ifdef USE_POLYPARSE
 import qualified	BishBosh.Text.Poly				as Text.Poly
@@ -79,7 +94,13 @@ parser isStrictlySequential validateMoves identificationTags	= Parsec.manyTill p
 	where
 		parser'	= ContextualNotation.PGN.parser isStrictlySequential validateMoves identificationTags
 
--- | Reads a PGN-database from the specified string.
+-- | PGNPredicate used to filter the database.
+type PGNPredicate x y	= ContextualNotation.PGN.PGN x y -> Bool
+
+-- | The optional maximum number of games to read.
+type MaybeMaximumGames	= Maybe Int
+
+-- | Parses a PGN-database from the specified string.
 parse :: (
 	Enum	x,
 	Enum	y,
@@ -88,27 +109,34 @@ parse :: (
 	Show	x,
 	Show	y
  )
-	=> String	-- ^ The name of the specified database.
+	=> String		-- ^ The name of the specified database.
 	-> ContextualNotation.PGN.IsStrictlySequential
 	-> ContextualNotation.StandardAlgebraic.ValidateMoves
 	-> [ContextualNotation.PGN.Tag]
-	-> String	-- ^ The database-contents.
+	-> PGNPredicate x y	-- ^ Used to filter entries from the database.
+	-> MaybeMaximumGames	-- ^ Optional maximum number of games to read from the database (after they've been filtered).
+	-> String		-- ^ The database-contents.
 	-> Either String (PGNDatabase x y)
-{-# SPECIALISE parse :: String -> ContextualNotation.PGN.IsStrictlySequential -> ContextualNotation.StandardAlgebraic.ValidateMoves -> [ContextualNotation.PGN.Tag] -> String -> Either String (PGNDatabase T.X T.Y) #-}
+{-# SPECIALISE parse :: String -> ContextualNotation.PGN.IsStrictlySequential -> ContextualNotation.StandardAlgebraic.ValidateMoves -> [ContextualNotation.PGN.Tag] -> PGNPredicate T.X T.Y -> MaybeMaximumGames -> String -> Either String (PGNDatabase T.X T.Y) #-}
 #ifdef USE_POLYPARSE
 #if USE_POLYPARSE == 1
-parse _ isStrictlySequential validateMoves identificationTags		= Right	-- N.B.: the lazy parser throws an exception rather than returning 'Either', because otherwise it can't choose whether to construct with 'Left' or 'Right' until the input has been fully parsed.
+parse _ isStrictlySequential validateMoves identificationTags pgnPredicate maybeMaximumGames	= Right	-- N.B.: the lazy parser throws an exception rather than returning 'Either', because otherwise it can't choose whether to construct with 'Left' or 'Right' until the input has been fully parsed.
 #else /* Plain */
-parse name isStrictlySequential validateMoves identificationTags	= either (Left . showString "regarding " . shows name . showString ", ") Right
+parse name isStrictlySequential validateMoves identificationTags pgnPredicate maybeMaximumGames	= either (Left . showString "regarding " . shows name . showString ", ") Right
 #endif
 	. fst {-discard unparsed data-} . Poly.runParser parser'
 #else /* Parsec */
-parse name isStrictlySequential validateMoves identificationTags	= either (Left . showString "failed to parse; " . show) Right . Parsec.parse parser' name
+parse name isStrictlySequential validateMoves identificationTags pgnPredicate maybeMaximumGames	= either (Left . showString "failed to parse; " . show) Right . Parsec.parse parser' name
 #endif
 	where
-		parser'	= parser isStrictlySequential validateMoves identificationTags
+		parser'	= (
+			Data.Maybe.maybe id take maybeMaximumGames . filter pgnPredicate	-- CAVEAT: apply the filter before extracting the required number of games.
+		 ) `fmap` parser isStrictlySequential validateMoves identificationTags
 
--- | Reads a PGN-database from the specified file-path.
+-- | The name of an executable used to decompress (to stdout) the PGN-file.
+type Decompressor	= String
+
+-- | Reads a PGN-database from the (optionally compressed) file-path & passes it to the parser.
 parseIO :: (
 	Enum	x,
 	Enum	y,
@@ -117,17 +145,29 @@ parseIO :: (
 	Show	x,
 	Show	y
  )
-	=> System.FilePath.FilePath
+	=> System.FilePath.FilePath	-- ^ The PGN-file's location.
+	-> Maybe Decompressor		-- ^ An Optional executable by which to decompress the PGN-file.
 	-> ContextualNotation.PGN.IsStrictlySequential
 	-> ContextualNotation.StandardAlgebraic.ValidateMoves
 	-> System.IO.TextEncoding	-- ^ The conversion-scheme between byte-sequences & Unicode characters.
 	-> [ContextualNotation.PGN.Tag]
+	-> PGNPredicate x y		-- ^ Used to filter entries from the database.
+	-> MaybeMaximumGames		-- ^ Optional maximum number of games to read from the database (after they've been filtered).
 	-> IO (Either String (PGNDatabase x y))
-{-# SPECIALISE parseIO :: System.FilePath.FilePath -> ContextualNotation.PGN.IsStrictlySequential -> ContextualNotation.StandardAlgebraic.ValidateMoves -> System.IO.TextEncoding -> [ContextualNotation.PGN.Tag] -> IO (Either String (PGNDatabase T.X T.Y)) #-}
-parseIO filePath isStrictlySequential validateMoves textEncoding identificationTags	= System.IO.withFile filePath System.IO.ReadMode $ \fileHandle -> do
-	System.IO.hSetEncoding fileHandle textEncoding
+{-# SPECIALISE parseIO :: System.FilePath.FilePath -> Maybe Decompressor -> ContextualNotation.PGN.IsStrictlySequential -> ContextualNotation.StandardAlgebraic.ValidateMoves -> System.IO.TextEncoding -> [ContextualNotation.PGN.Tag] -> PGNPredicate T.X T.Y -> MaybeMaximumGames -> IO (Either String (PGNDatabase T.X T.Y)) #-}
+parseIO filePath maybeDecompressionCommand isStrictlySequential validateMoves textEncoding identificationTags pgnPredicate maybeMaximumGames	= parse filePath isStrictlySequential validateMoves identificationTags pgnPredicate maybeMaximumGames `fmap` Data.Maybe.maybe (
+	System.IO.withFile filePath System.IO.ReadMode $ \fileHandle -> do
+		System.IO.hSetEncoding fileHandle textEncoding
 
-	contents	<- System.IO.hGetContents fileHandle
+		contents	<- System.IO.hGetContents fileHandle
 
-	Control.DeepSeq.deepseq contents {-CAVEAT: evaluate before the file is closed-} . return $ parse filePath isStrictlySequential validateMoves identificationTags contents
+		return {-to IO-monad-} $!! contents	-- CAVEAT: evaluate the contents before the file is closed.
+ ) (
+	\decompressor	-> do
+		(exitCode, stdOut, stdErr)	<- System.Process.readProcessWithExitCode decompressor [filePath] [{-stdIn-}]
+
+		Control.Monad.unless (exitCode == System.Exit.ExitSuccess) . Control.Exception.throwIO . Data.Exception.mkRequestFailure $ showString "BishBosh.ContextualNotation.PGNDatabase.decompress:\t" stdErr
+
+		return {-to IO-monad-} stdOut
+ ) maybeDecompressionCommand
 

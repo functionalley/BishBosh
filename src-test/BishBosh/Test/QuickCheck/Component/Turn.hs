@@ -37,14 +37,14 @@ import			BishBosh.Test.QuickCheck.Attribute.MoveType()
 import			BishBosh.Test.QuickCheck.Component.Move()
 import			BishBosh.Test.QuickCheck.Component.Piece()
 import			Control.Arrow((&&&))
-import			Data.Array.IArray((!))
 import qualified	BishBosh.Attribute.MoveType			as Attribute.MoveType
 import qualified	BishBosh.Attribute.Rank				as Attribute.Rank
 import qualified	BishBosh.Attribute.RankValues			as Attribute.RankValues
-import qualified	BishBosh.Component.Move				as Component.Move
+import qualified	BishBosh.Component.CastlingMove			as Component.CastlingMove
 import qualified	BishBosh.Component.Piece			as Component.Piece
 import qualified	BishBosh.Component.QualifiedMove		as Component.QualifiedMove
 import qualified	BishBosh.Component.Turn				as Component.Turn
+import qualified	BishBosh.Property.FixedMembership		as Property.FixedMembership
 import qualified	BishBosh.Property.Reflectable			as Property.Reflectable
 import qualified	BishBosh.Test.QuickCheck.Attribute.RankValues	as Test.QuickCheck.Attribute.RankValues
 import qualified	BishBosh.Types					as T
@@ -53,7 +53,6 @@ import qualified	Data.List
 import qualified	Data.Maybe
 import qualified	Test.QuickCheck
 import qualified	ToolShed.Data.List
-import qualified	ToolShed.Data.Triple
 import qualified	ToolShed.Test.ReversibleIO
 
 -- | Defines a concrete type for testing.
@@ -65,14 +64,13 @@ instance (
 	Ord	x,
 	Ord	y
  ) => Test.QuickCheck.Arbitrary (Component.Turn.Turn x y) where
---	{-# SPECIALISE instance Test.QuickCheck.Arbitrary Turn #-}
 	arbitrary	= do
 		moveType	<- Test.QuickCheck.arbitrary
 		(move, piece)	<- case moveType of
 			Attribute.MoveType.Castle _	-> fmap (
-				ToolShed.Data.Triple.getSecond . Data.Maybe.fromJust . Data.List.find (
-					(== moveType) . ToolShed.Data.Triple.getFirst
-				) . (Component.Move.castlingMovesByLogicalColour !) &&& Component.Piece.mkKing
+				Component.CastlingMove.getKingsMove . Data.Maybe.fromJust . Data.List.find (
+					(== moveType) . Component.CastlingMove.getMoveType
+				) . Component.CastlingMove.getCastlingMoves &&& Component.Piece.mkKing
 			 ) Test.QuickCheck.arbitrary {-logicalColour-}
 			Attribute.MoveType.EnPassant	-> (,) <$> Test.QuickCheck.arbitrary {-piece. CAVEAT: very lax-} <*> fmap Component.Piece.mkPawn Test.QuickCheck.arbitrary {-logicalColour-}
 			_				-> Test.QuickCheck.arbitrary	-- CAVEAT: the move-vector isn't tailored to the rank of piece.
@@ -81,7 +79,7 @@ instance (
 
 -- | Distinct rank-values designed for a predictable sort-order.
 rankValues :: Test.QuickCheck.Attribute.RankValues.RankValues
-rankValues	= Attribute.RankValues.fromAssocs . zip Attribute.Rank.range $ map (/ 10) [1, 5, 3, 4, 9, 0]
+rankValues	= Attribute.RankValues.fromAssocs . zip Property.FixedMembership.members $ map (/ 10) [1, 5, 3, 4, 9, 0]
 
 -- | The constant test-results for this data-type.
 results :: IO [Test.QuickCheck.Result]

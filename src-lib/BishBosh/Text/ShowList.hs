@@ -23,13 +23,8 @@
 -}
 
 module BishBosh.Text.ShowList(
--- * Constants
-	showsInfoPrefix,
-	showsWarningPrefix,
-	showsErrorPrefix,
-	showsAssociation,
 -- * Functions
-	capitaliseInitial,
+	showsAssociation,
 	showsSeparator,
 	showsDelimitedList,
 	showsUnterminatedList,
@@ -40,29 +35,11 @@ module BishBosh.Text.ShowList(
 	splitOn
 ) where
 
-import qualified	Data.Char
 import qualified	Data.List
-
--- | Used to qualify output.
-showsInfoPrefix :: ShowS
-showsInfoPrefix		= showString "INFO:\t"
-
--- | Used to qualify output.
-showsWarningPrefix :: ShowS
-showsWarningPrefix	= showString "WARNING:\t"
-
--- | Used to qualify output.
-showsErrorPrefix :: ShowS
-showsErrorPrefix	= showString "ERROR:\t"
 
 -- | Used to separate an identifier & the it's value.
 showsAssociation :: ShowS
 showsAssociation	= showString " = "
-
--- | Capitalise the initial letter of the specified string.
-capitaliseInitial :: ShowS
-capitaliseInitial (c : cs)	= Data.Char.toUpper c : cs
-capitaliseInitial _		= []
 
 -- | Used to separate the items of a list.
 showsSeparator :: ShowS

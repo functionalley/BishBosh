@@ -21,19 +21,19 @@
 
  [@DESCRIPTION@]
 
-	* Describes a /direction/ in two parts; the sense of change in the /x/ coordinate & the sense of change in the /y/ coordinate.
+	* Describes a /direction/ in two parts; the sense of change in the /x/-coordinate & the sense of change in the /y/-coordinate.
 
 	* The IO-format uses a more concise & familiar format based on 8 points of the compass.
 
 	* CAVEAT: this separation of /direction/ into orthogonal components is driven by the typical use-case,
-	but requires that one guards against accidental construction of a degenerate 9th /direction/ which defines neither a change in the /x/ coordinate nor the /y/ coordinate.
+	but requires that one guards against accidental construction of a degenerate 9th /direction/ which defines a change in neither direction.
 -}
 
 module BishBosh.Attribute.Direction(
 -- * Types
 -- ** Type-synonyms
 	NDirections,
-	ByDirection,
+	ArrayByDirection,
 -- ** Data-types
 	Direction(
 --		MkDirection,
@@ -53,7 +53,7 @@ module BishBosh.Attribute.Direction(
 	nDistinctDirections,
 	parallels,
 	diagonals,
-	range,
+--	range,
 	opposites,
 -- * Functions
 --	reverseOrdering,
@@ -69,9 +69,11 @@ module BishBosh.Attribute.Direction(
 import			Control.Arrow((&&&))
 import qualified	BishBosh.Attribute.LogicalColour	as Attribute.LogicalColour
 import qualified	BishBosh.Data.Exception			as Data.Exception
+import qualified	BishBosh.Property.FixedMembership	as Property.FixedMembership
 import qualified	BishBosh.Property.Opposable		as Property.Opposable
 import qualified	BishBosh.Property.Orientated		as Property.Orientated
 import qualified	BishBosh.Property.Reflectable		as Property.Reflectable
+import qualified	Control.DeepSeq
 import qualified	Control.Exception
 import qualified	Data.Array.IArray
 import qualified	Data.List.Extra
@@ -126,13 +128,13 @@ data Direction	= MkDirection {
 instance Bounded Direction where
 	minBound	= sw
 	maxBound	= ne
-{-
+
 instance Control.DeepSeq.NFData Direction where
 	rnf MkDirection {
 		getXDirection	= xDirection,
 		getYDirection	= yDirection
 	} = Control.DeepSeq.rnf (xDirection, yDirection)
--}
+
 instance Show Direction where
 	showsPrec _ MkDirection {
 		getXDirection	= xDirection,
@@ -199,7 +201,7 @@ instance HXT.XmlPickler Direction where
 	xpickle	= HXT.xpWrap (read, show) . HXT.xpAttr tag . HXT.xpTextDT . Text.XML.HXT.Arrow.Pickle.Schema.scEnum $ map show range
 
 instance Data.Array.IArray.Ix Direction where
-	range (lower, upper)						= Control.Exception.assert (lower == minBound && upper == maxBound) range
+	range (lower, upper)						= Control.Exception.assert (lower == minBound && upper == maxBound) Property.FixedMembership.members
 	inRange (lower, upper) _					= Control.Exception.assert (lower == minBound && upper == maxBound) True
 	index (lower, upper) (MkDirection xDirection yDirection)	= Control.Exception.assert (lower == minBound && upper == maxBound) $ case xDirection of
 		LT	-> case yDirection of
@@ -214,6 +216,13 @@ instance Data.Array.IArray.Ix Direction where
 			LT	-> 5
 			EQ	-> 6
 			GT	-> 7
+
+-- | The ordered /direction/s in which /royalty/ can move.
+range :: [Direction]
+range	= [sw, w, nw, s, n, se, e, ne]
+
+instance Property.FixedMembership.FixedMembership Direction where
+	members	= range
 
 -- | Smart-constructor.
 mkDirection
@@ -230,10 +239,6 @@ parallels	= [w, s, n, e]
 -- | The ordered /direction/s in which a @Bishop@ can move.
 diagonals :: [Direction]
 diagonals	= [sw, nw, se, ne]
-
--- | The ordered /direction/s in which /royalty/ can move.
-range :: [Direction]
-range	= [sw, w, nw, s, n, se, e, ne]
 
 -- | The constant number of distinct /direction/s.
 nDistinctDirections :: NDirections
@@ -261,7 +266,7 @@ areAligned :: Direction -> Direction -> Bool
 areAligned direction	= uncurry (||) . ((== direction) &&& (== Property.Opposable.getOpposite direction))
 
 -- | A boxed array indexed by /direction/, of arbitrary elements.
-type ByDirection	= Data.Array.IArray.Array {-Boxed-} Direction
+type ArrayByDirection	= Data.Array.IArray.Array {-Boxed-} Direction
 
 -- | Array-constructor.
 listArrayByDirection :: Data.Array.IArray.IArray a e => [e] -> a Direction e

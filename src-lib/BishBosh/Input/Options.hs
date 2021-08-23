@@ -19,7 +19,12 @@
 {- |
  [@AUTHOR@]	Dr. Alistair Ward
 
- [@DESCRIPTION@]	Defines configurable options.
+ [@DESCRIPTION@]
+
+	* Defines configurable options.
+
+	* CAVEAT: whilst naively, the flexibility of each automated player owning their own independent /EvaluationOptions/, seems attractive,
+	that choice then requires maintainance of two independently quantified (& large) /PositionHashQuantifiedGameTree/s.
 -}
 
 module BishBosh.Input.Options(
@@ -62,8 +67,8 @@ import qualified	BishBosh.Input.IOOptions		as Input.IOOptions
 import qualified	BishBosh.Input.SearchOptions		as Input.SearchOptions
 import qualified	BishBosh.Input.UIOptions		as Input.UIOptions
 import qualified	BishBosh.Input.Verbosity		as Input.Verbosity
+import qualified	BishBosh.Property.Arboreal		as Property.Arboreal
 import qualified	BishBosh.Property.ShowFloat		as Property.ShowFloat
-import qualified	BishBosh.Property.Tree			as Property.Tree
 import qualified	BishBosh.Text.ShowList			as Text.ShowList
 import qualified	Control.DeepSeq
 import qualified	Control.Exception
@@ -89,9 +94,9 @@ type RandomSeed	= Int
 
 -- | Defines the application's options.
 data Options column criterionWeight pieceSquareValue rankValue row x y	= MkOptions {
-	getMaybeMaximumPlies	:: Maybe Component.Move.NMoves,									-- ^ The maximum number of plies before the game is terminated; required for profiling the application.
+	getMaybeMaximumPlies	:: Maybe Component.Move.NPlies,									-- ^ The maximum number of plies before the game is terminated; required for profiling the application.
 	getMaybeRandomSeed	:: Maybe RandomSeed,										-- ^ Optionally seed the pseudo-random number-generator to produce a repeatable sequence.
-	getEvaluationOptions	:: Input.EvaluationOptions.EvaluationOptions criterionWeight pieceSquareValue rankValue x y,	-- ^ The options by which to automatically evaluate /move/s.
+	getEvaluationOptions	:: Input.EvaluationOptions.EvaluationOptions criterionWeight pieceSquareValue rankValue x y,	-- ^ The single set of options by which all automated /move/s are evaluated.
 	getSearchOptions	:: Input.SearchOptions.SearchOptions,								-- ^ The options by which to automatically select /move/s.
 	getIOOptions		:: Input.IOOptions.IOOptions row column								-- ^ The /ioOptions/ by which to receive commands & present results.
 } deriving (Eq, Show)
@@ -211,7 +216,7 @@ instance (
 
 -- | Smart constructor.
 mkOptions
-	:: Maybe Component.Move.NMoves	-- ^ The maximum number of plies before the game is terminated; required for profiling the application.
+	:: Maybe Component.Move.NPlies	-- ^ The maximum number of plies before the game is terminated; required for profiling the application.
 	-> Maybe RandomSeed		-- ^ Optionally seed the pseudo-random number-generator to produce a repeatable sequence.
 	-> Input.EvaluationOptions.EvaluationOptions criterionWeight pieceSquareValue rankValue x y
 	-> Input.SearchOptions.SearchOptions
@@ -264,7 +269,7 @@ setEitherNativeUIOrCECPOptions eitherNativeUIOrCECPOptions options@MkOptions { g
 }
 
 -- | Mutator.
-setMaybePrintMoveTree :: Maybe Property.Tree.Depth -> Transformation column criterionWeight pieceSquareValue rankValue row x y
+setMaybePrintMoveTree :: Maybe Property.Arboreal.Depth -> Transformation column criterionWeight pieceSquareValue rankValue row x y
 setMaybePrintMoveTree maybePrintMoveTree options@MkOptions { getIOOptions = ioOptions }	= options {
 	getIOOptions	= Input.IOOptions.setMaybePrintMoveTree maybePrintMoveTree ioOptions
 }

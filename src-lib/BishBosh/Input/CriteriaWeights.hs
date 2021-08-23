@@ -1,3 +1,4 @@
+{-# LANGUAGE CPP #-}
 {-
 	Copyright (C) 2018 Dr. Alistair Ward
 
@@ -48,7 +49,7 @@ module BishBosh.Input.CriteriaWeights(
 --	weightOfDoubledPawnsTag,
 --	weightOfIsolatedPawnsTag,
 --	weightOfPassedPawnsTag,
-	onymousOperators,
+--	onymousOperators,
 -- * Functions
 	calculateWeightedMean,
 	normalise,
@@ -108,7 +109,7 @@ weightOfPassedPawnsTag :: String
 weightOfPassedPawnsTag			= "passedPawns"
 
 {- |
-	* The weight of various criteria used to select a move from alternatives, at specific point in the game.
+	* The weight of various criteria used to select a /move/ from alternatives, at a specific point in the game.
 
 	* CAVEAT: these weights determine the effective value of /isolated/ or /doubled/ @Pawn@s,
 	& this value shouldn't be less than their weighted normalised /rank-value/, otherwise sacrifice would be beneficial.
@@ -249,9 +250,12 @@ instance (
 	* Also writes individual unweighted /criterion-value/s, to facilitate post-analysis; if the corresponding weight is zero, for efficiency evaluation of the criterion is avoided.
 -}
 calculateWeightedMean :: (
-	Fractional	weightedMean,
-	Real		criterionValue,
-	Real		criterionWeight
+#ifdef USE_PARALLEL
+	Control.DeepSeq.NFData	criterionValue,
+#endif
+	Fractional		weightedMean,
+	Real			criterionValue,
+	Real			criterionWeight
  )
 	=> CriteriaWeights criterionWeight
 	-> Attribute.CriterionValue.CriterionValue criterionValue						-- ^ /material/:	maximum if a player's /move/ equals the maximum total piece value (including /queened/ @Pawn@s), while their opponent has just a @King@.
@@ -386,7 +390,7 @@ perturbWeights randomGen changeMagnitude MkCriteriaWeights {
 	(a : b : c : d : e : f : g : h : _)	= System.Random.randomRs (1 :: Double, succ $ realToFrac changeMagnitude) randomGen
 	reduceBy randomValue			= Attribute.CriterionWeight.mkCriterionWeight . (/ realToFrac randomValue) . Attribute.CriterionWeight.deconstruct	-- N.B. this always reduces the weight, leaving 'normalise' to correct this.
 
--- | A list of named accessors & mutators.
+-- | A constant list of named accessors & mutators.
 onymousOperators :: [
 	(
 		String,												-- Tag.

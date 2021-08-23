@@ -28,8 +28,6 @@ module BishBosh.Test.HUnit.Component.Piece(
 ) where
 
 import			Control.Arrow((&&&))
-import			Data.Map((!))
-import qualified	BishBosh.Attribute.Direction			as Attribute.Direction
 import qualified	BishBosh.Attribute.LogicalColour		as Attribute.LogicalColour
 import qualified	BishBosh.Attribute.Rank				as Attribute.Rank
 import qualified	BishBosh.Cartesian.Vector			as Cartesian.Vector
@@ -37,6 +35,7 @@ import qualified	BishBosh.Component.Move				as Component.Move
 import qualified	BishBosh.Component.Piece			as Component.Piece
 import qualified	BishBosh.Component.QualifiedMove		as Component.QualifiedMove
 import qualified	BishBosh.Notation.Smith				as Notation.Smith
+import qualified	BishBosh.Property.FixedMembership		as Property.FixedMembership
 import qualified	BishBosh.Test.HUnit.Cartesian.Coordinates	as Test.HUnit.Cartesian.Coordinates
 import qualified	Data.List
 import qualified	Test.HUnit
@@ -45,25 +44,21 @@ import			Test.HUnit((~?), (~?=), (~:))
 -- | Check the sanity of the implementation, by validating a list of static test-cases.
 testCases :: Test.HUnit.Test
 testCases	= Test.HUnit.test [
-	Component.Piece.range == Data.List.sort Component.Piece.range ~? "BishBosh.Component.Piece.range is misordered.",
+	Property.FixedMembership.members == Data.List.sort Component.Piece.range ~? "BishBosh.Component.Piece.range is misordered.",
 	all (
-		== Data.List.sort (Component.Piece.attackDirectionsByPiece ! Component.Piece.mkKing Attribute.LogicalColour.Black)
+		== Data.List.sort (Component.Piece.getAttackDirections $ Component.Piece.mkKing Attribute.LogicalColour.Black)
 	) [
-		Data.List.sort $ Component.Piece.attackDirectionsByPiece ! Component.Piece.mkQueen Attribute.LogicalColour.Black,
-		Data.List.sort $ (
-			Component.Piece.attackDirectionsByPiece ! Component.Piece.mkBishop Attribute.LogicalColour.Black
-		) ++ (
-			Component.Piece.attackDirectionsByPiece ! Component.Piece.mkRook Attribute.LogicalColour.Black
-		)
-	] ~? "'BishBosh.Component.Piece.attackDirectionsByPiece' failed to show Queen's moves to be union of Bishop & Rook.",
+		Data.List.sort $ Component.Piece.getAttackDirections $ Component.Piece.mkQueen Attribute.LogicalColour.Black,
+		Data.List.sort . uncurry (++) $ (Component.Piece.getAttackDirections . Component.Piece.mkBishop &&& Component.Piece.getAttackDirections . Component.Piece.mkRook) Attribute.LogicalColour.Black
+	] ~? "'BishBosh.Component.Piece.getAttackDirections' failed to show Queen's moves to be union of Bishop & Rook.",
 	"'BishBosh.Cartesian.Vector.attackVectorsForKing'." ~: (
 		(
 			length	:: [Cartesian.Vector.VectorInt] -> Int
-		) Cartesian.Vector.attackVectorsForKing ~?= length (Component.Piece.attackDirectionsByPiece ! Component.Piece.mkKing Attribute.LogicalColour.Black)
+		) Cartesian.Vector.attackVectorsForKing ~?= length (Component.Piece.getAttackDirections $ Component.Piece.mkKing Attribute.LogicalColour.Black)
 	),
-	"'BishBosh.Component.Piece.attackDirectionsByPiece' failed for King." ~: Data.List.sort (
-		Component.Piece.attackDirectionsByPiece ! Component.Piece.mkKing Attribute.LogicalColour.Black {-arbitrarily-}
-	) ~?= Data.List.sort Attribute.Direction.range,
+	"'BishBosh.Component.Piece.getAttackDirections' failed for King." ~: Data.List.sort (
+		Component.Piece.getAttackDirections $ Component.Piece.mkKing Attribute.LogicalColour.Black {-arbitrarily-}
+	) ~?= Property.FixedMembership.members,
 	all (
 		\((s, logicalColour), rank) -> let
 			source, destination :: Test.HUnit.Cartesian.Coordinates.Coordinates

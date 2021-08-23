@@ -42,7 +42,7 @@ module BishBosh.Attribute.PhysicalColour(
 	magenta,
 	cyan,
 	white,
-	range,
+--	range,
 -- * Functions
 --	toANSIColourCode,
 	mkFgColourCode,
@@ -51,11 +51,12 @@ module BishBosh.Attribute.PhysicalColour(
 	bracket
 ) where
 
+import qualified	BishBosh.Property.FixedMembership	as Property.FixedMembership
 import qualified	Control.DeepSeq
-import qualified	Text.XML.HXT.Arrow.Pickle	as HXT
+import qualified	Text.XML.HXT.Arrow.Pickle		as HXT
 import qualified	Text.XML.HXT.Arrow.Pickle.Schema
 
--- | Defines the physical colours which can typically be rendered by a terminal.
+-- | Defines the sum-type of physical colours which can typically be rendered by a terminal.
 data PhysicalColour
 	= Black
 	| Red
@@ -76,6 +77,13 @@ instance Bounded PhysicalColour where
 
 instance HXT.XmlPickler PhysicalColour where
 	xpickle	= HXT.xpWrap (read, show) . HXT.xpTextDT . Text.XML.HXT.Arrow.Pickle.Schema.scEnum $ map show range
+
+-- | The constant complete range of values.
+range :: [PhysicalColour]
+range	= [minBound .. maxBound]
+
+instance Property.FixedMembership.FixedMembership PhysicalColour where
+	members	= range
 
 -- | Constant.
 black :: PhysicalColour
@@ -108,10 +116,6 @@ cyan	= Cyan
 -- | Constant.
 white :: PhysicalColour
 white	= White
-
--- | The constant complete range of values.
-range :: [PhysicalColour]
-range	= [minBound .. maxBound]
 
 -- | A colour-code, as used by terminal-emulators; <https://en.wikipedia.org/wiki/ANSI_escape_code>.
 type ANSIColourCode	= Int

@@ -82,6 +82,7 @@ import qualified	BishBosh.Data.Exception				as Data.Exception
 import qualified	BishBosh.Model.Game				as Model.Game
 import qualified	BishBosh.Model.GameTerminationReason		as Model.GameTerminationReason
 import qualified	BishBosh.Model.Result				as Model.Result
+import qualified	BishBosh.Property.FixedMembership		as Property.FixedMembership
 import qualified	BishBosh.State.TurnsByLogicalColour		as State.TurnsByLogicalColour
 import qualified	BishBosh.Text.ShowList				as Text.ShowList
 import qualified	BishBosh.Types					as T
@@ -152,7 +153,7 @@ type Value	= String
 -- | Self-documentation.
 type TagPair	= (Tag, Value)
 
--- | Whether moves with an unexpected number should be considered to be an error.
+-- | Whether moves with an unexpected move-number should be considered to be an error.
 type IsStrictlySequential	= Bool
 
 -- | Qualifies a mandatory tag-value.
@@ -192,8 +193,8 @@ showsDate	= (
 {- |
 	* The data defined by PGN.
 
-	* The first six fields are mandatory part according to the PGN-specification, though none are used by this application.
-	The seventh mandatory field 'Result' can be derived from 'getGame'.
+	* The first six fields are mandatory according to the PGN-specification, though none are used by this application.
+	The seventh mandatory field /Result/ can be derived from 'getGame'.
 -}
 data PGN x y	= MkPGN {
 	getMaybeEventName		:: Maybe Value,
@@ -474,7 +475,7 @@ maybeResultParser	= Control.Applicative.many ContextualNotation.PGNComment.block
 		"Result",
 		Poly.oneOf $ map (
 			\result -> Text.Poly.string (show result) >> return {-to Parser-monad-} (Just result)	-- CAVEAT: for some reason, this conflates "1-0" with "1/2-1/2", when lazy-parsing with ghc-8.0.1 & polyparse-1.12 ?!
-		) Model.Result.range
+		) Property.FixedMembership.members
 	), (
 		"Game unfinished",
 		Poly.commit (Text.Poly.char inProgressFlag) >> return {-to Parser-monad-} Nothing
@@ -486,7 +487,7 @@ maybeResultParser	= Control.Applicative.many ContextualNotation.PGNComment.block
 	Parsec.try (
 		Parsec.choice $ map (
 			\result -> Parsec.try $ (Parsec.string (show result) <?> "Result") >> return {-to ParsecT-monad-} (Just result)
-		) Model.Result.range
+		) Property.FixedMembership.members
 	) <|> (
 		(Parsec.char inProgressFlag <?> "Game unfinished") >> return {-to ParsecT-monad-} Nothing
 	)
@@ -597,7 +598,8 @@ moveTextParser isStrictlySequential validateMoves	= let
 {- |
 	* Parses /PGN/.
 
-	* CAVEAT: this process is inherently strict when using either "Parsec" or "Poly.Plain", since on failure they returns @Left@, which can't be determined until parsing has finished.
+	* CAVEAT: this function doesn't /produce/ when using either "Parsec" or "Poly.Plain", since it returns 'Either' the appropriate constructor for which may be unknown until the last character is parsed.
+	Equally for these parsers, all data must be strictly evaluated before any data can retrieved.
 -}
 parser :: (
 	Enum	x,

@@ -20,7 +20,7 @@
 {- |
  [@AUTHOR@]	Dr. Alistair Ward
 
- [@DESCRIPTION@]	Exports functions to enhance the package 'polyparse'.
+ [@DESCRIPTION@]	Exports functions to enhance the package /polyparse/.
 -}
 
 module BishBosh.Text.Poly(
@@ -73,7 +73,7 @@ spaces	= do
 
 	return {-to Parser-monad-} ()
 
--- | Parses an unsigned decimal integer.
+-- | Parses an unsigned base-10 integer.
 unsignedDecimal :: Num i => TextParser i
 unsignedDecimal	= spaces >> Data.Integral.stringToUnsignedDecimal `fmap` Poly.many1 (Poly.satisfyMsg Data.Char.isDigit "<digit>")
 

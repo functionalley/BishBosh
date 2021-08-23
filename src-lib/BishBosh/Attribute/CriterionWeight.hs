@@ -21,11 +21,11 @@
 
  [@DESCRIPTION@]
 
-	* Defines the weight associated with some /criterion/.
+	* Defines the weight associated with some 'Attribute.CriterionValue.CriterionValue'.
 
 	* Each weighting is constrained to the unsigned /closed unit-interval/; negative values aren't permitted.
 
-	* If the /criterion/ is considered unimportant, then its weight can be set to '0', whilst concepts of great significance can be set to '1'.
+	* If the /criterion-value/ is considered unimportant, then its weight can be set to @0@, whilst concepts of great significance can be set to @1@.
 
  [@CAVEAT@]
 
@@ -52,7 +52,7 @@ import qualified	Control.Exception
 import qualified	Data.Default
 import qualified	Text.XML.HXT.Arrow.Pickle	as HXT
 
--- | Quantifies the relative significance, of a criterion; the larger the value, the more significant the criterion is relative to other criteria.
+-- | Quantifies the relative significance, of a criterion-value; the larger the weight, the more significant the criterion is relative to other criteria.
 newtype CriterionWeight criterionWeight	= MkCriterionWeight {
 	deconstruct	:: criterionWeight
 } deriving (Eq, Ord)

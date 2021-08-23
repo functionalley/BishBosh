@@ -31,9 +31,9 @@ module BishBosh.Notation.ICCFNumeric(
 --		getMaybePromotionRank
 	),
 -- * Constants
---	xOrigin,
---	yOrigin,
 	origin,
+--	xOriginOffset,
+--	yOriginOffset,
 	regexSyntax,
 	toRank,
 -- * Functions
@@ -44,7 +44,7 @@ module BishBosh.Notation.ICCFNumeric(
 	mkICCFNumeric'
 ) where
 
-import			Control.Arrow((&&&))
+import			Control.Arrow((&&&), (***))
 import qualified	BishBosh.Attribute.Rank		as Attribute.Rank
 import qualified	BishBosh.Cartesian.Abscissa	as Cartesian.Abscissa
 import qualified	BishBosh.Cartesian.Coordinates	as Cartesian.Coordinates
@@ -58,17 +58,13 @@ import qualified	Data.List.Extra
 import qualified	Data.Maybe
 import qualified	Data.Tuple
 
--- | The /x/-origin.
-xOrigin :: Int
-xOrigin	= Data.Char.ord '1'
-
--- | The /y/-origin.
-yOrigin :: Int
-yOrigin	= Data.Char.ord '1'
-
 -- | The origin.
 origin :: (Int, Int)
-origin	= (xOrigin, yOrigin)
+origin	= Data.Char.ord &&& Data.Char.ord $ '1'
+
+-- | The offset of the application's internal coordinate-system from this conventional one.
+xOriginOffset, yOriginOffset :: Int
+(xOriginOffset, yOriginOffset)	= (Cartesian.Abscissa.xOrigin -) *** (Cartesian.Ordinate.yOrigin -) $ origin
 
 -- | Defines using a regex, the required syntax.
 regexSyntax :: String
@@ -90,7 +86,10 @@ data ICCFNumeric x y	= MkICCFNumeric {
 } deriving Eq
 
 -- | Smart constructor.
-mkICCFNumeric :: Component.Move.Move x y -> Maybe Attribute.Rank.Rank -> ICCFNumeric x y
+mkICCFNumeric
+	:: Component.Move.Move x y
+	-> Maybe Attribute.Rank.Rank	-- ^ The optional promotion-rank.
+	-> ICCFNumeric x y
 mkICCFNumeric move maybePromotionRank
 	| Just rank	<- maybePromotionRank
 	, rank `notElem` Attribute.Rank.promotionProspects	= Control.Exception.throw . Data.Exception.mkInvalidDatum . showString "BishBosh.Notation.ICCFNumeric.mkICCFNumeric:\tcan't promote to a " $ shows rank "."
@@ -100,12 +99,16 @@ mkICCFNumeric move maybePromotionRank
 	}
 
 -- | Smart constructor.
-mkICCFNumeric' :: Attribute.Rank.Promotable promotable => Component.Move.Move x y -> promotable -> ICCFNumeric x y
+mkICCFNumeric'
+	:: Attribute.Rank.Promotable promotable
+	=> Component.Move.Move x y
+	-> promotable	-- ^ The datum from which to extract the optional promotion-rank.
+	-> ICCFNumeric x y
 mkICCFNumeric' move	= mkICCFNumeric move . Attribute.Rank.getMaybePromotionRank
 
 -- | Encodes the ordinate & abscissa.
 encode :: (Enum x, Enum y) => Cartesian.Coordinates.Coordinates x y -> (ShowS, ShowS)
-encode	= showChar . Data.Char.chr . (+ (xOrigin - Cartesian.Abscissa.xOrigin)) . fromEnum . Cartesian.Coordinates.getX &&& showChar . Data.Char.chr . (+ (yOrigin - Cartesian.Ordinate.yOrigin)) . fromEnum . Cartesian.Coordinates.getY
+encode	= showChar . Data.Char.chr . subtract xOriginOffset . fromEnum . Cartesian.Coordinates.getX &&& showChar . Data.Char.chr . subtract yOriginOffset . fromEnum . Cartesian.Coordinates.getY
 
 -- | Shows the specified /coordinates/.
 showsCoordinates :: (Enum x, Enum y) => Cartesian.Coordinates.Coordinates x y -> ShowS
@@ -133,9 +136,9 @@ instance (
 	readsPrec _ s	= case Data.List.Extra.trimStart s of
 		x : y : x' : y' : remainder	-> let
 			fromICCFNumeric x'' y''	= Cartesian.Coordinates.mkMaybeCoordinates (
-				toEnum $ Data.Char.ord x'' + (Cartesian.Abscissa.xOrigin - xOrigin)
+				toEnum $ Data.Char.ord x'' + xOriginOffset
 			 ) (
-				toEnum $ Data.Char.ord y'' + (Cartesian.Ordinate.yOrigin - yOrigin)
+				toEnum $ Data.Char.ord y'' + yOriginOffset
 			 )
 		 in [
 			Control.Arrow.first (

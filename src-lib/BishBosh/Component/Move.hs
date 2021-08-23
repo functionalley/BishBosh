@@ -35,21 +35,16 @@ module BishBosh.Component.Move(
 -- * Constants
 	tag,
 	nPliesPerMove,
-	castlingMovesByLogicalColour,
 -- * Functions
 	measureDistance,
 	interpolate,
-	getDeltaRadiusSquared,
 -- ** Constructors
 	mkMove,
 -- ** Predicates
 	isPawnDoubleAdvance
 ) where
 
-import			Control.Arrow((&&&))
-import			Data.Array.IArray((!))
 import qualified	BishBosh.Attribute.LogicalColour	as Attribute.LogicalColour
-import qualified	BishBosh.Attribute.MoveType		as Attribute.MoveType
 import qualified	BishBosh.Cartesian.Coordinates		as Cartesian.Coordinates
 import qualified	BishBosh.Cartesian.Vector		as Cartesian.Vector
 import qualified	BishBosh.Property.Opposable		as Property.Opposable
@@ -65,18 +60,14 @@ import qualified	Data.Ord
 tag :: String
 tag	= "move"
 
-{- |
-	* A number of moves.
-
-	* CAVEAT: this may be a number of plies or /full/ moves (i.e. a ply by @White@ & a ply by @Black@)
--}
+-- | A number of moves.
 type NMoves	= Int
 
 -- | A number of half-moves into a /game/.
 type NPlies	= NMoves
 
 -- | The constant number of plies per move.
-nPliesPerMove :: NMoves
+nPliesPerMove :: NPlies
 nPliesPerMove	= 2
 
 {- |
@@ -118,7 +109,10 @@ instance (
 	readsPrec _	= map (Control.Arrow.first $ uncurry mkMove) . reads
 
 instance Property.Opposable.Opposable (Move x y) where
-	getOpposite (MkMove source destination)	= MkMove destination source
+	getOpposite (MkMove source destination)	= MkMove {
+		getSource	= destination,
+		getDestination	= source
+	}
 
 instance (Enum x, Enum y) => Property.Orientated.Orientated (Move x y) where
 	isDiagonal	= (Property.Orientated.isDiagonal :: Cartesian.Vector.VectorInt -> Bool) . measureDistance
@@ -149,7 +143,10 @@ mkMove
 	-> Cartesian.Coordinates.Coordinates x y
 	-> Move x y
 {-# INLINE mkMove #-}
-mkMove source destination	= Control.Exception.assert (source /= destination) $ MkMove source destination
+mkMove source destination	= Control.Exception.assert (source /= destination) MkMove {
+	getSource	= source,
+	getDestination	= destination
+}
 
 -- | Measures the signed distance between the ends of the move.
 measureDistance :: (
@@ -177,36 +174,6 @@ interpolate move@MkMove {
 	getDestination	= destination
 } = Control.Exception.assert (Property.Orientated.isStraight move) $ Cartesian.Coordinates.interpolate source destination
 
--- | Defines by /logical colour/, the list of (/move-type/, @King@'s move, & @Rook@'s move) for each type of Castle.
-castlingMovesByLogicalColour :: (
-	Enum	x,
-	Enum	y,
-	Eq	y,
-	Ord	x
- ) => Attribute.LogicalColour.ByLogicalColour [(Attribute.MoveType.MoveType, Move x y, Move x y)]
-castlingMovesByLogicalColour	= Attribute.LogicalColour.listArrayByLogicalColour $ map (
-	\logicalColour -> let
-		kingsStartingCoordinates	= Cartesian.Coordinates.kingsStartingCoordinates logicalColour
-		kingsMove translation		= mkMove kingsStartingCoordinates $ translateX translation kingsStartingCoordinates
-	in [
-		(
-			Attribute.MoveType.shortCastle,
-			kingsMove (+ 2),
-			uncurry mkMove . (id &&& translateX (subtract 2)) $ if Attribute.LogicalColour.isBlack logicalColour
-				then maxBound
-				else Cartesian.Coordinates.bottomRight
-		), (
-			Attribute.MoveType.longCastle,
-			kingsMove $ subtract 2,
-			uncurry mkMove . (id &&& translateX (+ 3)) $ if Attribute.LogicalColour.isBlack logicalColour
-				then Cartesian.Coordinates.topLeft
-				else minBound
-		) -- Triple.
-	]
- ) Attribute.LogicalColour.range where
-	translateX :: (Enum x, Ord x) => (Int -> Int) -> Cartesian.Coordinates.Coordinates x y -> Cartesian.Coordinates.Coordinates x y
-	translateX translation	= Cartesian.Coordinates.translateX $ toEnum . translation . fromEnum
-
 {- |
 	* Whether the specified /move/ is a @Pawn@'s initial double-advance.
 
@@ -223,16 +190,4 @@ isPawnDoubleAdvance logicalColour move	= Cartesian.Coordinates.isPawnsFirstRank 
  ) && Cartesian.Vector.matchesPawnDoubleAdvance logicalColour (
 	measureDistance move :: Cartesian.Vector.VectorInt
  )
-
--- | Measure the change in the square of the radius from the centre of the board, resulting from the specified move.
-getDeltaRadiusSquared :: (
-	Fractional	radiusSquared,
-	Integral	x,
-	Integral	y
- ) => Move x y -> radiusSquared
-{-# SPECIALISE getDeltaRadiusSquared :: Move T.X T.Y -> T.RadiusSquared #-}
-getDeltaRadiusSquared MkMove {
-	getSource	= source,
-	getDestination	= destination
-} = Cartesian.Coordinates.radiusSquared ! destination - Cartesian.Coordinates.radiusSquared ! source
 

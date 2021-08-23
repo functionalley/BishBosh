@@ -73,7 +73,7 @@ results	= sequence [
 	in Test.QuickCheck.quickCheckWithResult Test.QuickCheck.stdArgs { Test.QuickCheck.maxSuccess = 64 } f,
 	let
 		f :: TurnsByLogicalColour -> String -> Test.QuickCheck.Property
-		f turnsByLogicalColour	= Test.QuickCheck.label "TurnsByLogicalColour.prop_readTrailingGarbage" . ToolShed.Test.ReversibleIO.readTrailingGarbage (`elem` ('/' : concatMap show Component.Piece.range ++ concatMap show [1 .. Cartesian.Abscissa.xLength])) turnsByLogicalColour
+		f turnsByLogicalColour	= Test.QuickCheck.label "TurnsByLogicalColour.prop_readTrailingGarbage" . ToolShed.Test.ReversibleIO.readTrailingGarbage (`elem` ('/' : Component.Piece.showPieces ++ concatMap show [1 .. Cartesian.Abscissa.xLength])) turnsByLogicalColour
 	in Test.QuickCheck.quickCheckWithResult Test.QuickCheck.stdArgs { Test.QuickCheck.maxSuccess = 128 } f,
 	let
 		f :: Test.QuickCheck.Model.Game.Game -> Test.QuickCheck.Property

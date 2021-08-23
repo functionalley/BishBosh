@@ -1,3 +1,4 @@
+{-# LANGUAGE CPP, FlexibleContexts #-}
 {-
 	Copyright (C) 2018 Dr. Alistair Ward
 
@@ -69,7 +70,11 @@ import qualified	Control.Exception
 import qualified	Data.Maybe
 import qualified	Data.Ord
 
--- | The selected /game/ & the criteria used in that QuantifiedGame.
+#ifdef USE_UNBOXED_ARRAYS
+import qualified	Data.Array.Unboxed
+#endif
+
+-- | The selected /game/ & the criteria against which it was quantified.
 data QuantifiedGame x y criterionValue weightedMean	= MkQuantifiedGame {
 	getGame					:: Model.Game.Game x y,	-- ^ The /game/ resulting from a sequence of /turn/s.
 	getWeightedMeanAndCriterionValues	:: Attribute.WeightedMeanAndCriterionValues.WeightedMeanAndCriterionValues weightedMean criterionValue
@@ -94,20 +99,26 @@ getFitness MkQuantifiedGame { getWeightedMeanAndCriterionValues = weightedMeanAn
 
 -- | Like 'fromGame' except that the caller determines the piece-square value.
 fromGame :: (
-	Enum		x,
-	Enum		y,
-	Fractional	criterionValue,
-	Fractional	pieceSquareValue,
-	Fractional	rankValue,
-	Fractional	weightedMean,
-	Ord		x,
-	Ord		y,
-	Real		criterionValue,
-	Real		criterionWeight,
-	Real		pieceSquareValue,
-	Real		rankValue,
-	Show		x,
-	Show		y
+#ifdef USE_PARALLEL
+	Control.DeepSeq.NFData					criterionValue,
+#endif
+#ifdef USE_UNBOXED_ARRAYS
+	Data.Array.Unboxed.IArray Data.Array.Unboxed.UArray	pieceSquareValue,	-- Requires 'FlexibleContexts'. The unboxed representation of the array-element must be defined (& therefore must be of fixed size).
+#endif
+	Enum							x,
+	Enum							y,
+	Fractional						criterionValue,
+	Fractional						pieceSquareValue,
+	Fractional						rankValue,
+	Fractional						weightedMean,
+	Ord							x,
+	Ord							y,
+	Real							criterionValue,
+	Real							criterionWeight,
+	Real							pieceSquareValue,
+	Real							rankValue,
+	Show							x,
+	Show							y
  )
 	=> Maybe pieceSquareValue	-- ^ The value for the specified game.
 	-> Model.Game.Game x y		-- ^ The current state of the /game/.

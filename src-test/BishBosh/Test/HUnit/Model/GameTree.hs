@@ -30,13 +30,13 @@ module BishBosh.Test.HUnit.Model.GameTree(
 ) where
 
 import qualified	BishBosh.Attribute.CaptureMoveSortAlgorithm	as Attribute.CaptureMoveSortAlgorithm
-import qualified	BishBosh.Attribute.Rank				as Attribute.Rank
 import qualified	BishBosh.Attribute.RankValues			as Attribute.RankValues
 import qualified	BishBosh.Component.Turn				as Component.Turn
 import qualified	BishBosh.Model.Game				as Model.Game
 import qualified	BishBosh.Model.GameTree				as Model.GameTree
 import qualified	BishBosh.Notation.MoveNotation			as Notation.MoveNotation
 import qualified	BishBosh.Property.Empty				as Property.Empty
+import qualified	BishBosh.Property.FixedMembership		as Property.FixedMembership
 import qualified	BishBosh.Property.ForsythEdwards		as Property.ForsythEdwards
 import qualified	BishBosh.Types					as T
 import qualified	Data.Default
@@ -60,12 +60,12 @@ testCases	= Test.HUnit.test [
 		\turn -> Notation.MoveNotation.showNotation Data.Default.def (turn :: Component.Turn.Turn T.X T.Y)
 	) (
 		sortAvailableMoves (Just Attribute.CaptureMoveSortAlgorithm.MVVLVA) testString
-	) ~?= words "c4d5p e4d5p c3d5p d1d5p c1e3 c1f4 d1d4 g1e2 d1d3 c1d2 c1g5 a1b1 d1d2 d1e2 e1d2 e1e2 a2a4 g2g4 h2h4 g1h3 a2a3 g2g3 h2h3 c1b2 b3b4 c1a3 c1h6 c4c5 e4e5 e1f1 c3b5 c3e2 f3e2 f3g4 c3a4 f3h5 c3b1",
+	) ~?= ["c4d5p","e4d5p","c3d5p","d1d5p","a1b1","c1b2","c1a3","c1d2","c1e3","c1f4","c1g5","c1h6","d1d2","d1d3","d1d4","d1e2","e1d2","e1e2","e1f1","g1e2","g1h3","a2a3","a2a4","g2g3","g2g4","h2h3","h2h4","b3b4","c3b1","c3b5","c3a4","c3e2","f3e2","f3g4","f3h5","c4c5","e4e5"],
 	"'BishBosh.Model.GameTree.sortGameTree/SEE' failed" ~: map (
 		\turn -> Notation.MoveNotation.showNotation Data.Default.def (turn :: Component.Turn.Turn T.X T.Y)
 	) (
 		sortAvailableMoves (Just Attribute.CaptureMoveSortAlgorithm.SEE) testString
-	) ~?= words "c4d5p e4d5p c1e3 c1f4 d1d4 d1d5p g1e2 d1d3 c1d2 c1g5 a1b1 d1d2 d1e2 e1d2 e1e2 a2a4 g2g4 h2h4 g1h3 a2a3 g2g3 h2h3 c3d5p c1b2 b3b4 c1a3 c1h6 c4c5 e4e5 e1f1 c3b5 c3e2 f3e2 f3g4 c3a4 f3h5 c3b1"
+	) ~?= ["c4d5p","e4d5p","a1b1","c1b2","c1a3","c1d2","c1e3","c1f4","c1g5","c1h6","d1d2","d1d3","d1d4","d1d5p","d1e2","e1d2","e1e2","e1f1","g1e2","g1h3","a2a3","a2a4","g2g3","g2g4","h2h3","h2h4","b3b4","c3b1","c3b5","c3a4","c3e2","c3d5p","f3e2","f3g4","f3h5","c4c5","e4e5"]
  ] where
 	sortAvailableMoves :: (
 		Integral	x,
@@ -75,9 +75,9 @@ testCases	= Test.HUnit.test [
 	 ) => Maybe Attribute.CaptureMoveSortAlgorithm.CaptureMoveSortAlgorithm -> String -> [Component.Turn.Turn x y]
 	sortAvailableMoves maybeSortAlgorithm	= Data.Maybe.mapMaybe (
 		Model.Game.maybeLastTurn . Data.Tree.rootLabel
-	 ) . Data.Tree.subForest . Model.GameTree.deconstruct . Model.GameTree.sortGameTree True {-PreferMovesTowardsCentre-} maybeSortAlgorithm (
+	 ) . Data.Tree.subForest . Model.GameTree.deconstruct . Model.GameTree.sortGameTree maybeSortAlgorithm (
 		`Attribute.RankValues.findRankValue` Attribute.RankValues.fromAssocs (
-			zip Attribute.Rank.range $ map (/ 10) [
+			zip Property.FixedMembership.members $ map (/ 10) [
 				1	:: T.RankValue,
 				5,	-- R
 				3,	-- N

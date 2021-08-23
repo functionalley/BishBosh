@@ -43,7 +43,7 @@ instance (
 		eitherNativeUIOrCECPOptions	<- Test.QuickCheck.arbitrary
 		moveNotation			<- const Test.QuickCheck.arbitrary `either` const (return {-to Gen-monad-} Notation.MoveNotation.pureCoordinate) $ eitherNativeUIOrCECPOptions
 
-		Input.UIOptions.mkUIOptions <$> return {-to Gen-monad-} moveNotation <*> fmap (
+		Input.UIOptions.mkUIOptions moveNotation <$> fmap (
 			fmap $ succ . (`mod` 3)	-- maybePrintMoveTree.
 		 ) Test.QuickCheck.arbitrary <*> Test.QuickCheck.elements [1 .. 6] {-NDecimalDigits-} <*> return {-to Gen-monad-} eitherNativeUIOrCECPOptions <*> Test.QuickCheck.arbitrary {-Verbosity-}
 

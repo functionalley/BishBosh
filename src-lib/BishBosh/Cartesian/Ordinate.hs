@@ -23,19 +23,24 @@
 
 	* Describes the /y/-axis by which the /board/ is indexed.
 
-	* N.B. this coordinate-system is for internal use only, and doesn't attempt to replicate any standard Chess-notation.
+	* AKA the /rank/ of a piece.
+
+	* N.B. this coordinate-system is for internal use only, and doesn't attempt to replicate any standard chess-notation.
 -}
 
 module BishBosh.Cartesian.Ordinate(
+-- * Types
+--	ArrayByOrdinate,
 -- * Constants
 	yOrigin,
 	yLength,
 	yMin,
 	yMax,
---	yBounds,
+	yBounds,
 	yRange,
-	centre,
 -- * Functions
+	toIx,
+	fromIx,
 	firstRank,
 	lastRank,
 	pawnsFirstRank,
@@ -43,47 +48,53 @@ module BishBosh.Cartesian.Ordinate(
 	reflect,
 	translate,
 	maybeTranslate,
+-- ** Constructors
+--	listArrayByOrdinate,
 -- ** Predicates
 	inBounds
 ) where
 
 import qualified	BishBosh.Attribute.LogicalColour	as Attribute.LogicalColour
 import qualified	BishBosh.Cartesian.Abscissa		as Cartesian.Abscissa
+import qualified	BishBosh.Data.Enum			as Data.Enum
 import qualified	BishBosh.Property.Opposable		as Property.Opposable
 import qualified	BishBosh.Types				as T
 import qualified	Control.Exception
+import qualified	Data.Array.IArray
 
--- | The constant length of the /y/-axis.
+-- | The position of the origin on the /y/-axis.
 yOrigin :: Int
-yOrigin	= Cartesian.Abscissa.xOrigin	-- N.B. it doesn't need to the same.
+yOrigin	= Cartesian.Abscissa.xOrigin	-- N.B. it doesn't need to be the same.
 
 -- | The constant length of the /y/-axis.
 yLength :: T.Distance
-yLength	= Cartesian.Abscissa.xLength	-- Because the board's square.
+yLength	= Cartesian.Abscissa.xLength	-- Because the board is square.
 
--- | The constant lower bound of the ordinate.
+-- | The constant lower bound of ordinates.
 yMin :: Enum y => y
 yMin	= toEnum yOrigin
 
--- | The constant upper bound of the ordinate.
+-- | The constant upper bound of ordinates.
 yMax :: Enum y => y
 yMax	= toEnum $ yOrigin + fromIntegral (pred {-fence-post-} yLength)
 
--- | The constant bounds of the ordinate.
+-- | The constant bounds of ordinates.
 yBounds :: Enum y => (y, y)
 yBounds	= (yMin, yMax)
 
--- | The constant list of ordinates.
+-- | The constant list of all ordinates.
 yRange :: Enum y => [y]
 yRange	= uncurry enumFromTo yBounds
 
-{- |
-	* The constant centre of the span.
+-- | Convert to an array-index.
+toIx :: Enum y => y -> Int
+{-# INLINE toIx #-}
+toIx	= subtract yOrigin . fromEnum
 
-	* CAVEAT: no square actually exists at this fractional value.
--}
-centre :: Fractional centre => centre
-centre	= fromIntegral (uncurry (+) yBounds :: T.Y) / 2
+-- | Convert from an array-index.
+fromIx :: Enum y => Int -> y
+{-# INLINE fromIx #-}
+fromIx	= toEnum . (+ yOrigin)
 
 -- | The /rank/ from which /piece/s conventionally start.
 firstRank :: Enum y => Attribute.LogicalColour.LogicalColour -> y
@@ -108,9 +119,9 @@ enPassantRank _					= toEnum $ yOrigin + 4
 
 -- | Reflects about the mid-point of the axis.
 reflect :: Enum y => y -> y
-reflect	= toEnum . (
+reflect	= Data.Enum.translate $ (
 	+ (2 * yOrigin + fromIntegral (pred yLength))
- ) . negate . fromEnum
+ ) . negate
 
 -- | Predicate.
 inBounds :: (Enum y, Ord y) => y -> Bool
@@ -128,4 +139,16 @@ maybeTranslate transformation	= (
 		then Just y
 		else Nothing
  ) . transformation
+
+
+-- | A boxed array indexed by /coordinates/, of arbitrary elements.
+type ArrayByOrdinate y	= Data.Array.IArray.Array {-Boxed-} y
+
+-- | Array-constructor.
+listArrayByOrdinate :: (
+	Data.Array.IArray.IArray	a e,
+	Data.Array.IArray.Ix		y,
+	Enum				y
+ ) => [e] -> a y e
+listArrayByOrdinate	= Data.Array.IArray.listArray yBounds
 

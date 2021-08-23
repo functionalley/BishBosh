@@ -1,4 +1,4 @@
-{-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE CPP, FlexibleContexts, ScopedTypeVariables #-}
 {-
 	Copyright (C) 2018 Dr. Alistair Ward
 
@@ -44,6 +44,7 @@ module BishBosh.UI.CECP(
  ) where
 
 import			Control.Arrow((&&&))
+import			Control.Monad((>=>))
 import qualified	BishBosh.Attribute.Rank						as Attribute.Rank
 import qualified	BishBosh.Attribute.RankValues					as Attribute.RankValues
 import qualified	BishBosh.Attribute.WeightedMeanAndCriterionValues		as Attribute.WeightedMeanAndCriterionValues
@@ -77,11 +78,14 @@ import qualified	BishBosh.Property.ShowFloat					as Property.ShowFloat
 import qualified	BishBosh.Search.Search						as Search.Search
 import qualified	BishBosh.Search.SearchState					as Search.SearchState
 import qualified	BishBosh.State.ApplicationTerminationReason			as State.ApplicationTerminationReason
+import qualified	BishBosh.State.InstancesByPosition				as State.InstancesByPosition
 import qualified	BishBosh.State.PlayState					as State.PlayState
 import qualified	BishBosh.Text.ShowList						as Text.ShowList
+import qualified	BishBosh.Text.ShowPrefix					as Text.ShowPrefix
 import qualified	BishBosh.Types							as T
 import qualified	BishBosh.UI.Command						as UI.Command
 import qualified	BishBosh.UI.PrintObject						as UI.PrintObject
+import qualified	BishBosh.UI.ReportObject					as UI.ReportObject
 import qualified	BishBosh.UI.SetObject						as UI.SetObject
 import qualified	Control.Concurrent
 import qualified	Control.DeepSeq
@@ -100,6 +104,10 @@ import qualified	Numeric
 import qualified	System.IO
 import qualified	System.Random
 import qualified	ToolShed.System.Random
+
+#ifdef USE_UNBOXED_ARRAYS
+import qualified	Data.Array.Unboxed
+#endif
 
 -- | Used in output to prefix hints.
 hintTag :: String
@@ -166,10 +174,10 @@ showsThinking :: (
 	-> Input.EvaluationOptions.EvaluationOptions criterionWeight pieceSquareValue rankValue x y
 	-> weightedMean
 	-> Data.Time.Clock.NominalDiffTime	-- ^ Elapsed time.
-	-> Component.Move.NMoves		-- ^ Nodes searched.
+	-> Component.Move.NPlies		-- ^ Nodes searched.
 	-> String				-- ^ Principal variation.
 	-> ShowS
-showsThinking searchDepth evaluationOptions weightedMean elapsedTime nMoves principalVariation	= Text.ShowList.showsDelimitedList (showChar ' ') id id [
+showsThinking searchDepth evaluationOptions weightedMean elapsedTime nPlies principalVariation	= Text.ShowList.showsDelimitedList (showChar ' ') id id [
 	shows searchDepth,
 	shows . (
 		round	:: Double -> Int
@@ -179,7 +187,7 @@ showsThinking searchDepth evaluationOptions weightedMean elapsedTime nMoves prin
 		) $ Input.EvaluationOptions.getRankValues evaluationOptions
 	) * realToFrac weightedMean,
 	shows (round $ 100 {-centi-seconds-} * elapsedTime :: Int),
-	shows nMoves
+	shows nPlies
  ] . showChar '\t' . showString principalVariation
 
 {- |
@@ -188,33 +196,39 @@ showsThinking searchDepth evaluationOptions weightedMean elapsedTime nMoves prin
 	* Since the user can also request roll-back to an earlier game before then requesting a new move, a new game is returned rather than just the requested move.
 -}
 readMove :: forall column criterionValue criterionWeight pieceSquareValue positionHash randomGen rankValue row weightedMean x y. (
-	Control.DeepSeq.NFData	column,
-	Control.DeepSeq.NFData	criterionWeight,
-	Control.DeepSeq.NFData	pieceSquareValue,
-	Control.DeepSeq.NFData	rankValue,
-	Control.DeepSeq.NFData	row,
-	Control.DeepSeq.NFData	x,
-	Control.DeepSeq.NFData	y,
-	Data.Array.IArray.Ix	x,
-	Data.Bits.Bits		positionHash,
-	Fractional		criterionValue,
-	Fractional		pieceSquareValue,
-	Fractional		rankValue,
-	Fractional		weightedMean,
-	Integral		x,
-	Integral		y,
-	Ord			positionHash,
-	Real			criterionValue,
-	Real			criterionWeight,
-	Real			pieceSquareValue,
-	Real			rankValue,
-	Real			weightedMean,
-	Show			column,
-	Show			pieceSquareValue,
-	Show			row,
-	Show			x,
-	Show			y,
-	System.Random.RandomGen	randomGen
+	Control.DeepSeq.NFData					column,
+#ifdef USE_PARALLEL
+	Control.DeepSeq.NFData					criterionValue,
+#endif
+	Control.DeepSeq.NFData					criterionWeight,
+	Control.DeepSeq.NFData					pieceSquareValue,
+	Control.DeepSeq.NFData					rankValue,
+	Control.DeepSeq.NFData					row,
+	Control.DeepSeq.NFData					x,
+	Control.DeepSeq.NFData					y,
+	Data.Array.IArray.Ix					x,
+#ifdef USE_UNBOXED_ARRAYS
+	Data.Array.Unboxed.IArray Data.Array.Unboxed.UArray	pieceSquareValue,	-- Requires 'FlexibleContexts'. The unboxed representation of the array-element must be defined (& therefore must be of fixed size).
+#endif
+	Data.Bits.Bits						positionHash,
+	Fractional						criterionValue,
+	Fractional						pieceSquareValue,
+	Fractional						rankValue,
+	Fractional						weightedMean,
+	Integral						x,
+	Integral						y,
+	Ord							positionHash,
+	Real							criterionValue,
+	Real							criterionWeight,
+	Real							pieceSquareValue,
+	Real							rankValue,
+	Real							weightedMean,
+	Show							column,
+	Show							pieceSquareValue,
+	Show							row,
+	Show							x,
+	Show							y,
+	System.Random.RandomGen					randomGen
  )
 	=> ContextualNotation.PositionHashQualifiedMoveTree.PositionHashQualifiedMoveTree x y positionHash
 	-> randomGen
@@ -257,7 +271,7 @@ readMove positionHashQualifiedMoveTree randomGen	= slave where
 			onCommand UI.Command.Hint	= do
 				Control.Monad.unless (Model.Game.isTerminated game) . Data.Maybe.maybe (
 					do
-						Control.Monad.when (verbosity > Data.Default.def && not (ContextualNotation.PositionHashQualifiedMoveTree.isTerminal positionHashQualifiedMoveTree)) . System.IO.hPutStrLn System.IO.stderr $ Text.ShowList.showsInfoPrefix "failed to find any suitable archived move."
+						Control.Monad.when (verbosity > Data.Default.def && not (ContextualNotation.PositionHashQualifiedMoveTree.isTerminal positionHashQualifiedMoveTree)) . System.IO.hPutStrLn System.IO.stderr $ Text.ShowPrefix.showsPrefixInfo "failed to find any suitable archived move."
 
 						let
 							searchResult	= Control.Monad.Reader.runReader (
@@ -281,54 +295,63 @@ readMove positionHashQualifiedMoveTree randomGen	= slave where
 
 				return {-to IO-monad-} playState	-- N.B.: though one could merely call "eventLoop", a new random-generator is desirable in case an alternative hint is requested.
 			onCommand (UI.Command.Print printObject)	= do
-				putStrLn . tellUser =<< case printObject of
-					UI.PrintObject.Board		-> return {-to IO-monad-} . show $ Model.Game.getBoard game
-					UI.PrintObject.Configuration	-> return {-to IO-monad-} $ Property.ShowFloat.showsFloatToN nDecimalDigits options "."
-					UI.PrintObject.EPD		-> return {-to IO-monad-} $ Property.ExtendedPositionDescription.showEPD game
-					UI.PrintObject.FEN		-> return {-to IO-monad-} $ Property.ForsythEdwards.showFEN game
-					UI.PrintObject.Game		-> return {-to IO-monad-} $ show game
-					UI.PrintObject.Help		-> return {-to IO-monad-} . showString "USAGE: " . showString UI.Command.printTag . showChar ' ' $ Text.ShowList.showsDelimitedList (showChar '|') (showChar '(') (showChar ')') (map shows UI.PrintObject.range) ""
-					UI.PrintObject.Moves		-> return {-to IO-monad-} $ showString (
-						showString Component.Move.tag "s"
-					 ) . Text.ShowList.showsAssociation $ Text.ShowList.showsFormattedList' (
-						Notation.MoveNotation.showsNotation moveNotation
-					 ) (
-						Model.Game.listTurnsChronologically game
-					 ) "."
-					UI.PrintObject.PGN		-> ($ "") `fmap` ContextualNotation.PGN.showsGame game
+				putStrLn . tellUser $ case printObject of
+					UI.PrintObject.Configuration	-> Property.ShowFloat.showsFloatToN nDecimalDigits options "."
+					UI.PrintObject.Help		-> showString "USAGE: " . showString UI.Command.printTag . showChar ' ' $ Text.ShowList.showsDelimitedList (showChar '|') (showChar '(') (showChar ')') (map shows UI.PrintObject.range) ""
 
 				eventLoop
 			onCommand UI.Command.Quit	= do
-				Control.Monad.when (verbosity == maxBound) . System.IO.hPutStrLn System.IO.stderr $ Text.ShowList.showsInfoPrefix "quitting on request."
+				Control.Monad.when (verbosity == maxBound) . System.IO.hPutStrLn System.IO.stderr $ Text.ShowPrefix.showsPrefixInfo "quitting on request."
 
 				return {-to IO-monad-} playState { State.PlayState.getMaybeApplicationTerminationReason = Just State.ApplicationTerminationReason.byRequest }
+			onCommand (UI.Command.Report reportObject)	= do
+				putStrLn . tellUser =<< (
+					case reportObject of
+						UI.ReportObject.AvailableMoves	-> return {-to IO-monad-} . ($ ".") . Text.ShowList.showsFormattedList (
+							showChar '|'
+						 ) (
+							Notation.MoveNotation.showsNotation moveNotation
+						 ) . Model.Game.findQualifiedMovesAvailableToNextPlayer
+						UI.ReportObject.Board			-> return {-to IO-monad-} . show . Model.Game.getBoard
+						UI.ReportObject.EPD			-> return {-to IO-monad-} . Property.ExtendedPositionDescription.showEPD
+						UI.ReportObject.FEN			-> return {-to IO-monad-} . Property.ForsythEdwards.showFEN
+						UI.ReportObject.Game			-> return {-to IO-monad-} . show
+						UI.ReportObject.MaxPositionInstances	-> return {-to IO-monad-} . show . State.InstancesByPosition.findMaximumInstances . Model.Game.getInstancesByPosition
+						UI.ReportObject.Moves			-> return {-to IO-monad-} . showString (
+							showString Component.Move.tag "s"
+						 ) . Text.ShowList.showsAssociation . ($ ".") . Text.ShowList.showsFormattedList' (
+							Notation.MoveNotation.showsNotation moveNotation
+						 ) . Model.Game.listTurnsChronologically
+						UI.ReportObject.PGN			-> fmap ($ ".") . ContextualNotation.PGN.showsGame
+						UI.ReportObject.ReversiblePlyCount	-> return {-to IO-monad-} . show . State.InstancesByPosition.countConsecutiveRepeatablePlies . Model.Game.getInstancesByPosition
+				 ) game
+
+				eventLoop
 			onCommand UI.Command.Resign	= do
-				Control.Monad.when (verbosity == maxBound) . System.IO.hPutStrLn System.IO.stderr $ Text.ShowList.showsInfoPrefix "resigning."
+				Control.Monad.when (verbosity == maxBound) . System.IO.hPutStrLn System.IO.stderr $ Text.ShowPrefix.showsPrefixInfo "resigning."
 
 				return {-to IO-monad-} $ State.PlayState.resign playState
 			onCommand UI.Command.Restart	= let
 				modeNames	= [s | (s, True) <- Input.CECPOptions.getNamedModes cecpOptions]	-- List-comprehension.
 			 in do
-				Control.Monad.when (verbosity == maxBound) . System.IO.hPutStrLn System.IO.stderr . Text.ShowList.showsInfoPrefix . showString "restarting game" $ (
+				Control.Monad.when (verbosity == maxBound) . System.IO.hPutStrLn System.IO.stderr . Text.ShowPrefix.showsPrefixInfo . showString "restarting game" $ (
 					if null modeNames
 						then id
 						else showString " & leaving " . shows modeNames
 				 ) "."
-
-				let game''	= Data.Default.def
 
 				Data.Maybe.maybe (
 					return {-to IO-monad-} ()
 				 ) (
 					\(filePath, _) -> Control.Exception.catch (
 						do
-							System.IO.withFile filePath System.IO.WriteMode (`System.IO.hPrint` game'')
+							System.IO.withFile filePath System.IO.WriteMode (`System.IO.hPrint` (Data.Default.def :: Model.Game.Game T.X T.Y))
 
-							Control.Monad.when (verbosity == maxBound) . System.IO.hPutStrLn System.IO.stderr . Text.ShowList.showsInfoPrefix . showString "the game-state has been saved in " $ shows filePath "."
-					) $ \e -> System.IO.hPutStrLn System.IO.stderr . Text.ShowList.showsErrorPrefix $ show (e :: Control.Exception.SomeException)
+							Control.Monad.when (verbosity == maxBound) . System.IO.hPutStrLn System.IO.stderr . Text.ShowPrefix.showsPrefixInfo . showString "the game-state has been saved in " $ shows filePath "."
+					) $ \e -> System.IO.hPutStrLn System.IO.stderr . Text.ShowPrefix.showsPrefixError $ show (e :: Control.Exception.SomeException)
 				 ) $ Input.IOOptions.getMaybePersistence ioOptions
 
-				return {-to IO-monad-} $ State.PlayState.reconstructPositionHashQuantifiedGameTree game'' playState {
+				return {-to IO-monad-} $ State.PlayState.resetPositionHashQuantifiedGameTree playState {
 					State.PlayState.getOptions	= options {
 						Input.Options.getIOOptions	= ioOptions {
 							Input.IOOptions.getUIOptions	= uiOptions {
@@ -338,7 +361,7 @@ readMove positionHashQualifiedMoveTree randomGen	= slave where
 					}
 				}
 			onCommand (UI.Command.RollBack maybeNPlies)	= let
-				rollBack :: Component.Move.NMoves -> IO (State.PlayState.PlayState column criterionValue criterionWeight pieceSquareValue positionHash rankValue row weightedMean x y)
+				rollBack :: Component.Move.NPlies -> IO (State.PlayState.PlayState column criterionValue criterionWeight pieceSquareValue positionHash rankValue row weightedMean x y)
 				rollBack nPlies
 					| (game', _) : _ <- drop (pred nPlies) $ Model.Game.rollBack game	= return {-to IO-monad-} $ State.PlayState.reconstructPositionHashQuantifiedGameTree game' playState
 					| otherwise								= onCommand UI.Command.Restart
@@ -346,29 +369,22 @@ readMove positionHashQualifiedMoveTree randomGen	= slave where
 				let
 					nPlies	= succ $ Data.Map.size searchDepthByLogicalColour	-- In fully manual play, rollback one ply, in semi-manual play rollback two plies.
 				in do
-					Control.Monad.when (verbosity == maxBound) . System.IO.hPutStrLn System.IO.stderr . Text.ShowList.showsInfoPrefix . showString "rolling-back " $ shows nPlies " plies."
+					Control.Monad.when (verbosity == maxBound) . System.IO.hPutStrLn System.IO.stderr . Text.ShowPrefix.showsPrefixInfo . showString "rolling-back " $ shows nPlies " plies."
 
 					rollBack nPlies
-			 ) (
-				\nPlies -> if nPlies <= 0
-					then do
-						System.IO.hPutStrLn System.IO.stderr $ Text.ShowList.showsErrorPrefix "the number of plies to rollback, must exceed zero."
-
-						eventLoop
-					else rollBack nPlies
-			 ) maybeNPlies
+			 ) rollBack maybeNPlies
 			onCommand UI.Command.Save	= do
 				Data.Maybe.maybe (
-					return {-to IO-monad-} $ Text.ShowList.showsErrorPrefix "the file-path at which to save the game, hasn't been defined."
+					return {-to IO-monad-} $ Text.ShowPrefix.showsPrefixError "the file-path at which to save the game, hasn't been defined."
 				 ) (
 					\(filePath, automatic) -> if automatic
-						then return {-to IO-monad-} $ Text.ShowList.showsWarningPrefix "the state of the game is, in accordance with configuration, saved automatically."
+						then return {-to IO-monad-} $ Text.ShowPrefix.showsPrefixWarning "the state of the game is, in accordance with configuration, saved automatically."
 						else Control.Exception.catch (
 							do
 								System.IO.withFile filePath System.IO.WriteMode (`System.IO.hPutStrLn` show game)
 
-								return {-to IO-monad-} . Text.ShowList.showsInfoPrefix . showString "the game-state has been saved in " $ shows filePath "."
-						 ) $ \e -> return {-to IO-monad-} . Text.ShowList.showsErrorPrefix $ show (e :: Control.Exception.SomeException)
+								return {-to IO-monad-} . Text.ShowPrefix.showsPrefixInfo . showString "the game-state has been saved in " $ shows filePath "."
+						 ) $ \e -> return {-to IO-monad-} . Text.ShowPrefix.showsPrefixError $ show (e :: Control.Exception.SomeException)
 				 ) (
 					Input.IOOptions.getMaybePersistence ioOptions
 				 ) >>= System.IO.hPutStrLn System.IO.stderr
@@ -376,7 +392,7 @@ readMove positionHashQualifiedMoveTree randomGen	= slave where
 				eventLoop
 			onCommand (UI.Command.Set setObject)
 				| fullyManual	= do
-					Control.Monad.when (verbosity >= Data.Default.def) . System.IO.hPutStrLn System.IO.stderr . Text.ShowList.showsWarningPrefix $ shows UI.Command.setTag " requires an automated opponent."
+					Control.Monad.when (verbosity >= Data.Default.def) . System.IO.hPutStrLn System.IO.stderr . Text.ShowPrefix.showsPrefixWarning $ shows UI.Command.setTag " requires an automated opponent."
 
 					return {-to IO-monad-} playState
 				| otherwise					= Control.Exception.catchJust (
@@ -385,7 +401,7 @@ readMove positionHashQualifiedMoveTree randomGen	= slave where
 						else Nothing
 				) (
 					do
-						Control.Monad.when (verbosity == maxBound) . System.IO.hPutStrLn System.IO.stderr . Text.ShowList.showsInfoPrefix . showString "setting " $ shows setObject "."
+						Control.Monad.when (verbosity == maxBound) . System.IO.hPutStrLn System.IO.stderr . Text.ShowPrefix.showsPrefixInfo . showString "setting " $ shows setObject "."
 
 						slave startUTCTime playState {
 							State.PlayState.getOptions	= Control.DeepSeq.force $ case setObject of
@@ -395,39 +411,39 @@ readMove positionHashQualifiedMoveTree randomGen	= slave where
 						}
 				) (
 					\s -> do
-						Control.Monad.unless (verbosity == minBound) . System.IO.hPutStrLn System.IO.stderr $ Text.ShowList.showsErrorPrefix s
+						Control.Monad.unless (verbosity == minBound) . System.IO.hPutStrLn System.IO.stderr $ Text.ShowPrefix.showsPrefixError s
 
 						eventLoop
 				)
 			onCommand UI.Command.Swap
 				| fullyManual	= do
-					Control.Monad.when (verbosity >= Data.Default.def) . System.IO.hPutStrLn System.IO.stderr . Text.ShowList.showsWarningPrefix . showString " there aren't any " $ shows Input.SearchOptions.searchDepthTag " to swap."
+					Control.Monad.when (verbosity >= Data.Default.def) . System.IO.hPutStrLn System.IO.stderr . Text.ShowPrefix.showsPrefixWarning . showString " there aren't any " $ shows Input.SearchOptions.searchDepthTag " to swap."
 
 					eventLoop
 				| otherwise						= do
-					Control.Monad.when (verbosity == maxBound) . System.IO.hPutStrLn System.IO.stderr . Text.ShowList.showsInfoPrefix . showString "swapping " $ shows Input.SearchOptions.searchDepthTag "."
+					Control.Monad.when (verbosity == maxBound) . System.IO.hPutStrLn System.IO.stderr . Text.ShowPrefix.showsPrefixInfo . showString "swapping " $ shows Input.SearchOptions.searchDepthTag "."
 
 					return {-to IO-monad-} playState { State.PlayState.getOptions = Input.Options.swapSearchDepth options }
 
 			eventLoop :: IO (State.PlayState.PlayState column criterionValue criterionWeight pieceSquareValue positionHash rankValue row weightedMean x y)
 			eventLoop	= getLine >>= \line -> do
-				Control.Monad.when (verbosity == maxBound) . System.IO.hPutStrLn System.IO.stderr . Text.ShowList.showsInfoPrefix . showString "received \"" $ showString line "\"."
+				Control.Monad.when (verbosity == maxBound) . System.IO.hPutStrLn System.IO.stderr . Text.ShowPrefix.showsPrefixInfo . showString "received \"" $ showString line "\"."
 
 				case lex line of
 					[(nullaryCommand, "")]	-> case nullaryCommand of
 						"analyze"
 							| Input.CECPFeatures.isFeatureDisabled Input.CECPFeatures.analyseTag cecpFeatures	-> do
-								Control.Monad.when (verbosity >= Data.Default.def) . System.IO.hPutStrLn System.IO.stderr . Text.ShowList.showsWarningPrefix . showString Input.CECPFeatures.featureTag . Text.ShowList.showsAssociation $ shows Input.CECPFeatures.analyseTag " disabled."
+								Control.Monad.when (verbosity >= Data.Default.def) . System.IO.hPutStrLn System.IO.stderr . Text.ShowPrefix.showsPrefixWarning . showString Input.CECPFeatures.featureTag . Text.ShowList.showsAssociation $ shows Input.CECPFeatures.analyseTag " disabled."
 
 								putStrLn $ mkUnknownCommandError line
 
 								eventLoop
 							| analyseMode	-> do
-								Control.Monad.when (verbosity >= Data.Default.def) . System.IO.hPutStrLn System.IO.stderr . Text.ShowList.showsWarningPrefix . showString "already in " $ shows Input.CECPOptions.analyseModeTag "."
+								Control.Monad.when (verbosity >= Data.Default.def) . System.IO.hPutStrLn System.IO.stderr . Text.ShowPrefix.showsPrefixWarning . showString "already in " $ shows Input.CECPOptions.analyseModeTag "."
 
 								eventLoop
 							| otherwise	-> do
-								Control.Monad.when (verbosity == maxBound) . System.IO.hPutStrLn System.IO.stderr . Text.ShowList.showsInfoPrefix . showString "entering " $ shows Input.CECPOptions.analyseModeTag "."
+								Control.Monad.when (verbosity == maxBound) . System.IO.hPutStrLn System.IO.stderr . Text.ShowPrefix.showsPrefixInfo . showString "entering " $ shows Input.CECPOptions.analyseModeTag "."
 
 								return {-to IO-monad-} playState {
 									State.PlayState.getOptions	= Input.Options.setEitherNativeUIOrCECPOptions (
@@ -436,7 +452,7 @@ readMove positionHashQualifiedMoveTree randomGen	= slave where
 								}
 						"black"
 							| Input.CECPFeatures.isFeatureDisabled Input.CECPFeatures.coloursTag cecpFeatures	-> do
-								Control.Monad.when (verbosity >= Data.Default.def) . System.IO.hPutStrLn System.IO.stderr . Text.ShowList.showsWarningPrefix . showString Input.CECPFeatures.featureTag . Text.ShowList.showsAssociation $ shows Input.CECPFeatures.coloursTag " disabled."
+								Control.Monad.when (verbosity >= Data.Default.def) . System.IO.hPutStrLn System.IO.stderr . Text.ShowPrefix.showsPrefixWarning . showString Input.CECPFeatures.featureTag . Text.ShowList.showsAssociation $ shows Input.CECPFeatures.coloursTag " disabled."
 
 								putStrLn $ mkUnknownCommandError line
 
@@ -464,7 +480,7 @@ readMove positionHashQualifiedMoveTree randomGen	= slave where
 						"draw"		-> do
 							if Input.CECPFeatures.isFeatureDisabled Input.CECPFeatures.drawTag cecpFeatures
 								then do
-									Control.Monad.when (verbosity >= Data.Default.def) . System.IO.hPutStrLn System.IO.stderr . Text.ShowList.showsWarningPrefix . showString Input.CECPFeatures.featureTag . Text.ShowList.showsAssociation $ shows Input.CECPFeatures.drawTag " disabled."
+									Control.Monad.when (verbosity >= Data.Default.def) . System.IO.hPutStrLn System.IO.stderr . Text.ShowPrefix.showsPrefixWarning . showString Input.CECPFeatures.featureTag . Text.ShowList.showsAssociation $ shows Input.CECPFeatures.drawTag " disabled."
 
 									putStrLn $ mkUnknownCommandError line
 								else putStrLn . showString offerTag $ showChar ' ' Input.CECPFeatures.drawTag	-- CAVEAT: the offer may be withdrawn before this can be accepted.
@@ -472,7 +488,7 @@ readMove positionHashQualifiedMoveTree randomGen	= slave where
 							eventLoop
 						"easy"
 							| ponderMode	-> do
-								Control.Monad.when (verbosity == maxBound) . System.IO.hPutStrLn System.IO.stderr . Text.ShowList.showsInfoPrefix . showString "leaving " $ shows Input.CECPOptions.ponderModeTag "."
+								Control.Monad.when (verbosity == maxBound) . System.IO.hPutStrLn System.IO.stderr . Text.ShowPrefix.showsPrefixInfo . showString "leaving " $ shows Input.CECPOptions.ponderModeTag "."
 
 								return {-to IO-monad-} playState {
 									State.PlayState.getOptions	= Input.Options.setEitherNativeUIOrCECPOptions (
@@ -480,16 +496,16 @@ readMove positionHashQualifiedMoveTree randomGen	= slave where
 									) options
 								}
 							| otherwise	-> do
-								Control.Monad.when (verbosity >= Data.Default.def) . System.IO.hPutStrLn System.IO.stderr . Text.ShowList.showsWarningPrefix . showString "not currently in " $ shows Input.CECPOptions.ponderModeTag "."
+								Control.Monad.when (verbosity >= Data.Default.def) . System.IO.hPutStrLn System.IO.stderr . Text.ShowPrefix.showsPrefixWarning . showString "not currently in " $ shows Input.CECPOptions.ponderModeTag "."
 
 								eventLoop
 						"edit"
 							| editMode	-> do
-								Control.Monad.when (verbosity >= Data.Default.def) . System.IO.hPutStrLn System.IO.stderr . Text.ShowList.showsWarningPrefix . showString "already in " $ shows Input.CECPOptions.editModeTag "."
+								Control.Monad.when (verbosity >= Data.Default.def) . System.IO.hPutStrLn System.IO.stderr . Text.ShowPrefix.showsPrefixWarning . showString "already in " $ shows Input.CECPOptions.editModeTag "."
 
 								eventLoop
 							| otherwise	-> do
-								Control.Monad.when (verbosity == maxBound) . System.IO.hPutStrLn System.IO.stderr . Text.ShowList.showsInfoPrefix . showString "entering " $ shows Input.CECPOptions.editModeTag "."
+								Control.Monad.when (verbosity == maxBound) . System.IO.hPutStrLn System.IO.stderr . Text.ShowPrefix.showsPrefixInfo . showString "entering " $ shows Input.CECPOptions.editModeTag "."
 
 								return {-to IO-monad-} playState {
 									State.PlayState.getOptions	= Input.Options.setEitherNativeUIOrCECPOptions (
@@ -498,7 +514,7 @@ readMove positionHashQualifiedMoveTree randomGen	= slave where
 								}
 						"exit"
 							| analyseMode	-> do
-								Control.Monad.when (verbosity == maxBound) . System.IO.hPutStrLn System.IO.stderr . Text.ShowList.showsInfoPrefix . showString "leaving " $ shows Input.CECPOptions.analyseModeTag "."
+								Control.Monad.when (verbosity == maxBound) . System.IO.hPutStrLn System.IO.stderr . Text.ShowPrefix.showsPrefixInfo . showString "leaving " $ shows Input.CECPOptions.analyseModeTag "."
 
 								return {-to IO-monad-} playState {
 									State.PlayState.getOptions	= Input.Options.setEitherNativeUIOrCECPOptions (
@@ -506,16 +522,16 @@ readMove positionHashQualifiedMoveTree randomGen	= slave where
 									) options
 								}
 							| otherwise	-> do
-								Control.Monad.when (verbosity >= Data.Default.def) . System.IO.hPutStrLn System.IO.stderr . Text.ShowList.showsWarningPrefix . showString "not currently in " $ shows Input.CECPOptions.analyseModeTag "."
+								Control.Monad.when (verbosity >= Data.Default.def) . System.IO.hPutStrLn System.IO.stderr . Text.ShowPrefix.showsPrefixWarning . showString "not currently in " $ shows Input.CECPOptions.analyseModeTag "."
 
 								eventLoop
 						"force"
 							| forceMode	-> do
-								Control.Monad.when (verbosity >= Data.Default.def) . System.IO.hPutStrLn System.IO.stderr . Text.ShowList.showsWarningPrefix . showString "already in " $ shows Input.CECPOptions.forceModeTag "."
+								Control.Monad.when (verbosity >= Data.Default.def) . System.IO.hPutStrLn System.IO.stderr . Text.ShowPrefix.showsPrefixWarning . showString "already in " $ shows Input.CECPOptions.forceModeTag "."
 
 								eventLoop
 							| otherwise	-> do
-								Control.Monad.when (verbosity == maxBound) . System.IO.hPutStrLn System.IO.stderr . Text.ShowList.showsInfoPrefix . showString "entering " $ shows Input.CECPOptions.forceModeTag "."
+								Control.Monad.when (verbosity == maxBound) . System.IO.hPutStrLn System.IO.stderr . Text.ShowPrefix.showsPrefixInfo . showString "entering " $ shows Input.CECPOptions.forceModeTag "."
 
 								return {-to IO-monad-} playState {
 									State.PlayState.getOptions	= Input.Options.setEitherNativeUIOrCECPOptions (
@@ -525,7 +541,7 @@ readMove positionHashQualifiedMoveTree randomGen	= slave where
 						"go"	-> (
 							if forceMode
 								then do
-									Control.Monad.when (verbosity == maxBound) . System.IO.hPutStrLn System.IO.stderr . Text.ShowList.showsInfoPrefix . showString "leaving " $ shows Input.CECPOptions.forceModeTag "."
+									Control.Monad.when (verbosity == maxBound) . System.IO.hPutStrLn System.IO.stderr . Text.ShowPrefix.showsPrefixInfo . showString "leaving " $ shows Input.CECPOptions.forceModeTag "."
 
 									return {-to IO-monad-} $ Input.Options.setEitherNativeUIOrCECPOptions (
 										Right cecpOptions { Input.CECPOptions.getForceMode = False }
@@ -534,7 +550,7 @@ readMove positionHashQualifiedMoveTree randomGen	= slave where
 						 ) >>= (
 							\options' -> if fullyManual
 								then do
-									Control.Monad.when (verbosity >= Data.Default.def) . System.IO.hPutStrLn System.IO.stderr . Text.ShowList.showsWarningPrefix . showString " there aren't any " $ shows Input.SearchOptions.searchDepthTag " to swap."
+									Control.Monad.when (verbosity >= Data.Default.def) . System.IO.hPutStrLn System.IO.stderr . Text.ShowPrefix.showsPrefixWarning . showString " there aren't any " $ shows Input.SearchOptions.searchDepthTag " to swap."
 
 									eventLoop
 								else let
@@ -542,17 +558,17 @@ readMove positionHashQualifiedMoveTree randomGen	= slave where
 								in if nextLogicalColour `Data.Map.member` searchDepthByLogicalColour
 									then return {-to IO-monad-} playState { State.PlayState.getOptions = options' }
 									else do
-										Control.Monad.when (verbosity == maxBound) . System.IO.hPutStrLn System.IO.stderr . Text.ShowList.showsInfoPrefix . showString "swapping to play " $ shows nextLogicalColour ", i.e. next."
+										Control.Monad.when (verbosity == maxBound) . System.IO.hPutStrLn System.IO.stderr . Text.ShowPrefix.showsPrefixInfo . showString "swapping to play " $ shows nextLogicalColour ", i.e. next."
 
 										return {-to IO-monad-} playState { State.PlayState.getOptions = Input.Options.swapSearchDepth options' }
 						 )
 						"hard"
 							| ponderMode	-> do
-								Control.Monad.when (verbosity >= Data.Default.def) . System.IO.hPutStrLn System.IO.stderr . Text.ShowList.showsWarningPrefix . showString "already in " $ shows Input.CECPOptions.ponderModeTag "."
+								Control.Monad.when (verbosity >= Data.Default.def) . System.IO.hPutStrLn System.IO.stderr . Text.ShowPrefix.showsPrefixWarning . showString "already in " $ shows Input.CECPOptions.ponderModeTag "."
 
 								eventLoop
 							| otherwise	-> do
-								Control.Monad.when (verbosity == maxBound) . System.IO.hPutStrLn System.IO.stderr . Text.ShowList.showsInfoPrefix . showString "entering " $ shows Input.CECPOptions.ponderModeTag "."
+								Control.Monad.when (verbosity == maxBound) . System.IO.hPutStrLn System.IO.stderr . Text.ShowPrefix.showsPrefixInfo . showString "entering " $ shows Input.CECPOptions.ponderModeTag "."
 
 								return {-to IO-monad-} playState {
 									State.PlayState.getOptions	= Input.Options.setEitherNativeUIOrCECPOptions (
@@ -567,13 +583,13 @@ readMove positionHashQualifiedMoveTree randomGen	= slave where
 							in if Data.Map.member engineLogicalColour . Input.SearchOptions.getSearchDepthByLogicalColour $ Input.Options.getSearchOptions options'
 								then return {-to IO-monad-} playState'
 								else do
-									Control.Monad.when (verbosity == maxBound) . System.IO.hPutStrLn System.IO.stderr . Text.ShowList.showsInfoPrefix . showString "swapping to play " $ shows engineLogicalColour "."
+									Control.Monad.when (verbosity == maxBound) . System.IO.hPutStrLn System.IO.stderr . Text.ShowPrefix.showsPrefixInfo . showString "swapping to play " $ shows engineLogicalColour "."
 
 									return {-to IO-monad-} playState { State.PlayState.getOptions = Input.Options.swapSearchDepth options' }
 						 )
 						"nopost"
 							| postMode	-> do
-								Control.Monad.when (verbosity == maxBound) . System.IO.hPutStrLn System.IO.stderr . Text.ShowList.showsInfoPrefix . showString "leaving " $ shows Input.CECPOptions.postModeTag "."
+								Control.Monad.when (verbosity == maxBound) . System.IO.hPutStrLn System.IO.stderr . Text.ShowPrefix.showsPrefixInfo . showString "leaving " $ shows Input.CECPOptions.postModeTag "."
 
 								return {-to IO-monad-} playState {
 									State.PlayState.getOptions	= Input.Options.setEitherNativeUIOrCECPOptions (
@@ -581,16 +597,16 @@ readMove positionHashQualifiedMoveTree randomGen	= slave where
 									) options
 								}
 							| otherwise	-> do
-								Control.Monad.when (verbosity >= Data.Default.def) . System.IO.hPutStrLn System.IO.stderr . Text.ShowList.showsWarningPrefix . showString "not currently in " $ shows Input.CECPOptions.postModeTag "."
+								Control.Monad.when (verbosity >= Data.Default.def) . System.IO.hPutStrLn System.IO.stderr . Text.ShowPrefix.showsPrefixWarning . showString "not currently in " $ shows Input.CECPOptions.postModeTag "."
 
 								eventLoop
 						"post"
 							| postMode	-> do
-								Control.Monad.when (verbosity >= Data.Default.def) . System.IO.hPutStrLn System.IO.stderr . Text.ShowList.showsWarningPrefix . showString "already in " $ shows Input.CECPOptions.postModeTag "."
+								Control.Monad.when (verbosity >= Data.Default.def) . System.IO.hPutStrLn System.IO.stderr . Text.ShowPrefix.showsPrefixWarning . showString "already in " $ shows Input.CECPOptions.postModeTag "."
 
 								eventLoop
 							| otherwise	-> do
-								Control.Monad.when (verbosity == maxBound) . System.IO.hPutStrLn System.IO.stderr . Text.ShowList.showsInfoPrefix . showString "entering " $ shows Input.CECPOptions.postModeTag "."
+								Control.Monad.when (verbosity == maxBound) . System.IO.hPutStrLn System.IO.stderr . Text.ShowPrefix.showsPrefixInfo . showString "entering " $ shows Input.CECPOptions.postModeTag "."
 
 								return {-to IO-monad-} playState {
 									State.PlayState.getOptions	= Input.Options.setEitherNativeUIOrCECPOptions (
@@ -603,7 +619,7 @@ readMove positionHashQualifiedMoveTree randomGen	= slave where
 						"undo"		-> onCommand . UI.Command.RollBack $ Just 1	-- N.B.: only received in force-mode.
 						"white"
 							| Input.CECPFeatures.isFeatureDisabled Input.CECPFeatures.coloursTag cecpFeatures	-> do
-								Control.Monad.when (verbosity >= Data.Default.def) . System.IO.hPutStrLn System.IO.stderr . Text.ShowList.showsWarningPrefix . showString Input.CECPFeatures.featureTag . Text.ShowList.showsAssociation $ shows Input.CECPFeatures.coloursTag " disabled."
+								Control.Monad.when (verbosity >= Data.Default.def) . System.IO.hPutStrLn System.IO.stderr . Text.ShowPrefix.showsPrefixWarning . showString Input.CECPFeatures.featureTag . Text.ShowList.showsAssociation $ shows Input.CECPFeatures.coloursTag " disabled."
 
 								putStrLn $ mkUnknownCommandError line
 
@@ -619,7 +635,7 @@ readMove positionHashQualifiedMoveTree randomGen	= slave where
 							eventLoop	-- No action required.
 						"."
 							| editMode	-> do
-								Control.Monad.when (verbosity == maxBound) . System.IO.hPutStrLn System.IO.stderr . Text.ShowList.showsInfoPrefix . showString "leaving " $ shows Input.CECPOptions.editModeTag "."
+								Control.Monad.when (verbosity == maxBound) . System.IO.hPutStrLn System.IO.stderr . Text.ShowPrefix.showsPrefixInfo . showString "leaving " $ shows Input.CECPOptions.editModeTag "."
 
 								return {-to IO-monad-} playState {
 									State.PlayState.getOptions	= Input.Options.setEitherNativeUIOrCECPOptions (
@@ -628,11 +644,11 @@ readMove positionHashQualifiedMoveTree randomGen	= slave where
 								}
 							| analyseMode	-> Control.Exception.throwIO $ Data.Exception.mkRequestFailure "BishBosh.UI.CECP.readMove.slave.eventLoop:\tunimplemented."
 							| otherwise	-> do
-								Control.Monad.when (verbosity >= Data.Default.def) . System.IO.hPutStrLn System.IO.stderr . Text.ShowList.showsWarningPrefix . showString "not currently in either " . shows Input.CECPOptions.editModeTag . showString " or " $ shows Input.CECPOptions.analyseModeTag "."
+								Control.Monad.when (verbosity >= Data.Default.def) . System.IO.hPutStrLn System.IO.stderr . Text.ShowPrefix.showsPrefixWarning . showString "not currently in either " . shows Input.CECPOptions.editModeTag . showString " or " $ shows Input.CECPOptions.analyseModeTag "."
 
 								eventLoop
 						"?"	-> do
-							Control.Monad.when (verbosity == maxBound) . System.IO.hPutStrLn System.IO.stderr $ Text.ShowList.showsWarningPrefix "unimplemented."
+							Control.Monad.when (verbosity == maxBound) . System.IO.hPutStrLn System.IO.stderr $ Text.ShowPrefix.showsPrefixWarning "unimplemented."
 
 							eventLoop
 						_
@@ -640,27 +656,27 @@ readMove positionHashQualifiedMoveTree randomGen	= slave where
 								"nps" {-nodes per second-}	-> do
 									if Input.CECPFeatures.isFeatureDisabled Input.CECPFeatures.npsTag cecpFeatures
 										then do
-											Control.Monad.when (verbosity >= Data.Default.def) . System.IO.hPutStrLn System.IO.stderr . Text.ShowList.showsWarningPrefix . showString Input.CECPFeatures.featureTag . Text.ShowList.showsAssociation $ shows Input.CECPFeatures.npsTag " disabled."
+											Control.Monad.when (verbosity >= Data.Default.def) . System.IO.hPutStrLn System.IO.stderr . Text.ShowPrefix.showsPrefixWarning . showString Input.CECPFeatures.featureTag . Text.ShowList.showsAssociation $ shows Input.CECPFeatures.npsTag " disabled."
 
 											putStrLn $ mkUnknownCommandError line
-										else Control.Monad.when (verbosity == maxBound) . System.IO.hPutStrLn System.IO.stderr $ Text.ShowList.showsWarningPrefix "unimplemented."
+										else Control.Monad.when (verbosity == maxBound) . System.IO.hPutStrLn System.IO.stderr $ Text.ShowPrefix.showsPrefixWarning "unimplemented."
 
 									eventLoop
 								"pause"
 									| Input.CECPFeatures.isFeatureDisabled Input.CECPFeatures.pauseTag cecpFeatures	-> do
-										Control.Monad.when (verbosity >= Data.Default.def) . System.IO.hPutStrLn System.IO.stderr . Text.ShowList.showsWarningPrefix . showString Input.CECPFeatures.featureTag . Text.ShowList.showsAssociation $ shows Input.CECPFeatures.pauseTag " disabled."
+										Control.Monad.when (verbosity >= Data.Default.def) . System.IO.hPutStrLn System.IO.stderr . Text.ShowPrefix.showsPrefixWarning . showString Input.CECPFeatures.featureTag . Text.ShowList.showsAssociation $ shows Input.CECPFeatures.pauseTag " disabled."
 
 										putStrLn $ mkUnknownCommandError line
 
 										eventLoop
 									| Data.Maybe.isJust maybePaused	-> do
-										Control.Monad.when (verbosity >= Data.Default.def) . System.IO.hPutStrLn System.IO.stderr . Text.ShowList.showsWarningPrefix . showString "already " $ shows Input.CECPFeatures.pauseTag "d."
+										Control.Monad.when (verbosity >= Data.Default.def) . System.IO.hPutStrLn System.IO.stderr . Text.ShowPrefix.showsPrefixWarning . showString "already " $ shows Input.CECPFeatures.pauseTag "d."
 
 										eventLoop
 									| otherwise	-> do
 										elapsedTime	<- Data.Time.measureElapsedTime startUTCTime
 
-										Control.Monad.when (verbosity == maxBound) . System.IO.hPutStrLn System.IO.stderr . Text.ShowList.showsInfoPrefix . showString "paused => stopping the clock at " $ Data.Time.showsTimeAsSeconds nDecimalDigits elapsedTime "."
+										Control.Monad.when (verbosity == maxBound) . System.IO.hPutStrLn System.IO.stderr . Text.ShowPrefix.showsPrefixInfo . showString "paused => stopping the clock at " $ Data.Time.showsTimeAsSeconds nDecimalDigits elapsedTime "."
 
 										return {-to IO-monad-} playState {
 											State.PlayState.getOptions	= Input.Options.setEitherNativeUIOrCECPOptions (
@@ -669,17 +685,17 @@ readMove positionHashQualifiedMoveTree randomGen	= slave where
 										}
 								"playother"
 									| Input.CECPFeatures.isFeatureDisabled Input.CECPFeatures.playotherTag cecpFeatures	-> do
-										Control.Monad.when (verbosity >= Data.Default.def) . System.IO.hPutStrLn System.IO.stderr . Text.ShowList.showsWarningPrefix . showString Input.CECPFeatures.featureTag . Text.ShowList.showsAssociation $ shows Input.CECPFeatures.playotherTag " disabled."
+										Control.Monad.when (verbosity >= Data.Default.def) . System.IO.hPutStrLn System.IO.stderr . Text.ShowPrefix.showsPrefixWarning . showString Input.CECPFeatures.featureTag . Text.ShowList.showsAssociation $ shows Input.CECPFeatures.playotherTag " disabled."
 
 										putStrLn $ mkUnknownCommandError line
 
 										eventLoop
 									| fullyManual	-> do
-										Control.Monad.when (verbosity >= Data.Default.def) . System.IO.hPutStrLn System.IO.stderr . Text.ShowList.showsWarningPrefix . showString " there aren't any " $ shows Input.SearchOptions.searchDepthTag " to swap."
+										Control.Monad.when (verbosity >= Data.Default.def) . System.IO.hPutStrLn System.IO.stderr . Text.ShowPrefix.showsPrefixWarning . showString " there aren't any " $ shows Input.SearchOptions.searchDepthTag " to swap."
 
 										eventLoop
 									| otherwise	-> do
-										Control.Monad.when (verbosity == maxBound) . System.IO.hPutStrLn System.IO.stderr . Text.ShowList.showsInfoPrefix . showString "leaving " . shows Input.CECPOptions.forceModeTag . showString " & swapping to play " $ shows (Model.Game.getNextLogicalColour game) ", i.e. next."
+										Control.Monad.when (verbosity == maxBound) . System.IO.hPutStrLn System.IO.stderr . Text.ShowPrefix.showsPrefixInfo . showString "leaving " . shows Input.CECPOptions.forceModeTag . showString " & swapping to play " $ shows (Model.Game.getNextLogicalColour game) ", i.e. next."
 
 										return {-to IO-monad-} playState {
 											State.PlayState.getOptions	= Input.Options.swapSearchDepth $ Input.Options.setEitherNativeUIOrCECPOptions (
@@ -692,7 +708,7 @@ readMove positionHashQualifiedMoveTree randomGen	= slave where
 									| Just timeTaken <- maybePaused	-> do
 										startUTCTime'	<- Data.Time.Clock.getCurrentTime
 
-										Control.Monad.when (verbosity == maxBound) . System.IO.hPutStrLn System.IO.stderr $ Text.ShowList.showsInfoPrefix "resuming => restarting the clock."
+										Control.Monad.when (verbosity == maxBound) . System.IO.hPutStrLn System.IO.stderr $ Text.ShowPrefix.showsPrefixInfo "resuming => restarting the clock."
 
 										slave (
 											Data.Time.Clock.addUTCTime (negate timeTaken) startUTCTime'	-- Restart the clock.
@@ -702,20 +718,20 @@ readMove positionHashQualifiedMoveTree randomGen	= slave where
 											) options
 										}
 									| otherwise		-> do
-										Control.Monad.when (verbosity >= Data.Default.def) . System.IO.hPutStrLn System.IO.stderr $ Text.ShowList.showsWarningPrefix "not currently paused."
+										Control.Monad.when (verbosity >= Data.Default.def) . System.IO.hPutStrLn System.IO.stderr $ Text.ShowPrefix.showsPrefixWarning "not currently paused."
 
 										eventLoop	-- Recurse.
 								_
 									| Input.CECPFeatures.isFeatureDisabled Input.CECPFeatures.usermoveTag cecpFeatures	-> moveCommand nullaryCommand
 									| otherwise	-> do
-										Control.Monad.when (verbosity >= Data.Default.def) . System.IO.hPutStrLn System.IO.stderr . Text.ShowList.showsWarningPrefix . showString "unrecognised unary command for " . showString protoverTag . Text.ShowList.showsAssociation . shows protocolVersion . showString "; " $ shows line "."
+										Control.Monad.when (verbosity >= Data.Default.def) . System.IO.hPutStrLn System.IO.stderr . Text.ShowPrefix.showsPrefixWarning . showString "unrecognised unary command for " . showString protoverTag . Text.ShowList.showsAssociation . shows protocolVersion . showString "; " $ shows line "."
 
 										putStrLn $ mkUnknownCommandError line
 
 										eventLoop
 							| Input.CECPFeatures.isFeatureDisabled Input.CECPFeatures.usermoveTag cecpFeatures	-> moveCommand nullaryCommand
 							| otherwise	-> do
-								Control.Monad.when (verbosity >= Data.Default.def) . System.IO.hPutStrLn System.IO.stderr . Text.ShowList.showsWarningPrefix . showString "unrecognised unary command for " . showString protoverTag . Text.ShowList.showsAssociation . shows protocolVersion . showString "; " $ shows line "."
+								Control.Monad.when (verbosity >= Data.Default.def) . System.IO.hPutStrLn System.IO.stderr . Text.ShowPrefix.showsPrefixWarning . showString "unrecognised unary command for " . showString protoverTag . Text.ShowList.showsAssociation . shows protocolVersion . showString "; " $ shows line "."
 
 								putStrLn $ mkUnknownCommandError line
 
@@ -732,61 +748,63 @@ readMove positionHashQualifiedMoveTree randomGen	= slave where
 
 							eventLoop
 						"egtpath" {-end-game table path-}	-> do
-							Control.Monad.when (verbosity == maxBound) . System.IO.hPutStrLn System.IO.stderr $ Text.ShowList.showsWarningPrefix "unimplemented."
+							Control.Monad.when (verbosity == maxBound) . System.IO.hPutStrLn System.IO.stderr $ Text.ShowPrefix.showsPrefixWarning "unimplemented."
 
 							eventLoop
 						"exclude"	-> do
-							Control.Monad.when (verbosity == maxBound) . System.IO.hPutStrLn System.IO.stderr $ Text.ShowList.showsWarningPrefix "unimplemented."
+							Control.Monad.when (verbosity == maxBound) . System.IO.hPutStrLn System.IO.stderr $ Text.ShowPrefix.showsPrefixWarning "unimplemented."
 
 							eventLoop
 						"hover"	-> do
-							Control.Monad.when (verbosity == maxBound) . System.IO.hPutStrLn System.IO.stderr $ Text.ShowList.showsWarningPrefix "unimplemented."
+							Control.Monad.when (verbosity == maxBound) . System.IO.hPutStrLn System.IO.stderr $ Text.ShowPrefix.showsPrefixWarning "unimplemented."
 
 							eventLoop
 						"include"	-> do
-							Control.Monad.when (verbosity == maxBound) . System.IO.hPutStrLn System.IO.stderr $ Text.ShowList.showsWarningPrefix "unimplemented."
+							Control.Monad.when (verbosity == maxBound) . System.IO.hPutStrLn System.IO.stderr $ Text.ShowPrefix.showsPrefixWarning "unimplemented."
 
 							eventLoop
 						"level"	-> do
-							Control.Monad.when (verbosity == maxBound) . System.IO.hPutStrLn System.IO.stderr $ Text.ShowList.showsWarningPrefix "unimplemented."
+							Control.Monad.when (verbosity == maxBound) . System.IO.hPutStrLn System.IO.stderr $ Text.ShowPrefix.showsPrefixWarning "unimplemented."
 
 							eventLoop
 						"lift"	-> do
-							Control.Monad.when (verbosity == maxBound) . System.IO.hPutStrLn System.IO.stderr $ Text.ShowList.showsWarningPrefix "unimplemented."
+							Control.Monad.when (verbosity == maxBound) . System.IO.hPutStrLn System.IO.stderr $ Text.ShowPrefix.showsPrefixWarning "unimplemented."
 
 							eventLoop
 						"memory"	-> do
-							Control.Monad.when (verbosity == maxBound) . System.IO.hPutStrLn System.IO.stderr $ Text.ShowList.showsWarningPrefix "unimplemented."
+							Control.Monad.when (verbosity == maxBound) . System.IO.hPutStrLn System.IO.stderr $ Text.ShowPrefix.showsPrefixWarning "unimplemented."
 
 							eventLoop
 						"name"	-> do
 							Control.Monad.when (Input.CECPFeatures.isFeatureDisabled Input.CECPFeatures.nameTag cecpFeatures) $ do
-								Control.Monad.when (verbosity >= Data.Default.def) . System.IO.hPutStrLn System.IO.stderr . Text.ShowList.showsWarningPrefix . showString Input.CECPFeatures.featureTag . Text.ShowList.showsAssociation $ shows Input.CECPFeatures.nameTag " disabled."
+								Control.Monad.when (verbosity >= Data.Default.def) . System.IO.hPutStrLn System.IO.stderr . Text.ShowPrefix.showsPrefixWarning . showString Input.CECPFeatures.featureTag . Text.ShowList.showsAssociation $ shows Input.CECPFeatures.nameTag " disabled."
 
 								putStrLn $ mkUnknownCommandError line
 
 							eventLoop	-- No action required.
 						"option"	-> case lex arg' of
-							[("print", '=' : arg'')]	-> onCommand . UI.Command.Print $ case reads arg'' of
-								[(printObject, "")]	-> printObject
-								_			-> UI.PrintObject.Help
+							[("print", '=' : arg'')]	-> onCommand $ case reads {- $ UI.PrintObject.autoComplete -} arg'' of
+								[(printObject, "")]	-> UI.Command.Print printObject
+								_			-> case reads {- $ UI.ReportObject.autoComplete -} arg'' of
+									[(reportObject, "")]	-> UI.Command.Report reportObject
+									_			-> UI.Command.Print UI.PrintObject.Help
 							[("set", arg'')]	-> case lex arg'' of
 								[("searchDepth", '=' : arg''')]	-> case reads arg''' of
 									[(searchDepth, "")]	-> onCommand . UI.Command.Set $ UI.SetObject.mkSearchDepth searchDepth
 									_			-> do
-										Control.Monad.unless (verbosity == minBound) . System.IO.hPutStrLn System.IO.stderr . Text.ShowList.showsErrorPrefix . showString "failed to parse " . shows Input.SearchOptions.searchDepthTag . showString " from " $ shows arg''' "."
+										Control.Monad.unless (verbosity == minBound) . System.IO.hPutStrLn System.IO.stderr . Text.ShowPrefix.showsPrefixError . showString "failed to parse " . shows Input.SearchOptions.searchDepthTag . showString " from " $ shows arg''' "."
 
 										putStrLn $ mkParseFailureError line
 
 										eventLoop
 								_				-> do
-									Control.Monad.unless (verbosity == minBound) . System.IO.hPutStrLn System.IO.stderr . Text.ShowList.showsErrorPrefix . showString "failed to parse set-" . shows Input.CECPFeatures.optionTag . showString " from " $ shows arg'' "."
+									Control.Monad.unless (verbosity == minBound) . System.IO.hPutStrLn System.IO.stderr . Text.ShowPrefix.showsPrefixError . showString "failed to parse set-" . shows Input.CECPFeatures.optionTag . showString " from " $ shows arg'' "."
 
 									putStrLn $ mkParseFailureError line
 
 									eventLoop
 							_				-> do
-								Control.Monad.unless (verbosity == minBound) . System.IO.hPutStrLn System.IO.stderr . Text.ShowList.showsErrorPrefix . showString "failed to parse " . shows Input.CECPFeatures.optionTag . showString " from " $ shows arg' "."
+								Control.Monad.unless (verbosity == minBound) . System.IO.hPutStrLn System.IO.stderr . Text.ShowPrefix.showsPrefixError . showString "failed to parse " . shows Input.CECPFeatures.optionTag . showString " from " $ shows arg' "."
 
 								putStrLn $ mkParseFailureError line
 
@@ -794,10 +812,10 @@ readMove positionHashQualifiedMoveTree randomGen	= slave where
 						"otim" {-opponent's time-}	-> do
 							if Input.CECPFeatures.isFeatureDisabled Input.CECPFeatures.timeTag cecpFeatures
 								then do
-									Control.Monad.when (verbosity >= Data.Default.def) . System.IO.hPutStrLn System.IO.stderr . Text.ShowList.showsWarningPrefix . showString Input.CECPFeatures.featureTag . Text.ShowList.showsAssociation $ shows Input.CECPFeatures.timeTag " disabled."
+									Control.Monad.when (verbosity >= Data.Default.def) . System.IO.hPutStrLn System.IO.stderr . Text.ShowPrefix.showsPrefixWarning . showString Input.CECPFeatures.featureTag . Text.ShowList.showsAssociation $ shows Input.CECPFeatures.timeTag " disabled."
 
 									putStrLn $ mkUnknownCommandError line
-								else Control.Monad.when (verbosity == maxBound) . System.IO.hPutStrLn System.IO.stderr $ Text.ShowList.showsWarningPrefix "unimplemented."
+								else Control.Monad.when (verbosity == maxBound) . System.IO.hPutStrLn System.IO.stderr $ Text.ShowPrefix.showsPrefixWarning "unimplemented."
 
 							eventLoop
 						"protover"	-> do
@@ -832,7 +850,7 @@ readMove positionHashQualifiedMoveTree randomGen	= slave where
 								}
 								_				-> Control.Exception.throwIO . Data.Exception.mkParseFailure . showString "BishBosh.UI.CECP.readMove.slave.eventLoop:\tfailed to parse " . shows Input.CECPOptions.protocolVersionTag . showString " from " $ shows arg' "."
 						"put"	-> do
-							Control.Monad.when (verbosity == maxBound) . System.IO.hPutStrLn System.IO.stderr $ Text.ShowList.showsWarningPrefix "unimplemented."
+							Control.Monad.when (verbosity == maxBound) . System.IO.hPutStrLn System.IO.stderr $ Text.ShowPrefix.showsPrefixWarning "unimplemented."
 
 							eventLoop
 						"rating"	-> eventLoop
@@ -841,7 +859,7 @@ readMove positionHashQualifiedMoveTree randomGen	= slave where
 								Model.Game.updateTerminationReasonWith result game
 							 ) playState
 							_			-> do
-								Control.Monad.unless (verbosity == minBound) . System.IO.hPutStrLn System.IO.stderr $ Text.ShowList.showsErrorPrefix "failed to parse argument to result."
+								Control.Monad.unless (verbosity == minBound) . System.IO.hPutStrLn System.IO.stderr $ Text.ShowPrefix.showsPrefixError "failed to parse argument to result."
 
 								putStrLn $ mkParseFailureError line
 
@@ -849,26 +867,26 @@ readMove positionHashQualifiedMoveTree randomGen	= slave where
 						"sd" {-set depth-}	-> case reads arg' of
 							[(searchDepth, "")]	-> onCommand . UI.Command.Set $ UI.SetObject.mkSearchDepth searchDepth
 							_			-> do
-								Control.Monad.unless (verbosity == minBound) . System.IO.hPutStrLn System.IO.stderr . Text.ShowList.showsErrorPrefix . showString "failed to parse " . shows Input.SearchOptions.searchDepthTag . showString " from " $ shows arg' "."
+								Control.Monad.unless (verbosity == minBound) . System.IO.hPutStrLn System.IO.stderr . Text.ShowPrefix.showsPrefixError . showString "failed to parse " . shows Input.SearchOptions.searchDepthTag . showString " from " $ shows arg' "."
 
 								putStrLn $ mkParseFailureError line
 
 								eventLoop
 						"setscore"	-> do
-							Control.Monad.when (verbosity == maxBound) . System.IO.hPutStrLn System.IO.stderr $ Text.ShowList.showsWarningPrefix "unimplemented."
+							Control.Monad.when (verbosity == maxBound) . System.IO.hPutStrLn System.IO.stderr $ Text.ShowPrefix.showsPrefixWarning "unimplemented."
 
 							eventLoop
 						"st" {-set time-}	-> do
-							Control.Monad.when (verbosity == maxBound) . System.IO.hPutStrLn System.IO.stderr $ Text.ShowList.showsWarningPrefix "unimplemented."
+							Control.Monad.when (verbosity == maxBound) . System.IO.hPutStrLn System.IO.stderr $ Text.ShowPrefix.showsPrefixWarning "unimplemented."
 
 							eventLoop
 						"time"	-> do
 							if Input.CECPFeatures.isFeatureDisabled Input.CECPFeatures.timeTag cecpFeatures
 								then do
-									Control.Monad.when (verbosity >= Data.Default.def) . System.IO.hPutStrLn System.IO.stderr . Text.ShowList.showsWarningPrefix . showString Input.CECPFeatures.featureTag . Text.ShowList.showsAssociation $ shows Input.CECPFeatures.timeTag " disabled."
+									Control.Monad.when (verbosity >= Data.Default.def) . System.IO.hPutStrLn System.IO.stderr . Text.ShowPrefix.showsPrefixWarning . showString Input.CECPFeatures.featureTag . Text.ShowList.showsAssociation $ shows Input.CECPFeatures.timeTag " disabled."
 
 									putStrLn $ mkUnknownCommandError line
-								else Control.Monad.when (verbosity == maxBound) . System.IO.hPutStrLn System.IO.stderr $ Text.ShowList.showsWarningPrefix "unimplemented."
+								else Control.Monad.when (verbosity == maxBound) . System.IO.hPutStrLn System.IO.stderr $ Text.ShowPrefix.showsPrefixWarning "unimplemented."
 
 							eventLoop
 						"variant"	-> do
@@ -878,22 +896,22 @@ readMove positionHashQualifiedMoveTree randomGen	= slave where
 						_
 							| protocolVersion > 1	-> case command of
 								"accepted"	-> do
-									Control.Monad.when (verbosity == maxBound) . System.IO.hPutStrLn System.IO.stderr . Text.ShowList.showsInfoPrefix . showString Input.CECPFeatures.featureTag . Text.ShowList.showsAssociation $ shows arg' " accepted."
+									Control.Monad.when (verbosity == maxBound) . System.IO.hPutStrLn System.IO.stderr . Text.ShowPrefix.showsPrefixInfo . showString Input.CECPFeatures.featureTag . Text.ShowList.showsAssociation $ shows arg' " accepted."
 
 									eventLoop
 								"ics" {-internet chess-server-}	-> do
 									if Input.CECPFeatures.isFeatureDisabled Input.CECPFeatures.icsTag cecpFeatures
 										then do
-											Control.Monad.when (verbosity >= Data.Default.def) . System.IO.hPutStrLn System.IO.stderr . Text.ShowList.showsWarningPrefix . showString Input.CECPFeatures.featureTag . Text.ShowList.showsAssociation $ shows Input.CECPFeatures.icsTag " disabled."
+											Control.Monad.when (verbosity >= Data.Default.def) . System.IO.hPutStrLn System.IO.stderr . Text.ShowPrefix.showsPrefixWarning . showString Input.CECPFeatures.featureTag . Text.ShowList.showsAssociation $ shows Input.CECPFeatures.icsTag " disabled."
 
 											putStrLn $ mkUnknownCommandError line
-										else Control.Monad.when (arg' == "-") . System.IO.hPutStrLn System.IO.stderr $ Text.ShowList.showsInfoPrefix "opponent is local."
+										else Control.Monad.when (arg' == "-") . System.IO.hPutStrLn System.IO.stderr $ Text.ShowPrefix.showsPrefixInfo "opponent is local."
 
 									eventLoop
 								"ping"	-> do
 									if Input.CECPFeatures.isFeatureDisabled Input.CECPFeatures.pingTag cecpFeatures
 										then do
-											Control.Monad.when (verbosity >= Data.Default.def) . System.IO.hPutStrLn System.IO.stderr . Text.ShowList.showsWarningPrefix . showString Input.CECPFeatures.featureTag . Text.ShowList.showsAssociation $ shows Input.CECPFeatures.pingTag " disabled."
+											Control.Monad.when (verbosity >= Data.Default.def) . System.IO.hPutStrLn System.IO.stderr . Text.ShowPrefix.showsPrefixWarning . showString Input.CECPFeatures.featureTag . Text.ShowList.showsAssociation $ shows Input.CECPFeatures.pingTag " disabled."
 
 											putStrLn $ mkUnknownCommandError line
 										else putStrLn $ showString pongTag arg
@@ -902,7 +920,7 @@ readMove positionHashQualifiedMoveTree randomGen	= slave where
 								"rejected"	-> case lex arg' of	-- Any rejection of a String-valued feature because of its syntax, includes the argument.
 									[(featureName, "")]
 										| Just value	<- featureName `lookup` Input.CECPFeatures.getFeatures cecpFeatures	-> do
-											Control.Monad.when (verbosity >= Data.Default.def) . System.IO.hPutStrLn System.IO.stderr . Text.ShowList.showsWarningPrefix . showString Input.CECPFeatures.featureTag . Text.ShowList.showsAssociation $ shows arg' " rejected."
+											Control.Monad.when (verbosity >= Data.Default.def) . System.IO.hPutStrLn System.IO.stderr . Text.ShowPrefix.showsPrefixWarning . showString Input.CECPFeatures.featureTag . Text.ShowList.showsAssociation $ shows arg' " rejected."
 
 											slave startUTCTime playState {
 												State.PlayState.getOptions	= either (
@@ -916,11 +934,11 @@ readMove positionHashQualifiedMoveTree randomGen	= slave where
 												) value options
 											}
 										| otherwise	-> do
-											Control.Monad.when (verbosity >= Data.Default.def) . System.IO.hPutStrLn System.IO.stderr . Text.ShowList.showsWarningPrefix . showString "rejected " . showString Input.CECPFeatures.featureTag . Text.ShowList.showsAssociation $ shows arg' " unrecognised."
+											Control.Monad.when (verbosity >= Data.Default.def) . System.IO.hPutStrLn System.IO.stderr . Text.ShowPrefix.showsPrefixWarning . showString "rejected " . showString Input.CECPFeatures.featureTag . Text.ShowList.showsAssociation $ shows arg' " unrecognised."
 
 											eventLoop
 									[(featureName, stringArg)]	-> do
-										Control.Monad.when (verbosity >= Data.Default.def) . System.IO.hPutStrLn System.IO.stderr . Text.ShowList.showsWarningPrefix . showString Input.CECPFeatures.featureTag . Text.ShowList.showsAssociation $ shows arg' " rejected because of syntax."
+										Control.Monad.when (verbosity >= Data.Default.def) . System.IO.hPutStrLn System.IO.stderr . Text.ShowPrefix.showsPrefixWarning . showString Input.CECPFeatures.featureTag . Text.ShowList.showsAssociation $ shows arg' " rejected because of syntax."
 
 										slave startUTCTime playState {
 											State.PlayState.getOptions	= options {
@@ -933,7 +951,7 @@ readMove positionHashQualifiedMoveTree randomGen	= slave where
 									_	-> eventLoop
 								"setboard"
 									| Input.CECPFeatures.isFeatureDisabled Input.CECPFeatures.setboardTag cecpFeatures	-> do
-										Control.Monad.when (verbosity >= Data.Default.def) . System.IO.hPutStrLn System.IO.stderr . Text.ShowList.showsWarningPrefix . showString Input.CECPFeatures.featureTag . Text.ShowList.showsAssociation $ shows Input.CECPFeatures.setboardTag " disabled."
+										Control.Monad.when (verbosity >= Data.Default.def) . System.IO.hPutStrLn System.IO.stderr . Text.ShowPrefix.showsPrefixWarning . showString Input.CECPFeatures.featureTag . Text.ShowList.showsAssociation $ shows Input.CECPFeatures.setboardTag " disabled."
 
 										putStrLn $ mkUnknownCommandError line
 
@@ -946,14 +964,14 @@ readMove positionHashQualifiedMoveTree randomGen	= slave where
 										case Property.ForsythEdwards.readsFEN arg' of
 											[(game', _)]	-> return {-to IO-monad-} $ State.PlayState.reconstructPositionHashQuantifiedGameTree game' playState
 											_		-> do
-												Control.Monad.when (verbosity >= Data.Default.def) . System.IO.hPutStrLn System.IO.stderr $ Text.ShowList.showsErrorPrefix "parse-failure."
+												Control.Monad.when (verbosity >= Data.Default.def) . System.IO.hPutStrLn System.IO.stderr $ Text.ShowPrefix.showsPrefixError "parse-failure."
 
 												putStrLn $ mkParseFailureError line
 
 												eventLoop
 									) (
 										\s -> do
-											Control.Monad.unless (verbosity == minBound) . System.IO.hPutStrLn System.IO.stderr $ Text.ShowList.showsErrorPrefix s
+											Control.Monad.unless (verbosity == minBound) . System.IO.hPutStrLn System.IO.stderr $ Text.ShowPrefix.showsPrefixError s
 
 											putStrLn $ mkParseFailureError s
 
@@ -961,7 +979,7 @@ readMove positionHashQualifiedMoveTree randomGen	= slave where
 									)
 								"usermove"
 									| Input.CECPFeatures.isFeatureDisabled Input.CECPFeatures.usermoveTag cecpFeatures	-> do
-										Control.Monad.when (verbosity >= Data.Default.def) . System.IO.hPutStrLn System.IO.stderr . Text.ShowList.showsWarningPrefix . showString Input.CECPFeatures.featureTag . Text.ShowList.showsAssociation $ shows Input.CECPFeatures.usermoveTag " disabled."
+										Control.Monad.when (verbosity >= Data.Default.def) . System.IO.hPutStrLn System.IO.stderr . Text.ShowPrefix.showsPrefixWarning . showString Input.CECPFeatures.featureTag . Text.ShowList.showsAssociation $ shows Input.CECPFeatures.usermoveTag " disabled."
 
 										putStrLn $ mkUnknownCommandError line
 
@@ -972,13 +990,13 @@ readMove positionHashQualifiedMoveTree randomGen	= slave where
 
 									eventLoop
 							| otherwise	-> do
-								Control.Monad.when (verbosity >= Data.Default.def) . System.IO.hPutStrLn System.IO.stderr . Text.ShowList.showsWarningPrefix . showString "unrecognised command for " . showString protoverTag . Text.ShowList.showsAssociation . shows protocolVersion . showString "; " $ shows (line, command, arg') "."
+								Control.Monad.when (verbosity >= Data.Default.def) . System.IO.hPutStrLn System.IO.stderr . Text.ShowPrefix.showsPrefixWarning . showString "unrecognised command for " . showString protoverTag . Text.ShowList.showsAssociation . shows protocolVersion . showString "; " $ shows (line, command, arg') "."
 
 								putStrLn $ mkUnknownCommandError line
 
 								eventLoop
 					_	-> do
-						Control.Monad.when (verbosity >= Data.Default.def) . System.IO.hPutStrLn System.IO.stderr . Text.ShowList.showsWarningPrefix . showString "unrecognised command for " . showString protoverTag . Text.ShowList.showsAssociation . shows protocolVersion . showString "; " $ shows line "."
+						Control.Monad.when (verbosity >= Data.Default.def) . System.IO.hPutStrLn System.IO.stderr . Text.ShowPrefix.showsPrefixWarning . showString "unrecognised command for " . showString protoverTag . Text.ShowList.showsAssociation . shows protocolVersion . showString "; " $ shows line "."
 
 						putStrLn $ mkUnknownCommandError line
 
@@ -1000,7 +1018,7 @@ readMove positionHashQualifiedMoveTree randomGen	= slave where
 					moveCommand moveString	= case Notation.MoveNotation.readsQualifiedMove moveNotation moveString of
 						[(eitherQualifiedMove, "")]
 							| Just errorMessage <- Model.Game.validateEitherQualifiedMove eitherQualifiedMove game	-> do
-								Control.Monad.unless (verbosity == minBound) . System.IO.hPutStrLn System.IO.stderr . Text.ShowList.showsErrorPrefix . shows moveString . showString " is illegal; " $ shows errorMessage "."
+								Control.Monad.unless (verbosity == minBound) . System.IO.hPutStrLn System.IO.stderr . Text.ShowPrefix.showsPrefixError . shows moveString . showString " is illegal; " $ shows errorMessage "."
 
 								putStrLn $ mkIllegalMoveMessage errorMessage moveString
 
@@ -1015,7 +1033,7 @@ readMove positionHashQualifiedMoveTree randomGen	= slave where
 									playState'	= State.PlayState.updateWithManualMove game' playState
 
 								Control.Monad.when (verbosity == maxBound) $ do
-									System.IO.hPutStrLn System.IO.stderr . Text.ShowList.showsInfoPrefix . showString Component.Move.tag . Text.ShowList.showsAssociation . shows (
+									System.IO.hPutStrLn System.IO.stderr . Text.ShowPrefix.showsPrefixInfo . showString Component.Move.tag . Text.ShowList.showsAssociation . shows (
 										Notation.MoveNotation.showNotation moveNotation . Data.Maybe.fromMaybe (
 											Control.Exception.throw $ Data.Exception.mkResultUndefined "BishBosh.UI.CECP.readMove.onCommand.moveCommand:\tModel.Game.maybeLastTurn failed."
 										) $ Model.Game.maybeLastTurn game'
@@ -1023,7 +1041,7 @@ readMove positionHashQualifiedMoveTree randomGen	= slave where
 
 									case ContextualNotation.PositionHashQualifiedMoveTree.findNextOnymousQualifiedMovesForPosition game' positionHashQualifiedMoveTree of
 										[]			-> return ()
-										onymousQualifiedMoves	-> System.IO.hPutStrLn System.IO.stderr . Text.ShowList.showsInfoPrefix . showString "matches archived game(s):" $ ContextualNotation.QualifiedMoveForest.showsNames (
+										onymousQualifiedMoves	-> System.IO.hPutStrLn System.IO.stderr . Text.ShowPrefix.showsPrefixInfo . showString "matches archived game(s):" $ ContextualNotation.QualifiedMoveForest.showsNames (
 											Input.IOOptions.getMaybeMaximumPGNNames ioOptions
 										 ) (
 											concatMap (
@@ -1033,13 +1051,13 @@ readMove positionHashQualifiedMoveTree randomGen	= slave where
 
 								return {-to IO-monad-} playState'	-- It's now the other player's move.
 						[(_, remainder)]	-> do
-							Control.Monad.unless (verbosity == minBound) . System.IO.hPutStrLn System.IO.stderr . Text.ShowList.showsErrorPrefix . showString "the specified " . showString Component.Move.tag . showString " was correctly formatted, but was followed by unexpected text" . Text.ShowList.showsAssociation $ shows remainder "."
+							Control.Monad.unless (verbosity == minBound) . System.IO.hPutStrLn System.IO.stderr . Text.ShowPrefix.showsPrefixError . showString "the specified " . showString Component.Move.tag . showString " was correctly formatted, but was followed by unexpected text" . Text.ShowList.showsAssociation $ shows remainder "."
 
 							putStrLn $ mkTooManyParametersError moveString
 
 							eventLoop	-- Recurse.
 						_ {-no parse-}		-> do
-							Control.Monad.unless (null moveString || verbosity == minBound) . System.IO.hPutStrLn System.IO.stderr . Text.ShowList.showsErrorPrefix . shows moveString . showString " /~ " $ Notation.MoveNotation.showsMoveSyntax moveNotation "."	-- CAVEAT: this error also results from source == destination.
+							Control.Monad.unless (null moveString || verbosity == minBound) . System.IO.hPutStrLn System.IO.stderr . Text.ShowPrefix.showsPrefixError . shows moveString . showString " /~ " $ Notation.MoveNotation.showsMoveSyntax moveNotation "."	-- CAVEAT: this error also results from source == destination.
 
 							putStrLn $ mkIllegalMoveMessage "parse-failure" moveString
 
@@ -1049,34 +1067,40 @@ readMove positionHashQualifiedMoveTree randomGen	= slave where
 
 -- | Plays the game.
 takeTurns :: forall column criterionValue criterionWeight pieceSquareValue positionHash randomGen rankValue row weightedMean x y. (
-	Control.DeepSeq.NFData	column,
-	Control.DeepSeq.NFData	criterionWeight,
-	Control.DeepSeq.NFData	pieceSquareValue,
-	Control.DeepSeq.NFData	rankValue,
-	Control.DeepSeq.NFData	row,
-	Control.DeepSeq.NFData	weightedMean,
-	Control.DeepSeq.NFData	x,
-	Control.DeepSeq.NFData	y,
-	Data.Array.IArray.Ix	x,
-	Data.Bits.Bits		positionHash,
-	Fractional		criterionValue,
-	Fractional		pieceSquareValue,
-	Fractional		rankValue,
-	Fractional		weightedMean,
-	Integral		x,
-	Integral		y,
-	Ord			positionHash,
-	Real			criterionValue,
-	Real			criterionWeight,
-	Real			pieceSquareValue,
-	Real			rankValue,
-	Real			weightedMean,
-	Show			column,
-	Show			pieceSquareValue,
-	Show			row,
-	Show			x,
-	Show			y,
-	System.Random.RandomGen	randomGen
+	Control.DeepSeq.NFData					column,
+#ifdef USE_PARALLEL
+	Control.DeepSeq.NFData					criterionValue,
+#endif
+	Control.DeepSeq.NFData					criterionWeight,
+	Control.DeepSeq.NFData					pieceSquareValue,
+	Control.DeepSeq.NFData					rankValue,
+	Control.DeepSeq.NFData					row,
+	Control.DeepSeq.NFData					weightedMean,
+	Control.DeepSeq.NFData					x,
+	Control.DeepSeq.NFData					y,
+	Data.Array.IArray.Ix					x,
+#ifdef USE_UNBOXED_ARRAYS
+	Data.Array.Unboxed.IArray Data.Array.Unboxed.UArray	pieceSquareValue,	-- Requires 'FlexibleContexts'. The unboxed representation of the array-element must be defined (& therefore must be of fixed size).
+#endif
+	Data.Bits.Bits						positionHash,
+	Fractional						criterionValue,
+	Fractional						pieceSquareValue,
+	Fractional						rankValue,
+	Fractional						weightedMean,
+	Integral						x,
+	Integral						y,
+	Ord							positionHash,
+	Real							criterionValue,
+	Real							criterionWeight,
+	Real							pieceSquareValue,
+	Real							rankValue,
+	Real							weightedMean,
+	Show							column,
+	Show							pieceSquareValue,
+	Show							row,
+	Show							x,
+	Show							y,
+	System.Random.RandomGen					randomGen
  )
 	=> ContextualNotation.PositionHashQualifiedMoveTree.PositionHashQualifiedMoveTree x y positionHash
 	-> randomGen
@@ -1084,18 +1108,15 @@ takeTurns :: forall column criterionValue criterionWeight pieceSquareValue posit
 	-> IO (State.PlayState.PlayState column criterionValue criterionWeight pieceSquareValue positionHash rankValue row weightedMean x y)
 {-# SPECIALISE takeTurns :: (
 	Control.DeepSeq.NFData	column,
-	Control.DeepSeq.NFData	rankValue,
 	Control.DeepSeq.NFData	row,
-	Fractional		rankValue,
-	Real			rankValue,
 	Show			column,
 	Show			row,
 	System.Random.RandomGen	randomGen
  )
 	=> ContextualNotation.PositionHashQualifiedMoveTree.PositionHashQualifiedMoveTree T.X T.Y T.PositionHash
 	-> randomGen
-	-> State.PlayState.PlayState column T.CriterionValue T.CriterionWeight T.PieceSquareValue T.PositionHash rankValue row T.WeightedMean T.X T.Y
-	-> IO (State.PlayState.PlayState column T.CriterionValue T.CriterionWeight T.PieceSquareValue T.PositionHash rankValue row T.WeightedMean T.X T.Y)
+	-> State.PlayState.PlayState column T.CriterionValue T.CriterionWeight T.PieceSquareValue T.PositionHash T.RankValue row T.WeightedMean T.X T.Y
+	-> IO (State.PlayState.PlayState column T.CriterionValue T.CriterionWeight T.PieceSquareValue T.PositionHash T.RankValue row T.WeightedMean T.X T.Y)
  #-}
 takeTurns positionHashQualifiedMoveTree randomGen playState	= do
 	mVar	<- Control.Concurrent.newEmptyMVar
@@ -1113,15 +1134,19 @@ takeTurns positionHashQualifiedMoveTree randomGen playState	= do
 		nDecimalDigits	= Input.UIOptions.getNDecimalDigits uiOptions
 		verbosity	= Input.UIOptions.getVerbosity uiOptions
 
-		slave :: Maybe (Concurrent.Pondering.Pondering (Component.Move.Move x y)) -> Maybe Component.Move.NMoves -> [randomGen] -> State.PlayState.PlayState column criterionValue criterionWeight pieceSquareValue positionHash rankValue row weightedMean x y -> IO (State.PlayState.PlayState column criterionValue criterionWeight pieceSquareValue positionHash rankValue row weightedMean x y)
+		slave
+			:: Maybe (Concurrent.Pondering.Pondering (Component.Move.Move x y))
+			-> Maybe Component.Move.NPlies
+			-> [randomGen]
+			-> State.PlayState.PlayState column criterionValue criterionWeight pieceSquareValue positionHash rankValue row weightedMean x y
+			-> IO (State.PlayState.PlayState column criterionValue criterionWeight pieceSquareValue positionHash rankValue row weightedMean x y)
 		slave maybePondering maybeMaximumPlies ~(randomGen' : randomGens) playState'	= let
-			(game', options')		= State.PlayState.getGame &&& State.PlayState.getOptions $ playState'
-			searchOptions'			= Input.Options.getSearchOptions options'
-			uiOptions'			= Input.IOOptions.getUIOptions $ Input.Options.getIOOptions options'
-			cecpOptions'			= either (
+			(game', (searchOptions', uiOptions'))	= State.PlayState.getGame &&& (Input.Options.getSearchOptions &&& Input.IOOptions.getUIOptions . Input.Options.getIOOptions) . State.PlayState.getOptions $ playState'	-- Deconstruct.
+			(ponderMode, isPostMode)		= either (
 				const . Control.Exception.throw $ Data.Exception.mkIncompatibleData "BishBosh.UI.CECP.takeTurns.slave:\tunexpectedly found 'NativeUIOptions'."
-			 ) id $ Input.UIOptions.getEitherNativeUIOrCECPOptions uiOptions'
-			(ponderMode, isPostMode)	= Input.CECPOptions.getPonderMode &&& Input.CECPOptions.getPostMode $ cecpOptions'
+			 ) (
+				Input.CECPOptions.getPonderMode &&& Input.CECPOptions.getPostMode
+			 ) $ Input.UIOptions.getEitherNativeUIOrCECPOptions uiOptions'
 		 in Data.Maybe.maybe (
 			do
 				startUTCTime	<- Data.Time.Clock.getCurrentTime
@@ -1130,16 +1155,16 @@ takeTurns positionHashQualifiedMoveTree randomGen playState	= do
 					do
 						playState''	<- readMove positionHashQualifiedMoveTree randomGen' startUTCTime playState'	-- Read the user's command or move.
 
-						(,) playState'' `fmap` if playState' `State.PlayState.hasMorePlies` playState''
-							then {-rolled-back-} do
-								Data.Maybe.maybe (
-									return {-to IO-monad-} ()
-								 ) (
-									\Concurrent.Pondering.MkPondering { Concurrent.Pondering.getThreadId = threadId } -> Concurrent.Pondering.abort mVar threadId >>= Control.Monad.when (verbosity == maxBound) . System.IO.hPutStrLn System.IO.stderr . Text.ShowList.showsInfoPrefix . showString "pondering invalidated by roll-back => "
-								 ) maybePondering
+						(,) playState'' `fmap` (
+							if playState' `State.PlayState.hasMorePlies` playState''
+								then {-rolled-back-} Data.Maybe.maybe (
+									return {-to IO-monad-} Nothing
+								) $ \pondering -> do
+									Concurrent.Pondering.abort mVar pondering >>= Control.Monad.when (verbosity == maxBound) . System.IO.hPutStrLn System.IO.stderr . Text.ShowPrefix.showsPrefixInfo . showString "pondering invalidated by roll-back => "
 
-								return {-to IO-monad-} Nothing
-							else return {-to IO-monad-} maybePondering
+									return {-to IO-monad-} Nothing	-- Pondering has been terminated.
+								else return {-to IO-monad-}
+						 ) maybePondering
 				 ) (
 					\searchDepth' -> Data.Maybe.maybe (
 						do
@@ -1147,37 +1172,36 @@ takeTurns positionHashQualifiedMoveTree randomGen playState	= do
 								verbosity > Data.Default.def && not (
 									ContextualNotation.PositionHashQualifiedMoveTree.isTerminal positionHashQualifiedMoveTree
 								)
-							 ) . System.IO.hPutStrLn System.IO.stderr $ Text.ShowList.showsInfoPrefix "failed to find any suitable archived move."
+							 ) . System.IO.hPutStrLn System.IO.stderr $ Text.ShowPrefix.showsPrefixInfo "failed to find any suitable archived move."
 
 							let
 								search ss	= Control.Monad.Reader.runReader (Search.Search.search searchDepth' ss) searchOptions'
 								searchResult	= search $ State.PlayState.getSearchState playState'
 
 							Data.Maybe.maybe (
-								return {-to IO-monad-} searchResult
+								return {-to IO-monad-} searchResult	-- Pondering hasn't been configured, so the search must be evaluated.
 							 ) (
-								\Concurrent.Pondering.MkPondering {
-									Concurrent.Pondering.getPremise		= movePremise,
-									Concurrent.Pondering.getThreadId	= threadId
-								} -> if Data.Maybe.maybe False ((== movePremise) . Component.QualifiedMove.getMove . Component.Turn.getQualifiedMove) $ Model.Game.maybeLastTurn game'
+								\pondering -> if Data.Maybe.maybe False (
+									(== Concurrent.Pondering.getPremise pondering) . Component.QualifiedMove.getMove . Component.Turn.getQualifiedMove
+								) $ Model.Game.maybeLastTurn game'	-- Confirm whether the pondering initiated at the start of the opponent's turn, was founded on the move they eventually made.
 									then do
-										Control.Monad.when (verbosity == maxBound) . System.IO.hPutStrLn System.IO.stderr . Text.ShowList.showsInfoPrefix . showString "move-premise validated => waiting on " $ shows threadId "."
+										Control.Monad.when (verbosity == maxBound) . System.IO.hPutStrLn System.IO.stderr $ Text.ShowPrefix.showsPrefixInfo "move-premise validated => waiting."
 
-										Control.Concurrent.takeMVar mVar
+										Control.Concurrent.takeMVar mVar	-- Blocking read, while the pondering terminates.
 									else do
-										Concurrent.Pondering.abort mVar threadId >>= Control.Monad.when (verbosity == maxBound) . System.IO.hPutStrLn System.IO.stderr . Text.ShowList.showsInfoPrefix . showString "pondering invalidated by incorrect move-premise => "
+										Concurrent.Pondering.abort mVar pondering >>= Control.Monad.when (verbosity == maxBound) . System.IO.hPutStrLn System.IO.stderr . Text.ShowPrefix.showsPrefixInfo . showString "pondering invalidated by incorrect move-premise => "
 
-										return {-to IO-monad-} searchResult
+										return {-to IO-monad-} searchResult	-- Pondering wasn't well-founded, so the search must be evaluated.
 							 ) maybePondering >>= (
 								\searchResult' -> let
 									searchState'	= Search.Search.getSearchState searchResult'
 								in case Search.Search.getQuantifiedGames searchResult' of
-									quantifiedGames@(quantifiedGame : continuation)	-> let
+									quantifiedGames@(quantifiedGame : continuation {-optimal move-sequence-})	-> let
 										bestTurn	= Evaluation.QuantifiedGame.getLastTurn quantifiedGame
 									 in do
 										elapsedTime	<- bestTurn `seq` Data.Time.measureElapsedTime startUTCTime
 
-										Control.Monad.when (verbosity > Data.Default.def) . System.IO.hPutStrLn System.IO.stderr . Text.ShowList.showsInfoPrefix . (
+										Control.Monad.when (verbosity > Data.Default.def) . System.IO.hPutStrLn System.IO.stderr . Text.ShowPrefix.showsPrefixInfo . (
 											if verbosity == maxBound
 												then Property.ShowFloat.showsFloatToN nDecimalDigits (
 													Control.Monad.Reader.runReader (
@@ -1190,7 +1214,7 @@ takeTurns positionHashQualifiedMoveTree randomGen playState	= do
 										Control.Monad.when isPostMode . putStrLn $ showsThinking searchDepth' evaluationOptions (
 											Evaluation.QuantifiedGame.getFitness $ last quantifiedGames
 										 ) elapsedTime (
-											Search.Search.getNMovesEvaluated searchResult'
+											Search.Search.getNPliesEvaluated searchResult'
 										 ) (
 											Text.ShowList.showsDelimitedList (
 												showChar ' '
@@ -1215,15 +1239,11 @@ takeTurns positionHashQualifiedMoveTree randomGen playState	= do
 											) searchState' playState'
 										 ) `fmap` if ponderMode && Input.SearchOptions.getUsePondering searchOptions
 											then case continuation of
-												quantifiedGame' : _	-> let
-													turnPremise	= Evaluation.QuantifiedGame.getLastTurn quantifiedGame'
-												 in fmap Just . (
+												quantifiedGame' {-1st move after ours in optimal move-sequence-} : _	-> fmap Just . (
 													\positionHashQuantifiedGameTree'' -> Concurrent.Pondering.ponder (
-														Control.Monad.when (verbosity == maxBound) . System.IO.hPutStrLn System.IO.stderr . Text.ShowList.showsInfoPrefix
+														Control.Monad.when (verbosity == maxBound) . System.IO.hPutStrLn System.IO.stderr . Text.ShowPrefix.showsPrefixInfo
 													) (
-														Component.QualifiedMove.getMove $ Component.Turn.getQualifiedMove turnPremise
-													) (
-														showString "move-premise" . Text.ShowList.showsAssociation $ Notation.MoveNotation.showsNotation moveNotation turnPremise "."
+														showString "move-premise" . Text.ShowList.showsAssociation . ($ ".") . Notation.MoveNotation.showsNotation moveNotation &&& Component.QualifiedMove.getMove . Component.Turn.getQualifiedMove $ Evaluation.QuantifiedGame.getLastTurn quantifiedGame'
 													) (
 														search searchState' { Search.SearchState.getPositionHashQuantifiedGameTree = positionHashQuantifiedGameTree'' }
 													) mVar
@@ -1234,7 +1254,7 @@ takeTurns positionHashQualifiedMoveTree randomGen playState	= do
 												 ) $ Search.SearchState.getPositionHashQuantifiedGameTree searchState'
 												_		-> return {-to IO-monad-} Nothing
 											else return {-to IO-monad-} Nothing
-									_	-> Control.Exception.throwIO . Data.Exception.mkRequestFailure . showString "BishBosh.UI.CECP.takeTurns.slave:\tunexpectedly failed to find any moves; " $ shows game' "."	-- A gameTerminationReason should have been defined.
+									_	-> Control.Exception.throwIO . Data.Exception.mkRequestFailure . showString "BishBosh.UI.CECP.takeTurns.slave:\tunexpectedly failed to find any future moves; " $ shows game' "."	-- A gameTerminationReason should have been defined.
 							 )
 					 ) (
 						\(qualifiedMove, names) -> do
@@ -1243,16 +1263,16 @@ takeTurns positionHashQualifiedMoveTree randomGen playState	= do
 							Data.Maybe.maybe (
 								return {-to IO-monad-} ()
 							 ) (
-								\Concurrent.Pondering.MkPondering { Concurrent.Pondering.getThreadId = threadId } -> Concurrent.Pondering.abort mVar threadId >>= Control.Monad.when (verbosity == maxBound) . System.IO.hPutStrLn System.IO.stderr . Text.ShowList.showsInfoPrefix . showString "pondering pre-empted by standard-opening match => "
+								Concurrent.Pondering.abort mVar >=> Control.Monad.when (verbosity == maxBound) . System.IO.hPutStrLn System.IO.stderr . Text.ShowPrefix.showsPrefixInfo . showString "pondering pre-empted by standard-opening match => "
 							 ) maybePondering
 
 							let selectedGame	= Model.Game.applyQualifiedMove qualifiedMove game'
 
-							Control.Monad.when (verbosity == maxBound) . System.IO.hPutStrLn System.IO.stderr . Text.ShowList.showsInfoPrefix . showString "selected " . Notation.MoveNotation.showsNotation moveNotation qualifiedMove . showString " from:" . ContextualNotation.QualifiedMoveForest.showsNames maybeMaximumPGNNames names . showString "\n\tin " $ Data.Time.showsTimeAsSeconds nDecimalDigits elapsedTime "."
+							Control.Monad.when (verbosity == maxBound) . System.IO.hPutStrLn System.IO.stderr . Text.ShowPrefix.showsPrefixInfo . showString "selected " . Notation.MoveNotation.showsNotation moveNotation qualifiedMove . showString " from:" . ContextualNotation.QualifiedMoveForest.showsNames maybeMaximumPGNNames names . showString "\n\tin " $ Data.Time.showsTimeAsSeconds nDecimalDigits elapsedTime "."
 
 							Control.Monad.when isPostMode . putStrLn $ showsThinking searchDepth' evaluationOptions (0 :: weightedMean) elapsedTime 0 (
 								Data.List.intercalate (
-									".\n" ++ replicate 4 ' '	-- Continuations must be preceded by at least 4 spaces.
+									showString ".\n" $ replicate 4 ' '	-- Continuations must be preceded by at least 4 spaces.
 								) $ Data.Maybe.maybe names (`take` names) maybeMaximumPGNNames
 							 ) "."
 
@@ -1261,7 +1281,7 @@ takeTurns positionHashQualifiedMoveTree randomGen playState	= do
 							return {-to IO-monad-} (State.PlayState.updateWithManualMove selectedGame playState', Nothing)	-- N.B.: one could ponder, but would have to construct a game-tree, & the chance of a subsequent standard-opening move is high.
 					 ) $ ContextualNotation.PositionHashQualifiedMoveTree.maybeRandomlySelectOnymousQualifiedMove randomGen' (
 						Input.StandardOpeningOptions.getMatchSwitches $ Input.SearchOptions.getStandardOpeningOptions searchOptions
-					 ) game' positionHashQualifiedMoveTree
+					 ) game' positionHashQualifiedMoveTree	-- Determine whether the automated player's move can be decided by a search of recorded games or we must decide ourself.
 				 ) (
 					if Input.UIOptions.isCECPManualMode uiOptions'
 						then Nothing
@@ -1275,7 +1295,7 @@ takeTurns positionHashQualifiedMoveTree randomGen playState	= do
 								game''	= State.PlayState.getGame playState''
 							in Control.Monad.when automatic . Control.Exception.catch (
 								System.IO.withFile filePath System.IO.WriteMode (`System.IO.hPrint` game'')
-							) $ \e -> System.IO.hPutStrLn System.IO.stderr . Text.ShowList.showsErrorPrefix $ show (e :: Control.Exception.SomeException)
+							) $ \e -> System.IO.hPutStrLn System.IO.stderr . Text.ShowPrefix.showsPrefixError $ show (e :: Control.Exception.SomeException)
 						 ) $ Input.IOOptions.getMaybePersistence ioOptions
 
 						if State.PlayState.hasApplicationTerminationBeenRequested playState''
@@ -1296,7 +1316,7 @@ takeTurns positionHashQualifiedMoveTree randomGen playState	= do
 
 				Control.Monad.when (
 					verbosity == maxBound && not (null criterionValueStatistics)
-				 ) . System.IO.hPutStrLn System.IO.stderr . Text.ShowList.showsInfoPrefix . showString "mean & standard-deviation of criterion-values" . Text.ShowList.showsAssociation $ Text.ShowList.showsFormattedList' (
+				 ) . System.IO.hPutStrLn System.IO.stderr . Text.ShowPrefix.showsPrefixInfo . showString "mean & standard-deviation of criterion-values" . Text.ShowList.showsAssociation $ Text.ShowList.showsFormattedList' (
 					\(mean, standardDeviation) -> showChar '(' . showsFloat mean . Text.ShowList.showsSeparator . showsFloat standardDeviation . showChar ')'
 				 ) criterionValueStatistics "."
 

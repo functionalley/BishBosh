@@ -1,3 +1,4 @@
+{-# LANGUAGE LambdaCase #-}
 {-
 	Copyright (C) 2018 Dr. Alistair Ward
 
@@ -19,7 +20,7 @@
 {- |
  [@AUTHOR@]	Dr. Alistair Ward
 
- [@DESCRIPTION@]	Defines the things a user can print.
+ [@DESCRIPTION@]	Defines the static data a user can request at runtime.
 -}
 
 module BishBosh.UI.PrintObject (
@@ -27,116 +28,58 @@ module BishBosh.UI.PrintObject (
 -- ** Data-types
 	PrintObject(..),
 -- * Constants
-	boardTag,
 	configurationTag,
-	epdTag,
-	fenTag,
-	gameTag,
 	helpTag,
-	movesTag,
-	pgnTag,
 	range,
 -- * Functions
 	autoComplete
  ) where
 
+import qualified	BishBosh.Property.FixedMembership	as Property.FixedMembership
+import qualified	BishBosh.Text.AutoComplete		as Text.AutoComplete
 import qualified	Control.Arrow
 import qualified	Control.DeepSeq
-import qualified	Data.Char
-import qualified	Data.List
 import qualified	Data.List.Extra
-
--- | Input-format.
-boardTag :: String
-boardTag		= "board"
 
 -- | Input-format.
 configurationTag :: String
 configurationTag	= "configuration"
 
 -- | Input-format.
-epdTag :: String
-epdTag			= "epd"
-
--- | Input-format.
-fenTag :: String
-fenTag			= "fen"
-
--- | Input-format.
-gameTag :: String
-gameTag			= "game"
-
--- | Input-format.
 helpTag :: String
 helpTag			= "help"
 
--- | Input-format.
-movesTag :: String
-movesTag		= "moves"
-
--- | Input-format.
-pgnTag :: String
-pgnTag			= "pgn"
-
--- | The type of an object that the user may want to be printed.
+-- | A sum-type of objects a user may want to print at runtime.
 data PrintObject
-	= Board
-	| Configuration
-	| EPD
-	| FEN
-	| Game
+	= Configuration
 	| Help
-	| Moves
-	| PGN
 	deriving Eq
 
 instance Control.DeepSeq.NFData PrintObject where
 	rnf _	= ()
 
 instance Show PrintObject where
-	showsPrec _ printObject	= showString $ case printObject of
-		Board		-> boardTag
+	showsPrec _	= showString . \case
 		Configuration	-> configurationTag
-		EPD		-> epdTag
-		FEN		-> fenTag
-		Game		-> gameTag
 		Help		-> helpTag
-		Moves		-> movesTag
-		PGN		-> pgnTag
 
 instance Read PrintObject where
 	readsPrec _ s	= case Control.Arrow.first Data.List.Extra.lower `map` lex s of
-		[("board", remainder)]		-> [(Board, remainder)]
 		[("configuration", remainder)]	-> [(Configuration, remainder)]
-		[("epd", remainder)]		-> [(EPD, remainder)]
-		[("fen", remainder)]		-> [(FEN, remainder)]
-		[("game", remainder)]		-> [(Game, remainder)]
 		[("help", remainder)]		-> [(Help, remainder)]
-		[("moves", remainder)]		-> [(Moves, remainder)]
-		[("pgn", remainder)]		-> [(PGN, remainder)]
 		_				-> []	-- No parse.
 
--- | The constant unordered list of possible values.
+-- | The constant list of possible values.
 range :: [PrintObject]
-range	= [Board, Configuration, EPD, FEN, Game, Help, Moves, PGN]
+range	= [Configuration, Help]
 
--- | Replace the first word of the specified string with the name of a command of which it is an unambiguous case-insensitive prefix.
+instance Property.FixedMembership.FixedMembership PrintObject where
+	members	= range
+
+-- | Replace the first word of the specified string with the name of the object to print, of which it is an unambiguous case-insensitive prefix.
 autoComplete :: ShowS
-autoComplete	= uncurry (++) . Control.Arrow.first (
-	\word -> case [
-		tag |
-			tag	<- [
-				boardTag,
-				configurationTag,
-				epdTag,
-				fenTag,
-				gameTag,
-				helpTag,
-				movesTag
-			],
-			Data.List.Extra.lower word `Data.List.isPrefixOf` Data.List.Extra.lower tag
-	] of
-		[tag]	-> tag
-		_	-> word
- ) . break Data.Char.isSpace . Data.List.Extra.trimStart
+autoComplete	= Text.AutoComplete.autoComplete [
+	configurationTag,
+	helpTag
+ ]
 

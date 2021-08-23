@@ -29,13 +29,14 @@ module BishBosh.Test.QuickCheck.UI.PrintObject (
 ) where
 
 import			Control.Arrow((&&&))
-import qualified	BishBosh.UI.PrintObject		as UI.PrintObject
+import qualified	BishBosh.Property.FixedMembership	as Property.FixedMembership
+import qualified	BishBosh.UI.PrintObject			as UI.PrintObject
 import qualified	Data.Char
 import qualified	Test.QuickCheck
 import qualified	ToolShed.Test.ReversibleIO
 
 instance Test.QuickCheck.Arbitrary UI.PrintObject.PrintObject where
-	arbitrary	= Test.QuickCheck.elements UI.PrintObject.range
+	arbitrary	= Test.QuickCheck.elements Property.FixedMembership.members
 
 -- | The constant test-results for this data-type.
 results :: IO [Test.QuickCheck.Result]

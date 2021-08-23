@@ -29,15 +29,16 @@ module BishBosh.Test.QuickCheck.Attribute.Direction(
 ) where
 
 import			Control.Arrow((&&&))
-import qualified	BishBosh.Attribute.Direction	as Attribute.Direction
-import qualified	BishBosh.Property.Opposable	as Property.Opposable
-import qualified	BishBosh.Property.Orientated	as Property.Orientated
-import qualified	BishBosh.Property.Reflectable	as Property.Reflectable
+import qualified	BishBosh.Attribute.Direction		as Attribute.Direction
+import qualified	BishBosh.Property.FixedMembership	as Property.FixedMembership
+import qualified	BishBosh.Property.Opposable		as Property.Opposable
+import qualified	BishBosh.Property.Orientated		as Property.Orientated
+import qualified	BishBosh.Property.Reflectable		as Property.Reflectable
 import qualified	Test.QuickCheck
 import qualified	ToolShed.Test.ReversibleIO
 
 instance Test.QuickCheck.Arbitrary Attribute.Direction.Direction where
-	arbitrary	= Test.QuickCheck.elements Attribute.Direction.range
+	arbitrary	= Test.QuickCheck.elements Property.FixedMembership.members
 
 -- | The constant test-results for this data-type.
 results :: IO [Test.QuickCheck.Result]

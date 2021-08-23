@@ -28,12 +28,17 @@ module BishBosh.Test.QuickCheck.Attribute.Rank(
 	results
 ) where
 
-import qualified	BishBosh.Attribute.Rank	as Attribute.Rank
+import			Control.Arrow((&&&))
+import qualified	BishBosh.Attribute.Rank			as Attribute.Rank
+import qualified	BishBosh.Property.FixedMembership	as Property.FixedMembership
+import qualified	Data.List
+import qualified	System.Random
 import qualified	Test.QuickCheck
+import qualified	ToolShed.System.Random
 import qualified	ToolShed.Test.ReversibleIO
 
 instance Test.QuickCheck.Arbitrary Attribute.Rank.Rank where
-	arbitrary	= Test.QuickCheck.elements Attribute.Rank.range
+	arbitrary	= Test.QuickCheck.elements Property.FixedMembership.members
 
 -- | The constant test-results for this data-type.
 results :: IO [Test.QuickCheck.Result]
@@ -51,6 +56,13 @@ results	= sequence [
 	let
 		f :: Attribute.Rank.Rank -> String -> Test.QuickCheck.Property
 		f rank	= Test.QuickCheck.label "Rank.prop_readTrailingGarbage" . ToolShed.Test.ReversibleIO.readTrailingGarbage (const False) rank
-	in Test.QuickCheck.quickCheckWithResult Test.QuickCheck.stdArgs { Test.QuickCheck.maxSuccess = 256 } f
+	in Test.QuickCheck.quickCheckWithResult Test.QuickCheck.stdArgs { Test.QuickCheck.maxSuccess = 256 } f,
+	let
+		f :: Int -> [Attribute.Rank.Rank] -> Test.QuickCheck.Property
+		f seed	= Test.QuickCheck.label "Rank.prop_findUndefinedRanks" . uncurry (==) . (
+			findOrderedUndefined &&& findOrderedUndefined . ToolShed.System.Random.shuffle (System.Random.mkStdGen seed)
+		 ) where
+			findOrderedUndefined	= Data.List.sort . Attribute.Rank.findUndefinedRanks
+	in Test.QuickCheck.quickCheckWithResult Test.QuickCheck.stdArgs { Test.QuickCheck.maxSuccess = 16 } f
  ]
 

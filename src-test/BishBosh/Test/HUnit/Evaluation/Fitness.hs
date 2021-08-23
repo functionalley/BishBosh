@@ -31,21 +31,22 @@ module BishBosh.Test.HUnit.Evaluation.Fitness(
 ) where
 
 import			Control.Arrow((&&&))
-import qualified	BishBosh.Attribute.CriterionValue		as Attribute.CriterionValue
-import qualified	BishBosh.Attribute.LogicalColour		as Attribute.LogicalColour
-import qualified	BishBosh.Cartesian.Coordinates			as Cartesian.Coordinates
-import qualified	BishBosh.Component.Move				as Component.Move
-import qualified	BishBosh.Component.Piece			as Component.Piece
-import qualified	BishBosh.Data.Exception				as Data.Exception
-import qualified	BishBosh.Evaluation.Fitness			as Evaluation.Fitness
-import qualified	BishBosh.Model.Game				as Model.Game
-import qualified	BishBosh.Notation.MoveNotation			as Notation.MoveNotation
-import qualified	BishBosh.State.Board				as State.Board
-import qualified	BishBosh.State.CoordinatesByRankByLogicalColour	as State.CoordinatesByRankByLogicalColour
-import qualified	BishBosh.Test.HUnit.Model.Game			as Test.HUnit.Model.Game
-import qualified	BishBosh.Test.HUnit.State.Board			as Test.HUnit.State.Board
-import qualified	BishBosh.Text.ShowList				as Text.ShowList
-import qualified	BishBosh.Types					as T
+import qualified	BishBosh.Attribute.CriterionValue	as Attribute.CriterionValue
+import qualified	BishBosh.Attribute.LogicalColour	as Attribute.LogicalColour
+import qualified	BishBosh.Cartesian.Coordinates		as Cartesian.Coordinates
+import qualified	BishBosh.Component.Move			as Component.Move
+import qualified	BishBosh.Component.Piece		as Component.Piece
+import qualified	BishBosh.Data.Exception			as Data.Exception
+import qualified	BishBosh.Evaluation.Fitness		as Evaluation.Fitness
+import qualified	BishBosh.Model.Game			as Model.Game
+import qualified	BishBosh.Notation.MoveNotation		as Notation.MoveNotation
+import qualified	BishBosh.State.Board			as State.Board
+import qualified	BishBosh.StateProperty.Mutator		as StateProperty.Mutator
+import qualified	BishBosh.StateProperty.Seeker		as StateProperty.Seeker
+import qualified	BishBosh.Test.HUnit.Model.Game		as Test.HUnit.Model.Game
+import qualified	BishBosh.Test.HUnit.State.Board		as Test.HUnit.State.Board
+import qualified	BishBosh.Text.ShowList			as Text.ShowList
+import qualified	BishBosh.Types				as T
 import qualified	Control.Exception
 import qualified	Data.Default
 import qualified	Test.HUnit
@@ -144,9 +145,9 @@ testCases	= Test.HUnit.test [
 	),
 	"'BishBosh.Evaluation.Fitness.measureValueOfDefence' failed for default board." ~: Evaluation.Fitness.measureValueOfDefence (
 		Model.Game.fromBoard . uncurry (
-			foldr $ \(coordinates, _) -> State.Board.removePiece coordinates
+			foldr $ \(coordinates, _) -> StateProperty.Mutator.removePiece coordinates
 		) $ (
-			id &&& State.CoordinatesByRankByLogicalColour.findPieces (
+			id &&& StateProperty.Seeker.findPieces (
 				not . uncurry (||) . (Component.Piece.isBlack &&& Component.Piece.isKing)
 			) . State.Board.getCoordinatesByRankByLogicalColour
 		) (

@@ -25,6 +25,7 @@
 module BishBosh.Search.KillerMoves (
 -- * Types
 -- ** Type-synonyms
+--	NInstancesByNPliesByKeyByLogicalColour,
 	Transformation,
 -- ** Data-types
 	KillerMoves(),
@@ -42,73 +43,78 @@ import qualified	BishBosh.Property.Empty			as Property.Empty
 import qualified	BishBosh.Search.EphemeralData		as Search.EphemeralData
 import qualified	Data.Array.IArray
 import qualified	Data.Foldable
-import qualified	Data.IntMap
+import qualified	Data.IntMap.Strict
 import qualified	Data.List
 import qualified	Data.Map
-import qualified	Data.Map.Strict
 import qualified	Data.Maybe
 
 {- |
-	* Used to contain the number of instances of each killer-move (a quiet move which triggered beta-cutoff),
-	indexed by the logical-colour of the player making the move & the number of plies into the game, at which it occurred.
-
-	* These data can be used to advance the evaluation of identical sibling moves, in the hope of achieving beta-cutoff sooner.
+	Used to contain the number of instances of each killer-move (a quiet move which triggered beta-cutoff),
+	indexed by the number of plies into the game, at which it occurred,
+	a key containing the killer-move,
+	& the logical colour of the player making the move.
 -}
-newtype KillerMoves killerMove	= MkKillerMoves {
-	deconstruct	:: Attribute.LogicalColour.ByLogicalColour (
-		Data.Map.Map killerMove (
-			Data.IntMap.IntMap {-by NPlies-} Component.Move.NMoves
-		)
+type NInstancesByNPliesByKeyByLogicalColour killerMoveKey	= Attribute.LogicalColour.ArrayByLogicalColour (
+	Data.Map.Map killerMoveKey (
+		Data.IntMap.Strict.IntMap Component.Move.NPlies
 	)
+ )
+
+-- | Data which can be used to advance the evaluation of identical sibling moves, in the hope of achieving beta-cutoff sooner.
+newtype KillerMoves killerMoveKey	= MkKillerMoves {
+	deconstruct	:: NInstancesByNPliesByKeyByLogicalColour killerMoveKey
 }
 
-instance Property.Empty.Empty (KillerMoves killerMove) where
-	empty	= MkKillerMoves . Attribute.LogicalColour.listArrayByLogicalColour $ repeat Data.Map.empty
+instance Property.Empty.Empty (KillerMoves killerMoveKey) where
+	empty	= MkKillerMoves . Attribute.LogicalColour.listArrayByLogicalColour $ repeat Property.Empty.empty
 
-instance Search.EphemeralData.EphemeralData (KillerMoves killerMove) where
-	getSize MkKillerMoves { deconstruct = nInstancesByKeyByNPliesByLogicalColour }	= Data.Foldable.foldl' (
-		Data.Map.foldl' $ Data.IntMap.foldl' (+)
-	 ) 0 nInstancesByKeyByNPliesByLogicalColour
+instance Search.EphemeralData.EphemeralData (KillerMoves killerMoveKey) where
+	getSize MkKillerMoves { deconstruct = nInstancesByNPliesByKeyByLogicalColour }	= Data.Foldable.foldl' (
+		Data.Map.foldl' $ Data.IntMap.Strict.foldl' (+)
+	 ) 0 nInstancesByNPliesByKeyByLogicalColour
 
-	euthanise nPlies killerMoves@MkKillerMoves { deconstruct = nInstancesByKeyByNPliesByLogicalColour }
+	euthanise nPlies killerMoves@MkKillerMoves { deconstruct = nInstancesByNPliesByKeyByLogicalColour }
 		| nPlies <= 0	= killerMoves	-- This might occur at the start of the game, because the caller subtracts a fixed value from the current number of plies.
 		| otherwise	= MkKillerMoves $ Data.Array.IArray.amap (
 			Data.Map.mapMaybe $ \m -> let
-				m'	= Data.IntMap.filterWithKey (\nPlies' _ -> nPlies' > nPlies) m
-			in if Data.IntMap.null m'
+				m'	= Data.IntMap.Strict.filterWithKey (\nPlies' _ -> nPlies' > nPlies) m
+			in if Data.IntMap.Strict.null m'
 				then Nothing
 				else Just m'
-		) nInstancesByKeyByNPliesByLogicalColour
+		) nInstancesByNPliesByKeyByLogicalColour
 
 -- | The type of a function which transforms a collection of killer-moves.
-type Transformation killerMove	= KillerMoves killerMove -> KillerMoves killerMove
+type Transformation killerMoveKey	= KillerMoves killerMoveKey -> KillerMoves killerMoveKey
 
 -- | Insert a killer-move.
 insert
-	:: Ord killerMove
+	:: Ord killerMoveKey
 	=> Component.Move.NPlies	-- ^ The total number of plies applied to the game.
-	-> killerMove
-	-> Transformation killerMove
-insert nPlies killerMove MkKillerMoves { deconstruct = nInstancesByKeyByNPliesByLogicalColour }	= MkKillerMoves $ nInstancesByKeyByNPliesByLogicalColour // [
-	id &&& Data.Map.Strict.insertWith (
-		Data.IntMap.unionWith (+)
-	) killerMove (
-		Data.IntMap.singleton nPlies 1
-	) . (nInstancesByKeyByNPliesByLogicalColour !) $ if even nPlies
+	-> killerMoveKey
+	-> Transformation killerMoveKey
+insert nPlies killerMoveKey MkKillerMoves { deconstruct = nInstancesByNPliesByKeyByLogicalColour }	= MkKillerMoves $ nInstancesByNPliesByKeyByLogicalColour // [
+	id &&& Data.Map.insertWith (
+		Data.IntMap.Strict.unionWith (+)
+	) killerMoveKey (
+		Data.IntMap.Strict.singleton nPlies 1
+	) . (
+		nInstancesByNPliesByKeyByLogicalColour !
+	) $ if even nPlies
 		then Attribute.LogicalColour.Black
 		else Attribute.LogicalColour.White	-- White makes the first move.
  ] -- Singleton.
 
 -- | Sorts an arbitrary list using the History-heuristic; <https://www.chessprogramming.org/History_Heuristic>.
 sortByHistoryHeuristic
-	:: Ord killerMove
+	:: Ord killerMoveKey
 	=> Attribute.LogicalColour.LogicalColour
-	-> (a -> killerMove)	-- ^ Constructor.
-	-> KillerMoves killerMove
+	-> (a -> killerMoveKey)	-- ^ Key-constructor.
+	-> KillerMoves killerMoveKey
 	-> [a]
 	-> [a]
-sortByHistoryHeuristic logicalColour killerMoveConstructor MkKillerMoves { deconstruct = nInstancesByNPliesByKeyByLogicalColour }	= Data.List.sortOn $ Data.Maybe.maybe 0 (
-	negate {-largest first-} . Data.IntMap.foldl' (+) 0
+{-# INLINABLE sortByHistoryHeuristic #-}
+sortByHistoryHeuristic logicalColour killerMoveKeyConstructor MkKillerMoves { deconstruct = nInstancesByNPliesByKeyByLogicalColour }	= Data.List.sortOn $ Data.Maybe.maybe 0 (
+	negate {-largest first-} . Data.IntMap.Strict.foldl' (+) 0
  ) . (
 	`Data.Map.lookup` (nInstancesByNPliesByKeyByLogicalColour ! logicalColour)
- ) . killerMoveConstructor
+ ) . killerMoveKeyConstructor

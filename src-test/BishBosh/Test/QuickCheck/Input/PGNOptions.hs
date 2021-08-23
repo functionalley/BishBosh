@@ -34,9 +34,11 @@ import			System.FilePath((</>), (<.>))
 instance Test.QuickCheck.Arbitrary Input.PGNOptions.PGNOptions where
 	arbitrary	= Input.PGNOptions.mkPGNOptions (
 		showChar System.FilePath.pathSeparator $ "tmp" </> "database" <.> "pgn"
-	 ) <$> Test.QuickCheck.arbitrary {-isStrictlySequential-} <*> Test.QuickCheck.arbitrary {-validateMoves-} <*> Test.QuickCheck.arbitrary {-text-encoding-} <*> Test.QuickCheck.elements [
+	 ) <$> (
+		Test.QuickCheck.elements . (Nothing :) . map Just $ words "bzcat lzcat xzcat zcat"	-- Decompressor.
+	 ) <*> Test.QuickCheck.arbitrary {-isStrictlySequential-} <*> Test.QuickCheck.arbitrary {-validateMoves-} <*> Test.QuickCheck.arbitrary {-text-encoding-} <*> Test.QuickCheck.elements [
 		["FICSGamesDBGameNo"],
 		["ECO"],
 		["FICSGamesDBGameNo", "ECO"]
-	 ] <*> fmap (`mod` 128) Test.QuickCheck.arbitrary
+	 ] <*> fmap (`mod` 128) Test.QuickCheck.arbitrary {-minimumPlies-} <*> Test.QuickCheck.elements (Nothing : map Just [1 .. 10]) {-maybeMaximumGames-}
 

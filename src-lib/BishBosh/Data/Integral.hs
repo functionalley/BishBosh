@@ -20,7 +20,7 @@
 {- |
  [@AUTHOR@]	Dr. Alistair Ward
 
- [@DESCRIPTION@]
+ [@DESCRIPTION@]	Arbitrary operations for integral types.
 -}
 
 module BishBosh.Data.Integral(
@@ -60,8 +60,7 @@ instance HXT.XmlPickler Data.Word.Word where
 
 	* N.B. ignores any leading zeroes.
 
-	* CAVEAT: 'Data.Char.digitToInt' throws an exception if it receives a character which isn't a digit.
-
+	* CAVEAT: intolerant to any white-space or a leading sign-character; 'Data.Char.digitToInt' throws an exception if it receives a character which isn't a digit.
 -}
 stringToUnsignedDecimal :: Num i => String -> i
 stringToUnsignedDecimal	= fromIntegral . Data.List.foldl' (\i -> (+ 10 * i) . Data.Char.digitToInt) 0

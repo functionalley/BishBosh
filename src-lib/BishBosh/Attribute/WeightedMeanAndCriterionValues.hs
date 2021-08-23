@@ -51,10 +51,10 @@ criterionValuesTag	= "criterion-values"
 weightedMeanTag :: String
 weightedMeanTag		= "weighted-mean"
 
--- | A /weighted mean/ & the individual unweighted criterion-value from which it was composed.
+-- | A /weighted mean/ & the individual unweighted criterion-values from which it was composed.
 data WeightedMeanAndCriterionValues weightedMean criterionValue	= MkWeightedMeanAndCriterionValues {
 	getWeightedMean		:: weightedMean,	-- ^ The weighted mean of a list of criterion-values.
-	getCriterionValues	:: [criterionValue]	-- ^ The unweighted 'CriterionValue's from which the weighted mean was composed.
+	getCriterionValues	:: [criterionValue]	-- ^ The unweighted 'Attribute.CriterionValue.CriterionValue's from which the weighted mean was composed.
 } deriving (Eq, Show)
 
 instance Control.DeepSeq.NFData weightedMean => Control.DeepSeq.NFData (WeightedMeanAndCriterionValues weightedMean criterionValue) where
@@ -69,12 +69,12 @@ instance (Real criterionValue, Real weightedMean) => Property.ShowFloat.ShowFloa
 		(criterionValuesTag, Text.ShowList.showsFormattedList' (fromDouble . realToFrac) criterionValues)
 	 ]
 
--- | Constructor
+-- | Constructor.
 mkWeightedMeanAndCriterionValues :: weightedMean -> [criterionValue] -> WeightedMeanAndCriterionValues weightedMean criterionValue
 mkWeightedMeanAndCriterionValues	= MkWeightedMeanAndCriterionValues
 
 {- |
-	* Negate the weightedMean, but leave the criterion-values unaltered.
+	* Negate the /weightedMean/, but leave the criterion-values unaltered.
 
 	* This can be used to assess the fitness of a position from the perspective of one's opponent.
 -}

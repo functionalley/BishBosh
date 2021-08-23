@@ -26,7 +26,7 @@ module BishBosh.Concurrent.SignalHandlers (
 	handleSignals
 ) where
 
-import qualified	BishBosh.Text.Show	as Text.Show
+import qualified	BishBosh.Text.ShowColouredPrefix	as Text.ShowColouredPrefix
 import qualified	Control.Concurrent
 import qualified	System.IO
 import qualified	System.Posix.Signals	-- CAVEAT: the package 'unix' to which this module belongs, requires a POSIX environment (such as Cygwin) for compilation on Windows.
@@ -39,7 +39,7 @@ handleSignals	= do
 	mapM_ (
 		\(signal, s)	-> System.Posix.Signals.installHandler signal (
 			System.Posix.Signals.Catch $ do
-				System.IO.hPutStrLn System.IO.stderr $ Text.Show.showsWarningPrefix "SIG" ++ s ++ " caught; exiting."
+				System.IO.hPutStrLn System.IO.stderr $ Text.ShowColouredPrefix.showsPrefixWarning "SIG" ++ s ++ " caught; exiting."
 
 				Control.Concurrent.killThread threadId
 		 ) Nothing

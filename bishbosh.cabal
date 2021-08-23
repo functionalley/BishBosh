@@ -1,3 +1,5 @@
+cabal-version: 3.0
+
 -- This file is part of BishBosh.
 --
 -- BishBosh is free software: you can redistribute it and/or modify
@@ -14,10 +16,9 @@
 -- along with BishBosh.  If not, see <http://www.gnu.org/licenses/>.
 
 Name:		bishbosh
-Version:	0.0.0.8
-Cabal-version:	>= 1.10
+Version:	0.1.0.0
 Copyright:	(C) 2018 Dr. Alistair Ward
-License:	GPL
+License:	GPL-3.0-or-later
 License-file:	LICENSE
 Author:		Dr. Alistair Ward
 Stability:	stable
@@ -25,7 +26,7 @@ Synopsis:	Plays chess.
 Build-type:	Simple
 Description:	A chess-game which can be rendered in a terminal (emulator) in raw ASCII, or used as an engine by xboard.
 Category:	Game
-Tested-with:	GHC == 8.0, GHC == 8.2, GHC == 8.4, GHC == 8.6, GHC == 8.8, GHC == 8.10
+Tested-with:	GHC == { 8.0, 8.2, 8.4, 8.6, 8.8, 8.10 }
 Homepage:	https://functionalley.com/BishBosh/bishbosh.html
 Maintainer:	mailto:bishbosh@functionalley.com
 Bug-reports:	mailto:bishbosh@functionalley.com
@@ -36,16 +37,19 @@ Data-files:
     config/bishbosh.rng
     config/CECP/*.xml
     config/Raw/*.xml
+    config/*.xml
     pgn/*.pgn
+    pgn/*.pgn.gz
 
 -- Files which are packaged, but not required at runtime.
 Extra-source-files:
     .ghci
     bishbosh.spec
-    bishbosh.svg
     changelog.markdown
     copyright
+    makefile
     man/man1/bishbosh.1
+    man/man1/duel.1
     man/man5/bishbosh.5
     README.markdown
 
@@ -87,15 +91,21 @@ flag threaded
     Manual:		True
     Default:		True
 
+-- Whether to use unboxed arrays where possible.
+flag unboxedarrays
+    Description:	Use unboxed arrays.
+    Manual:		True
+    Default:		False
+
 -- Automatically disabled when the required package isn't available.
--- CAVEAT: on MS-Windows, it may be available but won't necessarily build, so specify "-f -unix --verbose" when configuring the package. 
+-- CAVEAT: on MS-Windows, it may be available but won't necessarily build, so specify "-f -unix --verbose" when configuring the package.
 flag unix
     Description:	Link with package "unix" when available.
     Default:		True
 
 Library
     Default-language:	Haskell2010
-    GHC-options:	-O2 -Wall -fno-warn-tabs
+    GHC-options:	-O2 -Wall -fno-warn-tabs -fno-warn-unused-top-binds -Wno-all-missed-specialisations
     Hs-source-dirs:	src-lib
 
     Exposed-modules:
@@ -115,10 +125,11 @@ Library
         BishBosh.Cartesian.Coordinates
         BishBosh.Cartesian.Ordinate
         BishBosh.Cartesian.Vector
+        BishBosh.Component.CastlingMove
         BishBosh.Component.EitherQualifiedMove
         BishBosh.Component.Move
         BishBosh.Component.Piece
-        BishBosh.Component.PieceSquareArray
+        BishBosh.Component.PieceSquareByCoordinatesByRank
         BishBosh.Component.QualifiedMove
         BishBosh.Component.Turn
         BishBosh.Component.Zobrist
@@ -130,9 +141,12 @@ Library
         BishBosh.ContextualNotation.StandardAlgebraic
         BishBosh.Data.Bool
         BishBosh.Data.Either
+        BishBosh.Data.Enum
         BishBosh.Data.Exception
         BishBosh.Data.Float
+        BishBosh.Data.Foldable
         BishBosh.Data.Integral
+        BishBosh.Data.List
         BishBosh.Data.Num
         BishBosh.Data.Ratio
         BishBosh.Data.RoseTree
@@ -140,8 +154,10 @@ Library
         BishBosh.Evaluation.Fitness
         BishBosh.Evaluation.PositionHashQuantifiedGameTree
         BishBosh.Evaluation.QuantifiedGame
+        BishBosh.Input.CategorisedCommandLineOptions
         BishBosh.Input.CECPFeatures
         BishBosh.Input.CECPOptions
+        BishBosh.Input.CommandLineOption
         BishBosh.Input.CriteriaWeights
         BishBosh.Input.EvaluationOptions
         BishBosh.Input.IOOptions
@@ -164,8 +180,10 @@ Library
         BishBosh.Notation.MoveNotation
         BishBosh.Notation.PureCoordinate
         BishBosh.Notation.Smith
+        BishBosh.Property.Arboreal
         BishBosh.Property.Empty
         BishBosh.Property.ExtendedPositionDescription
+        BishBosh.Property.FixedMembership
         BishBosh.Property.ForsythEdwards
         BishBosh.Property.Null
         BishBosh.Property.Opposable
@@ -173,7 +191,6 @@ Library
         BishBosh.Property.Reflectable
         BishBosh.Property.Rotatable
         BishBosh.Property.ShowFloat
-        BishBosh.Property.Tree
         BishBosh.Search.AlphaBeta
         BishBosh.Search.DynamicMoveData
         BishBosh.Search.EphemeralData
@@ -184,24 +201,29 @@ Library
         BishBosh.Search.TranspositionValue
         BishBosh.State.Board
         BishBosh.State.CastleableRooksByLogicalColour
-        BishBosh.State.Censor
         BishBosh.State.CoordinatesByRankByLogicalColour
         BishBosh.State.EnPassantAbscissa
         BishBosh.State.InstancesByPosition
         BishBosh.State.MaybePieceByCoordinates
         BishBosh.State.Position
+        BishBosh.StateProperty.Censor
+        BishBosh.StateProperty.Mutator
+        BishBosh.StateProperty.Seeker
         BishBosh.State.TurnsByLogicalColour
+        BishBosh.Text.AutoComplete
+        BishBosh.Text.Case
         BishBosh.Text.Encoding
         BishBosh.Text.ShowList
+        BishBosh.Text.ShowPrefix
         BishBosh.Types
         BishBosh.UI.Command
         BishBosh.UI.PrintObject
+        BishBosh.UI.ReportObject
         BishBosh.UI.SetObject
 
     Build-depends:
         array >= 0.5.1.1,
         base >= 4.9 && < 5.0,
-        Cabal >= 1.10,
         containers,
         data-default,
         deepseq >= 1.4.1,
@@ -210,7 +232,7 @@ Library
         filepath,
         hxt,
         mtl,
-        parallel >= 3.0,
+        process,
         random,
         time,
         toolshed >= 0.18
@@ -221,6 +243,9 @@ Library
 
         if impl(ghc >= 7.4.1)
             GHC-prof-options:	-fprof-auto -fprof-cafs
+
+            if flag(threaded)
+                GHC-prof-options:	-fno-prof-count-entries
 
             if impl(ghc >= 8.0)
                 GHC-options:	-Wredundant-constraints
@@ -235,35 +260,39 @@ Library
         Build-depends:		parsec
 
     if flag(narrownumbers)
-        CPP-Options:		-DUSE_NARROW_NUMBERS=1
+        CPP-Options:		-DUSE_NARROW_NUMBERS
+
+    if flag(threaded)
+        Build-depends:		parallel >= 3.0
+        CPP-Options:		-DUSE_PARALLEL
+
+    if flag(unboxedarrays)
+        CPP-Options:		-DUSE_UNBOXED_ARRAYS
 
 Executable bishbosh
     Default-language:	Haskell2010
     GHC-options:	-O2 -Wall -fno-warn-tabs
     Hs-source-dirs:	src-exe
     Main-is:		Main.hs
+    Autogen-modules:	Paths_bishbosh
 
--- N.B.: required for 'cabal sdist'.
     Other-modules:
         BishBosh.Concurrent.Pondering
-        BishBosh.Input.CommandLineOption
         BishBosh.Play
         BishBosh.State.ApplicationTerminationReason
         BishBosh.State.PlayState
-        BishBosh.Text.Show
+        BishBosh.Text.ShowColouredPrefix
         BishBosh.UI.CECP
         BishBosh.UI.Raw
         Paths_bishbosh
 
     if flag(unix)
-        Other-modules:
-            BishBosh.Concurrent.SignalHandlers
+        Other-modules:	BishBosh.Concurrent.SignalHandlers
 
     Build-depends:
         array >= 0.5.1.1,
         base >= 4.9 && < 5.0,
         bishbosh,
-        Cabal >= 1.10,
         containers,
         data-default,
         deepseq >= 1.4.1,
@@ -273,7 +302,6 @@ Executable bishbosh
         filepath,
         hxt,
         mtl,
-        parallel >= 3.0,
         random,
         time,
         toolshed >= 0.18
@@ -288,26 +316,27 @@ Executable bishbosh
         if impl(ghc >= 7.4.1)
             GHC-prof-options:	-fprof-auto -fprof-cafs -rtsopts -with-rtsopts=-H100M
 
+            if flag(threaded)
+                GHC-prof-options:	-fno-prof-count-entries
+
             if impl(ghc >= 8.0)
                 GHC-options:	-Wredundant-constraints
         else
             GHC-prof-options:	-auto-all -caf-all
 
-    if flag(polyparse)
-        Build-depends:	polyparse
-        CPP-Options:	-DUSE_POLYPARSE=1
-    else
-        Build-depends:	parsec
-
     if flag(hxtrelaxng)
         Build-depends:	hxt-relaxng
-        CPP-Options:	-DUSE_HXTRELAXNG=1
+        CPP-Options:	-DUSE_HXTRELAXNG
 
     if flag(narrownumbers)
-        CPP-Options:	-DUSE_NARROW_NUMBERS=1
+        CPP-Options:	-DUSE_NARROW_NUMBERS
 
     if flag(threaded)
+        CPP-Options:	-DUSE_PARALLEL
         GHC-options:	-threaded
+
+    if flag(unboxedarrays)
+        CPP-Options:	-DUSE_UNBOXED_ARRAYS
 
 -- N.B.: The Haskell package 'unix' may be available on MS-Windows, but building it will probably be laborious.
     if flag(unix)
@@ -315,20 +344,53 @@ Executable bishbosh
         Build-depends:	unix
         CPP-Options:	-DUSE_UNIX
 
-Test-Suite test
+-- This application coordinates a duel between two independently configured instances of 'bishbosh'.
+Executable duel
     Default-language:	Haskell2010
     GHC-options:	-O2 -Wall -fno-warn-tabs
-    Hs-source-dirs:	src-test
-    Main-is:		Main.hs
-    Type:		exitcode-stdio-1.0
+    Hs-source-dirs:	src-exe
+    Main-is:		Duel.hs
+    Autogen-modules:	Paths_bishbosh
 
--- Required for 'cabal sdist'.
+    Other-modules:
+        Duel.Data.Options
+        Duel.IO.Logger
+        Duel.Process.Intermediary
+        Paths_bishbosh
+
+    Build-depends:
+        base >= 4.9 && < 5.0,
+        bishbosh,
+        containers,
+        data-default,
+        filepath,
+        process
+
+    CPP-Options:	-DMOVE_NOTATION='S'
+
+    if impl(ghc >= 7.0)
+        if flag(llvm)
+            GHC-options:	-fllvm
+
+        if impl(ghc >= 8.0)
+            GHC-options:	-Wredundant-constraints
+
+-- Static unit-tests of the library.
+Test-Suite hunit-tests
+    Default-language:	Haskell2010
+    GHC-options:	-Wall -fno-warn-tabs
+    Hs-source-dirs:	src-test
+    Main-is:		HUnit.hs
+    Type:		exitcode-stdio-1.0
+    Autogen-modules:	Paths_bishbosh
+
     Other-modules:
         BishBosh.Test.HUnit.Attribute.Direction
         BishBosh.Test.HUnit.Attribute.LogicalColour
         BishBosh.Test.HUnit.Attribute.Rank
         BishBosh.Test.HUnit.Cartesian.Coordinates
         BishBosh.Test.HUnit.Cartesian.Vector
+        BishBosh.Test.HUnit.Component.CastlingMove
         BishBosh.Test.HUnit.Component.Move
         BishBosh.Test.HUnit.Component.Piece
         BishBosh.Test.HUnit.Component.Zobrist
@@ -342,6 +404,41 @@ Test-Suite test
         BishBosh.Test.HUnit.Model.PositionHashTree
         BishBosh.Test.HUnit.Search.Search
         BishBosh.Test.HUnit.State.Board
+        BishBosh.Test.HUnit.Text.AutoComplete
+        Paths_bishbosh
+
+    Build-depends:
+        array >= 0.5.1.1,
+        base >= 4.9 && < 5.0,
+        bishbosh,
+        containers,
+        data-default,
+        filepath,
+        HUnit,
+        hxt,
+        mtl,
+        toolshed >= 0.18
+
+--  CPP-Options:	-DUSE_SEARCH
+
+    if impl(ghc >= 8.0)
+        GHC-options:	-Wredundant-constraints
+
+    if flag(polyparse)
+        Build-depends:	polyparse
+        CPP-Options:	-DUSE_POLYPARSE=1
+    else
+        Build-depends:	parsec
+
+-- Random unit-tests of the library.
+Test-Suite quickcheck-tests
+    Default-language:	Haskell2010
+    GHC-options:	-Wall -fno-warn-tabs
+    Hs-source-dirs:	src-test
+    Main-is:		QuickCheck.hs
+    Type:		exitcode-stdio-1.0
+
+    Other-modules:
         BishBosh.Test.QuickCheck.Attribute.CaptureMoveSortAlgorithm
         BishBosh.Test.QuickCheck.Attribute.CriterionWeight
         BishBosh.Test.QuickCheck.Attribute.Direction
@@ -361,6 +458,7 @@ Test-Suite test
         BishBosh.Test.QuickCheck.ContextualNotation.PositionHashQualifiedMoveTree
         BishBosh.Test.QuickCheck.ContextualNotation.QualifiedMoveForest
         BishBosh.Test.QuickCheck.ContextualNotation.StandardAlgebraic
+        BishBosh.Test.QuickCheck.Data.Foldable
         BishBosh.Test.QuickCheck.Data.Integral
         BishBosh.Test.QuickCheck.Evaluation.PositionHashQuantifiedGameTree
         BishBosh.Test.QuickCheck.Input.CECPFeatures
@@ -391,46 +489,40 @@ Test-Suite test
         BishBosh.Test.QuickCheck.Search.SearchState
         BishBosh.Test.QuickCheck.State.Board
         BishBosh.Test.QuickCheck.State.CastleableRooksByLogicalColour
-        BishBosh.Test.QuickCheck.State.Censor
         BishBosh.Test.QuickCheck.State.InstancesByPosition
         BishBosh.Test.QuickCheck.State.Position
+        BishBosh.Test.QuickCheck.StateProperty.Censor
         BishBosh.Test.QuickCheck.State.TurnsByLogicalColour
         BishBosh.Test.QuickCheck.Text.Encoding
         BishBosh.Test.QuickCheck.UI.Command
         BishBosh.Test.QuickCheck.UI.PrintObject
+        BishBosh.Test.QuickCheck.UI.ReportObject
         BishBosh.Test.QuickCheck.UI.SetObject
-        Paths_bishbosh
 
     Build-depends:
         array >= 0.5.1.1,
         base >= 4.9 && < 5.0,
         bishbosh,
-        Cabal >= 1.10,
         containers,
         data-default,
+        deepseq >= 1.4.1,
         extra,
         filepath,
-        HUnit,
-        hxt,
         mtl,
         QuickCheck >= 2.8.2,
         random,
         toolshed >= 0.18
 
-    if impl(ghc >= 7.0)
-        GHC-options:	-with-rtsopts=-H100M
-
-        if impl(ghc >= 7.4.1)
-            GHC-prof-options:	-fprof-auto -fprof-cafs -rtsopts -with-rtsopts=-H100M
-
-            if impl(ghc >= 8.0)
-                GHC-options:	-Wredundant-constraints
-        else
-            GHC-prof-options:	-auto-all -caf-all
+    if impl(ghc >= 8.0)
+        GHC-options:	-Wredundant-constraints
 
     if flag(polyparse)
         Build-depends:	polyparse
         CPP-Options:	-DUSE_POLYPARSE=1
     else
         Build-depends:	parsec
+
+    if flag(threaded)
+        CPP-Options:	-DUSE_PARALLEL
+        GHC-options:	-threaded
 

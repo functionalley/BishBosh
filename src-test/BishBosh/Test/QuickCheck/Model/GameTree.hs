@@ -33,7 +33,7 @@ module BishBosh.Test.QuickCheck.Model.GameTree(
 
 import qualified	BishBosh.Model.Game			as Model.Game
 import qualified	BishBosh.Model.GameTree			as Model.GameTree
-import qualified	BishBosh.Property.Tree			as Property.Tree
+import qualified	BishBosh.Property.Arboreal		as Property.Arboreal
 import qualified	BishBosh.Test.QuickCheck.Model.Game	as Test.QuickCheck.Model.Game
 import qualified	BishBosh.Types				as T
 import qualified	Data.Default
@@ -44,7 +44,7 @@ instance (Enum x, Enum y, Ord x, Ord y, Show x, Show y) => Test.QuickCheck.Arbit
 	arbitrary	= do
 		depth	<- Test.QuickCheck.elements [1 .. 3]
 
-		fmap (Property.Tree.prune depth . Model.GameTree.fromGame) Test.QuickCheck.arbitrary
+		fmap (Property.Arboreal.prune depth . Model.GameTree.fromGame) Test.QuickCheck.arbitrary
 
 -- | Define a concrete type for testing.
 type GameTree	= Model.GameTree.GameTree T.X T.Y

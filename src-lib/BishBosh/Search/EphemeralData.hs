@@ -19,18 +19,29 @@
 {- |
  [@AUTHOR@]	Dr. Alistair Ward
 
- [@DESCRIPTION@]	Permits maintenance of data collected during the search for a move.
+ [@DESCRIPTION@]	Controls the growth of dynamic data collected during the search for a move.
 -}
 
 module BishBosh.Search.EphemeralData(
 -- * Type-classes
-	EphemeralData(..)
+	EphemeralData(..),
+	MaybeEphemeralData(..)
 ) where
 
-import qualified	BishBosh.Component.Move	as Component.Move
+import qualified	BishBosh.Component.Move		as Component.Move
+import qualified	BishBosh.Input.SearchOptions	as Input.SearchOptions
+import			Prelude(Int)
 
 -- | An interface for short-lived data.
 class EphemeralData a where
 	getSize		:: a -> Int				-- ^ Get the current size of the collection.
-	euthanise	:: Component.Move.NPlies -> a -> a	-- ^ Prune old data from the collection.
+	euthanise	:: Component.Move.NPlies -> a -> a	-- ^ Prune data older than the specified number of plies, from the collection.
 
+-- | For data which can be killed.
+class MaybeEphemeralData a where
+	maybeEuthanise
+		:: Component.Move.NPlies			-- ^ The age at which to die.
+		-> Input.SearchOptions.MaybeRetireAfterNMoves	-- ^ The optional age at which to retire killer-moves.
+		-> Input.SearchOptions.MaybeRetireAfterNMoves	-- ^ The optional age at which to retire transpositions.
+		-> a
+		-> a

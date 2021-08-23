@@ -23,21 +23,24 @@
 
 	* Describes the /x/-axis by which the /board/ is indexed.
 
-	* N.B. this coordinate-system is for internal use only, and doesn't attempt to replicate any standard Chess-notation.
+	* AKA the /file/ of a piece.
+
+	* N.B. this coordinate-system is for internal use only, and doesn't attempt to replicate any standard chess-notation.
 -}
 
 module BishBosh.Cartesian.Abscissa(
 -- * Types
-	ByAbscissa,
+	ArrayByAbscissa,
 -- * Constants
 	xOrigin,
 	xLength,
 	xMin,
 	xMax,
---	xBounds,
+	xBounds,
 	xRange,
-	centre,
 -- * Functions
+	toIx,
+	fromIx,
 	reflect,
 	translate,
 	maybeTranslate,
@@ -48,11 +51,12 @@ module BishBosh.Cartesian.Abscissa(
 	inBounds
 ) where
 
-import qualified	BishBosh.Types	as T
+import qualified	BishBosh.Data.Enum	as Data.Enum
+import qualified	BishBosh.Types		as T
 import qualified	Control.Exception
 import qualified	Data.Array.IArray
 
--- | The constant length of the /x/-axis.
+-- | The position of the origin on the /x/-axis.
 xOrigin :: Int
 xOrigin	= 0
 
@@ -60,35 +64,37 @@ xOrigin	= 0
 xLength :: T.Distance
 xLength	= 8
 
--- | The constant lower bound of the abscissa.
+-- | The constant lower bound of abscissae.
 xMin :: Enum x => x
 xMin	= toEnum xOrigin
 
--- | The constant upper bound of the abscissa.
+-- | The constant upper bound of abscissae.
 xMax :: Enum x => x
 xMax	= toEnum $ xOrigin + fromIntegral (pred {-fence-post-} xLength)
 
--- | The constant bounds of the abscissa.
+-- | The constant bounds of abscissae.
 xBounds :: Enum x => (x, x)
 xBounds	= (xMin, xMax)
 
--- | The constant list of abscissa.
+-- | The constant list of all abscissae.
 xRange :: Enum x => [x]
 xRange	= uncurry enumFromTo xBounds
 
-{- |
-	* The constant centre of the span.
+-- | Convert to an array-index.
+toIx :: Enum x => x -> Int
+{-# INLINE toIx #-}
+toIx	= subtract xOrigin . fromEnum
 
-	* CAVEAT: no square actually exists at this fractional value.
--}
-centre :: Fractional centre => centre
-centre	= fromIntegral (uncurry (+) xBounds :: T.X) / 2
+-- | Convert from an array-index.
+fromIx :: Enum x => Int -> x
+{-# INLINE fromIx #-}
+fromIx	= toEnum . (+ xOrigin)
 
 -- | Reflects about the mid-point of the axis.
 reflect :: Enum x => x -> x
-reflect	= toEnum . (
+reflect	= Data.Enum.translate $ (
 	+ (2 * xOrigin + fromIntegral (pred xLength))
- ) . negate . fromEnum
+ ) . negate
 
 -- | Predicate.
 inBounds :: (Enum x, Ord x) => x -> Bool
@@ -111,12 +117,12 @@ maybeTranslate transformation	= (
 getAdjacents :: (Enum x, Eq x) => x -> [x]
 {-# INLINE getAdjacents #-}
 getAdjacents x
-	| x == xMin	= [succ x]
-	| x == xMax	= [pred x]
+	| x == xMin	= [succ xMin]
+	| x == xMax	= [pred xMax]
 	| otherwise	= [pred x, succ x]
 
 -- | A boxed array indexed by /coordinates/, of arbitrary elements.
-type ByAbscissa x	= Data.Array.IArray.Array {-Boxed-} x
+type ArrayByAbscissa x	= Data.Array.IArray.Array {-Boxed-} x
 
 -- | Array-constructor.
 listArrayByAbscissa :: (

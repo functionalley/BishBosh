@@ -39,19 +39,20 @@ module BishBosh.Attribute.RankValues(
 	fromAssocs
 ) where
 
-import			Control.Arrow((***))
+import			Control.Arrow((&&&), (***))
 import			Data.Array.IArray((!))
 import qualified	BishBosh.Attribute.Rank		as Attribute.Rank
 import qualified	BishBosh.Data.Exception		as Data.Exception
+import qualified	BishBosh.Data.Foldable		as Data.Foldable
 import qualified	BishBosh.Data.Num		as Data.Num
 import qualified	BishBosh.Property.ShowFloat	as Property.ShowFloat
 import qualified	BishBosh.Text.ShowList		as Text.ShowList
+import qualified	Control.Arrow
 import qualified	Control.DeepSeq
 import qualified	Control.Exception
 import qualified	Data.Array.IArray
 import qualified	Data.Default
 import qualified	Data.List
-import qualified	Data.Set
 import qualified	Text.XML.HXT.Arrow.Pickle	as HXT
 
 -- | Used to qualify XML.
@@ -61,34 +62,35 @@ tag	= "rankValues"
 {- |
 	* The constant value associated with each /rank/; the higher, the more valuable it is considered to be.
 
-	* N.B.: only relative values are significant; the absolute value associated with any /rank/ is irrelevant, but typically @Pawn = 1@.
+	* N.B.: only relative values are significant; the absolute value associated with any /rank/ is irrelevant; typically ranks are valued in /centipawns/.
 
 	* CAVEAT: a @King@ can never be taken, but assigning the value /infinity/ creates problems, so typically it has the value @0@.
 -}
 newtype RankValues rankValue	= MkRankValues {
-	deconstruct	:: Attribute.Rank.ByRank rankValue
+	deconstruct	:: Attribute.Rank.ArrayByRank rankValue
 } deriving (Eq, Read, Show)
 
 instance Real rankValue => Property.ShowFloat.ShowFloat (RankValues rankValue) where
 	showsFloat fromDouble	= Text.ShowList.showsAssociationList' . map (show *** fromDouble . realToFrac) . Data.Array.IArray.assocs . deconstruct
 
--- Derived from Larry Kaufman's values; <https://www.chessprogramming.org/Point_Value>.
 instance (
 	Fractional	rankValue,
 	Ord		rankValue,
 	Show		rankValue
  ) => Data.Default.Default (RankValues rankValue) where
-	def = fromAssocs [
+	def = fromAssocs $ map (
+		Control.Arrow.second (/ 10)	-- Map into the closed unit-interval.
+	 ) [
 		(
-			Attribute.Rank.Pawn,	0.1
+			Attribute.Rank.Pawn,	1
 		), (
-			Attribute.Rank.Rook,	0.525
+			Attribute.Rank.Rook,	5
 		), (
-			Attribute.Rank.Knight,	0.35
+			Attribute.Rank.Knight,	3
 		), (
-			Attribute.Rank.Bishop,	0.35
+			Attribute.Rank.Bishop,	3
 		), (
-			Attribute.Rank.Queen,	1
+			Attribute.Rank.Queen,	9
 		), (
 			Attribute.Rank.King,	0	-- N.B.: move-selection is independent of this value (since it can't be taken), so it can be defined arbitrarily.
 		)
@@ -115,14 +117,14 @@ fromAssocs :: (
 	Show		rankValue
  ) => [(Attribute.Rank.Rank, rankValue)] -> RankValues rankValue
 fromAssocs assocs
-	| not $ Data.Set.null undefinedRanks	= Control.Exception.throw . Data.Exception.mkInsufficientData . showString "BishBosh.Attribute.RankValues.fromAssocs:\tranks" . Text.ShowList.showsAssociation $ shows (Data.Set.toList undefinedRanks) " are undefined."
-	| any (
-		not . Data.Num.inClosedUnitInterval . snd {-rank-value-}
-	) assocs				= Control.Exception.throw . Data.Exception.mkOutOfBounds . showString "BishBosh.Attribute.RankValues.fromAssocs:\tall values must be within the closed unit-interval, [0,1]; " $ shows assocs "."
-	| otherwise				= MkRankValues byRank
+	| not $ null undefinedRanks	= Control.Exception.throw . Data.Exception.mkInsufficientData . showString "BishBosh.Attribute.RankValues.fromAssocs:\tranks" . Text.ShowList.showsAssociation $ shows undefinedRanks " are undefined."
+	| not $ null duplicateRanks	= Control.Exception.throw . Data.Exception.mkDuplicateData . showString "BishBosh.Attribute.RankValues.fromAssocs:\tranks must be distinct; " $ shows duplicateRanks "."
+	| not $ all (
+		Data.Num.inClosedUnitInterval . snd {-rank-value-}
+	) assocs			= Control.Exception.throw . Data.Exception.mkOutOfBounds . showString "BishBosh.Attribute.RankValues.fromAssocs:\tall values must be within the closed unit-interval, [0,1]; " $ shows assocs "."
+	| otherwise			= MkRankValues $ Attribute.Rank.arrayByRank assocs
 	where
-		undefinedRanks	= Data.Set.fromAscList Attribute.Rank.range `Data.Set.difference` Data.Set.fromList (map fst assocs)
-		byRank		= Data.Array.IArray.array (minBound, maxBound) assocs
+		(undefinedRanks, duplicateRanks)	= Attribute.Rank.findUndefinedRanks &&& Data.Foldable.findDuplicates $ map fst assocs
 
 -- | Query.
 findRankValue :: Attribute.Rank.Rank -> RankValues rankValue -> rankValue

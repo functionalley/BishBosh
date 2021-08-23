@@ -23,8 +23,8 @@ Unlimited roll-back of moves.
 .IP \(bu
 Configurable <\fBhttps://en.wikipedia.org/wiki/Chess_notation\fR>.
 .IP \(bu
-The ability to read PGN-databases of standard openings & archived games,
-in which it can match both <\fBhttps://www.chessprogramming.org/Transposition\fR>s & colour-flipped (<\fBhttps://www.chessprogramming.org/Color_Flipping\fR>) positions.
+The ability to read (optionally compressed) PGN-databases of standard openings & archived games,
+in which it can match both transpositions (<\fBhttps://www.chessprogramming.org/Transposition\fR>)s & colour-flipped (<\fBhttps://www.chessprogramming.org/Color_Flipping\fR>) positions.
 .IP \(bu
 Automation of the moves for either, neither, or both players.
 Both the evaluation of moves & the search for the optimum, are highly configurable; see \fBsection-5\fR of the man-pages.
@@ -67,8 +67,18 @@ N.B.: this application only makes significant use of the random-generator when s
 \fB--verbosity=\fR(\fBSilent\fR|\fBNormal\fR|\fBVerbose\fR|\fBDeafening\fR), defaulting to "\fBNormal\fR".
 Defines the quantity of ancillary output required. See "\fBverbosity\fR" in \fBsection-5\fR of the man-pages.
 .TP
-\fB--printMoveTree\fR=<\fIInt\fR>
+\fB--printMoveTree\fR=\fIInt\fR
 Print the tree of all possible moves in the configured notation, each annotated by a fitness-evaluation for the resulting position, truncated to the specified number of plies; see \fBsection-5\fR of the man-pages for details.
+.TP
+.B --checkPickler
+Validates the specification of the internal XML-pickler & then exits.
+.TP
+\fB--generateDTD\fR[\fB=\fR\fIInt\fR]
+Generates an approximate DTD from the internal XML-pickler & then exits.
+The optional integer defines the \fBHXT\fR trace-level, valid values for which exist in the closed interval \fB[0 .. 4]\fR.
+.TP
+.B --formatPieceSquareTableForGNUPlot
+Prints the piece-square table in a format suitable for \fBGNUPlot\fR & then exits.
 .SS "Generic Program-information"
 .TP
 \fB-v\fR, \fB--version\fR
@@ -93,8 +103,9 @@ lb	li	.
 Command	Arguments	Description
 =======	=========	===========
 :hint		Request a move-suggestion.
-:print	object	Print the value of one of "\fBboard\fR", "\fBconfiguration\fR", "\fBEPD\fR", "\fBFEN\fR", "\fBgame\fR", "\fBhelp\fR", "\fBmoves\fR", "\fBPGN\fR".
+:print	object	Print the specified static data; either "\fBconfiguration\fR" or "\fBhelp\fR".
 :quit		Exit the application. The current game-state will be saved, provided \fBpersistence\fR (see "\fBpgnOptions\fR" in \fBsection-5\fR of the man-pages) hasn't been disabled.
+:report	object	Report the specified dynamic data, one of; "\fBavailableMoves\fR", "\fBboard\fR", "\fBEPD\fR", "\fBFEN\fR", "\fBgame\fR", "\fBmaxPositionInstances\fR", "\fBmoves\fR", "\fBPGN\fR", "\fBreversiblePlyCount\fR".
 :resign		Resign the game.
 :restart		Start a new game.
 :rollBack	[Int]	Roll-back the optionally specified number of plies (half moves), defaulting to "\fB2\fR" when there's one manual player & "\fB1\fR" when both players are manual.
@@ -132,14 +143,16 @@ One of the packaged configuration-files has been referenced, which automates Bla
 For performance, the run-time system has been explicitly instructed to fully utilise the available CPU-cores, & to set a large minimum size for the heap to satisfy its craving for RAM; actually similar defaults have been predefined.
 .PP
 .nf
-\fBxboard -fcp "bishbosh -i $HOME/.cabal/share/x86_64-linux-ghc-8.0.2/bishbosh-0.0.0.2/config/CECP/bishbosh_black.xml"\fR
+\fBxboard -fcp "bishbosh -i $HOME/.cabal/share/x86_64-linux-ghc-8.10.1/bishbosh-0.1.0.0/config/CECP/bishbosh_black.xml +RTS -N"\fR
 .fi
 .IP \(bu
-Instruct the \fBxboard\fR GUI to use \fBbishbosh\fR as its first engine; \fBwinboard\fR is the equivalent GUI for \fBMS-Windows\fR.
+Instruct the \fBxboard\fR GUI (which must be independently installed) to use \fBbishbosh\fR as its first engine; \fBwinboard\fR is the equivalent GUI for \fBMS-Windows\fR.
 .IP \(bu
 N.B.: \fBbishbosh\fR & its arguments are delimited by double-quotes, so that they are interpreted by \fBxboard\fR as a single argument.
 .IP \(bu
 CAVEAT: the hard-coded architecture-specific & version-specific directories may need to be edited.
+.IP \(bu
+\fBmake xboard\fR encapsulates this requirement.
 .SH FILES
 .TS
 lb	lb
@@ -147,11 +160,12 @@ l	l
 lb	l	.
 File-name	Contents
 =========	========
-bishbosh.svg	A module-dependency graph for this application.
 config/{CECP,Raw}/*.xml	Sample configuration-files.
+makefile	Facilitates common tasks.
 man/man5/bishbosh.5	\fBSection-5\fR of the man-pages for this product, describing the configuration-file format.
+man/man1/duel.1	The man-page for an application to facilitate a battle between instances of \fBbishbosh\fR.
 pgn/*.pgn	Sample PGN-databases; <\fBhttps://en.wikipedia.org/wiki/Portable_Game_Notation\fR>.
-~/.bishbosh/*.txt	Persisted games, stored in a user-specific directory.
+~/.bishbosh/*.txt	Persisted games, stored in a user-specific directory & config-specific file.
 <https://www.gnu.org/software/xboard>	A GUI for chess-engines.
 .TE
 .SH AUTHOR

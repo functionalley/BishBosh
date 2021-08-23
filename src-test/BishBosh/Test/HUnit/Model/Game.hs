@@ -45,6 +45,7 @@ import qualified	BishBosh.Data.Exception				as Data.Exception
 import qualified	BishBosh.Model.Game				as Model.Game
 import qualified	BishBosh.Model.GameTerminationReason		as Model.GameTerminationReason
 import qualified	BishBosh.Notation.MoveNotation			as Notation.MoveNotation
+import qualified	BishBosh.Notation.Smith				as Notation.Smith
 import qualified	BishBosh.Property.ExtendedPositionDescription	as Property.ExtendedPositionDescription
 import qualified	BishBosh.Property.ForsythEdwards		as Property.ForsythEdwards
 import qualified	BishBosh.Test.HUnit.Cartesian.Coordinates	as Test.HUnit.Cartesian.Coordinates
@@ -133,17 +134,17 @@ testCases	= Test.HUnit.test [
 		game :: Game
 		game	= Model.Game.fromBoard $ Property.ForsythEdwards.readFEN "4k3/8/8/8/8/8/8/R3K2R"
 	in all (
-		== Model.Game.getBoard game
-	) (
-		map (
+		(
+			== Model.Game.getBoard game
+		) . (
 			\s -> case Notation.MoveNotation.readsQualifiedMove Data.Default.def s of
 				[(eitherQualifiedMove, "")]	-> Model.Game.getBoard . fst {-game-} . head . Model.Game.rollBack $ Model.Game.applyEitherQualifiedMove eitherQualifiedMove game
 				_				-> Control.Exception.throw . Data.Exception.mkParseFailure . showString "BishBosh.Test.HUnit.Model.Game.testCases:\t" . shows s . showString " /~ " $ Notation.MoveNotation.showsMoveSyntax Data.Default.def ""
-		) [
-			"e1g1c",
-			"e1c1C"
-		]
-	) ~? "'BishBosh.Model.Game.rollback' failed to undo castling",
+		)
+	) [
+		"e1g1c",
+		"e1c1C"
+	] ~? "'BishBosh.Model.Game.rollback' failed to undo castling",
 	either (
 		\(moveString, errorMessage)	-> Control.Exception.throw . Data.Exception.mkInvalidDatum . showString "BishBosh.Test.HUnit.Model.Game.testCases:\tfailed for " . showString Component.Move.tag . Text.ShowList.showsAssociation . shows moveString . showString "; " $ showString errorMessage "."
 	) (
@@ -292,6 +293,11 @@ testCases	= Test.HUnit.test [
 					_			-> Control.Exception.throw . Data.Exception.mkParseFailure . showString "BishBosh.Test.HUnit.Model.Game.testCases:\tfailed to parse EPD=" $ shows epd "."
 			) -- Pair.
 		 ) epds
-	in not (null parseFailures) ~? (showString "BishBosh.Test.HUnit.Model.Game.testCases:\tfailed to correctly parse EPDs=" $ shows parseFailures ".")
+	in not (null parseFailures) ~? showString "BishBosh.Test.HUnit.Model.Game.testCases:\tfailed to correctly parse EPDs=" (shows parseFailures "."),
+	let
+		terminalMoves	= map (Notation.Smith.getQualifiedMove . read) ["d6d8", "e7c7", "d6b6"]
+	in all (
+		`elem` Model.Game.findQualifiedMovesAvailableTo minBound (Model.Game.fromBoard $ Property.ForsythEdwards.readFEN "K7/4q1p1/3r4/8/8/5k2/8/8 b - - 13 49" :: Game)
+	) terminalMoves ~? "BishBosh.Test.HUnit.Model.Game.testCases:\tterminal move unavailable."
  ]
 

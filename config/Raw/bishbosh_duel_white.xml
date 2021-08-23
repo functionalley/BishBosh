@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE options SYSTEM "../bishbosh.dtd">	<!-- CAVEAT: amend after relocating this file ! -->
+<!--
+	AUTHOR: Dr. Alistair Ward
+
+	Copyright (C) 2021 Dr. Alistair Ward
+
+	This file is part of BishBosh.
+
+	BishBosh is free software: you can redistribute it and/or modify
+	it under the terms of the GNU General Public License as published by
+	the Free Software Foundation, either version 3 of the License, or
+	(at your option) any later version.
+
+	BishBosh is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+	GNU General Public License for more details.
+
+	You should have received a copy of the GNU General Public License
+	along with BishBosh.  If not, see <http://www.gnu.org/licenses/>.
+-->
+<!--
+	* The purpose of this config-file is to permit a duel between two instances of bishbosh, to facilitate comparison between configurations.
+
+	* CAVEAT: White has a natural advantage.
+-->
+<options>
+	<evaluationOptions>
+		&rankValues_Kaufman;
+		<criteriaWeights material="1" mobility="0" pieceSquareValue="0.1" castlingPotential="0" defence="0" doubledPawns="0" isolatedPawns="0" passedPawns="0"/>	<!-- N.B. only those criteria under test need be non-zero -->
+		&pieceSquareTables_symmetric;
+	</evaluationOptions>
+	<searchOptions sortOnStandardOpeningMoveFrequency="True" captureMoveSortAlgorithm="MVVLVA" retireKillerMovesAfter="3" usePondering="False">	<!-- CAVEAT: pondering uses time more productively used by the other instance -->
+		&transpositions;
+		<searchDepthByLogicalColour>
+			<byLogicalColour logicalColour="White" searchDepth="3"/>
+		</searchDepthByLogicalColour>
+	</searchOptions>
+	<ioOptions>
+		&pgnOptions_SCID;	<!-- CAVEAT: specification of a PGN-database is required for non-determininstic behaviour -->
+		<persistence filePath="/dev/null" automatic="False"/>	<!-- CAVEAT: otherwise the game may already have started -->
+		<uiOptions moveNotation="Smith">	<!-- CAVEAT: coordinate with the opponent defined in 'bishbosh_duel_black.txt' & 'bishbosh.cabal' -->
+			<nativeUIOptions/>
+		</uiOptions>
+	</ioOptions>
+</options>

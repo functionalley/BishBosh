@@ -40,7 +40,7 @@ instance Test.QuickCheck.Arbitrary Input.SearchOptions.SearchOptions where
 			(+ Input.SearchOptions.minimumSearchDepth) . (`mod` 4)
 		 ) <$> Test.QuickCheck.arbitrary
 
-		Input.SearchOptions.mkSearchOptions <$> Test.QuickCheck.arbitrary {-PreferMovesTowardsCentre-} <*> Test.QuickCheck.arbitrary {-SortOnStandardOpeningMoveFrequency-} <*> Test.QuickCheck.arbitrary {-maybeCaptureMoveSortAlgorithm-} <*> (
+		Input.SearchOptions.mkSearchOptions <$> Test.QuickCheck.arbitrary {-SortOnStandardOpeningMoveFrequency-} <*> Test.QuickCheck.arbitrary {-maybeCaptureMoveSortAlgorithm-} <*> (
 			fmap (succ . (`mod` 3)) <$> Test.QuickCheck.arbitrary	-- maybeMinimumHammingDistance.
 		 ) <*> (
 			fmap (`mod` 4) <$> Test.QuickCheck.arbitrary	-- maybeRetireKillerMovesAfter.

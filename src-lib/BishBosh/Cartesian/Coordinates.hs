@@ -1,3 +1,4 @@
+{-# LANGUAGE CPP, FlexibleContexts #-}
 {-
 	Copyright (C) 2018 Dr. Alistair Ward
 
@@ -32,22 +33,21 @@ module BishBosh.Cartesian.Coordinates(
 	),
 -- ** Type-synonyms
 --	Transformation,
-	ByCoordinates,
+	ArrayByCoordinates,
+--	UArrayByCoordinates,
 -- * Constants
+	tag,
 	topLeft,
 	bottomRight,
 	nSquares,
---	range,
---	extrapolationsByCoordinatesByDirection,
---	interpolationsBySourceByDestination,
-	radiusSquared,
+--	extrapolationsByDirectionByCoordinates,
+--	interpolationsByDestinationBySource,
 -- * Functions
---	(>||<),
+--	extrapolate',
 	extrapolate,
 --	extrapolateInt,
 	interpolate,
 --	interpolateInt,
-	range,
 	getLogicalColourOfSquare,
 	kingsStartingCoordinates,
 	rooksStartingCoordinates,
@@ -67,9 +67,11 @@ module BishBosh.Cartesian.Coordinates(
 -- ** Constructors
 	mkCoordinates,
 	mkMaybeCoordinates,
+--	toIx,
 	fromIx,
 	mkRelativeCoordinates,
 	listArrayByCoordinates,
+	arrayByCoordinates,
 -- ** Predicates
 --	inBounds,
 	isPawnsFirstRank,
@@ -85,6 +87,7 @@ import qualified	BishBosh.Attribute.LogicalColourOfSquare	as Attribute.LogicalCo
 import qualified	BishBosh.Cartesian.Abscissa			as Cartesian.Abscissa
 import qualified	BishBosh.Cartesian.Ordinate			as Cartesian.Ordinate
 import qualified	BishBosh.Data.Exception				as Data.Exception
+import qualified	BishBosh.Property.FixedMembership		as Property.FixedMembership
 import qualified	BishBosh.Property.Opposable			as Property.Opposable
 import qualified	BishBosh.Property.Reflectable			as Property.Reflectable
 import qualified	BishBosh.Property.Rotatable			as Property.Rotatable
@@ -93,8 +96,18 @@ import qualified	BishBosh.Types					as T
 import qualified	Control.DeepSeq
 import qualified	Control.Exception
 import qualified	Data.Array.IArray
+import qualified	Data.Array.Unboxed
+import qualified	Data.List
+import qualified	Data.Map
 import qualified	Data.Maybe
-import qualified	Factory.Math.Power
+
+#ifdef USE_PARALLEL
+import qualified	Control.Parallel.Strategies
+#endif
+
+-- | Used to qualify XML.
+tag :: String
+tag	= "coordinates"
 
 -- | The /coordinates/ of a square on the board.
 data Coordinates x y	= MkCoordinates {
@@ -146,18 +159,9 @@ instance (
 	Ord	y
  ) => Data.Array.IArray.Ix (Coordinates x y) where
 	{-# SPECIALISE instance Data.Array.IArray.Ix (Coordinates T.X T.Y) #-}
-	range (lower, upper)			= Control.Exception.assert (lower == minBound && upper == maxBound) range
+	range (lower, upper)			= Control.Exception.assert (lower == minBound && upper == maxBound) Property.FixedMembership.members
 	inRange (lower, upper) coordinates	= Control.Exception.assert (coordinates >= lower && coordinates <= upper) True
-	index (lower, upper) MkCoordinates {
-		getX	= x,
-		getY	= y
-	} = Control.Exception.assert (
-		lower == minBound && upper == maxBound
-	 ) $ fromIntegral Cartesian.Abscissa.xLength * (
-		fromEnum y - Cartesian.Ordinate.yOrigin
-	 ) + (
-		fromEnum x - Cartesian.Abscissa.xOrigin
-	 )
+	index (lower, upper)			= Control.Exception.assert (lower == minBound && upper == maxBound) . toIx
 
 instance Enum y => Property.Reflectable.ReflectableOnX (Coordinates x y) where
 	reflectOnX coordinates@MkCoordinates { getY = y }	= coordinates { getY = Cartesian.Ordinate.reflect y }
@@ -188,17 +192,16 @@ bottomRight = MkCoordinates {
 nSquares :: Int
 nSquares	= fromIntegral $ Cartesian.Abscissa.xLength * Cartesian.Ordinate.yLength
 
--- | Generates a raster over all the board's /coordinates/.
-range :: (Enum x, Enum y) => [Coordinates x y]
-{-# SPECIALISE range :: [Coordinates T.X T.Y] #-}
-range	= [
-	MkCoordinates {
-		getX	= x,
-		getY	= y
-	} |
-		y	<- Cartesian.Ordinate.yRange,
-		x	<- Cartesian.Abscissa.xRange
- ] -- List-comprehension.
+instance (Enum x, Enum y) => Property.FixedMembership.FixedMembership (Coordinates x y) where
+	{-# SPECIALISE instance Property.FixedMembership.FixedMembership (Coordinates T.X T.Y) #-}
+	members	= [
+		MkCoordinates {
+			getX	= x,
+			getY	= y
+		} |
+			y	<- Cartesian.Ordinate.yRange,
+			x	<- Cartesian.Abscissa.xRange
+	 ] -- List-comprehension.
 
 -- | Predicate.
 inBounds :: (
@@ -207,10 +210,10 @@ inBounds :: (
 	Ord	x,
 	Ord	y
  )
-	=> x
-	-> y
+	=> x	-- ^ Abscissa.
+	-> y	-- ^ Ordinate.
 	-> Bool
-{-# INLINE inBounds #-}
+{-# INLINABLE inBounds #-}
 inBounds x y	= Cartesian.Abscissa.inBounds x && Cartesian.Ordinate.inBounds y
 
 -- | Constructor.
@@ -239,6 +242,14 @@ mkMaybeCoordinates x y
 	| inBounds x y	= Just MkCoordinates { getX = x, getY = y }
 	| otherwise	= Nothing
 
+-- | Convert to an array-index.
+toIx :: (Enum x, Enum y) => Coordinates x y -> Int
+{-# SPECIALISE toIx :: Coordinates T.X T.Y -> Int #-}
+toIx MkCoordinates {
+	getX	= x,
+	getY	= y
+} = fromIntegral Cartesian.Abscissa.xLength * Cartesian.Ordinate.toIx y + Cartesian.Abscissa.toIx x
+
 {- |
 	* Construct from the specified array-index.
 
@@ -247,12 +258,16 @@ mkMaybeCoordinates x y
 fromIx :: (Enum x, Enum y) => Int -> Coordinates x y
 fromIx	= (
 	\(y, x) -> MkCoordinates {
-		getX	= toEnum $ x + Cartesian.Abscissa.xOrigin,
-		getY	= toEnum $ y + Cartesian.Ordinate.yOrigin
+		getX	= Cartesian.Abscissa.fromIx x,
+		getY	= Cartesian.Ordinate.fromIx y
 	}
  ) . (`divMod` fromIntegral Cartesian.Abscissa.xLength)
 
--- | Translate the specified /coordinates/.
+{- |
+	* Translate the specified /coordinates/ using the specified mapping.
+
+	* CAVEAT: the caller must ensure that the results are legal.
+-}
 translate :: (
 	Enum	x,
 	Enum	y,
@@ -274,13 +289,17 @@ maybeTranslate :: (
 	=> ((x, y) -> (x, y))	-- ^ Translation.
 	-> Coordinates x y
 	-> Maybe (Coordinates x y)
-{-# INLINE maybeTranslate #-}
+{-# INLINABLE maybeTranslate #-}
 maybeTranslate transformation MkCoordinates {
 	getX	= x,
 	getY	= y
 } = uncurry mkMaybeCoordinates $ transformation (x, y)
 
--- | Translate the specified abscissa.
+{- |
+	* Translate the specified abscissa.
+
+	* CAVEAT: the caller must ensure that the results are legal.
+-}
 translateX :: (Enum x, Ord x) => (x -> x) -> Transformation x y
 translateX transformation coordinates@MkCoordinates { getX = x }	= coordinates { getX = Cartesian.Abscissa.translate transformation x }
 
@@ -292,7 +311,11 @@ maybeTranslateX
 	-> Maybe (Coordinates x y)
 maybeTranslateX transformation coordinates@MkCoordinates { getX = x }	= (\x' -> coordinates { getX = x' }) `fmap` Cartesian.Abscissa.maybeTranslate transformation x
 
--- | Translate the specified ordinate.
+{- |
+	* Translate the specified ordinate.
+
+	* CAVEAT: the caller must ensure that the results are legal.
+-}
 translateY :: (Enum y, Ord y) => (y -> y) -> Transformation x y
 translateY transformation coordinates@MkCoordinates { getY = y }	= coordinates { getY = Cartesian.Ordinate.translate transformation y }
 
@@ -304,7 +327,11 @@ maybeTranslateY
 	-> Maybe (Coordinates x y)
 maybeTranslateY transformation coordinates@MkCoordinates { getY = y }	= (\y' -> coordinates { getY = y' }) `fmap` Cartesian.Ordinate.maybeTranslate transformation y
 
--- | Construct /coordinates/ relative to 'minBound'.
+{- |
+	* Construct /coordinates/ relative to 'minBound'.
+
+	* CAVEAT: the caller must ensure that the results are legal.
+-}
 mkRelativeCoordinates :: (
 	Enum	x,
 	Enum	y,
@@ -315,7 +342,11 @@ mkRelativeCoordinates :: (
 	-> Coordinates x y
 mkRelativeCoordinates	= (`translate` minBound)
 
--- | Move one step towards the opponent.
+{- |
+	* Move one step towards the opponent.
+
+	* CAVEAT: the caller must ensure that the results are legal.
+-}
 advance
 	:: (Enum y, Ord	y)
 	=> Attribute.LogicalColour.LogicalColour	-- ^ The /logical colour/ of the /piece/ which is to advance.
@@ -335,7 +366,11 @@ maybeAdvance logicalColour	= maybeTranslateY $ if Attribute.LogicalColour.isBlac
 	then pred
 	else succ
 
--- | Move one step away from the opponent.
+{- |
+	* Move one step away from the opponent.
+
+	* CAVEAT: the caller must ensure that the results are legal.
+-}
 retreat
 	:: (Enum y, Ord	y)
 	=> Attribute.LogicalColour.LogicalColour	-- ^ The /logical colour/ of the /piece/ which is to retreat.
@@ -354,13 +389,26 @@ maybeRetreat	= maybeAdvance . Property.Opposable.getOpposite
 getAdjacents :: (Enum x, Eq x) => Coordinates x y -> [Coordinates x y]
 getAdjacents coordinates@MkCoordinates { getX = x }	= map (\x' -> coordinates { getX = x' }) $ Cartesian.Abscissa.getAdjacents x
 
-infix 6 >||<	-- Just greater than (:).
-
--- | Alternative to @ zipWith $ curry MkCoordinates @.
-(>||<) :: [x] -> [y] -> [Coordinates x y]
-{-# INLINE (>||<) #-}
-(x' : xs) >||< (y' : ys)	= MkCoordinates { getX = x', getY = y' } : xs >||< ys	-- Recurse.
-_ >||< _			= []	-- To avoid unnecessary evaluation, 'zipWith' encodes two patterns for this, but is slightly slower.
+-- | Generates a line of /coordinates/, starting just after the specified source & proceeding in the specified /direction/ to the edge of the board.
+extrapolate'
+	:: (Enum x, Enum y)
+	=> Attribute.Direction.Direction	-- ^ The direction in which to proceed.
+	-> Coordinates x y			-- ^ The point from which to start.
+	-> [Coordinates x y]
+extrapolate' direction MkCoordinates {
+	getX	= x,
+	getY	= y
+} = zipWith MkCoordinates (
+	case Attribute.Direction.getXDirection direction of
+		GT	-> [succ x .. Cartesian.Abscissa.xMax]
+		LT	-> let startX = pred x in startX `seq` [startX, pred startX .. Cartesian.Abscissa.xMin]
+		EQ	-> repeat x
+ ) (
+	case Attribute.Direction.getYDirection direction of
+		GT	-> [succ y .. Cartesian.Ordinate.yMax]
+		LT	-> let startY = pred y in startY `seq` [startY, pred startY .. Cartesian.Ordinate.yMin]
+		EQ	-> repeat y
+ )
 
 {- |
 	* Generates a line of /coordinates/, starting just after the specified source & proceeding in the specified /direction/ to the edge of the board.
@@ -375,48 +423,51 @@ extrapolate
 	-> [Coordinates x y]
 {-# NOINLINE extrapolate #-}	-- Ensure the rewrite-rule triggers.
 {-# RULES "extrapolate/Int" extrapolate = extrapolateInt #-}	-- CAVEAT: the call-stack leading here must be specialised to ensure this rule triggers.
-extrapolate direction MkCoordinates {
-	getX	= x,
-	getY	= y
-} = (
-	case Attribute.Direction.getXDirection direction of
-		GT	-> [succ x .. Cartesian.Abscissa.xMax]
-		LT	-> let startX = pred x in startX `seq` [startX, pred startX .. Cartesian.Abscissa.xMin]
-		EQ	-> repeat x
- ) >||< (
-	case Attribute.Direction.getYDirection direction of
-		GT	-> [succ y .. Cartesian.Ordinate.yMax]
-		LT	-> let startY = pred y in startY `seq` [startY, pred startY .. Cartesian.Ordinate.yMin]
-		EQ	-> repeat y
- )
+extrapolate	= extrapolate'
 
 -- | A specialisation of 'extrapolate'.
 extrapolateInt :: Attribute.Direction.Direction -> Coordinates T.X T.Y -> [Coordinates T.X T.Y]
-extrapolateInt direction coordinates	= extrapolationsByCoordinatesByDirection ! coordinates ! direction
+extrapolateInt direction coordinates	= extrapolationsByDirectionByCoordinates ! coordinates ! direction
 
 -- | The constant lists of /coordinates/, extrapolated from every /coordinate/ in the /board/, in every /direction/.
-extrapolationsByCoordinatesByDirection :: (
-	Enum	x,
-	Enum	y,
-	Ord	x,
-	Ord	y
- ) => ByCoordinates x y (Attribute.Direction.ByDirection [Coordinates x y])
-{-# SPECIALISE extrapolationsByCoordinatesByDirection :: ByCoordinates T.X T.Y (Attribute.Direction.ByDirection [Coordinates T.X T.Y]) #-}	-- To promote memoisation.
-extrapolationsByCoordinatesByDirection	= listArrayByCoordinates [
-	Attribute.Direction.listArrayByDirection [
-		(
-			case Attribute.Direction.getXDirection direction of
-				GT	-> [succ x .. Cartesian.Abscissa.xMax]
-				LT	-> let startX = pred x in startX `seq` [startX, pred startX .. Cartesian.Abscissa.xMin]
-				EQ	-> repeat x
-		) >||< (
-			case Attribute.Direction.getYDirection direction of
-				GT	-> [succ y .. Cartesian.Ordinate.yMax]
-				LT	-> let startY = pred y in startY `seq` [startY, pred startY .. Cartesian.Ordinate.yMin]
-				EQ	-> repeat y
-		) | direction	<- Attribute.Direction.range
-	] | MkCoordinates { getX = x, getY = y }	<- range
- ] -- List-comprehension.
+extrapolationsByDirectionByCoordinates :: (
+#ifdef USE_PARALLEL
+	Control.DeepSeq.NFData	x,
+	Control.DeepSeq.NFData	y,
+#endif
+	Enum			x,
+	Enum			y,
+	Ord			x,
+	Ord			y
+ ) => ArrayByCoordinates x y (Attribute.Direction.ArrayByDirection [Coordinates x y])
+{-# SPECIALISE extrapolationsByDirectionByCoordinates :: ArrayByCoordinates T.X T.Y (Attribute.Direction.ArrayByDirection [Coordinates T.X T.Y]) #-}	-- To promote memoisation.
+extrapolationsByDirectionByCoordinates	= listArrayByCoordinates
+#ifdef USE_PARALLEL
+	. Control.Parallel.Strategies.withStrategy (Control.Parallel.Strategies.parList Control.Parallel.Strategies.rdeepseq)
+#endif
+	$ map (
+		\coordinates	-> Attribute.Direction.listArrayByDirection $ map (`extrapolate'` coordinates) Property.FixedMembership.members
+	) Property.FixedMembership.members
+
+-- | The list of /coordinates/, between every permutation of source & valid destination on the /board/.
+interpolationsByDestinationBySource :: (
+#ifdef USE_PARALLEL
+	Control.DeepSeq.NFData	x,
+	Control.DeepSeq.NFData	y,
+#endif
+	Enum			x,
+	Enum			y,
+	Ord			x,
+	Ord			y
+ ) => ArrayByCoordinates x y (Data.Map.Map (Coordinates x y) [Coordinates x y])
+{-# SPECIALISE interpolationsByDestinationBySource :: ArrayByCoordinates T.X T.Y (Data.Map.Map (Coordinates T.X T.Y) [Coordinates T.X T.Y]) #-}	-- To promote memoisation.
+interpolationsByDestinationBySource	= Data.Array.IArray.amap (
+	Data.Map.fromList . map (
+		last {-destination-} &&& id {-interpolation-}
+	) . concatMap (
+		tail {-remove null list-} . Data.List.inits	-- Generate all possible interpolations from this extrapolation.
+	) . Data.Array.IArray.elems
+ ) extrapolationsByDirectionByCoordinates	-- Derive from extrapolations.
 
 {- |
 	* Generates a line of /coordinates/ covering the half open interval @(source, destination]@.
@@ -442,48 +493,24 @@ interpolate source@MkCoordinates {
 	getY	= y'
 }
 	| source == destination	= []	-- CAVEAT: an invalid move.
-	| otherwise		= (
-		case x' `compare` x of
-			GT	-> [succ x .. x']
-			LT	-> let startX = pred x in startX `seq` [startX, pred startX .. x']
-			EQ	-> repeat x
-	) >||< (
-		case y' `compare` y of
-			GT	-> [succ y .. y']
-			LT	-> let startY = pred y in startY `seq` [startY, pred startY .. y']
-			EQ	-> repeat y
-	)
+	| otherwise		= Control.Exception.assert (
+		x == x' || y == y' || (
+			let
+				distanceX, distanceY :: T.Distance
+				(distanceX, distanceY)	= measureDistance source destination
+			in abs distanceX == abs distanceY
+		) -- Check that the move is straight.
+	) $ zipWith MkCoordinates (x `spanInterval` x') (y `spanInterval` y')
+	where
+		spanInterval :: (Enum a, Ord a) => a -> a -> [a]
+		spanInterval fromAfter to	= case to `compare` fromAfter of
+			GT	-> [succ fromAfter .. to]
+			LT	-> let startFromAfter = pred fromAfter in startFromAfter `seq` [startFromAfter, pred startFromAfter .. to]
+			EQ	-> repeat fromAfter
 
 -- | A specialisation of 'interpolate'.
 interpolateInt :: Coordinates T.X T.Y -> Coordinates T.X T.Y -> [Coordinates T.X T.Y]
-interpolateInt coordinatesSource coordinatesDestination	= interpolationsBySourceByDestination ! coordinatesSource ! coordinatesDestination
-
--- | The list of /coordinates/, between every permutation of source & destination on the /board/.
-interpolationsBySourceByDestination :: (
-	Enum	x,
-	Enum	y,
-	Ord	x,
-	Ord	y
- ) => ByCoordinates x y (ByCoordinates x y [Coordinates x y])
-{-# SPECIALISE interpolationsBySourceByDestination :: ByCoordinates T.X T.Y (ByCoordinates T.X T.Y [Coordinates T.X T.Y]) #-}	-- To promote memoisation.
-interpolationsBySourceByDestination	= listArrayByCoordinates [
-	listArrayByCoordinates [
-		if source == destination
-			then []
-			else (
-				case x' `compare` x of
-					GT	-> [succ x .. x']
-					LT	-> let startX = pred x in startX `seq` [startX, pred startX .. x']
-					EQ	-> repeat x
-			) >||< (
-				case y' `compare` y of
-					GT	-> [succ y .. y']
-					LT	-> let startY = pred y in startY `seq` [startY, pred startY .. y']
-					EQ	-> repeat y
-			)
-		| destination@MkCoordinates { getX = x', getY = y' }	<- range
-	] | source@MkCoordinates { getX = x, getY = y }	<- range
- ] -- List-comprehension.
+interpolateInt coordinatesSource coordinatesDestination	= interpolationsByDestinationBySource ! coordinatesSource Data.Map.! coordinatesDestination
 
 -- | The type of a function which changes one set of /coordinates/ to another.
 type Transformation x y	= Coordinates x y -> Coordinates x y
@@ -500,27 +527,29 @@ rotate direction coordinates@MkCoordinates {
 } = case Attribute.Direction.getXDirection &&& Attribute.Direction.getYDirection $ direction of
 	(EQ, GT)	-> coordinates
 	(LT, EQ)	-> MkCoordinates {
-		getX	= toEnum $ Cartesian.Abscissa.xOrigin + fromIntegral yDistance',
-		getY	= toEnum $ Cartesian.Ordinate.yOrigin + fromIntegral xDistance
+		getX	= Cartesian.Abscissa.fromIx $ fromIntegral yDistance',
+		getY	= Cartesian.Ordinate.fromIx $ fromIntegral xDistance
 	} -- +90 degrees, i.e. anti-clockwise.
 	(EQ, LT)	-> MkCoordinates {
-		getX	= toEnum $ Cartesian.Abscissa.xOrigin + fromIntegral xDistance',
-		getY	= toEnum $ Cartesian.Ordinate.yOrigin + fromIntegral yDistance'
+		getX	= Cartesian.Abscissa.fromIx $ fromIntegral xDistance',
+		getY	= Cartesian.Ordinate.fromIx $ fromIntegral yDistance'
 	} -- 180 degrees.
 	(GT, EQ)	-> MkCoordinates {
-		getX	= toEnum $ Cartesian.Abscissa.xOrigin + fromIntegral yDistance,
-		getY	= toEnum $ Cartesian.Ordinate.yOrigin + fromIntegral xDistance'
+		getX	= Cartesian.Abscissa.fromIx $ fromIntegral yDistance,
+		getY	= Cartesian.Ordinate.fromIx $ fromIntegral xDistance'
 	} -- -90 degrees, i.e. clockwise.
 	_		-> Control.Exception.throw . Data.Exception.mkRequestFailure . showString "BishBosh.Cartesian.Coordinates.rotate:\tunable to rotate to direction" . Text.ShowList.showsAssociation $ shows direction "."
 	where
 		xDistance, xDistance', yDistance, yDistance'	:: T.Distance
-		xDistance	= fromIntegral $ fromEnum x - Cartesian.Abscissa.xOrigin
-		yDistance	= fromIntegral $ fromEnum y - Cartesian.Ordinate.yOrigin
+		xDistance	= fromIntegral $ Cartesian.Abscissa.toIx x
+		yDistance	= fromIntegral $ Cartesian.Ordinate.toIx y
 		xDistance'	= pred Cartesian.Abscissa.xLength - xDistance
 		yDistance'	= pred Cartesian.Ordinate.yLength - yDistance
 
 {- |
 	* Measures the signed distance between source & destination /coordinates/.
+
+	* N.B.: this isn't the /irrational/ distance a rational crow would fly, but rather the integral /x/ & /y/ components of that path.
 
 	* CAVEAT: beware the potential fence-post error.
 -}
@@ -531,7 +560,7 @@ measureDistance :: (
  )
 	=> Coordinates x y	-- ^ Source.
 	-> Coordinates x y	-- ^ Destination.
-	-> (distance, distance)
+	-> (distance, distance)	-- ^ (X-distance, Y-distance)
 {-# INLINE measureDistance #-}
 measureDistance MkCoordinates {
 	getX	= x,
@@ -541,32 +570,14 @@ measureDistance MkCoordinates {
 	getY	= y'
 } = (fromIntegral $ fromEnum x' - fromEnum x, fromIntegral $ fromEnum y' - fromEnum y)
 
--- | The constant square of the radius of all coordinates.
-radiusSquared :: (
-	Fractional	radiusSquared,
-	Integral	x,
-	Integral	y
- ) => ByCoordinates x y radiusSquared
-{-# SPECIALISE radiusSquared :: ByCoordinates T.X T.Y T.RadiusSquared #-}
-radiusSquared	= listArrayByCoordinates [
-	Factory.Math.Power.square (
-		fromIntegral (x :: T.X) - Cartesian.Abscissa.centre
-	) + Factory.Math.Power.square (
-		fromIntegral (y :: T.Y) - Cartesian.Ordinate.centre
-	) | MkCoordinates {
-		getX	= x,
-		getY	= y
-	} <- range
- ] -- List-comprehension.
-
 -- | The /logical colour/ of the specified square.
 getLogicalColourOfSquare :: (Enum x, Enum y) => Coordinates x y -> Attribute.LogicalColourOfSquare.LogicalColourOfSquare
 getLogicalColourOfSquare coordinates
-	| even xDistance == even yDistance	= Attribute.LogicalColourOfSquare.black
-	| otherwise				= Attribute.LogicalColourOfSquare.white
+	| even $ uncurry (+) distance	= Attribute.LogicalColourOfSquare.black
+	| otherwise			= Attribute.LogicalColourOfSquare.white
 	where
-		xDistance, yDistance	:: T.Distance
-		(xDistance, yDistance)	= measureDistance minBound coordinates
+		distance :: (T.Distance, T.Distance)
+		distance	= measureDistance minBound coordinates
 
 -- | Whether the specified squares have the same /logical colour/.
 areSquaresIsochromatic :: (Enum x, Enum y) => [Coordinates x y] -> Bool
@@ -575,7 +586,7 @@ areSquaresIsochromatic	= uncurry (||) . (all (== minBound) &&& all (== maxBound)
 -- | The conventional starting /coordinates/ for the @King@ of the specified /logical colour/.
 kingsStartingCoordinates :: (Enum x, Enum y) => Attribute.LogicalColour.LogicalColour -> Coordinates x y
 kingsStartingCoordinates logicalColour	= MkCoordinates {
-	getX	= toEnum $ Cartesian.Abscissa.xOrigin + 4,
+	getX	= Cartesian.Abscissa.fromIx 4,
 	getY	= Cartesian.Ordinate.firstRank logicalColour
 }
 
@@ -602,9 +613,12 @@ isEnPassantRank
 isEnPassantRank logicalColour MkCoordinates { getY = y }	= y == Cartesian.Ordinate.enPassantRank logicalColour
 
 -- | A boxed array indexed by /coordinates/, of arbitrary elements.
-type ByCoordinates x y	= Data.Array.IArray.Array (Coordinates x y)
+type ArrayByCoordinates x y	= Data.Array.IArray.Array (Coordinates x y)
 
--- | Array-constructor.
+-- | An unboxed array indexed by /coordinates/, of fixed-size elements.
+type UArrayByCoordinates x y	= Data.Array.Unboxed.UArray (Coordinates x y)
+
+-- | Array-constructor from an ordered list of elements.
 listArrayByCoordinates :: (
 	Data.Array.IArray.IArray	a e,
 	Enum				x,
@@ -613,4 +627,14 @@ listArrayByCoordinates :: (
 	Ord				y
  ) => [e] -> a (Coordinates x y) e
 listArrayByCoordinates	= Data.Array.IArray.listArray (minBound, maxBound)
+
+-- | Array-constructor from an association-list.
+arrayByCoordinates :: (
+	Data.Array.IArray.IArray	a e,
+	Enum				x,
+	Enum				y,
+	Ord				x,
+	Ord				y
+ ) => [(Coordinates x y, e)] -> a (Coordinates x y) e
+arrayByCoordinates	= Data.Array.IArray.array (minBound, maxBound)
 

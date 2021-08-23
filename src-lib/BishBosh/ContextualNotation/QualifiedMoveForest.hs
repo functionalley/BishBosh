@@ -22,7 +22,7 @@
  [@DESCRIPTION@]
 
 	Builds a rose-tree from a /PGN Database/,
-	each node of which contains a move qualified by a move-type, & possibly also the ultimate result & the game's identifier.
+	each node of which contains a /move/ qualified by a /move-type/, & possibly also the ultimate result & the game's identifier.
 -}
 
 module BishBosh.ContextualNotation.QualifiedMoveForest(
@@ -94,7 +94,7 @@ type QualifiedMoveTree x y	= Data.Tree.Tree (Component.QualifiedMove.QualifiedMo
 {- |
 	* A representation of a PGN-database, where initial /move/s shared between /game/s are merged into the trunk of a tree from which they each branch.
 
-	* Many /game/s will share standard opening /move/s, & a tree-structure (cf. a list) uses this to increase both time & space efficiency.
+	* Many /game/s will share standard opening /move/s, & a tree-structure (cf. a list) uses this to increase space-time efficiency.
 
 	* Since there are many different initial moves, the structure is a flat-topped /forest/ rather than a single apex /tree/.
 -}
@@ -106,7 +106,7 @@ newtype QualifiedMoveForest x y	= MkQualifiedMoveForest {
  )
 
 instance Property.Empty.Empty (QualifiedMoveForest x y) where
-	empty	= MkQualifiedMoveForest []
+	empty	= MkQualifiedMoveForest Property.Empty.empty
 
 instance Property.Null.Null (QualifiedMoveForest x y) where
 	isNull MkQualifiedMoveForest { deconstruct = [] }	= True
@@ -119,9 +119,9 @@ instance (Enum x, Enum y) => Notation.MoveNotation.ShowNotation (QualifiedMoveFo
 		) maybeOnymousResult ""
 	 ) forest
 
--- | Show a list of the names of archived games.
+-- | Shows a list of the names of archived games, optionally capped at the specified number.
 showsNames
-	:: Maybe Int
+	:: Maybe Int	-- ^ The optional maximum number of names to show.
 	-> [Name]
 	-> ShowS
 showsNames maybeMaximumPGNNames names	= Text.ShowList.showsUnterminatedList . map (
@@ -135,7 +135,7 @@ showsNames maybeMaximumPGNNames names	= Text.ShowList.showsUnterminatedList . ma
  ) maybeMaximumPGNNames names' where
 	names'	= Data.List.nub $ Data.List.sort names
 
--- | Include the specified PGN-database into the /forest/.
+-- | Include the specified PGN-database into the /forest/, thus allowing more than one 'ContextualNotation.PGNDatabase.PGNDatabase' to be read.
 mergePGNDatabase
 	:: (Eq x, Eq y)
 	=> ContextualNotation.PGNDatabase.PGNDatabase x y
@@ -208,28 +208,28 @@ findMinimumPieces	= slave (
 		) subForest	-- Recurse.
 	 ) forest
 
--- | Count the number of /game/s & /move/s.
-count :: QualifiedMoveForest x y -> (Model.Game.NGames, Component.Move.NMoves)
+-- | Count the number of /game/s & /plies/.
+count :: QualifiedMoveForest x y -> (Model.Game.NGames, Component.Move.NPlies)
 count	= slave . deconstruct where
 	slave	= Data.List.foldl' (
-		\(nGames, nMoves) Data.Tree.Node {
+		\(nGames, nPlies) Data.Tree.Node {
 			Data.Tree.rootLabel	= (_, maybeOnymousResult),
 			Data.Tree.subForest	= forest
 		} -> let
-			acc@(nGames', nMoves')	= (
+			acc@(nGames', nPlies')	= (
 				(+ nGames) . (
 					if Data.Maybe.isJust maybeOnymousResult
 						then succ
 						else id
-				) *** (+ nMoves) . succ
+				) *** (+ nPlies) . succ
 			 ) $ slave forest {-recurse-}
-		in nGames' `seq` nMoves' `seq` acc
+		in nGames' `seq` nPlies' `seq` acc
 	 ) (0, 0)
 
 {- |
 	* Convert the specified /qualified-move forest/ to a /game-tree/.
 
-	* To construct a tree from the specified forest, the default initial /game/ is included at the apex.
+	* N.B.: to construct a tree from the specified forest, the default initial /game/ is included at the apex.
 -}
 toGameTree :: (
 	Enum	x,

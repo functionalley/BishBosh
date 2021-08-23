@@ -1,4 +1,4 @@
-{-# LANGUAGE CPP #-}
+{-# LANGUAGE CPP, LambdaCase #-}
 {-
 	Copyright (C) 2018 Dr. Alistair Ward
 
@@ -59,10 +59,10 @@ module BishBosh.ContextualNotation.StandardAlgebraic(
 ) where
 
 import			Control.Arrow((&&&))
-import			Data.Array.IArray((!))
 import qualified	BishBosh.Attribute.MoveType		as Attribute.MoveType
 import qualified	BishBosh.Attribute.Rank			as Attribute.Rank
 import qualified	BishBosh.Cartesian.Coordinates		as Cartesian.Coordinates
+import qualified	BishBosh.Component.CastlingMove		as Component.CastlingMove
 import qualified	BishBosh.Component.Move			as Component.Move
 import qualified	BishBosh.Component.Piece		as Component.Piece
 import qualified	BishBosh.Component.QualifiedMove	as Component.QualifiedMove
@@ -335,7 +335,7 @@ parser :: (
 {-# SPECIALISE parser :: ExplicitEnPassant -> ValidateMoves -> Model.Game.Game T.X T.Y -> Text.Poly.TextParser (StandardAlgebraic T.X T.Y) #-}
 parser explicitEnPassant validateMoves game	= let
 	nextLogicalColour			= Model.Game.getNextLogicalColour game
-	(shortCastlingMoves, longCastlingMoves)	= Data.List.partition (\(Attribute.MoveType.Castle isShort, _, _) -> isShort) $ Component.Move.castlingMovesByLogicalColour ! nextLogicalColour
+	(longCastlingMove, shortCastlingMove)	= Component.CastlingMove.getLongAndShortMoves nextLogicalColour
 	board					= Model.Game.getBoard game
 	getMaybePiece				= (`State.MaybePieceByCoordinates.dereference` State.Board.getMaybePieceByCoordinates board)
 	getMaybeRank				= fmap Component.Piece.getRank . getMaybePiece
@@ -415,7 +415,7 @@ parser explicitEnPassant validateMoves game	= let
 					else {-not a Pawn-} let
 						mkNormalMoveType destination	= Attribute.MoveType.mkNormalMoveType (getMaybeRank destination) Nothing {-promotion-}
 
-						resolveQualifiedMove destination candidates	= case candidates of
+						resolveQualifiedMove destination	= \case
 							[]			-> do
 								context	<- Poly.manyFinally' Poly.next $ Text.Poly.char '\n'
 
@@ -465,21 +465,13 @@ parser explicitEnPassant validateMoves game	= let
 					]
 		), (
 			"Long castle",
-			Text.Poly.string longCastleToken >> Data.Maybe.maybe (
-				fail "Failed to find any appropriate long castling move."
-			) (
-				\(moveType, kingsMove, _) -> return {-to Parser-monad-} $ Component.QualifiedMove.mkQualifiedMove kingsMove moveType
-			) (
-				Data.Maybe.listToMaybe longCastlingMoves
+			Text.Poly.string longCastleToken >> return {-to Parser-monad-} (
+				uncurry Component.QualifiedMove.mkQualifiedMove $ (Component.CastlingMove.getKingsMove &&& Component.CastlingMove.getMoveType) longCastlingMove
 			)
 		), (
 			"Short castle",
-			Text.Poly.string shortCastleToken >> Data.Maybe.maybe (
-				fail "Failed to find any appropriate short castling move."
-			) (
-				\(moveType, kingsMove, _) -> return {-to Parser-monad-} $ Component.QualifiedMove.mkQualifiedMove kingsMove moveType
-			) (
-				Data.Maybe.listToMaybe shortCastlingMoves
+			Text.Poly.string shortCastleToken >> return {-to Parser-monad-} (
+				uncurry Component.QualifiedMove.mkQualifiedMove $ (Component.CastlingMove.getKingsMove &&& Component.CastlingMove.getMoveType) shortCastlingMove
 			)
 		) -- TODO: for some reason, lazy-parsing with ghc-8.0.1 & polyparse-1.12 conflates "O-O-O" with "O-O"; confirm.
 	 ]
@@ -494,7 +486,7 @@ parser explicitEnPassant validateMoves game	= let
 {-# SPECIALISE parser :: ExplicitEnPassant -> ValidateMoves -> Model.Game.Game T.X T.Y -> Parsec.Parser (StandardAlgebraic T.X T.Y) #-}
 parser explicitEnPassant validateMoves game	= let
 	nextLogicalColour			= Model.Game.getNextLogicalColour game
-	(shortCastlingMoves, longCastlingMoves)	= Data.List.partition (\(Attribute.MoveType.Castle isShort, _, _) -> isShort) $ Component.Move.castlingMovesByLogicalColour ! nextLogicalColour
+	(longCastlingMove, shortCastlingMove)	= Component.CastlingMove.getLongAndShortMoves nextLogicalColour
 	board					= Model.Game.getBoard game
 	getMaybePiece				= (`State.MaybePieceByCoordinates.dereference` State.Board.getMaybePieceByCoordinates board)
 	getMaybeRank				= fmap Component.Piece.getRank . getMaybePiece
@@ -520,11 +512,9 @@ parser explicitEnPassant validateMoves game	= let
 						Data.Maybe.maybe (
 							fail . showString "Failed to locate any " . shows piece . showString " which can advance to " $ shows destination "."
 						 ) (
-							\source -> (
-								Component.QualifiedMove.mkQualifiedMove (Component.Move.mkMove source destination) . Attribute.MoveType.mkNormalMoveType Nothing {-capture-}
-							) <$> Control.Applicative.optional promotionParser
+							\source -> Component.QualifiedMove.mkQualifiedMove (Component.Move.mkMove source destination) . Attribute.MoveType.mkNormalMoveType Nothing {-capture-} <$> Control.Applicative.optional promotionParser
 						 ) . Data.List.find (
-							Data.Maybe.maybe False {-no piece-} (== piece) . getMaybePiece
+							(== Just piece) . getMaybePiece
 						 ) . Data.Maybe.catMaybes . take 2 {-maximum Pawn-advance-} . tail {-drop the original-} $ iterate (
 							>>= Cartesian.Coordinates.maybeRetreat nextLogicalColour
 						 ) $ Just destination
@@ -600,21 +590,12 @@ parser explicitEnPassant validateMoves game	= let
 				],
 		Parsec.try $ (
 			Parsec.string longCastleToken	<?> "Long castle"
-		) >> Data.Maybe.maybe (
-			fail "Failed to find any appropriate long castling move."
-		) (
-			\(moveType, kingsMove, _) -> return {-to ParsecT-monad-} $ Component.QualifiedMove.mkQualifiedMove kingsMove moveType
-		) (
-			Data.Maybe.listToMaybe longCastlingMoves
-		),
-		(
+		) >> return {-to ParsecT-monad-} (
+			uncurry Component.QualifiedMove.mkQualifiedMove $ (Component.CastlingMove.getKingsMove &&& Component.CastlingMove.getMoveType) longCastlingMove
+		), (
 			Parsec.string shortCastleToken	<?> "Short castle"
-		) >> Data.Maybe.maybe (
-			fail "Failed to find any appropriate short castling move."
-		) (
-			\(moveType, kingsMove, _) -> return {-to ParsecT-monad-} $ Component.QualifiedMove.mkQualifiedMove kingsMove moveType
-		) (
-			Data.Maybe.listToMaybe shortCastlingMoves
+		) >> return {-to ParsecT-monad-} (
+			uncurry Component.QualifiedMove.mkQualifiedMove $ (Component.CastlingMove.getKingsMove &&& Component.CastlingMove.getMoveType) shortCastlingMove
 		)
 	 ]
 

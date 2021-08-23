@@ -38,7 +38,7 @@ import qualified	BishBosh.Component.Zobrist	as Component.Zobrist
 import qualified	BishBosh.Data.Exception		as Data.Exception
 import qualified	BishBosh.Model.Game		as Model.Game
 import qualified	BishBosh.Model.GameTree		as Model.GameTree
-import qualified	BishBosh.Property.Tree		as Property.Tree
+import qualified	BishBosh.Property.Arboreal	as Property.Arboreal
 import qualified	BishBosh.Text.ShowList		as Text.ShowList
 import qualified	BishBosh.Types			as T
 import qualified	Control.Exception
@@ -60,7 +60,6 @@ newtype PositionHashTree positionHash	= MkPositionHashTree {
 
 instance (
 	Data.Bits.FiniteBits	positionHash,
-	Num			positionHash,
 	System.Random.Random	positionHash
  ) => Data.Default.Default (PositionHashTree positionHash) where
 	def	= mkPositionHashTree Data.Default.def (Data.Default.def :: Model.GameTree.GameTree T.X T.Y)
@@ -81,10 +80,10 @@ mkPositionHashTree zobrist	= MkPositionHashTree . fmap (`Component.Zobrist.hash2
 -- | Count the number of distinct games, irrespective of the sequence of moves taken to reach that state.
 countDistinctPositions
 	:: Ord positionHash
-	=> Property.Tree.Depth
+	=> Property.Arboreal.Depth
 	-> PositionHashTree positionHash
 	-> Model.Game.NGames
-{-# SPECIALISE countDistinctPositions :: Property.Tree.Depth -> PositionHashTree T.PositionHash -> Model.Game.NGames #-}
+{-# SPECIALISE countDistinctPositions :: Property.Arboreal.Depth -> PositionHashTree T.PositionHash -> Model.Game.NGames #-}
 countDistinctPositions depth MkPositionHashTree { deconstruct = barePositionHashTree }
 	| depth < 0	= Control.Exception.throw . Data.Exception.mkOutOfBounds . showString "BishBosh.Component.PositionHashTree.countDistinctPositions:\tdepth" . Text.ShowList.showsAssociation $ shows depth "must be positive"
 	| otherwise	= Data.Set.size $ slave depth barePositionHashTree

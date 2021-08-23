@@ -40,11 +40,12 @@ import qualified	BishBosh.Cartesian.Ordinate				as Cartesian.Ordinate
 import qualified	BishBosh.Cartesian.Vector				as Cartesian.Vector
 import qualified	BishBosh.Component.Move					as Component.Move
 import qualified	BishBosh.Component.Piece				as Component.Piece
-import qualified	BishBosh.Property.Empty					as Property.Empty
+import qualified	BishBosh.Property.FixedMembership			as Property.FixedMembership
 import qualified	BishBosh.Property.Opposable				as Property.Opposable
 import qualified	BishBosh.State.Board					as State.Board
 import qualified	BishBosh.State.CoordinatesByRankByLogicalColour		as State.CoordinatesByRankByLogicalColour
 import qualified	BishBosh.State.MaybePieceByCoordinates			as State.MaybePieceByCoordinates
+import qualified	BishBosh.StateProperty.Mutator				as StateProperty.Mutator
 import qualified	BishBosh.Test.HUnit.Cartesian.Coordinates		as Test.HUnit.Cartesian.Coordinates
 import qualified	BishBosh.Types						as T
 import qualified	Control.Arrow
@@ -63,10 +64,10 @@ type Board	= State.Board.Board T.X T.Y
 -- | Check the sanity of the implementation, by validating a list of static test-cases.
 testCases :: Test.HUnit.Test
 testCases	= Test.HUnit.test [
-	"'BishBosh.Cartesian.Coordinates.range' failed to locate the expected pieces on a default board." ~: (
+	"'BishBosh.Cartesian.Coordinates' failed to locate the expected pieces on a default board." ~: (
 		map length . ToolShed.Data.Foldable.gather $ map (
 			`State.MaybePieceByCoordinates.dereference` Data.Default.def
-		) (Cartesian.Coordinates.range :: [Test.HUnit.Cartesian.Coordinates.Coordinates])
+		) (Property.FixedMembership.members :: [Test.HUnit.Cartesian.Coordinates.Coordinates])
 	) ~?= [32, 8, 2, 2, 2, 1, 1, 8, 2, 2, 2, 1, 1],
 	let
 		kingsColour		= Attribute.LogicalColour.Black
@@ -85,14 +86,14 @@ testCases	= Test.HUnit.test [
 			) . Cartesian.Vector.attackVectorsForPawn $ Property.Opposable.getOpposite kingsColour,
 			let
 				attacker	= mkPiece Attribute.Rank.Rook
-			in map ((,) attacker . directionToCoordinates) $ Component.Piece.attackDirectionsByPiece Data.Map.! attacker,
+			in map ((,) attacker . directionToCoordinates) $ Component.Piece.getAttackDirections attacker,
 			let
 				attacker	= mkPiece Attribute.Rank.Bishop
-			in map ((,) attacker . directionToCoordinates) $ Component.Piece.attackDirectionsByPiece Data.Map.! attacker,
+			in map ((,) attacker . directionToCoordinates) $ Component.Piece.getAttackDirections attacker,
 			Data.Maybe.mapMaybe (fmap ((,) (mkPiece Attribute.Rank.Knight)) . maybeShift) Cartesian.Vector.attackVectorsForKnight,
 			let
 				attacker	= mkPiece Attribute.Rank.Queen
-			in map ((,) attacker . directionToCoordinates) $ Component.Piece.attackDirectionsByPiece Data.Map.! attacker
+			in map ((,) attacker . directionToCoordinates) $ Component.Piece.getAttackDirections attacker
 		]
 	) ~? "'BishBosh.State.Board.isKingChecked' failed.",
 	"'BishBosh.State.CoordinatesByRankByLogicalColour.countPassedPawns' failed, for passed Pawn adjacent to opposing Pawn of equal rank." ~: Data.Array.IArray.elems (
@@ -315,9 +316,9 @@ testCases	= Test.HUnit.test [
 				1, 1, 1, 4, 4, 1, 1, 1,	-- White Pawns.
 				0, 1, 1, 1, 1, 1, 1, 0	-- White Pieces.
 			]
-		) Attribute.LogicalColour.range
+		) Property.FixedMembership.members
 	) ~? "'BoshBosh.State.Board.countDefendersByCoordinatesByLogicalColour': failed"
  ] where
 	placePieces :: [(Component.Piece.Piece, Test.HUnit.Cartesian.Coordinates.Coordinates)] -> Board
-	placePieces	= foldr (uncurry State.Board.placePiece) Property.Empty.empty {-Board-}
+	placePieces	= StateProperty.Mutator.placeAllPieces
 

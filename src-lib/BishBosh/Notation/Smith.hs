@@ -30,9 +30,9 @@ module BishBosh.Notation.Smith(
 		getQualifiedMove
 	),
 -- * Constants
---	xOrigin,
---	yOrigin,
 	origin,
+--	xOriginOffset,
+--	yOriginOffset,
 	regexSyntax,
 -- * Functions
 --	encode,
@@ -41,7 +41,7 @@ module BishBosh.Notation.Smith(
 	fromQualifiedMove
 ) where
 
-import			Control.Arrow((&&&))
+import			Control.Arrow((&&&), (***))
 import qualified	BishBosh.Attribute.MoveType		as Attribute.MoveType
 import qualified	BishBosh.Attribute.Rank			as Attribute.Rank
 import qualified	BishBosh.Cartesian.Abscissa		as Cartesian.Abscissa
@@ -55,17 +55,13 @@ import qualified	Data.Default
 import qualified	Data.List.Extra
 import qualified	Data.Maybe
 
--- | The /x/-origin.
-xOrigin :: Int
-xOrigin	= Data.Char.ord 'a'
-
--- | The /y/-origin.
-yOrigin :: Int
-yOrigin	= Data.Char.ord '1'
-
 -- | The origin.
 origin :: (Int, Int)
-origin	= (xOrigin, yOrigin)
+origin	= ($ 'a') &&& ($ '1') $ Data.Char.ord
+
+-- | The offset of the application's internal coordinate-system from this conventional one.
+xOriginOffset, yOriginOffset :: Int
+(xOriginOffset, yOriginOffset)	= (Cartesian.Abscissa.xOrigin -) *** (Cartesian.Ordinate.yOrigin -) $ origin
 
 -- | Defines using a regex, the required syntax.
 regexSyntax :: String
@@ -86,7 +82,7 @@ fromQualifiedMove	= MkSmith
 
 -- | Encodes the ordinate & abscissa.
 encode :: (Enum x, Enum y) => Cartesian.Coordinates.Coordinates x y -> (ShowS, ShowS)
-encode	= showChar . Data.Char.chr . (+ (xOrigin - Cartesian.Abscissa.xOrigin)) . fromEnum . Cartesian.Coordinates.getX &&& showChar . Data.Char.chr . (+ (yOrigin - Cartesian.Ordinate.yOrigin)) . fromEnum . Cartesian.Coordinates.getY
+encode	= showChar . Data.Char.chr . subtract xOriginOffset . fromEnum . Cartesian.Coordinates.getX &&& showChar . Data.Char.chr . subtract yOriginOffset . fromEnum . Cartesian.Coordinates.getY
 
 -- | Shows the specified /coordinates/.
 showsCoordinates :: (Enum x, Enum y) => Cartesian.Coordinates.Coordinates x y -> ShowS
@@ -124,9 +120,9 @@ instance (
 	readsPrec _ s	= case Data.List.Extra.trimStart s of
 		x : y : x' : y' : remainder	-> let
 			fromSmith x'' y''	= Cartesian.Coordinates.mkMaybeCoordinates (
-				toEnum $ Data.Char.ord x'' + (Cartesian.Abscissa.xOrigin - xOrigin)
+				toEnum $ Data.Char.ord x'' + xOriginOffset
 			 ) (
-				toEnum $ Data.Char.ord y'' + (Cartesian.Ordinate.yOrigin - yOrigin)
+				toEnum $ Data.Char.ord y'' + yOriginOffset
 			 )
 		 in [
 			(

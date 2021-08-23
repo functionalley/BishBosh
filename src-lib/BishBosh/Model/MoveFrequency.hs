@@ -1,3 +1,4 @@
+{-# LANGUAGE LambdaCase #-}
 {-
 	Copyright (C) 2018 Dr. Alistair Ward
 
@@ -49,15 +50,19 @@ import qualified	BishBosh.Property.Null			as Property.Null
 import qualified	Data.Foldable
 import qualified	Data.List
 import qualified	Data.List.Extra
-import qualified	Data.Map
+import qualified	Data.Map.Strict
 import qualified	Data.Ord
 
 {- |
-	* Records the number of instances, by /logical colour/, by /rank/, of /move/s.
+	* Records the number of instances, by /move/, by /rank/, by /logical colour/.
 
 	* CAVEAT: no record of the /move-type/ is stored.
 -}
-type InstancesByMoveByRankByLogicalColour move	= Attribute.LogicalColour.ByLogicalColour (Attribute.Rank.ByRank (Data.Map.Map move Component.Move.NMoves))
+type InstancesByMoveByRankByLogicalColour move	= Attribute.LogicalColour.ArrayByLogicalColour (
+	Attribute.Rank.ArrayByRank (
+		Data.Map.Strict.Map move Component.Move.NMoves
+	)
+ )
 
 -- | The number of recorded instances of each move.
 newtype MoveFrequency move	= MkMoveFrequency {
@@ -65,10 +70,10 @@ newtype MoveFrequency move	= MkMoveFrequency {
 } deriving Eq
 
 instance Property.Empty.Empty (MoveFrequency move) where
-	empty	= MkMoveFrequency . Attribute.LogicalColour.listArrayByLogicalColour . repeat . Attribute.Rank.listArrayByRank $ repeat Data.Map.empty
+	empty	= MkMoveFrequency . Attribute.LogicalColour.listArrayByLogicalColour . repeat . Attribute.Rank.listArrayByRank $ repeat Property.Empty.empty
 
 instance Property.Null.Null (MoveFrequency move) where
-	isNull MkMoveFrequency { deconstruct = instancesByMoveByRankByLogicalColour }	= Data.Foldable.all (Data.Foldable.all Data.Map.null) instancesByMoveByRankByLogicalColour
+	isNull MkMoveFrequency { deconstruct = instancesByMoveByRankByLogicalColour }	= Data.Foldable.all (Data.Foldable.all Data.Map.Strict.null) instancesByMoveByRankByLogicalColour
 
 -- | Count the total number of entries.
 countEntries :: MoveFrequency move -> Component.Move.NMoves
@@ -79,7 +84,7 @@ countEntries MkMoveFrequency { deconstruct = instancesByMoveByRankByLogicalColou
 -- | Count the total number of distinct entries.
 countDistinctEntries :: MoveFrequency move -> Component.Move.NMoves
 countDistinctEntries MkMoveFrequency { deconstruct = instancesByMoveByRankByLogicalColour }	= Data.Foldable.foldl' (
-	Data.Foldable.foldl' $ \acc -> (acc +) . Data.Map.size
+	Data.Foldable.foldl' $ \acc -> (acc +) . Data.Map.Strict.size
  ) 0 instancesByMoveByRankByLogicalColour
 
 -- | The type of a function which can extract the /rank/ & /move/ from a datum.
@@ -97,7 +102,7 @@ insertMoves
 	-> MoveFrequency move
 	-> [a]						-- ^ The data from each of which, /rank/ & /move/ can be extracted.
 	-> MoveFrequency move
-insertMoves logicalColour getRankAndMove MkMoveFrequency { deconstruct = instancesByMoveByRankByLogicalColour } l	= MkMoveFrequency $ case l of
+insertMoves logicalColour getRankAndMove MkMoveFrequency { deconstruct = instancesByMoveByRankByLogicalColour }	= MkMoveFrequency . \case
 	[]	-> instancesByMoveByRankByLogicalColour
 	[datum]	-> let
 		(rank, move)	= getRankAndMove datum
@@ -108,19 +113,19 @@ insertMoves logicalColour getRankAndMove MkMoveFrequency { deconstruct = instanc
 			instancesByMoveByRank // [
 				(
 					rank,
-					Data.Map.insertWith (+) move 1 instancesByMove
+					Data.Map.Strict.insertWith (+) move 1 instancesByMove
 				) -- Pair.
 			] -- Singleton.
 		) -- Pair.
 	 ] -- Singleton.
-	_	-> instancesByMoveByRankByLogicalColour // [
+	l	-> instancesByMoveByRankByLogicalColour // [
 		(
 			logicalColour,
 			instancesByMoveByRank // [
 				(
 					rank,
 					foldr (
-						\(_, move) -> Data.Map.insertWith (+) move 1
+						\(_, move) -> Data.Map.Strict.insertWith (+) move 1
 					) (
 						instancesByMoveByRank ! rank
 					) assocs
@@ -146,6 +151,6 @@ sortByDescendingMoveFrequency
 	-> [a]
 {-# INLINE sortByDescendingMoveFrequency #-}
 sortByDescendingMoveFrequency logicalColour getRankAndMove MkMoveFrequency { deconstruct = instancesByMoveByRankByLogicalColour }	= Data.List.sortOn $ negate {-most frequent first-} . (
-	\(rank, move) -> Data.Map.findWithDefault 0 move $ instancesByMoveByRankByLogicalColour ! logicalColour ! rank
+	\(rank, move) -> Data.Map.Strict.findWithDefault 0 move $ instancesByMoveByRankByLogicalColour ! logicalColour ! rank
  ) . getRankAndMove
 

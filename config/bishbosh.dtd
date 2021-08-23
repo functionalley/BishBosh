@@ -33,6 +33,9 @@
 				rank	(p | r | n | b | q | k)	#REQUIRED
 				value	CDATA			#REQUIRED
 			>
+		<!ENTITY rankValues_Carlson SYSTEM "rankValues_Carlson.xml">
+		<!ENTITY rankValues_Kaufman SYSTEM "rankValues_Kaufman.xml">
+		<!ENTITY rankValues_Medvedev SYSTEM "rankValues_Medvedev.xml">
 		<!ELEMENT criteriaWeights EMPTY>
 			<!ATTLIST criteriaWeights
 				material		CDATA	#IMPLIED
@@ -44,15 +47,20 @@
 				isolatedPawns		CDATA	#IMPLIED
 				passedPawns		CDATA	#IMPLIED
 			>
+		<!ENTITY criteriaWeights SYSTEM "criteriaWeights.xml">	<!-- An External Entity referencing a file containing the criteriaWeights element -->
 		<!ELEMENT pieceSquareTables (pieceSquareTable, pieceSquareTableEndGame)>
 			<!ELEMENT pieceSquareTable (byRank)+>
 				<!ATTLIST pieceSquareTable
+					normalise	(False | True)	#IMPLIED
 					reflectOnY	(False | True)	#IMPLIED
 				>
 			<!ELEMENT pieceSquareTableEndGame (byRank)+>
 				<!ATTLIST pieceSquareTableEndGame
+					normalise	(False | True)	#IMPLIED
 					reflectOnY	(False | True)	#IMPLIED
 				>
+		<!ENTITY pieceSquareTables_symmetric SYSTEM "pieceSquareTables_symmetric.xml">
+		<!ENTITY pieceSquareTables_Rofchade SYSTEM "pieceSquareTables_Rofchade.xml">
 		<!ELEMENT byRank EMPTY>
 			<!ATTLIST byRank
 				rank		(p | r | n | b | q | k)	#REQUIRED
@@ -60,7 +68,6 @@
 			>
 	<!ELEMENT searchOptions ((transpositions)?, (standardOpeningOptions)?, searchDepthByLogicalColour)>
 		<!ATTLIST searchOptions
-			preferMovesTowardsCentre		(False | True)	#IMPLIED
 			sortOnStandardOpeningMoveFrequency	(False | True)	#IMPLIED
 			captureMoveSortAlgorithm		(MVVLVA | SEE)	#IMPLIED
 			minimumHammingDistance			CDATA		#IMPLIED
@@ -85,6 +92,7 @@
 				retireTranspositionsAfter	CDATA	#REQUIRED
 				minimumTranspositionSearchDepth	CDATA	#REQUIRED
 			>
+		<!ENTITY transpositions SYSTEM "transpositions.xml">
 	<!ELEMENT ioOptions ((pgnOptions)*, (persistence)?, (uiOptions)?)>
 		<!ATTLIST ioOptions
 			outputConfigFilePath	CDATA	#IMPLIED
@@ -93,7 +101,9 @@
 		<!ELEMENT pgnOptions (identificationTag)*>
 			<!ATTLIST pgnOptions
 				databaseFilePath	CDATA					#REQUIRED
+				decompressor		(bzcat | lzcat | xzcat | zcat)		#IMPLIED
 				minimumPlies		CDATA					#IMPLIED
+				maximumGames		CDATA					#IMPLIED
 				isStrictlySequential	(False | True)				#IMPLIED
 				validateMoves		(False | True)				#IMPLIED
 				textEncoding		(ISO-8859-1 | UTF-8 | UTF-16 | UTF-32)	#IMPLIED
@@ -102,6 +112,8 @@
 				<!ATTLIST identificationTag
 					tag	CDATA	#REQUIRED
 				>
+		<!ENTITY pgnOptions_FICS SYSTEM "pgnOptions_FICS.xml">
+		<!ENTITY pgnOptions_SCID SYSTEM "pgnOptions_SCID.xml">
 		<!ELEMENT persistence EMPTY>
 			<!ATTLIST persistence
 				filePath	CDATA		#REQUIRED

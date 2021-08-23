@@ -19,7 +19,7 @@
 {- |
  [@AUTHOR@]	Dr. Alistair Ward
 
- [@DESCRIPTION@]
+ [@DESCRIPTION@]	Data on /move/s, gathered while searching.
 
 -}
 
@@ -39,8 +39,7 @@ module BishBosh.Search.DynamicMoveData(
 	mkKillerMoveKeyFromTurn,
 -- ** Mutators
 	updateKillerMoves,
-	updateTranspositions,
-	euthanise
+	updateTranspositions
  ) where
 
 import			Control.Arrow((&&&))
@@ -48,7 +47,6 @@ import qualified	BishBosh.Attribute.Rank			as Attribute.Rank
 import qualified	BishBosh.Component.Move			as Component.Move
 import qualified	BishBosh.Component.QualifiedMove	as Component.QualifiedMove
 import qualified	BishBosh.Component.Turn			as Component.Turn
-import qualified	BishBosh.Input.SearchOptions		as Input.SearchOptions
 import qualified	BishBosh.Property.Empty			as Property.Empty
 import qualified	BishBosh.Search.EphemeralData		as Search.EphemeralData
 import qualified	BishBosh.Search.KillerMoves		as Search.KillerMoves
@@ -69,7 +67,7 @@ mkKillerMoveKeyFromTurn	= uncurry MkKillerMoveKey . (Component.QualifiedMove.get
 -- | The data on /move/s, gathered while searching.
 data DynamicMoveData x y positionHash	= MkDynamicMoveData {
 	getKillerMoves		:: Search.KillerMoves.KillerMoves (KillerMoveKey x y),
-	getTranspositions	:: Search.Transpositions.Transpositions (Component.Move.Move x y) positionHash
+	getTranspositions	:: Search.Transpositions.Transpositions (Component.QualifiedMove.QualifiedMove x y) positionHash	-- ^ N.B. a qualifiedMove is used to additionally record any promotion-rank.
 }
 
 instance Property.Empty.Empty (DynamicMoveData x y positionHash) where
@@ -86,25 +84,21 @@ updateKillerMoves :: Search.KillerMoves.Transformation (KillerMoveKey x y) -> Tr
 updateKillerMoves f dynamicMoveData@MkDynamicMoveData { getKillerMoves = killerMoves }	= dynamicMoveData { getKillerMoves = f killerMoves }
 
 -- | Mutator.
-updateTranspositions :: Search.Transpositions.Transformation (Component.Move.Move x y) positionHash -> Transformation x y positionHash
+updateTranspositions :: Search.Transpositions.Transformation (Component.QualifiedMove.QualifiedMove x y) positionHash -> Transformation x y positionHash
 updateTranspositions f dynamicMoveData@MkDynamicMoveData { getTranspositions = transpositions }	= dynamicMoveData { getTranspositions = f transpositions }
 
--- | Remove archaic data.
-euthanise
-	:: Component.Move.NPlies			-- ^ The number of plies currently applied to the game.
-	-> Input.SearchOptions.MaybeRetireAfterNMoves	-- ^ The number of full moves after which killer-moves should be retired.
-	-> Input.SearchOptions.MaybeRetireAfterNMoves	-- ^ The number of full moves after which transpositions should be retired.
-	-> Transformation x y positionHash
-euthanise nPlies maybeRetireKillerMovesAfter maybeRetireTranspositionsAfter MkDynamicMoveData {
-	getKillerMoves		= killerMoves,
-	getTranspositions	= transpositions
-} = MkDynamicMoveData {
-	getKillerMoves	= Data.Maybe.maybe id (
-		Search.EphemeralData.euthanise . reduceNPlies	-- When searching for a move at (nPlies + 1), matches with killer-moves from 'iterate (subtract 2) $ pred nPlies' are relevant up to a point. N.B. the opponent's killer-moves are useless.
-	) maybeRetireKillerMovesAfter killerMoves,
-	getTranspositions	= Data.Maybe.maybe id (
-		Search.EphemeralData.euthanise . reduceNPlies
-	) maybeRetireTranspositionsAfter transpositions
-} where
-	reduceNPlies	= (`subtract` nPlies) . (* 2) {-convert full moves to plies-}
+instance Search.EphemeralData.MaybeEphemeralData (DynamicMoveData x y positionHash) where
+	maybeEuthanise nPlies maybeRetireKillerMovesAfter maybeRetireTranspositionsAfter MkDynamicMoveData {
+		getKillerMoves		= killerMoves,
+		getTranspositions	= transpositions
+	} = MkDynamicMoveData {
+		getKillerMoves	= Data.Maybe.maybe id (
+			Search.EphemeralData.euthanise . reduceNPlies	-- When searching for a move at (nPlies + 1), matches with killer-moves from 'iterate (subtract 2) $ pred nPlies' are relevant up to a point. N.B. the opponent's killer-moves are useless.
+		) maybeRetireKillerMovesAfter killerMoves,
+		getTranspositions	= Data.Maybe.maybe id (
+			Search.EphemeralData.euthanise . reduceNPlies
+		) maybeRetireTranspositionsAfter transpositions
+	} where
+		reduceNPlies :: Component.Move.NMoves -> Component.Move.NPlies
+		reduceNPlies	= (`subtract` nPlies) . (* 2) {-convert full moves to plies-}
 

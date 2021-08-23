@@ -38,8 +38,7 @@ module BishBosh.Types(
 	Distance,
 	RankValue,
 	PieceSquareValue,
-	PositionHash,
-	RadiusSquared
+	PositionHash
 ) where
 
 import qualified	Data.Word
@@ -96,17 +95,5 @@ type PositionHash	=
 	Data.Word.Word32	-- CAVEAT: hash-collisions become almost inevitable after @ sqrt bits @ trials.
 #else
 	Data.Word.Word
-#endif
-
-{- |
-	* The preferred type by which to represent the square of the radius of a coordinate, from the centre of the board.
-
-	* N.B. for efficiency, @ radius ^ 2 @ is measured, to avoid the need to call @sqrt@.
--}
-type RadiusSquared	=
-#ifdef USE_NARROW_NUMBERS
-	Float
-#else
-	Double
 #endif
 

@@ -27,20 +27,21 @@ module BishBosh.Attribute.CaptureMoveSortAlgorithm(
 -- ** Data-types
 	CaptureMoveSortAlgorithm(..),
 -- * Constants
-	tag,
-	range
+	tag
+--	range
 ) where
 
+import qualified	BishBosh.Property.FixedMembership	as Property.FixedMembership
 import qualified	Control.DeepSeq
 import qualified	Data.Default
-import qualified	Text.XML.HXT.Arrow.Pickle	as HXT
+import qualified	Text.XML.HXT.Arrow.Pickle		as HXT
 import qualified	Text.XML.HXT.Arrow.Pickle.Schema
 
 -- | Used to qualify XML.
 tag :: String
 tag	= "captureMoveSortAlgorithm"
 
--- | The algorithm by which moves are sorted.
+-- | The sum-type of algorithms by which moves may be sorted.
 data CaptureMoveSortAlgorithm
 	= MVVLVA	-- ^ <https://www.chessprogramming.org/MVV-LVA>.
 	| SEE		-- ^ <https://www.chessprogramming.org/Static_Exchange_Evaluation>.
@@ -55,6 +56,9 @@ instance Data.Default.Default CaptureMoveSortAlgorithm where
 -- | Constant.
 range :: [CaptureMoveSortAlgorithm]
 range	= [MVVLVA, SEE]
+
+instance Property.FixedMembership.FixedMembership CaptureMoveSortAlgorithm where
+	members	= range
 
 instance HXT.XmlPickler CaptureMoveSortAlgorithm where
 	xpickle	= HXT.xpAttr tag . HXT.xpWrap (read, show) . HXT.xpTextDT . Text.XML.HXT.Arrow.Pickle.Schema.scEnum $ map show range

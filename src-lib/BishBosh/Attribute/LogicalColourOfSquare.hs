@@ -28,17 +28,19 @@
 
 module BishBosh.Attribute.LogicalColourOfSquare(
 -- * Types
--- ** Data-types
+-- ** Data-type
 	LogicalColourOfSquare(),
 -- * Constants
 	black,
 	white,
--- * Predicates
+-- * Functions
+-- ** Predicate
 	isBlack
 ) where
 
 import qualified	BishBosh.Attribute.LogicalColour	as Attribute.LogicalColour
 
+-- | The logical colour of a square of the board, cf. of a piece or (conceptually) of a player.
 newtype LogicalColourOfSquare	= MkLogicalColourOfSquare {
 	deconstruct	:: Attribute.LogicalColour.LogicalColour
 } deriving (Eq, Bounded)

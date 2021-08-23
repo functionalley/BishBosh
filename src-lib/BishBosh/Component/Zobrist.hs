@@ -34,6 +34,8 @@ module BishBosh.Component.Zobrist(
 	Hashable1D(..),
 	Hashable2D(..),
 -- * Types
+-- ** Type-synonyms
+--	Index,
 -- ** Data-types
 	Zobrist(
 --		MkZobrist,
@@ -71,13 +73,16 @@ import qualified	Data.List
 import qualified	System.Random
 import qualified	ToolShed.System.Random
 
+-- | Used as an index into 'getRandomByCoordinatesByRankByLogicalColour'.
+type Index x y	= (Attribute.LogicalColour.LogicalColour, Attribute.Rank.Rank, Cartesian.Coordinates.Coordinates x y)
+
 -- | The random numbers used to generate a hash, which almost uniquely represent a /position/.
 data Zobrist x y positionHash	= MkZobrist {
-	getRandomForBlacksMove				:: positionHash,														-- ^ Defines a random number to apply when the next move is @Black@'s.
-	getRandomByCoordinatesByRankByLogicalColour	:: Attribute.LogicalColour.ByLogicalColour (Attribute.Rank.ByRank (Cartesian.Coordinates.ByCoordinates x y positionHash)),	-- ^ Defines random numbers to represent all combinations of each piece at each coordinate; though @Pawn@s can't exist on the terminal ranks.
+	getRandomForBlacksMove				:: positionHash,							-- ^ Defines a random number to apply when the next move is @Black@'s.
+	getRandomByCoordinatesByRankByLogicalColour	:: Data.Array.IArray.Array {-Boxed-} (Index x y) positionHash,		-- ^ Defines random numbers to represent all combinations of each piece at each coordinate; though @Pawn@s can't exist on the terminal ranks. N.B.: regrettably the array can't be unboxed, because 'Data.Array.Unboxed.UArray' isn't 'Foldable'; cf. 'Data.Array.IArray.Array'.
 
-	getRandomByCastleableRooksXByLogicalColour	:: Attribute.LogicalColour.ByLogicalColour [(x, positionHash)],									-- ^ Defines random numbers to represent all combinations of castleable @Rook@s.
-	getRandomByEnPassantAbscissa			:: Cartesian.Abscissa.ByAbscissa x positionHash											-- ^ Defines random numbers to represent any file on which capture en-passant might be available.
+	getRandomByCastleableRooksXByLogicalColour	:: Attribute.LogicalColour.ArrayByLogicalColour [(x, positionHash)],	-- ^ Defines random numbers to represent all combinations of castleable @Rook@s.
+	getRandomByEnPassantAbscissa			:: Cartesian.Abscissa.ArrayByAbscissa x positionHash			-- ^ Defines random numbers to represent any file on which capture en-passant might be available.
 } deriving Show
 
 instance Foldable (Zobrist x y) where
@@ -90,9 +95,7 @@ instance Foldable (Zobrist x y) where
 		Data.Foldable.foldr (
 			flip . foldr $ f . snd
 		) (
-			Data.Foldable.foldr (
-				flip . Data.Foldable.foldr . flip $ Data.Foldable.foldr f
-			) (
+			Data.Foldable.foldr f (
 				f randomForBlacksMove i
 			) randomByCoordinatesByRankByLogicalColour
 		) randomByCastleableRooksXByLogicalColour
@@ -103,7 +106,6 @@ instance (
 	Data.Bits.FiniteBits	positionHash,
 	Enum			x,
 	Enum			y,
-	Num			positionHash,
 	Ord			y,
 	System.Random.Random	positionHash
  ) => Data.Default.Default (Zobrist x y positionHash) where
@@ -128,7 +130,6 @@ mkZobrist :: (
 	Data.Bits.FiniteBits	positionHash,
 	Enum			x,
 	Enum			y,
-	Num			positionHash,
 	Ord			y,
 	System.Random.RandomGen randomGen,
 	System.Random.Random	positionHash
@@ -144,20 +145,15 @@ mkZobrist maybeMinimumHammingDistance randomGen
 	where
 		((randomForBlacksMove, randomByCoordinatesByRankByLogicalColour), (randomByCastleableRooksXByLogicalColour, randomByEnPassantAbscissa))	= (
 			(
-				head . getNonZeroRandoms *** Attribute.LogicalColour.listArrayByLogicalColour . map (
-					Attribute.Rank.listArrayByRank . map (
-						Cartesian.Coordinates.listArrayByCoordinates . getNonZeroRandoms
-					) . ToolShed.System.Random.randomGens
-				) . ToolShed.System.Random.randomGens
+				head . System.Random.randoms *** Data.Array.IArray.listArray (minBound, maxBound) . System.Random.randoms
 			) . System.Random.split
 		 ) *** (
 			(
 				Attribute.LogicalColour.listArrayByLogicalColour . map (
-					zip [Cartesian.Abscissa.xMin, Cartesian.Abscissa.xMax] . getNonZeroRandoms
-				) . ToolShed.System.Random.randomGens *** Cartesian.Abscissa.listArrayByAbscissa . getNonZeroRandoms
+					zip [Cartesian.Abscissa.xMin, Cartesian.Abscissa.xMax] . System.Random.randoms
+				) . ToolShed.System.Random.randomGens *** Cartesian.Abscissa.listArrayByAbscissa . System.Random.randoms
 			) . System.Random.split
-		 ) $ System.Random.split randomGen where
-			getNonZeroRandoms	= filter (/= 0) . System.Random.randoms
+		 ) $ System.Random.split randomGen
 
 		zobrist	= MkZobrist {
 			getRandomForBlacksMove				= randomForBlacksMove,
@@ -166,30 +162,28 @@ mkZobrist maybeMinimumHammingDistance randomGen
 			getRandomByEnPassantAbscissa			= randomByEnPassantAbscissa
 		}
 
--- | Dereference 'getRandomByCoordinatesByRankByLogicalColour'.
+-- | Dereferences 'getRandomByCoordinatesByRankByLogicalColour' using the specified index.
 dereferenceRandomByCoordinatesByRankByLogicalColour :: (
 	Enum	x,
 	Enum	y,
 	Ord	x,
 	Ord	y
  )
-	=> Attribute.LogicalColour.LogicalColour
-	-> Attribute.Rank.Rank
-	-> Cartesian.Coordinates.Coordinates x y
+	=> Index x y
 	-> Zobrist x y positionHash
 	-> positionHash
-dereferenceRandomByCoordinatesByRankByLogicalColour logicalColour rank coordinates MkZobrist { getRandomByCoordinatesByRankByLogicalColour = randomByCoordinatesByRankByLogicalColour }	= randomByCoordinatesByRankByLogicalColour ! logicalColour ! rank ! coordinates
+dereferenceRandomByCoordinatesByRankByLogicalColour index MkZobrist { getRandomByCoordinatesByRankByLogicalColour = randomByCoordinatesByRankByLogicalColour }	= randomByCoordinatesByRankByLogicalColour ! index
 
--- | Dereference 'getRandomByCastleableRooksXByLogicalColour'.
+-- | Dereferences 'getRandomByCastleableRooksXByLogicalColour' using the specified abscissa.
 dereferenceRandomByCastleableRooksXByLogicalColour
 	:: Eq x
 	=> Attribute.LogicalColour.LogicalColour
 	-> x
 	-> Zobrist x y positionHash
-	-> Maybe positionHash
+	-> Maybe positionHash	-- ^ The existence of a result depends on whether there remain any Rooks which can castle.
 dereferenceRandomByCastleableRooksXByLogicalColour logicalColour x MkZobrist { getRandomByCastleableRooksXByLogicalColour = randomByCastleableRooksXByLogicalColour }	= lookup x $ randomByCastleableRooksXByLogicalColour ! logicalColour
 
--- | Dereference 'getRandomByEnPassantAbscissa'.
+-- | Dereferences 'getRandomByEnPassantAbscissa' using the specified abscissa.
 dereferenceRandomByEnPassantAbscissa
 	:: Data.Array.IArray.Ix x
 	=> x

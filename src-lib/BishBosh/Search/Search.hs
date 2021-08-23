@@ -29,13 +29,15 @@ module BishBosh.Search.Search(
 --		MkResult,
 		getSearchState,
 		getQuantifiedGames,
-		getNMovesEvaluated
+		getNPliesEvaluated
 	),
 -- * Constants
 	showsSeparator,
 -- * Functions
-	search,
-	calculateBranchingFactor
+	search
+--	calculateBranchingFactor,
+-- ** Constructor
+--	mkResult
  ) where
 
 import			Control.Arrow((&&&))
@@ -47,9 +49,11 @@ import qualified	BishBosh.Input.SearchOptions				as Input.SearchOptions
 import qualified	BishBosh.Model.Game					as Model.Game
 import qualified	BishBosh.Notation.MoveNotation				as Notation.MoveNotation
 import qualified	BishBosh.Search.AlphaBeta				as Search.AlphaBeta
+import qualified	BishBosh.Search.EphemeralData				as Search.EphemeralData
 import qualified	BishBosh.Search.SearchState				as Search.SearchState
 import qualified	BishBosh.State.TurnsByLogicalColour			as State.TurnsByLogicalColour
 import qualified	BishBosh.Text.ShowList					as Text.ShowList
+import qualified	BishBosh.Types						as T
 import qualified	Control.DeepSeq
 import qualified	Control.Exception
 import qualified	Control.Monad.Reader
@@ -59,7 +63,7 @@ import qualified	Data.Maybe
 data Result x y positionHash criterionValue weightedMean	= MkResult {
 	getSearchState		:: Search.SearchState.SearchState x y positionHash criterionValue weightedMean,
 	getQuantifiedGames	:: [Evaluation.QuantifiedGame.QuantifiedGame x y criterionValue weightedMean],	-- ^ The optimal path down the /positionHashQuantifiedGameTree/.
-	getNMovesEvaluated	:: Component.Move.NMoves							-- ^ The total number of nodes in the /positionHashQuantifiedGameTree/ which were analysed.
+	getNPliesEvaluated	:: Component.Move.NPlies							-- ^ The total number of nodes in the /positionHashQuantifiedGameTree/ which were analysed.
 }
 
 instance Control.DeepSeq.NFData weightedMean => Control.DeepSeq.NFData (Result x y positionHash criterionValue weightedMean) where
@@ -72,27 +76,55 @@ showsSeparator	= showString " -> "
 instance (Enum x, Enum y, Real criterionValue, Real weightedMean) => Notation.MoveNotation.ShowNotationFloat (Result x y positionHash criterionValue weightedMean) where
 	showsNotationFloat moveNotation showsDouble result@MkResult {
 		getQuantifiedGames	= quantifiedGames,
-		getNMovesEvaluated	= nMovesEvaluated
+		getNPliesEvaluated	= nPliesEvaluated
 	} = Text.ShowList.showsFormattedList showsSeparator (
 		Notation.MoveNotation.showsNotationFloat moveNotation showsDouble
-	 ) quantifiedGames . showString "; selected after analysing " . shows nMovesEvaluated . showString " moves (branching-factor" . Text.ShowList.showsAssociation . showsDouble (
-		calculateBranchingFactor result
-	 ) . showChar ')'
+	 ) quantifiedGames . showString "; selected after analysing " . shows nPliesEvaluated . showString " nodes" . (
+		if null quantifiedGames || nPliesEvaluated == 0
+			then id
+			else showString " (branching-factor" . Text.ShowList.showsAssociation . showsDouble (calculateBranchingFactor result) . showChar ')'
+	 )
+
+-- | Smart constructor.
+mkResult :: (
+	Enum	x,
+	Enum	y,
+	Ord	x,
+	Ord	y,
+	Show	x,
+	Show	y
+ )
+	=> Search.SearchState.SearchState x y positionHash criterionValue weightedMean
+	-> [Evaluation.QuantifiedGame.QuantifiedGame x y criterionValue weightedMean]
+	-> Component.Move.NPlies
+	-> Result x y positionHash criterionValue weightedMean
+mkResult searchState quantifiedGames nPliesEvaluated
+	| null quantifiedGames	= Control.Exception.throw . Data.Exception.mkNullDatum . showString "BishBosh.Search.Search.mkResult:\tnull quantifiedGames; " $ shows game "."
+	| nPliesEvaluated < 0	= Control.Exception.throw . Data.Exception.mkOutOfBounds . showString "BishBosh.Search.Search.mkResult:\tnPliesEvaluated=" . shows nPliesEvaluated . showString " mustn't be negative; " $ shows game "."
+	| otherwise		= MkResult {
+		getSearchState		= searchState,
+		getQuantifiedGames	= quantifiedGames,
+		getNPliesEvaluated	= nPliesEvaluated
+	}
+	where
+		game	= Evaluation.QuantifiedGame.getGame . Evaluation.PositionHashQuantifiedGameTree.getRootQuantifiedGame $ Search.SearchState.getPositionHashQuantifiedGameTree searchState
 
 -- | Initiates the recursive function 'Search.AlphaBeta.negaMax', then unpacks the results.
 search :: (
 	Enum	x,
 	Enum	y,
 	Eq	criterionValue,
-	Num	weightedMean,
-	Ord	weightedMean,
 	Ord	positionHash,
 	Ord	x,
-	Ord	y
+	Ord	y,
+	Real	weightedMean,
+	Show	x,
+	Show	y
  )
 	=> Input.SearchOptions.SearchDepth	-- ^ How deep down the tree to search.
 	-> Search.SearchState.SearchState x y positionHash criterionValue weightedMean
 	-> Input.SearchOptions.Reader (Result x y positionHash criterionValue weightedMean)
+{-# SPECIALISE search :: Input.SearchOptions.SearchDepth -> Search.SearchState.SearchState T.X T.Y T.PositionHash T.CriterionValue T.WeightedMean -> Input.SearchOptions.Reader (Result T.X T.Y T.PositionHash T.CriterionValue T.WeightedMean) #-}
 search 0 _	= Control.Exception.throw . Data.Exception.mkOutOfBounds . showString "BishBosh.Search.Search.search:\t" . shows Input.SearchOptions.searchDepthTag . showString " must be at least " $ shows Input.SearchOptions.minimumSearchDepth "."
 search searchDepth searchState
 	| Just terminationReason <- Model.Game.getMaybeTerminationReason game	= Control.Exception.throw . Data.Exception.mkInvalidDatum . showString "BishBosh.Search.Search.search:\tthe game has already terminated; " $ shows terminationReason "."
@@ -101,36 +133,36 @@ search searchDepth searchState
 
 		let nPlies	= State.TurnsByLogicalColour.getNPlies $ Model.Game.getTurnsByLogicalColour game
 
-		searchResult	<- Search.AlphaBeta.negaMax searchDepth $ Search.SearchState.euthanise nPlies maybeRetireKillerMovesAfter maybeRetireTranspositionsAfter searchState
+		searchResult	<- Search.AlphaBeta.negaMax searchDepth $ Search.EphemeralData.maybeEuthanise nPlies maybeRetireKillerMovesAfter maybeRetireTranspositionsAfter searchState
 
 		case Search.AlphaBeta.extractSelectedTurns nPlies searchResult of
-			(dynamicMoveData, turns@(turn : _), nMovesEvaluated)	-> let
+			(dynamicMoveData, turns@(turn : _), nPliesEvaluated)	-> let
 				isMatch turn'	= (== turn') . Evaluation.QuantifiedGame.getLastTurn . Evaluation.PositionHashQuantifiedGameTree.getQuantifiedGame
-			 in return {-to Reader-monad-} MkResult {
-				getSearchState		= Search.SearchState.mkSearchState (
+			 in return {-to Reader-monad-} $ mkResult (
+				Search.SearchState.mkSearchState (
 					Data.Maybe.fromMaybe (
-						Control.Exception.throw $ Data.Exception.mkIncompatibleData "BishBosh.Search.Search.search:\tBishBosh.Data.RoseTree.reduce failed."
+						Control.Exception.throw . Data.Exception.mkIncompatibleData . showString "BishBosh.Search.Search.search:\tBishBosh.Evaluation.PositionHashQuantifiedGameTree.reduce failed; " $ shows turn "."
 					) $ Evaluation.PositionHashQuantifiedGameTree.reduce (isMatch turn) positionHashQuantifiedGameTree
-				) dynamicMoveData,
-				getQuantifiedGames	= map Evaluation.PositionHashQuantifiedGameTree.getQuantifiedGame . Data.Maybe.fromMaybe (
-					Control.Exception.throw $ Data.Exception.mkSearchFailure "BishBosh.Search.Search.search:\tBishBosh.Data.RoseTree.traceRoute failed."
-				) $ Evaluation.PositionHashQuantifiedGameTree.traceRoute isMatch positionHashQuantifiedGameTree turns,
-				getNMovesEvaluated	= nMovesEvaluated
-			}
+				) dynamicMoveData
+			 ) (
+				map Evaluation.PositionHashQuantifiedGameTree.getQuantifiedGame . Data.Maybe.fromMaybe (
+					Control.Exception.throw . Data.Exception.mkSearchFailure . showString "BishBosh.Search.Search.search:\tEvaluation.PositionHashQuantifiedGameTree.traceRoute failed; " $ shows turns "."
+				) $ Evaluation.PositionHashQuantifiedGameTree.traceRoute isMatch positionHashQuantifiedGameTree turns
+			 ) nPliesEvaluated
 			_							-> Control.Exception.throw $ Data.Exception.mkNullDatum "BishBosh.Search.Search.search:\tzero turns selected."
 	where
 		positionHashQuantifiedGameTree	= Search.SearchState.getPositionHashQuantifiedGameTree searchState
 		game				= Evaluation.QuantifiedGame.getGame $ Evaluation.PositionHashQuantifiedGameTree.getRootQuantifiedGame positionHashQuantifiedGameTree
 
--- | Calculate the geometric-mean of the number of moves evaluated at each node.
+-- | Calculate the geometric-mean of the number of plies evaluated at each node.
 calculateBranchingFactor :: Floating branchingFactor => Result x y positionHash criterionValue weightedMean -> branchingFactor
 calculateBranchingFactor MkResult {
 	getQuantifiedGames	= quantifiedGames,
-	getNMovesEvaluated	= nMovesEvaluated
+	getNPliesEvaluated	= nPliesEvaluated
 }
 	| null quantifiedGames	= Control.Exception.throw $ Data.Exception.mkNullDatum "BishBosh.Search.Search.calculateBranchingFactor:\tnull quantifiedGames."
-	| nMovesEvaluated == 0	= Control.Exception.throw $ Data.Exception.mkInsufficientData "BishBosh.Search.Search.calculateBranchingFactor:\tzero moves analysed."
-	| otherwise		= fromIntegral nMovesEvaluated ** recip (
+	| nPliesEvaluated == 0	= Control.Exception.throw $ Data.Exception.mkOutOfBounds "BishBosh.Search.Search.calculateBranchingFactor:\tzero plies analysed."
+	| otherwise		= fromIntegral nPliesEvaluated ** recip (
 		fromIntegral $ length quantifiedGames	-- The search-depth.
 	)
 

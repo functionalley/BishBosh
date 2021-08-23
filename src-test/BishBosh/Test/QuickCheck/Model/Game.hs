@@ -33,27 +33,28 @@ module BishBosh.Test.QuickCheck.Model.Game(
 
 import			BishBosh.Test.QuickCheck.State.Board()
 import			Control.Arrow((&&&))
-import qualified	BishBosh.Attribute.LogicalColour			as Attribute.LogicalColour
-import qualified	BishBosh.Attribute.MoveType				as Attribute.MoveType
-import qualified	BishBosh.Attribute.Rank					as Attribute.Rank
-import qualified	BishBosh.Cartesian.Coordinates				as Cartesian.Coordinates
-import qualified	BishBosh.Cartesian.Ordinate				as Cartesian.Ordinate
-import qualified	BishBosh.Component.Move					as Component.Move
-import qualified	BishBosh.Component.Piece				as Component.Piece
-import qualified	BishBosh.Component.QualifiedMove			as Component.QualifiedMove
-import qualified	BishBosh.Component.Turn					as Component.Turn
-import qualified	BishBosh.Model.DrawReason				as Model.DrawReason
-import qualified	BishBosh.Model.Game					as Model.Game
-import qualified	BishBosh.Property.ForsythEdwards			as Property.ForsythEdwards
-import qualified	BishBosh.Property.Null					as Property.Null
-import qualified	BishBosh.Property.Opposable				as Property.Opposable
-import qualified	BishBosh.Property.Reflectable				as Property.Reflectable
-import qualified	BishBosh.State.Board					as State.Board
-import qualified	BishBosh.State.CastleableRooksByLogicalColour		as State.CastleableRooksByLogicalColour
-import qualified	BishBosh.State.CoordinatesByRankByLogicalColour		as State.CoordinatesByRankByLogicalColour
-import qualified	BishBosh.State.MaybePieceByCoordinates			as State.MaybePieceByCoordinates
-import qualified	BishBosh.State.TurnsByLogicalColour			as State.TurnsByLogicalColour
-import qualified	BishBosh.Types						as T
+import qualified	BishBosh.Attribute.MoveType			as Attribute.MoveType
+import qualified	BishBosh.Attribute.Rank				as Attribute.Rank
+import qualified	BishBosh.Cartesian.Coordinates			as Cartesian.Coordinates
+import qualified	BishBosh.Cartesian.Ordinate			as Cartesian.Ordinate
+import qualified	BishBosh.Component.Move				as Component.Move
+import qualified	BishBosh.Component.Piece			as Component.Piece
+import qualified	BishBosh.Component.QualifiedMove		as Component.QualifiedMove
+import qualified	BishBosh.Component.Turn				as Component.Turn
+import qualified	BishBosh.Model.DrawReason			as Model.DrawReason
+import qualified	BishBosh.Model.Game				as Model.Game
+import qualified	BishBosh.Property.FixedMembership		as Property.FixedMembership
+import qualified	BishBosh.Property.ForsythEdwards		as Property.ForsythEdwards
+import qualified	BishBosh.Property.Null				as Property.Null
+import qualified	BishBosh.Property.Opposable			as Property.Opposable
+import qualified	BishBosh.Property.Reflectable			as Property.Reflectable
+import qualified	BishBosh.State.Board				as State.Board
+import qualified	BishBosh.State.CastleableRooksByLogicalColour	as State.CastleableRooksByLogicalColour
+import qualified	BishBosh.State.CoordinatesByRankByLogicalColour	as State.CoordinatesByRankByLogicalColour
+import qualified	BishBosh.State.MaybePieceByCoordinates		as State.MaybePieceByCoordinates
+import qualified	BishBosh.StateProperty.Seeker			as StateProperty.Seeker
+import qualified	BishBosh.State.TurnsByLogicalColour		as State.TurnsByLogicalColour
+import qualified	BishBosh.Types					as T
 import qualified	Data.Array.IArray
 import qualified	Data.Default
 import qualified	Data.Foldable
@@ -153,8 +154,8 @@ results	= sequence [
 				else sort $ Model.Game.findQualifiedMovesAvailableToNextPlayer game
 		 ) $ sort [
 			qualifiedMove |
-				source			<- State.CoordinatesByRankByLogicalColour.elems $ State.Board.getCoordinatesByRankByLogicalColour board,
-				destination		<- Cartesian.Coordinates.range,
+				source			<- State.CoordinatesByRankByLogicalColour.listCoordinates $ State.Board.getCoordinatesByRankByLogicalColour board,
+				destination		<- Property.FixedMembership.members,
 				source /= destination,
 				let move	= Component.Move.mkMove source destination,
 				maybePromotionRank	<- if Data.Maybe.maybe False (Component.Piece.isPawnPromotion destination) $ State.MaybePieceByCoordinates.dereference source maybePieceByCoordinates
@@ -196,7 +197,7 @@ results	= sequence [
 		f :: Game -> Test.QuickCheck.Property
 		f	= Test.QuickCheck.label "Game.prop_getCoordinatesByRankByLogicalColour/unique" . all (
 			(== 1) . length
-		 ) . ToolShed.Data.Foldable.gather . State.CoordinatesByRankByLogicalColour.elems . State.Board.getCoordinatesByRankByLogicalColour . Model.Game.getBoard
+		 ) . ToolShed.Data.Foldable.gather . State.CoordinatesByRankByLogicalColour.listCoordinates . State.Board.getCoordinatesByRankByLogicalColour . Model.Game.getBoard
 	in Test.QuickCheck.quickCheckWithResult Test.QuickCheck.stdArgs { Test.QuickCheck.maxSuccess = 256 } f,
 	let
 		f :: Game -> Test.QuickCheck.Property
@@ -213,7 +214,7 @@ results	= sequence [
 					then 0
 					else length $ Model.Game.findQualifiedMovesAvailableTo logicalColour game
 			)
-		 ) Attribute.LogicalColour.range
+		 ) Property.FixedMembership.members
 	in Test.QuickCheck.quickCheckWithResult Test.QuickCheck.stdArgs { Test.QuickCheck.maxSuccess = 256 } f,
 	let
 		f :: Game -> Test.QuickCheck.Property
@@ -294,7 +295,7 @@ results	= sequence [
 			) maybePieceByCoordinates
 		 ) [
 			(destination, destinationLogicalColour, destinationRank, source, sourceRank) |
-				(destination, piece)	<- State.MaybePieceByCoordinates.findPieces maybePieceByCoordinates,
+				(destination, piece)	<- StateProperty.Seeker.findAllPieces maybePieceByCoordinates,
 				let (destinationLogicalColour, destinationRank)	= Component.Piece.getLogicalColour &&& Component.Piece.getRank $ piece,	-- Deconstruct.
 				(source, sourceRank)	<- State.Board.findAttackersOf destinationLogicalColour destination board
 		 ] {-list-comprehension-} where
@@ -309,7 +310,7 @@ results	= sequence [
 			) destination board
 		 ) [
 			(source, piece, destination) |
-				(source, piece)		<- State.MaybePieceByCoordinates.findPieces maybePieceByCoordinates,
+				(source, piece)		<- StateProperty.Seeker.findAllPieces maybePieceByCoordinates,
 				(destination, Just _)	<- State.MaybePieceByCoordinates.listDestinationsFor source piece maybePieceByCoordinates	-- Identify attacks.
 		 ] {-list-comprehension-} where
 			board			= Model.Game.getBoard game
@@ -321,7 +322,7 @@ results	= sequence [
 			uncurry (&&) . (
 				(/= Cartesian.Ordinate.yMin) &&& (/= Cartesian.Ordinate.yMax)
 			) . Cartesian.Coordinates.getY . fst {-coordinates-}
-		 ) . State.CoordinatesByRankByLogicalColour.findPieces Component.Piece.isPawn . State.Board.getCoordinatesByRankByLogicalColour $ Model.Game.getBoard game
+		 ) . StateProperty.Seeker.findPieces Component.Piece.isPawn . State.Board.getCoordinatesByRankByLogicalColour $ Model.Game.getBoard game
 	in Test.QuickCheck.quickCheckWithResult Test.QuickCheck.stdArgs { Test.QuickCheck.maxSuccess = 256 } f
  ]
 

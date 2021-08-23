@@ -25,8 +25,9 @@
 
 module BishBosh.Test.QuickCheck.Notation.MoveNotation () where
 
-import qualified	BishBosh.Notation.MoveNotation	as Notation.MoveNotation
+import qualified	BishBosh.Notation.MoveNotation		as Notation.MoveNotation
+import qualified	BishBosh.Property.FixedMembership	as Property.FixedMembership
 import qualified	Test.QuickCheck
 
 instance Test.QuickCheck.Arbitrary Notation.MoveNotation.MoveNotation where
-	arbitrary	= Test.QuickCheck.elements Notation.MoveNotation.range
+	arbitrary	= Test.QuickCheck.elements Property.FixedMembership.members

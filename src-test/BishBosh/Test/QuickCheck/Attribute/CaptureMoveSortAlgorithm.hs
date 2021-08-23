@@ -26,8 +26,9 @@
 module BishBosh.Test.QuickCheck.Attribute.CaptureMoveSortAlgorithm() where
 
 import qualified	BishBosh.Attribute.CaptureMoveSortAlgorithm	as Attribute.CaptureMoveSortAlgorithm
+import qualified	BishBosh.Property.FixedMembership		as Property.FixedMembership
 import qualified	Test.QuickCheck
 
 instance Test.QuickCheck.Arbitrary Attribute.CaptureMoveSortAlgorithm.CaptureMoveSortAlgorithm where
-	arbitrary	= Test.QuickCheck.elements Attribute.CaptureMoveSortAlgorithm.range
+	arbitrary	= Test.QuickCheck.elements Property.FixedMembership.members
 

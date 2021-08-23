@@ -41,7 +41,7 @@ module BishBosh.Data.RoseTree(
 import qualified	Data.List
 import qualified	Data.Tree
 
--- Counts the number of terminal nodes.
+-- | Counts the number of terminal nodes.
 countTerminalNodes :: Num nodes => Data.Tree.Tree a -> nodes
 {-
 countTerminalNodes Data.Tree.Node { Data.Tree.subForest = [] }		= 1
@@ -112,7 +112,7 @@ reduce isMatch Data.Tree.Node { Data.Tree.subForest = subForest }	= Data.List.fi
 type Transformation a	= Data.Tree.Tree a -> Data.Tree.Tree a
 
 {- |
-	* Apply an arbitrary mapping to all subForests; cf 'fmap' which applies an arbitrary function to all rootLabels.
+	* Apply an arbitrary mapping to all subForests; cf. 'fmap' which applies an arbitrary function to all 'Data.Tree.rootLabel's.
 
 	* The mapping is given access to the label at each forest.
 -}

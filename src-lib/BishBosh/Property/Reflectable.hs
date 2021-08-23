@@ -28,9 +28,14 @@ module BishBosh.Property.Reflectable (
 	ReflectableOnY(..)
 ) where
 
+import	Prelude(map)
+
 -- | An interface which data which can be transformed by reflection about the /x/-axis, may implement.
 class ReflectableOnX a where
 	reflectOnX	:: a -> a	-- ^ Reflect about the /x/-axis, i.e. to top to bottom & vice-versa.
+
+instance ReflectableOnX a => ReflectableOnX [a] where
+	reflectOnX	= map reflectOnX
 
 -- | An interface which data which can be transformed by reflection about the /y/-axis, may implement.
 class ReflectableOnY a where

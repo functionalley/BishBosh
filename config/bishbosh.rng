@@ -56,10 +56,6 @@
 			</optional><optional>
 				<element name="searchOptions">
 					<optional>
-						<attribute name="preferMovesTowardsCentre">
-							<ref name="Boolean"/>
-						</attribute>
-					</optional><optional>
 						<attribute name="sortOnStandardOpeningMoveFrequency">
 							<ref name="Boolean"/>
 						</attribute>
@@ -139,8 +135,21 @@
 						<element name="pgnOptions">
 							<attribute name="databaseFilePath"/>
 							<optional>
+								<attribute name="decompressor">
+									<choice>
+										<value>bzcat</value>
+										<value>lzcat</value>
+										<value>xzcat</value>
+										<value>zcat</value>
+									</choice>
+								</attribute>
+							</optional><optional>
 								<attribute name="minimumPlies">
 									<data type="nonNegativeInteger"/>
+								</attribute>
+							</optional><optional>
+								<attribute name="maximumGames">
+									<data type="positiveInteger"/>
 								</attribute>
 							</optional>
 							<zeroOrMore>
@@ -337,6 +346,10 @@
 		</data>
 	</define><define name="PieceSquareTable">
 		<optional>
+			<attribute name="normalise">
+				<ref name="Boolean"/>
+			</attribute>
+		</optional><optional>
 			<attribute name="reflectOnY">
 				<ref name="Boolean"/>
 			</attribute>

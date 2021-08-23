@@ -32,6 +32,7 @@ module BishBosh.Test.HUnit.Cartesian.Coordinates(
 
 import qualified	BishBosh.Attribute.LogicalColourOfSquare	as Attribute.LogicalColourOfSquare
 import qualified	BishBosh.Cartesian.Coordinates			as Cartesian.Coordinates
+import qualified	BishBosh.Property.FixedMembership		as Property.FixedMembership
 import qualified	BishBosh.Types					as T
 import qualified	Data.Array.IArray
 import qualified	Data.List
@@ -50,13 +51,13 @@ testCases	= Test.HUnit.test [
 	"'BishBosh.Cartesian.Coordinates.getLogicalColourOfSquare' failed to count equal numbers of black & white squares." ~: (
 		\(black, white) -> length black ~?= length white
 	) . Data.List.partition Attribute.LogicalColourOfSquare.isBlack $ map Cartesian.Coordinates.getLogicalColourOfSquare (
-		Cartesian.Coordinates.range	:: [Coordinates]
+		Property.FixedMembership.members	:: [Coordinates]
 	),
-	"'BishBosh.Cartesian.Coordinates.range' failed to visit all squares." ~: length (
-		Cartesian.Coordinates.range	:: [Coordinates]
+	"'BishBosh.Cartesian.Coordinates' failed to visit all squares." ~: length (
+		Property.FixedMembership.members	:: [Coordinates]
 	) ~?= Cartesian.Coordinates.nSquares,
 	"instance 'Data.Array.IArray.Ix Coordinates' is incompatible with instance 'Ord Coordinates'." ~: Data.Array.IArray.indices (
-		Cartesian.Coordinates.listArrayByCoordinates [0 .. ]	:: Cartesian.Coordinates.ByCoordinates T.X T.Y Int
-	) ~?= Cartesian.Coordinates.range
+		Cartesian.Coordinates.listArrayByCoordinates [0 .. ]	:: Cartesian.Coordinates.ArrayByCoordinates T.X T.Y Int
+	) ~?= Property.FixedMembership.members
  ]
 

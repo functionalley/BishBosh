@@ -29,6 +29,9 @@ module BishBosh.Property.Null(
 	Null(..)
 ) where
 
+import	Prelude(Bool)
+
+-- | An interface for data which can support the concept of being null.
 class Null a where
-	isNull	:: a -> Bool	-- ^ Predicate, cf. 'null' for a list.
+	isNull	:: a -> Bool	-- ^ Predicate, cf. 'Prelude.null' for a 'Prelude.Foldable'.
 

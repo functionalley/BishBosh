@@ -24,12 +24,11 @@
 
 Summary:	BishBosh is a chess-game.
 Name:		bishbosh
-Version:	0.0.0.8
+Version:	0.1.0.0
 Release:	1
 License:	GPLv3
 # From '/usr/share/doc/packages/rpm/GROUPS'.
 Group:		Amusements/Games
-# Source0:	https://functionalley.com/Downloads/sdist/%tarBall
 URL:		https://functionalley.com/BishBosh/%name.html
 Prefix:		/usr
 BuildRequires:	haskell-platform
@@ -49,7 +48,7 @@ cd '%package/' && cabal build	# Descend into the unpacked source-distribution an
 %install
 cd '%package/'	# Descend into the build-directory.
 cabal copy --destdir=%buildroot	# Install the built package in the target-directory.
-mkdir -p -- '%buildroot%_docdir' && mv '%name.svg' 'changelog.markdown' 'copyright' 'README.markdown' '%buildroot%_docdir/'	# 'LICENSE' has already been copied by cabal.
+mkdir -p -- '%buildroot%_docdir' && mv 'changelog.markdown' 'copyright' 'README.markdown' '%buildroot%_docdir/'	# 'LICENSE' has already been copied by cabal.
 mkdir -p -- '%buildroot%_mandir' && mv man/man[15] '%buildroot%_mandir/'
 rm -rf -- '%buildroot%prefix/lib/'	# The library isn't a deliverable.
 
@@ -62,13 +61,15 @@ rm -rf -- '%_builddir/%package/' '%buildroot/'	# Only the '.rpm' is required.
 %attr(0644, root, root)		%_datadir/config/%name.rng
 %attr(0644, root, root)		%_datadir/config/CECP/*.xml
 %attr(0644, root, root)		%_datadir/config/Raw/*.xml
+%attr(0644, root, root)		%_datadir/config/*.xml
 %attr(0644, root, root)		%_datadir/pgn/*.pgn
-%attr(0644, root, root)	%doc	%_docdir/%name.svg
+%attr(0644, root, root)		%_datadir/pgn/*.pgn.gz
 %attr(0644, root, root) %doc	%_docdir/changelog.markdown
 %attr(0644, root, root)	%doc	%_docdir/copyright
 %attr(0644, root, root)	%doc	%_docdir/LICENSE
 %attr(0644, root, root)	%doc	%_docdir/README.markdown
 %attr(0644, root, root) %doc	%_mandir/man1/%name.1.gz
+%attr(0644, root, root) %doc	%_mandir/man1/duel.1.gz
 %attr(0644, root, root) %doc	%_mandir/man5/%name.5.gz
 
 %changelog

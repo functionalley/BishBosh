@@ -1,3 +1,4 @@
+{-# LANGUAGE LambdaCase #-}
 {-
 	Copyright (C) 2018 Dr. Alistair Ward
 
@@ -21,7 +22,7 @@
 
  [@DESCRIPTION@]
 
-	* Defines the data-type which represents the logical (rather than physical) colour of the two players & of /piece/s.
+	* Defines the data-type which represents the logical (rather than physical) colour of /piece/s & (conceptually) of the two players.
 
 	* N.B.: conceptually different from the logical colour of squares on the board.
 -}
@@ -29,36 +30,40 @@
 module BishBosh.Attribute.LogicalColour(
 -- * Types
 -- ** Type-synonyms
-	ByLogicalColour,
+	ArrayByLogicalColour,
+	UArrayByLogicalColour,
 -- ** Data-types
 	LogicalColour(..),
 -- * Constants
---	tag,
+	tag,
 	range,
 	nDistinctLogicalColours,
 -- * Functions
 -- ** Constructor
 	listArrayByLogicalColour,
+	arrayByLogicalColour,
 -- ** Predicates
 	isBlack
 --	isWhite
 ) where
 
 import qualified	BishBosh.Property.ExtendedPositionDescription	as Property.ExtendedPositionDescription
+import qualified	BishBosh.Property.FixedMembership		as Property.FixedMembership
 import qualified	BishBosh.Property.ForsythEdwards		as Property.ForsythEdwards
 import qualified	BishBosh.Property.Opposable			as Property.Opposable
 import qualified	Control.DeepSeq
 import qualified	Control.Exception
 import qualified	Data.Array.IArray
+import qualified	Data.Array.Unboxed
 import qualified	Data.List.Extra
-import qualified	Text.XML.HXT.Arrow.Pickle		as HXT
+import qualified	Text.XML.HXT.Arrow.Pickle			as HXT
 import qualified	Text.XML.HXT.Arrow.Pickle.Schema
 
 -- | Used to qualify XML.
 tag :: String
 tag	= "logicalColour"
 
--- | The /logical colour/ associated with a player or a piece.
+-- | The sum-type of /logical colour/s associated with either a piece, or (conceptually) a player.
 data LogicalColour
 	= Black
 	| White
@@ -83,6 +88,9 @@ instance Data.Array.IArray.Ix LogicalColour where
 range :: [LogicalColour]
 range	= [minBound, maxBound]
 
+instance Property.FixedMembership.FixedMembership LogicalColour where
+	members	= range
+
 -- | The constant number of distinct /logical colour/s.
 nDistinctLogicalColours :: Int
 nDistinctLogicalColours	= length range
@@ -101,7 +109,7 @@ instance Property.ExtendedPositionDescription.ReadsEPD LogicalColour where
 		_		-> []
 
 instance Property.ExtendedPositionDescription.ShowsEPD LogicalColour where
-	showsEPD logicalColour	= showChar $ case logicalColour of
+	showsEPD	= showChar . \case
 		Black	-> 'b'
 		White	-> 'w'
 
@@ -120,10 +128,16 @@ isWhite :: LogicalColour -> Bool
 isWhite	= not . isBlack
 
 -- | A boxed array indexed by /logical colour/, of arbitrary elements.
-type ByLogicalColour	= Data.Array.IArray.Array LogicalColour
+type ArrayByLogicalColour	= Data.Array.IArray.Array LogicalColour
 
--- | Array-constructor.
+-- | An unboxed array indexed by /logical colour/, of fixed-size values.
+type UArrayByLogicalColour	= Data.Array.Unboxed.UArray LogicalColour
+
+-- | Array-constructor from an ordered list of elements.
 listArrayByLogicalColour :: Data.Array.IArray.IArray a e => [e] -> a LogicalColour e
-{-# INLINE listArrayByLogicalColour #-}
 listArrayByLogicalColour	= Data.Array.IArray.listArray (minBound, maxBound)
+
+-- | Array-constructor from an association-list.
+arrayByLogicalColour :: Data.Array.IArray.IArray a e => [(LogicalColour, e)] -> a LogicalColour e
+arrayByLogicalColour	= Data.Array.IArray.array (minBound, maxBound)
 

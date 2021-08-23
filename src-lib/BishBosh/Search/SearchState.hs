@@ -31,19 +31,21 @@ module BishBosh.Search.SearchState(
 		getDynamicMoveData
 	),
 -- * Functions
-	euthanise,
 -- ** Constructors
 	mkSearchState,
 	initialise
  ) where
 
-import qualified	BishBosh.Component.Move					as Component.Move
+import qualified	BishBosh.Data.Exception					as Data.Exception
 import qualified	BishBosh.Evaluation.PositionHashQuantifiedGameTree	as Evaluation.PositionHashQuantifiedGameTree
-import qualified	BishBosh.Input.SearchOptions				as Input.SearchOptions
+import qualified	BishBosh.Evaluation.QuantifiedGame			as Evaluation.QuantifiedGame
+import qualified	BishBosh.Model.Game					as Model.Game
 import qualified	BishBosh.Property.Empty					as Property.Empty
 import qualified	BishBosh.Search.DynamicMoveData				as Search.DynamicMoveData
+import qualified	BishBosh.Search.EphemeralData				as Search.EphemeralData
+import qualified	Control.Exception
 
--- | The data which is both received & returned by 'select', so that it is transported through the entire game.
+-- | The data which is both received & returned by 'Search.Search.search', so that it is transported through the entire game.
 data SearchState x y positionHash criterionValue weightedMean	= MkSearchState {
 	getPositionHashQuantifiedGameTree	:: Evaluation.PositionHashQuantifiedGameTree.PositionHashQuantifiedGameTree x y positionHash criterionValue weightedMean,
 	getDynamicMoveData			:: Search.DynamicMoveData.DynamicMoveData x y positionHash
@@ -69,21 +71,19 @@ mkSearchState
 	-> SearchState x y positionHash criterionValue weightedMean
 mkSearchState	= MkSearchState
 
--- | Constructor.
+-- | Smart constructor.
 initialise :: Evaluation.PositionHashQuantifiedGameTree.PositionHashQuantifiedGameTree x y positionHash criterionValue weightedMean -> SearchState x y positionHash criterionValue weightedMean
-initialise positionHashQuantifiedGameTree = MkSearchState {
-	getPositionHashQuantifiedGameTree	= positionHashQuantifiedGameTree,
-	getDynamicMoveData			= Property.Empty.empty
-}
+initialise positionHashQuantifiedGameTree
+	| Model.Game.isTerminated game	= Control.Exception.throw $ Data.Exception.mkResultUndefined "BishBosh.Search.SearchState.initialise:\tcan't search for a move from a terminated game."
+	| otherwise			= MkSearchState {
+		getPositionHashQuantifiedGameTree	= positionHashQuantifiedGameTree,
+		getDynamicMoveData			= Property.Empty.empty
+	}
+	where
+		game	= Evaluation.QuantifiedGame.getGame $ Evaluation.PositionHashQuantifiedGameTree.getRootQuantifiedGame positionHashQuantifiedGameTree
 
--- | Forwards request.
-euthanise
-	:: Component.Move.NPlies
-	-> Input.SearchOptions.MaybeRetireAfterNMoves
-	-> Input.SearchOptions.MaybeRetireAfterNMoves
-	-> SearchState x y positionHash criterionValue weightedMean
-	-> SearchState x y positionHash criterionValue weightedMean
-euthanise nPlies maybeRetireKillerMovesAfter maybeRetireTranspositionsAfter searchState@MkSearchState { getDynamicMoveData = dynamicMoveData }	= searchState {
-	getDynamicMoveData	= Search.DynamicMoveData.euthanise nPlies maybeRetireKillerMovesAfter maybeRetireTranspositionsAfter dynamicMoveData
-}
+instance Search.EphemeralData.MaybeEphemeralData (SearchState x y positionHash criterionValue weightedMean) where
+	maybeEuthanise nPlies maybeRetireKillerMovesAfter maybeRetireTranspositionsAfter searchState@MkSearchState { getDynamicMoveData = dynamicMoveData }	= searchState {
+		getDynamicMoveData	= Search.EphemeralData.maybeEuthanise nPlies maybeRetireKillerMovesAfter maybeRetireTranspositionsAfter dynamicMoveData	-- Forward the request.
+	}
 

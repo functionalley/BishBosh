@@ -1,3 +1,4 @@
+{-# LANGUAGE LambdaCase #-}
 {-
 	Copyright (C) 2018 Dr. Alistair Ward
 
@@ -31,7 +32,8 @@ module BishBosh.Attribute.Rank(
 -- ** Type-synonyms
 	EvaluateRank,
 --	NRanks,
-	ByRank,
+	ArrayByRank,
+	UArrayByRank,
 -- ** Data-types
 	Rank(..),
 -- * Constants
@@ -46,28 +48,34 @@ module BishBosh.Attribute.Rank(
 	pieces,
 	nobility,
 	range,
+	earthBound,
 	expendable,
 	nDistinctRanks,
 -- * Functions
 	compareByLVA,
+	findUndefinedRanks,
 -- ** Constructor
-	listArrayByRank
+	listArrayByRank,
+	arrayByRank
 ) where
 
+import qualified	BishBosh.Property.FixedMembership	as Property.FixedMembership
 import qualified	Control.DeepSeq
 import qualified	Control.Exception
 import qualified	Data.Array.IArray
+import qualified	Data.Array.Unboxed
 import qualified	Data.Char
 import qualified	Data.List
 import qualified	Data.Ord
-import qualified	Text.XML.HXT.Arrow.Pickle	as HXT
+import qualified	Data.Set
+import qualified	Text.XML.HXT.Arrow.Pickle		as HXT
 import qualified	Text.XML.HXT.Arrow.Pickle.Schema
 
 -- | Used to qualify XML.
 tag :: String
 tag	= "rank"
 
--- | The component of a chess-/piece/ which is independent of its colour.
+-- | A sum-type which represents the component of a chess-/piece/ other than its colour.
 data Rank
 	= Pawn
 	| Rook
@@ -96,7 +104,7 @@ instance Data.Array.IArray.Ix Rank where
 	index (lower, upper)		= Control.Exception.assert (lower == minBound && upper == maxBound) . fromEnum
 
 instance Show Rank where
-	showsPrec _ rank	= showChar $ case rank of
+	showsPrec _	= showChar . \case
 		Pawn	-> 'p'
 		Rook	-> 'r'
 		Knight	-> 'n'
@@ -119,6 +127,13 @@ instance Read Rank where
 
 instance HXT.XmlPickler Rank where
 	xpickle	= HXT.xpAttr tag . HXT.xpWrap (read, show) . HXT.xpTextDT . Text.XML.HXT.Arrow.Pickle.Schema.scEnum $ map show range
+
+-- | The constant ascending list of all /rank/s.
+range :: [Rank]
+range	= [minBound .. maxBound]
+
+instance Property.FixedMembership.FixedMembership Rank where
+	members	= range
 
 -- | The distinct /rank/s of the constant ordered range of those /piece/s of which each side has exactly two.
 flank :: [Rank]
@@ -156,9 +171,9 @@ pieces	= flank ++ royalty
 nobility :: [Rank]
 nobility	= pieces ++ reverse flank
 
--- | The constant ascending list of all /rank/s.
-range :: [Rank]
-range	= [minBound .. maxBound]
+-- | Those /rank/s which can't jump.
+earthBound :: [Rank]
+earthBound	= Data.List.delete Knight range
 
 -- | Those /rank/s which can be taken.
 expendable :: [Rank]
@@ -192,13 +207,24 @@ nDistinctRanks :: NRanks
 nDistinctRanks	= length range
 
 -- | A boxed array indexed by /rank/, of arbitrary values.
-type ByRank	= Data.Array.IArray.Array Rank
+type ArrayByRank	= Data.Array.IArray.Array Rank
 
--- | An array-constructor.
+-- | An unboxed array indexed by /rank/, of fixed-size values.
+type UArrayByRank	= Data.Array.Unboxed.UArray Rank
+
+-- | Array-constructor from an ordered list of elements.
 listArrayByRank :: Data.Array.IArray.IArray a e => [e] -> a Rank e
 listArrayByRank	= Data.Array.IArray.listArray (minBound, maxBound)
 
--- | An interface to which data which can represent @Pawn@-promotion, can implement.
+-- | Array-constructor from an association-list.
+arrayByRank :: Data.Array.IArray.IArray a e => [(Rank, e)] -> a Rank e
+arrayByRank	= Data.Array.IArray.array (minBound, maxBound)
+
+-- | An interface which data which can represent @Pawn@-promotion, can implement.
 class Promotable a where
 	getMaybePromotionRank	:: a -> Maybe Rank
+
+-- | Finds any unspecified ranks.
+findUndefinedRanks :: [Rank] -> [Rank]
+findUndefinedRanks	= Data.Set.toList . (Data.Set.fromAscList range `Data.Set.difference`) . Data.Set.fromList
 

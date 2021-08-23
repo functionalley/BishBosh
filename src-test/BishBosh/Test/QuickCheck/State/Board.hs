@@ -35,7 +35,6 @@ import			BishBosh.Test.QuickCheck.Attribute.LogicalColour()
 import			BishBosh.Test.QuickCheck.Component.Piece()
 import			Control.Arrow((&&&))
 import			Data.Array.IArray((!))
-import qualified	BishBosh.Attribute.Direction				as Attribute.Direction
 import qualified	BishBosh.Attribute.LogicalColour			as Attribute.LogicalColour
 import qualified	BishBosh.Attribute.Rank					as Attribute.Rank
 import qualified	BishBosh.Cartesian.Abscissa				as Cartesian.Abscissa
@@ -43,12 +42,15 @@ import qualified	BishBosh.Cartesian.Coordinates				as Cartesian.Coordinates
 import qualified	BishBosh.Component.Move					as Component.Move
 import qualified	BishBosh.Component.Piece				as Component.Piece
 import qualified	BishBosh.Property.Empty					as Property.Empty
+import qualified	BishBosh.Property.FixedMembership			as Property.FixedMembership
 import qualified	BishBosh.Property.ForsythEdwards			as Property.ForsythEdwards
 import qualified	BishBosh.Property.Opposable				as Property.Opposable
 import qualified	BishBosh.Property.Reflectable				as Property.Reflectable
 import qualified	BishBosh.State.Board					as State.Board
 import qualified	BishBosh.State.CoordinatesByRankByLogicalColour		as State.CoordinatesByRankByLogicalColour
 import qualified	BishBosh.State.MaybePieceByCoordinates			as State.MaybePieceByCoordinates
+import qualified	BishBosh.StateProperty.Mutator				as StateProperty.Mutator
+import qualified	BishBosh.StateProperty.Seeker				as StateProperty.Seeker
 import qualified	BishBosh.Test.QuickCheck.Cartesian.Coordinates		as Test.QuickCheck.Cartesian.Coordinates
 import qualified	BishBosh.Types						as T
 import qualified	Control.Monad
@@ -73,13 +75,13 @@ instance (
 	{-# SPECIALISE instance Test.QuickCheck.Arbitrary Board #-}
 	arbitrary	= let
 		isKingChecked :: (Enum x, Enum y, Ord x, Ord y) => Attribute.LogicalColour.LogicalColour -> State.Board.Board x y -> Bool
-		isKingChecked logicalColour board = any (
-			not . null . ($ board) . State.Board.findAttackersOf logicalColour
+		isKingChecked logicalColour board = not . all (
+			null . ($ board) . State.Board.findAttackersOf logicalColour
 		 ) . State.CoordinatesByRankByLogicalColour.dereference logicalColour Attribute.Rank.King $ State.Board.getCoordinatesByRankByLogicalColour board
 	 in Control.Monad.foldM (
 		\board piece -> Test.QuickCheck.suchThat (
 			fmap (
-				($ board) . State.Board.defineCoordinates (Just piece)	-- Mutate the board.
+				($ board) . StateProperty.Mutator.placePiece piece	-- Mutate the board.
 			) . Test.QuickCheck.suchThat Test.QuickCheck.arbitrary {-destination-} $ uncurry (&&) . (
 				Data.Maybe.maybe True {-unoccupied-} (
 					not . Component.Piece.isKing	-- Avoid taking a King.
@@ -90,7 +92,7 @@ instance (
 		) -- Predicate.
 	 ) Property.Empty.empty {-Board-} $ Data.List.sortBy (
 		Data.Ord.comparing Component.Piece.getRank	-- Minimise the chance that either 'selectDestination' or 'mutateBoard' must recurse, by moving both Kings to the end of the list.
-	 ) Component.Piece.range
+	 ) Property.FixedMembership.members
 
 -- | The constant test-results for this data-type.
 results :: IO [Test.QuickCheck.Result]
@@ -107,7 +109,7 @@ results	= sequence [
 	in Test.QuickCheck.quickCheckWithResult Test.QuickCheck.stdArgs { Test.QuickCheck.maxSuccess = 256 } f,
 	let
 		f :: Board -> String -> Test.QuickCheck.Property
-		f board	= Test.QuickCheck.label "Board.prop_readTrailingGarbage" . ToolShed.Test.ReversibleIO.readTrailingGarbage (`elem` ('/' : concatMap show Component.Piece.range ++ concatMap show [1 .. Cartesian.Abscissa.xLength])) board
+		f board	= Test.QuickCheck.label "Board.prop_readTrailingGarbage" . ToolShed.Test.ReversibleIO.readTrailingGarbage (`elem` ('/' : Component.Piece.showPieces ++ concatMap show [1 .. Cartesian.Abscissa.xLength])) board
 	in Test.QuickCheck.quickCheckWithResult Test.QuickCheck.stdArgs { Test.QuickCheck.maxSuccess = 256 } f,
 	let
 		f :: Board -> Test.QuickCheck.Property
@@ -119,14 +121,14 @@ results	= sequence [
 		f :: Test.QuickCheck.Cartesian.Coordinates.Coordinates -> Attribute.LogicalColour.LogicalColour -> Test.QuickCheck.Property
 		f source logicalColour	= Test.QuickCheck.label "Board.prop_bishopsMove/logicalColour" . all (
 			(== Cartesian.Coordinates.getLogicalColourOfSquare source) . Cartesian.Coordinates.getLogicalColourOfSquare . fst {-coordinates-}
-		 ) . State.MaybePieceByCoordinates.listDestinationsFor source piece . State.Board.getMaybePieceByCoordinates $ State.Board.placePiece piece source Property.Empty.empty {-Board-} where
+		 ) . State.MaybePieceByCoordinates.listDestinationsFor source piece . State.Board.getMaybePieceByCoordinates $ StateProperty.Mutator.placeFirstPiece piece source where
 			piece	= Component.Piece.mkBishop logicalColour
 	in Test.QuickCheck.quickCheckWithResult Test.QuickCheck.stdArgs { Test.QuickCheck.maxSuccess = 256 } f,
 	let
 		f :: Test.QuickCheck.Cartesian.Coordinates.Coordinates -> Attribute.LogicalColour.LogicalColour -> Test.QuickCheck.Property
 		f source logicalColour	= Test.QuickCheck.label "Board.prop_knightsMove/logicalColour" . all (
 			(/= Cartesian.Coordinates.getLogicalColourOfSquare source) . Cartesian.Coordinates.getLogicalColourOfSquare . fst {-coordinates-}
-		 ) . State.MaybePieceByCoordinates.listDestinationsFor source piece . State.Board.getMaybePieceByCoordinates $ State.Board.placePiece piece source Property.Empty.empty {-Board-} where
+		 ) . State.MaybePieceByCoordinates.listDestinationsFor source piece . State.Board.getMaybePieceByCoordinates $ StateProperty.Mutator.placeFirstPiece piece source where
 			piece	= Component.Piece.mkKnight logicalColour
 	in Test.QuickCheck.quickCheckWithResult Test.QuickCheck.stdArgs { Test.QuickCheck.maxSuccess = 256 } f,
 	let
@@ -135,7 +137,7 @@ results	= sequence [
 			\(coordinates, piece) -> uncurry (==) . (
 				length &&& length . Data.List.nub
 			) $ State.MaybePieceByCoordinates.listDestinationsFor coordinates piece maybePieceByCoordinates
-		 ) $ State.MaybePieceByCoordinates.findPieces maybePieceByCoordinates where
+		 ) $ StateProperty.Seeker.findAllPieces maybePieceByCoordinates where
 			maybePieceByCoordinates	= State.Board.getMaybePieceByCoordinates board
 	in Test.QuickCheck.quickCheckWithResult Test.QuickCheck.stdArgs { Test.QuickCheck.maxSuccess = 256 } f,
 	let
@@ -150,7 +152,7 @@ results	= sequence [
 					) m $ State.Board.findAttacksBy (
 						Component.Piece.mkPiece (Property.Opposable.getOpposite logicalColour) rank
 					) destination board
-				) Data.Map.empty Attribute.Rank.range == foldr (
+				) Data.Map.empty Property.FixedMembership.members == foldr (
 					\(source, rank)	-> Data.Map.insertWith Data.Set.union source $ Data.Set.singleton rank
 				) Data.Map.empty (
 					State.Board.findAttackersOf logicalColour destination board
@@ -169,14 +171,14 @@ results	= sequence [
 				) (
 					isClear . fst {-destination-}
 				) $ State.MaybePieceByCoordinates.findBlockingPiece direction source maybePieceByCoordinates
-			) Attribute.Direction.range
-		 ) $ State.MaybePieceByCoordinates.findPieces maybePieceByCoordinates where
+			) Property.FixedMembership.members
+		 ) $ StateProperty.Seeker.findAllPieces maybePieceByCoordinates where
 			maybePieceByCoordinates	= State.Board.getMaybePieceByCoordinates board
 	in Test.QuickCheck.quickCheckWithResult Test.QuickCheck.stdArgs { Test.QuickCheck.maxSuccess = 256 } f,
 	let
 		f :: Board -> Test.QuickCheck.Property
 		f = Test.QuickCheck.label "Board.prop_findPieces" . uncurry (==) . (
-			Data.List.sort . State.CoordinatesByRankByLogicalColour.findPieces (const True) . State.Board.getCoordinatesByRankByLogicalColour &&& Data.List.sort . State.MaybePieceByCoordinates.findPieces . State.Board.getMaybePieceByCoordinates
+			Data.List.sort . StateProperty.Seeker.findAllPieces . State.Board.getCoordinatesByRankByLogicalColour &&& Data.List.sort . StateProperty.Seeker.findAllPieces . State.Board.getMaybePieceByCoordinates
 		 )
 	in Test.QuickCheck.quickCheckWithResult Test.QuickCheck.stdArgs { Test.QuickCheck.maxSuccess = 256 } f,
 	let
@@ -198,7 +200,7 @@ results	= sequence [
 						\logicalColour -> State.CoordinatesByRankByLogicalColour.dereference logicalColour Attribute.Rank.Pawn coordinatesByRankByLogicalColour
 					)
 				)
-			) Attribute.LogicalColour.range
+			) Property.FixedMembership.members
 		 ) . State.Board.getCoordinatesByRankByLogicalColour
 	in Test.QuickCheck.quickCheckWithResult Test.QuickCheck.stdArgs { Test.QuickCheck.maxSuccess = 256 } f,
 	let
@@ -207,7 +209,7 @@ results	= sequence [
 			\(logicalColour, move)	-> State.Board.isKingChecked logicalColour $ State.Board.movePiece move Nothing board
 		 ) [
 			(logicalColour, move) |
-				(source, piece)		<- State.MaybePieceByCoordinates.findPieces $ State.Board.getMaybePieceByCoordinates board,
+				(source, piece)		<- StateProperty.Seeker.findAllPieces $ State.Board.getMaybePieceByCoordinates board,
 				let logicalColour	= Component.Piece.getLogicalColour piece,
 				(destination, _)	<- State.MaybePieceByCoordinates.listDestinationsFor source piece $ State.Board.getMaybePieceByCoordinates board,
 				let move	= Component.Move.mkMove source destination,
@@ -220,11 +222,11 @@ results	= sequence [
 			\(coordinates, piece) -> let
 				logicalColour	= Property.Opposable.getOpposite $ Component.Piece.getLogicalColour piece
 			in Data.List.sort (
-				State.MaybePieceByCoordinates.findProximateKnights logicalColour coordinates maybePieceByCoordinates
+				StateProperty.Seeker.findProximateKnights logicalColour coordinates maybePieceByCoordinates
 			) == Data.List.sort (
-				State.CoordinatesByRankByLogicalColour.findProximateKnights logicalColour coordinates coordinatesByRankByLogicalColour
+				StateProperty.Seeker.findProximateKnights logicalColour coordinates coordinatesByRankByLogicalColour
 			)
-		 ) $ State.MaybePieceByCoordinates.findPieces maybePieceByCoordinates where
+		 ) $ StateProperty.Seeker.findAllPieces maybePieceByCoordinates where
 			(maybePieceByCoordinates, coordinatesByRankByLogicalColour)	= State.Board.getMaybePieceByCoordinates &&& State.Board.getCoordinatesByRankByLogicalColour $ board
 	in Test.QuickCheck.quickCheckWithResult Test.QuickCheck.stdArgs { Test.QuickCheck.maxSuccess = 256 } f
  ]

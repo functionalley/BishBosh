@@ -28,12 +28,16 @@ module BishBosh.Test.QuickCheck.Input.CECPFeatures() where
 import			Control.Arrow((***))
 import qualified	BishBosh.Input.CECPFeatures	as Input.CECPFeatures
 import qualified	Data.Char
+import qualified	Data.List
 import qualified	Test.QuickCheck
+import qualified	ToolShed.Data.List
 import			ToolShed.Test.QuickCheck.Arbitrary.Map()
 
 instance Test.QuickCheck.Arbitrary Input.CECPFeatures.CECPFeatures where
 	arbitrary	= Input.CECPFeatures.mkCECPFeatures <$> (
-		filter (
+		Data.List.nubBy (
+			ToolShed.Data.List.equalityBy fst {-key-}
+		) . filter (
 			not . null . fst {-key-}
 		) . map (
 			filter Data.Char.isAlpha *** either (

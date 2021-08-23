@@ -32,6 +32,7 @@ import			Control.Arrow((&&&))
 import qualified	BishBosh.Attribute.Rank				as Attribute.Rank
 import qualified	BishBosh.Cartesian.Coordinates			as Cartesian.Coordinates
 import qualified	BishBosh.Component.Piece			as Component.Piece
+import qualified	BishBosh.Property.FixedMembership		as Property.FixedMembership
 import qualified	BishBosh.Property.ForsythEdwards		as Property.ForsythEdwards
 import qualified	BishBosh.Property.Opposable			as Property.Opposable
 import qualified	BishBosh.Test.QuickCheck.Cartesian.Coordinates	as Test.QuickCheck.Cartesian.Coordinates
@@ -40,7 +41,7 @@ import qualified	ToolShed.Test.ReversibleIO
 import			Test.QuickCheck((==>))
 
 instance Test.QuickCheck.Arbitrary Component.Piece.Piece where
-	arbitrary	= Test.QuickCheck.elements Component.Piece.range
+	arbitrary	= Test.QuickCheck.elements Property.FixedMembership.members
 
 -- | The constant test-results for this data-type.
 results :: IO [Test.QuickCheck.Result]

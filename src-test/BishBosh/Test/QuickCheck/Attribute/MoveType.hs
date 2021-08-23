@@ -29,33 +29,13 @@ module BishBosh.Test.QuickCheck.Attribute.MoveType(
 ) where
 
 import			Control.Arrow((&&&))
-import qualified	BishBosh.Attribute.MoveType	as Attribute.MoveType
-import qualified	BishBosh.Attribute.Rank		as Attribute.Rank
+import qualified	BishBosh.Attribute.MoveType		as Attribute.MoveType
+import qualified	BishBosh.Property.FixedMembership	as Property.FixedMembership
 import qualified	Test.QuickCheck
 import qualified	ToolShed.Test.ReversibleIO
 
 instance Test.QuickCheck.Arbitrary Attribute.MoveType.MoveType where
-	arbitrary	= Test.QuickCheck.frequency [
-		(
-			2,
-			Test.QuickCheck.elements [Attribute.MoveType.shortCastle, Attribute.MoveType.longCastle]
-		), (
-			1,
-			return {-to Gen-monad-} Attribute.MoveType.enPassant
-		), (
-			7,
-			Attribute.MoveType.mkNormalMoveType <$> Test.QuickCheck.oneof [
-				return {-to Gen-monad-} Nothing,
-				Test.QuickCheck.elements $ map Just Attribute.Rank.expendable
-			] <*> Test.QuickCheck.frequency [
-				(
-					9,	return {-to Gen-monad-} Nothing
-				), (
-					1,	Test.QuickCheck.elements $ map Just Attribute.Rank.promotionProspects
-				)
-			]
-		)
-	 ]
+	arbitrary	= Test.QuickCheck.elements Property.FixedMembership.members
 
 -- | The constant test-results for this data-type.
 results :: IO [Test.QuickCheck.Result]

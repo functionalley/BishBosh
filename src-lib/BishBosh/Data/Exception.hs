@@ -22,9 +22,7 @@
 
  [@DESCRIPTION@]
 
-	* Exceptions customised for this application.
-
-	* N.B.: IO-functions can merely forward any exceptions thrown by the underlying calls, so these exceptions are typically thrown from pure functions.
+	* Exceptions used by this application.
 
 	* CAVEAT: though intended to be orthogonal, there's some inevitable overlap.
 -}
@@ -60,7 +58,7 @@ module BishBosh.Data.Exception(
 import qualified	Control.Exception
 import qualified	Data.Typeable
 
--- | These types of exception may be thrown by any function which checks its parameters; typically either constructors or mutators.
+-- | This sum-type of exceptions may be thrown by any function which checks its parameters; typically either constructors or mutators.
 data BadData
 	= DuplicateData		-- ^ Some data is duplicated.
 	| IncompatibleData	-- ^ Two or more data with valid values, are incompatible. cf. InvalidDatum.
@@ -71,7 +69,7 @@ data BadData
 	| RedundantData		-- ^ Data superflous to requirements was provided; a specialisation of 'InvalidDatum'.
 	deriving Show
 
--- | These types of exception may be thrown by any function which is unable to comply with a correctly formed request.
+-- | This sum-type of exceptions may be thrown by any function which is unable to comply with a correctly formed request.
 data BadRequest
 	= ParseFailure		-- ^ An attempt to parse data failed.
 	| RequestFailure	-- ^ A well-formed request couldn't be completed.
@@ -79,7 +77,7 @@ data BadRequest
 	| SearchFailure		-- ^ An attempt to find data failed.
 	deriving Show
 
--- | Each type of exception includes a type & a details.
+-- | Each exception includes both a type & arbitrary details.
 data Exception	= MkException {
 	getType		:: Either BadData BadRequest,
 	getDetails	:: String

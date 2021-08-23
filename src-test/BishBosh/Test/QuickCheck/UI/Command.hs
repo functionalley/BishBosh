@@ -35,7 +35,6 @@ import			BishBosh.Test.QuickCheck.UI.PrintObject()
 import			BishBosh.Test.QuickCheck.UI.SetObject()
 import qualified	BishBosh.Types		as T
 import qualified	BishBosh.UI.Command	as UI.Command
--- import qualified	Control.Arrow
 import qualified	Test.QuickCheck
 
 -- | Define a concrete type for testing.
@@ -43,15 +42,17 @@ type Command	= UI.Command.Command T.X T.Y
 
 instance Test.QuickCheck.Arbitrary (UI.Command.Command x y) where
 	arbitrary	= Test.QuickCheck.oneof [
-		return {-to Gen-monad-} UI.Command.Hint,
-		fmap UI.Command.Print Test.QuickCheck.arbitrary,
-		return {-to Gen-monad-} UI.Command.Quit,
-		return {-to Gen-monad-} UI.Command.Resign,
-		return {-to Gen-monad-} UI.Command.Restart,
-		fmap (UI.Command.RollBack . fmap (`mod` 10)) Test.QuickCheck.arbitrary,
-		return {-to Gen-monad-} UI.Command.Save,
-		fmap UI.Command.Set Test.QuickCheck.arbitrary,
-		return {-to Gen-monad-} UI.Command.Swap
+		Test.QuickCheck.elements [
+			UI.Command.Hint,
+			UI.Command.Quit,
+			UI.Command.Resign,
+			UI.Command.Restart,
+			UI.Command.Save,
+			UI.Command.Swap
+		], -- Nullary commands
+		UI.Command.Print `fmap` Test.QuickCheck.arbitrary,
+		fmap UI.Command.RollBack . Test.QuickCheck.elements $ Nothing : map Just [1 .. 10],
+		UI.Command.Set `fmap` Test.QuickCheck.arbitrary
 	 ]
 
 -- | The constant test-results for this data-type.

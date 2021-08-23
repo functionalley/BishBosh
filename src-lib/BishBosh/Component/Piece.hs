@@ -1,3 +1,4 @@
+{-# LANGUAGE CPP, LambdaCase #-}
 {-# OPTIONS_GHC -fno-warn-unused-binds #-}
 {-
 	Copyright (C) 2018 Dr. Alistair Ward
@@ -27,7 +28,9 @@ module BishBosh.Component.Piece(
 -- * Types
 -- ** Type-synonyms
 	NPieces,
-	ByPiece,
+--	ByRankByLogicalColour,
+--	AttackDestinationsByCoordinatesByRankByLogicalColour,
+--	ArrayByPiece,
 	LocatedPiece,
 -- ** Data-types
 	Piece(
@@ -39,15 +42,20 @@ module BishBosh.Component.Piece(
 --	tag,
 	nPiecesPerSide,
 	range,
---	attackVectorsByPiece,
-	attackDirectionsByPiece,
+--	attackVectorsByRankByLogicalColour,
+--	attackDirectionsByRankByLogicalColour,
 --	attackDestinationsByCoordinatesByRankByLogicalColour,
 -- * Functions
+--	findAttackDestinations',
 	findAttackDestinations,
 --	findAttackDestinationsInt,
+	showPieces,
+-- ** Accessors
+	getAttackDirections,
 -- ** Mutators
 	promote,
 -- ** Constructors
+--	mkByRankByLogicalColour,
 	mkBishop,
 	mkKing,
 	mkKnight,
@@ -55,7 +63,7 @@ module BishBosh.Component.Piece(
 	mkPiece,
 	mkQueen,
 	mkRook,
-	listArrayByPiece,
+--	listArrayByPiece,
 -- ** Predicates
 	canAttackAlong,
 	canMoveBetween,
@@ -81,6 +89,7 @@ import qualified	BishBosh.Cartesian.Coordinates			as Cartesian.Coordinates
 import qualified	BishBosh.Cartesian.Ordinate			as Cartesian.Ordinate
 import qualified	BishBosh.Cartesian.Vector			as Cartesian.Vector
 import qualified	BishBosh.Property.ExtendedPositionDescription	as Property.ExtendedPositionDescription
+import qualified	BishBosh.Property.FixedMembership		as Property.FixedMembership
 import qualified	BishBosh.Property.ForsythEdwards		as Property.ForsythEdwards
 import qualified	BishBosh.Property.Opposable			as Property.Opposable
 import qualified	BishBosh.Types					as T
@@ -93,6 +102,10 @@ import qualified	Data.Map
 import qualified	Data.Maybe
 import qualified	Text.XML.HXT.Arrow.Pickle			as HXT
 import qualified	Text.XML.HXT.Arrow.Pickle.Schema
+
+#ifdef USE_PARALLEL
+import qualified	Control.Parallel.Strategies
+#endif
 
 -- | Used to qualify XML.
 tag :: String
@@ -163,6 +176,24 @@ instance Property.Opposable.Opposable Piece where
 		getLogicalColour	= Property.Opposable.getOpposite logicalColour
 	}
 
+-- | The constant ascending range of /piece/s.
+range :: [Piece]
+range	= [
+	MkPiece {
+		getLogicalColour	= logicalColour,
+		getRank			= rank
+	} |
+		logicalColour	<- Property.FixedMembership.members,
+		rank		<- Property.FixedMembership.members
+ ] -- List-comprehension.
+
+-- | Returns a constant string containing all possible pieces.
+showPieces :: String
+showPieces	= concatMap show range
+
+instance Property.FixedMembership.FixedMembership Piece where
+	members	= range
+
 -- | Constructor.
 mkPiece :: Attribute.LogicalColour.LogicalColour -> Attribute.Rank.Rank -> Piece
 mkPiece	= MkPiece
@@ -191,24 +222,30 @@ mkQueen		= (`MkPiece` Attribute.Rank.Queen)
 mkKing :: Attribute.LogicalColour.LogicalColour -> Piece
 mkKing		= (`MkPiece` Attribute.Rank.King)
 
--- | The constant ascending range of /piece/s.
-range :: [Piece]
-range	= [
-	MkPiece {
-		getLogicalColour	= logicalColour,
-		getRank			= rank
-	} |
-		logicalColour	<- Attribute.LogicalColour.range,
-		rank		<- Attribute.Rank.range
- ] -- List-comprehension.
-
 {- |
-	* Changes the /rank/ of the specified /piece/, leaving the /logical colour/ unchanged.
+	* Changes the specified /piece/ to the specified /rank/ leaving its /logical colour/ unchanged.
 
-	* CAVEAT: only legal if the /rank/ was a @Pawn@, & becomes neither a @Pawn@ nor a @King@.
+	* CAVEAT: only legal if the unspecifed original /rank/ was a @Pawn@, & becomes neither a @Pawn@ nor a @King@.
 -}
 promote :: Attribute.Rank.Rank -> Piece -> Piece
 promote newRank piece	= piece { getRank = newRank }
+
+-- | The structure of a container of arbitrary data, indexed by /logicalColour/ & some /rank/s.
+type ByRankByLogicalColour element	= Attribute.LogicalColour.ArrayByLogicalColour (Data.Map.Map Attribute.Rank.Rank element)
+
+-- | Constructor of a certain shape of container, but with arbitrary contents.
+mkByRankByLogicalColour ::
+#ifdef USE_PARALLEL
+	Control.DeepSeq.NFData	element =>
+#endif
+	[Attribute.Rank.Rank] -> (Attribute.LogicalColour.LogicalColour -> Attribute.Rank.Rank -> element) -> ByRankByLogicalColour element
+mkByRankByLogicalColour ranks mkElement	= Attribute.LogicalColour.listArrayByLogicalColour
+#ifdef USE_PARALLEL
+	. Control.Parallel.Strategies.withStrategy (Control.Parallel.Strategies.parList Control.Parallel.Strategies.rdeepseq)
+#endif
+	$ map (
+		\logicalColour	-> Data.Map.fromList $ map (id &&& mkElement logicalColour) ranks
+	) Property.FixedMembership.members
 
 {- |
 	* The constant /vector/s over which the specified type of /piece/ can attack.
@@ -217,19 +254,21 @@ promote newRank piece	= piece { getRank = newRank }
 
 	* CAVEAT: it doesn't identify @Pawn@-advances, since these aren't attacks.
 -}
-attackVectorsByPiece :: (Num distance, Ord distance) => Data.Map.Map Piece [Cartesian.Vector.Vector distance]
-attackVectorsByPiece	= Data.Map.fromAscList [
-	(piece, vectors) |
-		(piece, Just vectors) <- map (
-			id &&& (
-				\piece -> case getRank piece of
-					Attribute.Rank.Pawn	-> Just . Cartesian.Vector.attackVectorsForPawn $ getLogicalColour piece
-					Attribute.Rank.Knight	-> Just Cartesian.Vector.attackVectorsForKnight
-					Attribute.Rank.King	-> Just Cartesian.Vector.attackVectorsForKing
-					_			-> Nothing	-- These ranks attack over any distance.
-			)
-		) range
- ] -- List-comprehension.
+attackVectorsByRankByLogicalColour :: (
+#ifdef USE_PARALLEL
+	Control.DeepSeq.NFData	distance,
+#endif
+	Num			distance,
+	Ord			distance
+ ) => ByRankByLogicalColour [Cartesian.Vector.Vector distance]
+attackVectorsByRankByLogicalColour	= mkByRankByLogicalColour Attribute.Rank.fixedAttackRange $ \logicalColour -> \case
+	Attribute.Rank.Pawn	-> Cartesian.Vector.attackVectorsForPawn logicalColour
+	Attribute.Rank.Knight	-> Cartesian.Vector.attackVectorsForKnight
+	Attribute.Rank.King	-> Cartesian.Vector.attackVectorsForKing
+	rank			-> error . showString "BishBosh.Component.Piece.attackVectorsByRankByLogicalColour:\trank must attack over fixed range; " $ shows rank "."	-- These ranks attack over any distance.
+
+-- | The destinations available to those pieces with attack-vectors; @Pawn@, @Knight@, @King@.
+type AttackDestinationsByCoordinatesByRankByLogicalColour x y	= ByRankByLogicalColour (Cartesian.Coordinates.ArrayByCoordinates x y [Cartesian.Coordinates.Coordinates x y])
 
 {- |
 	* The destinations available to those pieces with attack-vectors; @Pawn@, @Knight@, @King@.
@@ -239,25 +278,40 @@ attackVectorsByPiece	= Data.Map.fromAscList [
 	* CAVEAT: this function has no knowledge of the /board/, & therefore of the position of any other piece.
 -}
 attackDestinationsByCoordinatesByRankByLogicalColour :: (
+#ifdef USE_PARALLEL
+	Control.DeepSeq.NFData	x,
+	Control.DeepSeq.NFData	y,
+#endif
+	Enum			x,
+	Enum			y,
+	Ord			x,
+	Ord			y
+ ) => AttackDestinationsByCoordinatesByRankByLogicalColour x y
+{-# SPECIALISE attackDestinationsByCoordinatesByRankByLogicalColour :: AttackDestinationsByCoordinatesByRankByLogicalColour T.X T.Y #-}	-- To promote memoisation.
+attackDestinationsByCoordinatesByRankByLogicalColour	= mkByRankByLogicalColour Attribute.Rank.fixedAttackRange $ \logicalColour rank -> Cartesian.Coordinates.listArrayByCoordinates $ map (
+	`findAttackDestinations'` mkPiece logicalColour rank
+ ) Property.FixedMembership.members
+
+-- | Calls 'attackVectorsByRankByLogicalColour' to find the destinations which the specified /piece/ can attack from the specified position.
+findAttackDestinations' :: (
 	Enum	x,
 	Enum	y,
 	Ord	x,
 	Ord	y
- ) => Cartesian.Coordinates.ByCoordinates x y (Data.Map.Map Piece [Cartesian.Coordinates.Coordinates x y])
-{-# SPECIALISE attackDestinationsByCoordinatesByRankByLogicalColour :: Cartesian.Coordinates.ByCoordinates T.X T.Y (Data.Map.Map Piece [Cartesian.Coordinates.Coordinates T.X T.Y]) #-}	-- To promote memoisation.
-attackDestinationsByCoordinatesByRankByLogicalColour	= Cartesian.Coordinates.listArrayByCoordinates $ map (
-	\source -> Data.Map.fromList [
-		(
-			piece,
-			Data.Maybe.mapMaybe (Cartesian.Vector.maybeTranslate source) (attackVectorsByPiece Data.Map.! piece :: [Cartesian.Vector.VectorInt])
-		) |
-			logicalColour	<- Attribute.LogicalColour.range,
-			rank		<- Attribute.Rank.fixedAttackRange,
-			let piece	= mkPiece logicalColour rank
-	] -- List-comprehension.
- ) Cartesian.Coordinates.range
+ )
+	=> Cartesian.Coordinates.Coordinates x y	-- ^ The source from which the attack originates.
+	-> Piece
+	-> [Cartesian.Coordinates.Coordinates x y]	-- ^ The destinations which can be attacked.
+findAttackDestinations' source MkPiece {
+	getLogicalColour	= logicalColour,
+	getRank			= rank
+} = Data.Maybe.mapMaybe (
+	Cartesian.Vector.maybeTranslate source
+ ) (
+	attackVectorsByRankByLogicalColour ! logicalColour Data.Map.! rank :: [Cartesian.Vector.VectorInt]
+ )
 
--- | Calls 'attackVectorsByPiece' to find the destinations which the specified /piece/ can attack from the specified position.
+-- | Find the destinations which the specified /piece/ can attack from the specified position.
 findAttackDestinations :: (
 	Enum	x,
 	Enum	y,
@@ -269,30 +323,40 @@ findAttackDestinations :: (
 	-> [Cartesian.Coordinates.Coordinates x y]	-- ^ The destinations which can be attacked.
 {-# NOINLINE findAttackDestinations #-}	-- Ensure the rewrite-rule triggers.
 {-# RULES "findAttackDestinations/Int" findAttackDestinations = findAttackDestinationsInt #-}	-- CAVEAT: the call-stack leading to this function must be specialised to ensure this triggers.
-findAttackDestinations source piece	= Data.Maybe.mapMaybe (Cartesian.Vector.maybeTranslate source) (attackVectorsByPiece Data.Map.! piece :: [Cartesian.Vector.VectorInt])
+findAttackDestinations	= findAttackDestinations'
 
 -- | A specialisation of 'findAttackDestinations', more efficiently implemented by calling 'attackDestinationsByCoordinatesByRankByLogicalColour'.
 findAttackDestinationsInt :: Cartesian.Coordinates.Coordinates T.X T.Y -> Piece -> [Cartesian.Coordinates.Coordinates T.X T.Y]
-findAttackDestinationsInt coordinates piece	= attackDestinationsByCoordinatesByRankByLogicalColour ! coordinates Data.Map.! piece
+findAttackDestinationsInt coordinates MkPiece {
+	getLogicalColour	= logicalColour,
+	getRank			= rank
+} = attackDestinationsByCoordinatesByRankByLogicalColour ! logicalColour Data.Map.! rank ! coordinates
+
+-- The constant /direction/s of the straight lines along which each type of /piece/ can attack.
+
 
 {- |
-	* Find the constant directions of the straight lines along which each type of /piece/ can attack.
+	* Find the constant /direction/s of the straight lines along which each type of /piece/ can attack.
 
 	* CAVEAT: not defined for a @Knight@.
 -}
-attackDirectionsByPiece :: Data.Map.Map Piece [Attribute.Direction.Direction]
-attackDirectionsByPiece	= Data.Map.fromAscList [
-	(
-		piece,
-		case getRank piece of
-			Attribute.Rank.Pawn	-> Attribute.Direction.attackDirectionsForPawn $ getLogicalColour piece
-			Attribute.Rank.Rook	-> Attribute.Direction.parallels
-			Attribute.Rank.Bishop	-> Attribute.Direction.diagonals
-			_ {-royalty-}		-> Attribute.Direction.range
-	) |
-		piece	<- range,
-		not $ isKnight piece	-- The moves of which have no defined direction.
- ] -- List-comprehension.
+attackDirectionsByRankByLogicalColour :: ByRankByLogicalColour [Attribute.Direction.Direction]
+attackDirectionsByRankByLogicalColour	= mkByRankByLogicalColour Attribute.Rank.earthBound $ \logicalColour -> \case
+	Attribute.Rank.Pawn	-> Attribute.Direction.attackDirectionsForPawn logicalColour
+	Attribute.Rank.Bishop	-> Attribute.Direction.diagonals
+	Attribute.Rank.Rook	-> Attribute.Direction.parallels
+	_ {-royalty-}		-> Property.FixedMembership.members
+
+{- |
+	* Get the constant /direction/s of the straight lines along which the specified /piece/ can attack.
+
+	* CAVEAT: not defined for a @Knight@.
+-}
+getAttackDirections :: Piece -> [Attribute.Direction.Direction]
+getAttackDirections MkPiece {
+	getLogicalColour	= logicalColour,
+	getRank			= rank
+} = attackDirectionsByRankByLogicalColour ! logicalColour Data.Map.! rank
 
 {- |
 	* Whether a /piece/ at the specified /coordinates/ could attack the target at the specified /coordinates/.
@@ -309,8 +373,9 @@ canAttackAlong
 	-> Cartesian.Coordinates.Coordinates x y	-- ^ Destination (victim's location).
 	-> Piece					-- ^ Attacker.
 	-> Bool
-canAttackAlong source destination piece@MkPiece { getRank = rank }	= (
-	case rank of
+{-# SPECIALISE canAttackAlong :: Cartesian.Coordinates.Coordinates T.X T.Y -> Cartesian.Coordinates.Coordinates T.X T.Y -> Piece -> Bool #-}
+canAttackAlong source destination piece	= (
+	case getRank piece of
 		Attribute.Rank.Pawn	-> Cartesian.Vector.isPawnAttack $ getLogicalColour piece
 		Attribute.Rank.Knight	-> Cartesian.Vector.isKnightsMove
 		Attribute.Rank.Bishop	-> Cartesian.Vector.isDiagonal
@@ -336,8 +401,8 @@ canMoveBetween :: (
 	-> Piece
 	-> Bool
 {-# SPECIALISE canMoveBetween :: Cartesian.Coordinates.Coordinates T.X T.Y -> Cartesian.Coordinates.Coordinates T.X T.Y -> Piece -> Bool #-}
-canMoveBetween source destination piece@MkPiece { getRank = rank }	= (
-	case rank of
+canMoveBetween source destination piece	= (
+	case getRank piece of
 		Attribute.Rank.Pawn	-> \distance -> let
 			logicalColour	= getLogicalColour piece
 		 in Cartesian.Vector.isPawnAttack logicalColour distance || Cartesian.Vector.getXDistance distance == 0 && (
@@ -419,12 +484,12 @@ isKing MkPiece { getRank = Attribute.Rank.King }	= True
 isKing _						= False
 
 -- | A boxed array indexed by /piece/, of unspecified elements.
-type ByPiece	= Data.Array.IArray.Array {-Boxed-} Piece
+type ArrayByPiece	= Data.Array.IArray.Array {-Boxed-} Piece
 
 -- | Array-constructor.
 listArrayByPiece :: Data.Array.IArray.IArray a e => [e] -> a Piece e
 listArrayByPiece	= Data.Array.IArray.listArray (minBound, maxBound)
 
--- | Self-documentation.
+-- | A /piece/ at specific /coordinates/.
 type LocatedPiece x y	= (Cartesian.Coordinates.Coordinates x y, Piece)
 
