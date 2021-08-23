@@ -35,7 +35,7 @@ hlint:
 		src-exe/ +RTS -N -RTS || true
 	@$@	--cpp-define 'USE_PARALLEL'\
 		--cpp-define 'USE_POLYPARSE=1'\
-		--cpp-define 'USE_SELECT=1'\
+		--cpp-define 'USE_SEARCH'\
 		--ignore 'Use tuple-section'\
 		src-test/ +RTS -N -RTS
 
