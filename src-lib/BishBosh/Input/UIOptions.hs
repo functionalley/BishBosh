@@ -183,7 +183,7 @@ instance (
 	 ) (
 		getNDecimalDigits def `HXT.xpDefault` HXT.xpAttr nDecimalDigitsTag HXT.xpickle {-NDecimalDigits-}
 	 ) (
-		getEitherNativeUIOrCECPOptions def `HXT.xpDefault` Data.Either.xpickle HXT.xpickle {-NativeUIOptions-} HXT.xpickle {-CECPOptions-}
+		getEitherNativeUIOrCECPOptions def `HXT.xpDefault` Data.Either.xpickle HXT.xpickle {-NativeUIOptions-} HXT.xpickle {-CECPOptions-}	-- N.B.: 'hxt-9.3.1.21' includes a pickler for Either.
 	 ) (
 		getVerbosity def `HXT.xpDefault` HXT.xpickle
 	 ) where

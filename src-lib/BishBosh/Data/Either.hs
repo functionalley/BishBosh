@@ -30,8 +30,11 @@ module BishBosh.Data.Either(
 
 import qualified	Text.XML.HXT.Arrow.Pickle	as HXT
 
+{-
+-- CAVEAT: Introduced into 'HXT-9.3.1.21'.
 instance (HXT.XmlPickler l, HXT.XmlPickler r) => HXT.XmlPickler (Either l r) where
 	xpickle	= xpickle HXT.xpickle HXT.xpickle
+-}
 
 -- | Pickler for an arbitrary datum of type 'Either'.
 xpickle :: HXT.PU l -> HXT.PU r -> HXT.PU (Either l r)

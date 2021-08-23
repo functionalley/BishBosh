@@ -133,7 +133,7 @@ instance Control.DeepSeq.NFData Direction where
 	rnf MkDirection {
 		getXDirection	= xDirection,
 		getYDirection	= yDirection
-	} = Control.DeepSeq.rnf (xDirection, yDirection)
+	} = xDirection `seq` yDirection `seq` ()
 
 instance Show Direction where
 	showsPrec _ MkDirection {
