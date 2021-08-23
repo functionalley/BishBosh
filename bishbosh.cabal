@@ -26,7 +26,7 @@ Synopsis:	Plays chess.
 Build-type:	Simple
 Description:	A chess-game which can be rendered in a terminal (emulator) in raw ASCII, or used as an engine by xboard.
 Category:	Game
-Tested-with:	GHC == { 8.0, 8.2, 8.4, 8.6, 8.8, 8.10 }
+Tested-with:	GHC == 8.0, GHC == 8.2, GHC == 8.4, GHC == 8.6, GHC == 8.8, GHC == 8.10
 Homepage:	https://functionalley.com/BishBosh/bishbosh.html
 Maintainer:	mailto:bishbosh@functionalley.com
 Bug-reports:	mailto:bishbosh@functionalley.com
