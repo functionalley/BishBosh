@@ -2,9 +2,7 @@ language: haskell
 ghc:
   - 8.0
   - 8.4
-  - 8.6
   - 8.8
-  - 8.10
 # script: cabal configure --enable-tests --verbose && cabal build && cabal test	# Exceeds both 10-min/module & 50-min limit for job.
 # script: travis_wait 50 cabal configure --enable-tests --ghc-options="-O1" --verbose && cabal build
 setup:
