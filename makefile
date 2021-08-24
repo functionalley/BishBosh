@@ -18,9 +18,14 @@
 PACKAGE_NAME	= bishbosh
 SHELL		= /bin/bash
 GHC_OPTIONS	= --ghc-options='-j'
+BIN_DIR		= $$HOME/.local/bin/
+
+# Build hlint.
+$(BIN_DIR)/hlint:
+	@stack install hlint
 
 # Check for lint.
-hlint:
+hlint: $(BIN_DIR)/hlint
 	@$@	--cpp-define 'USE_PARALLEL'\
 		--cpp-define 'USE_POLYPARSE=1'\
 		--cpp-define 'USE_UNBOXED_ARRAYS'\
@@ -63,20 +68,16 @@ sdist:
 findOmissions: sdist
 	@diff <(find src-* -type f \( -name '*.hs' -a ! -name 'Setup.hs' \) | sed 's!^\./!!' | sort) <(tar -ztf dist*/sdist/$(PACKAGE_NAME)-*.tar.gz | grep '\.hs$$' | sed 's!^$(PACKAGE_NAME)-[0-9.]*/!!' | sort)
 
-# Install.
-$$HOME/.local/bin/$(PACKAGE_NAME):
+# Install this product.
+$(BIN_DIR)/$(PACKAGE_NAME) $(BIN_DIR)/duel:
 	@stack install $(GHC_OPTIONS)
 
 # Run the installed application as an xboard-engine.
-xboard: $$HOME/.local/bin/$(PACKAGE_NAME)
+xboard: $(BIN_DIR)/$(PACKAGE_NAME)
 	@$@ -fcp '$(PACKAGE_NAME) -i "config/CECP/$(PACKAGE_NAME)_black.xml" +RTS -N2 -RTS'
 
-# Install locally.
-$$HOME/.local/bin/duel:
-	@stack install $(GHC_OPTIONS)
-
 # Start a battle.
-duel: $$HOME/.local/bin/duel
+duel: $(BIN_DIR)/duel
 	@$@ --verbosity='Verbose' --nGames=128 --readTimeout=30 -i 'config/Raw/bishbosh_$@_white.xml' -i 'config/Raw/bishbosh_$@_black.xml'
 
 # Build the source-code documentation.
