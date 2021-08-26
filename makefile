@@ -66,7 +66,7 @@ sdist:
 
 # Find source-files missing from the distribution.
 findOmissions: sdist
-	@diff <(find src-* -type f \( -name '*.hs' -a ! -name 'Setup.hs' \) | sed 's!^\./!!' | sort) <(tar -ztf dist*/sdist/$(PACKAGE_NAME)-*.tar.gz | grep '\.hs$$' | sed 's!^$(PACKAGE_NAME)-[0-9.]*/!!' | sort)
+	@diff <(find src-* -type f -name '*.hs' | sed 's!^\./!!' | sort) <(tar -ztf dist*/sdist/$(PACKAGE_NAME)-*.tar.gz | grep '\.hs$$' | grep -v 'Setup.hs' | sed 's!^$(PACKAGE_NAME)-[0-9.]*/!!' | sort)
 
 # Install this product.
 $(BIN_DIR)/$(PACKAGE_NAME) $(BIN_DIR)/duel:
