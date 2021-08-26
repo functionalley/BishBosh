@@ -1,4 +1,4 @@
-cabal-version: 2.0
+cabal-version: 2.4
 
 -- This file is part of BishBosh.
 --
@@ -18,8 +18,7 @@ cabal-version: 2.0
 Name:		bishbosh
 Version:	0.1.0.0
 Copyright:	(C) 2018 Dr. Alistair Ward
--- License:	GPL-3.0-or-later
-License:	GPL-3
+License:	GPL-3.0-or-later
 License-file:	LICENSE
 Author:		Dr. Alistair Ward
 Stability:	stable
