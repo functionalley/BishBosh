@@ -21,7 +21,6 @@
  [@AUTHOR@]	Dr. Alistair Ward
 
  [@DESCRIPTION@]	Starts the two bishbosh-processes & acts as an intermediary.
-
 -}
 
 module Duel.Process.Intermediary (
@@ -37,9 +36,11 @@ module Duel.Process.Intermediary (
 --	purge,
 --	startGame
 --	startProcess,
+--	bracketProcess
 	initialise
 ) where
 
+import			Control.Arrow((&&&), (|||))
 import qualified	BishBosh.Attribute.LogicalColour	as Attribute.LogicalColour
 import qualified	BishBosh.Data.Exception			as Data.Exception
 import qualified	BishBosh.Input.CommandLineOption	as Input.CommandLineOption
@@ -56,10 +57,10 @@ import qualified	Data.Map.Strict
 import qualified	Data.Maybe
 import qualified	Duel.Data.Options			as Data.Options
 import qualified	Duel.IO.Logger				as IO.Logger
+import qualified	Duel.Process.Handles			as Process.Handles
 import qualified	System.Exit
 import qualified	System.FilePath
 import qualified	System.IO
-import qualified	System.Process
 
 #ifdef MOVE_NOTATION
 #	if MOVE_NOTATION == 'I'
@@ -82,7 +83,7 @@ type MoveNotation	= Notation.Smith.Smith
 runBishBosh
 	:: Input.Verbosity.Verbosity
 	-> System.FilePath.FilePath	-- ^ The path to a configuration-file.
-	-> IO (System.IO.Handle, System.IO.Handle, System.IO.Handle, System.Process.ProcessHandle)
+	-> IO Process.Handles.Handles
 runBishBosh verbosity configFilePath	= let
 	command	= "bishbosh"
 	args	= [
@@ -95,7 +96,7 @@ runBishBosh verbosity configFilePath	= let
  in do
 	Control.Monad.when (verbosity > Data.Default.def) . IO.Logger.printInfo . showString "Starting command; " $ shows (command, args) "."
 
-	System.Process.runInteractiveProcess command args Nothing Nothing
+	Process.Handles.mkHandles command args
 
 -- | Read either a move or a game-termination reason from the specified handle.
 readMove
@@ -134,9 +135,7 @@ copyMove
 	-> System.IO.Handle				-- ^ Input handle to which move should be forwarded.
 	-> IO (Maybe Model.GameTerminationReason.GameTerminationReason)
 copyMove verbosity readTimeout logicalColour stdOut stdIn = do
-	readMove verbosity readTimeout logicalColour stdOut >>= (
-		return {-to IO-monad-} . Just
-	 ) `either` (
+	readMove verbosity readTimeout logicalColour stdOut >>= return {-to IO-monad-} . Just ||| (
 		\move	-> do
 			System.IO.hPrint stdIn move
 
@@ -166,7 +165,7 @@ play verbosity readTimeout	= slave maxBound	where
 					Control.Monad.unless (gameTerminationReason == gameTerminationReason') . Control.Exception.throwIO . Data.Exception.mkIncompatibleData . showString "Duel.Process.Intermediary.play:\tsecond game terminated for a different reason; " $ shows gameTerminationReason' "."
 
 					return {-to IO-monad-} gameTerminationReason
-			 ) `either` (
+			 ) ||| (
 				\move	-> Control.Exception.throwIO . Data.Exception.mkParseFailure . showString "Duel.Process.Intermediary.play:\tread from " . shows (Property.Opposable.getOpposite logicalColour) . showString ", unexpected move='" $ shows move "'."
 			 )
 	 )
@@ -224,55 +223,52 @@ startGame verbosity readTimeout producer consumer	= slave where
 			Data.Map.Strict.insertWith (const succ) gameTerminationReason 1 gameTerminationReasonsMap
 		 ) $ pred nGames -- Recurse.
 
--- | Start 'bishbosh', print any errors, unbuffer its I/O, & return the process-handles.
+-- | Start 'bishbosh', print any errors, & return the process-handles.
 startProcess
 	:: Input.Verbosity.Verbosity
 	-> System.FilePath.FilePath	-- ^ The path to a configuration-file.
-	-> IO (System.IO.Handle, System.IO.Handle, System.IO.Handle, System.Process.ProcessHandle)
+	-> IO Process.Handles.Handles
 startProcess verbosity configFilePath	= do
-	handles@(stdIn, stdOut, stdErr, _)	<- runBishBosh verbosity configFilePath
+	handles	<- runBishBosh verbosity configFilePath
 
-	IO.Logger.dump stdErr
+	IO.Logger.dump $ Process.Handles.getStdErr handles
 
-	sequence_ $ [
-		(`System.IO.hSetBuffering` System.IO.LineBuffering),
-		(`System.IO.hSetEncoding` System.IO.latin1)
-	 ] <*> [stdIn, stdOut]
-
-	Control.Monad.when (verbosity == maxBound) $ mapM System.IO.hShow [stdIn, stdOut, stdErr] >>= IO.Logger.printInfo . show
+	Control.Monad.when (verbosity == maxBound) $ Process.Handles.showHandles handles >>= mapM_ IO.Logger.printInfo
 
 	return {-to IO-monad-} handles
+
+-- | Starts the process, performs the requested action, then clean-up.
+bracketProcess
+	:: Data.Options.Options
+	-> ([Process.Handles.Handles] -> IO ())	-- ^ Run the game.
+	-> IO ()
+bracketProcess options = Control.Exception.bracket (
+	startProcess (Data.Options.getVerbosity options) `mapM` Data.Options.getInputConfigFilePaths options
+ ) (
+	sequence . (
+		[
+			IO.Logger.dump . Process.Handles.getStdErr,
+			Process.Handles.cleanupHandles
+		] <*>
+	)
+ )
 
 -- | Play the requested number of games & display the accumulated results.
 initialise :: Data.Options.Options -> IO ()
 initialise options	= let
 	verbosity	= Data.Options.getVerbosity options
  in Control.Exception.catch (
-	Control.Exception.bracket (
-		startProcess verbosity `mapM` Data.Options.getInputConfigFilePaths options
+	bracketProcess options $ \[handles, handles'] -> uncurry (
+		startGame verbosity $ Data.Options.getReadTimeout options
 	) (
-		\processes@[(_, _, stdErr, _), (_, _, stdErr', _)] -> do
-			mapM_ IO.Logger.dump [stdErr, stdErr']
-
-			Control.Monad.when (verbosity == maxBound) $ IO.Logger.printInfo "Cleaning-up child processes."
-
-			mapM_ (
-				\(hIn, hOut, hErr, pId) -> System.Process.cleanupProcess (Just hIn, Just hOut, Just hErr, pId)
-			 ) processes
-	) (
-		\[(stdIn, stdOut, _, _), (stdIn', stdOut', _, _)] -> startGame verbosity (
-			Data.Options.getReadTimeout options
-		) (
-			stdIn, stdOut
-		) (
-			stdIn', stdOut'
-		) Data.Map.Strict.empty (
-			Data.Options.getNGames options
-		) >>= IO.Logger.printInfo . show . Data.Map.Strict.toList
-	)
+		($ handles) &&& ($ handles') $ Process.Handles.getHandlePair
+	) Data.Map.Strict.empty (
+		Data.Options.getNGames options
+	) >>= IO.Logger.printInfo . show . Data.Map.Strict.toList
  ) $ \e -> do
 	IO.Logger.printError . showString "caught " $ show (e :: Control.Exception.SomeException)
 
 	Control.Monad.when (verbosity == maxBound) $ IO.Logger.printInfo "Exiting."
 
 	System.Exit.exitFailure
+

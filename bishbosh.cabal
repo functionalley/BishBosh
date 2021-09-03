@@ -355,6 +355,7 @@ Executable duel
     Other-modules:
         Duel.Data.Options
         Duel.IO.Logger
+        Duel.Process.Handles
         Duel.Process.Intermediary
         Paths_bishbosh
 
