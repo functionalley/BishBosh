@@ -38,12 +38,14 @@ import qualified	Test.QuickCheck
 
 #ifdef USE_POLYPARSE
 import			Control.Arrow((***))
-#if USE_POLYPARSE == 1
+#	if USE_POLYPARSE == 1
 import qualified	Text.ParserCombinators.Poly.Lazy		as Poly
-#else /* Plain */
+#	else /* Plain */
+import			Control.Arrow((|||))
 import qualified	Text.ParserCombinators.Poly.Plain		as Poly
-#endif
+#	endif
 #else /* Parsec */
+import			Control.Arrow((|||))
 import qualified	Text.ParserCombinators.Parsec
 #endif
 
@@ -62,19 +64,19 @@ results	= sequence [
 			in
 #ifdef USE_POLYPARSE
 			uncurry (&&) . (
-#if USE_POLYPARSE == 1
+#	if USE_POLYPARSE == 1
 				(== qualifiedMove) . ContextualNotation.StandardAlgebraic.getQualifiedMove *** null {-unparsed input-}
-#else /* Plain */
-				either (const False) (
-					(== qualifiedMove) . ContextualNotation.StandardAlgebraic.getQualifiedMove
+#	else /* Plain */
+				(
+					const False ||| (== qualifiedMove) . ContextualNotation.StandardAlgebraic.getQualifiedMove
 				) *** null {-unparsed input-}
-#endif
+#	endif
 			) . Poly.runParser (
 				ContextualNotation.StandardAlgebraic.parser explicitEnPassant validateMoves game'
 			)
 #else /* Parsec */
-			either (const False) (
-				(== qualifiedMove) . ContextualNotation.StandardAlgebraic.getQualifiedMove
+			(
+				const False ||| (== qualifiedMove) . ContextualNotation.StandardAlgebraic.getQualifiedMove
 			) . Text.ParserCombinators.Parsec.parse (
 				ContextualNotation.StandardAlgebraic.parser explicitEnPassant validateMoves game'
 			) "SAN-parser"

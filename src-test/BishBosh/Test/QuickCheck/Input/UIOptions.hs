@@ -29,6 +29,7 @@ import			BishBosh.Test.QuickCheck.Input.CECPOptions()
 import			BishBosh.Test.QuickCheck.Input.NativeUIOptions()
 import			BishBosh.Test.QuickCheck.Input.Verbosity()
 import			BishBosh.Test.QuickCheck.Notation.MoveNotation()
+import			Control.Arrow((|||))
 import qualified	BishBosh.Input.UIOptions	as Input.UIOptions
 import qualified	BishBosh.Notation.MoveNotation	as Notation.MoveNotation
 import qualified	Test.QuickCheck
@@ -41,7 +42,7 @@ instance (
  ) => Test.QuickCheck.Arbitrary (Input.UIOptions.UIOptions row column) where
 	arbitrary	= do
 		eitherNativeUIOrCECPOptions	<- Test.QuickCheck.arbitrary
-		moveNotation			<- const Test.QuickCheck.arbitrary `either` const (return {-to Gen-monad-} Notation.MoveNotation.pureCoordinate) $ eitherNativeUIOrCECPOptions
+		moveNotation			<- const Test.QuickCheck.arbitrary ||| const (return {-to Gen-monad-} Notation.MoveNotation.pureCoordinate) $ eitherNativeUIOrCECPOptions
 
 		Input.UIOptions.mkUIOptions moveNotation <$> fmap (
 			fmap $ succ . (`mod` 3)	-- maybePrintMoveTree.

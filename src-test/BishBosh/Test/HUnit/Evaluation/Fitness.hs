@@ -30,7 +30,7 @@ module BishBosh.Test.HUnit.Evaluation.Fitness(
 	testCases
 ) where
 
-import			Control.Arrow((&&&))
+import			Control.Arrow((&&&), (|||))
 import qualified	BishBosh.Attribute.CriterionValue	as Attribute.CriterionValue
 import qualified	BishBosh.Attribute.LogicalColour	as Attribute.LogicalColour
 import qualified	BishBosh.Cartesian.Coordinates		as Cartesian.Coordinates
@@ -98,9 +98,9 @@ testCases	= Test.HUnit.test [
 			Attribute.CriterionValue.mkCriterionValue $ recip 2	:: CriterionValue	-- Taking Queen's Rook still permits castling on the King's side.
 		 )
 		_				-> Control.Exception.throw $ Data.Exception.mkParseFailure "BishBosh.Test.HUnit.Evaluation.Fitness.testCases:\tfailed to parse move.",
-	"'BishBosh.Evaluation.Fitness.measureValueOfCastlingPotential' failed after moving one Rook from either side." ~: either (
+	"'BishBosh.Evaluation.Fitness.measureValueOfCastlingPotential' failed after moving one Rook from either side." ~: (
 		\(moveString, errorMessage)	-> Control.Exception.throw . Data.Exception.mkInvalidDatum . showString "BishBosh.Test.HUnit.Evaluation.Fitness.testCases:\tfailed for " . showString Component.Move.tag . Text.ShowList.showsAssociation . shows moveString . showString "; " $ showString errorMessage "."
-	) (
+	) ||| (
 		\game -> Evaluation.Fitness.measureValueOfCastlingPotential game ~?= (Attribute.CriterionValue.zero :: CriterionValue)
 	) $ Test.HUnit.Model.Game.applyMoves [
 		"a2a3",
@@ -163,9 +163,9 @@ testCases	= Test.HUnit.test [
 			)
 		 ) ~?= Attribute.CriterionValue.mkCriterionValue (recip $ fromIntegral Evaluation.Fitness.maximumDefended :: T.CriterionValue)
 		_				-> Control.Exception.throw $ Data.Exception.mkParseFailure "BishBosh.Test.HUnit.Evaluation.Fitness.testCases:\tfailed to parse move.",
-	"'BishBosh.Evaluation.Fitness.measureValueOfDefence' failed after Pawn advance & Knight move." ~: either (
+	"'BishBosh.Evaluation.Fitness.measureValueOfDefence' failed after Pawn advance & Knight move." ~: (
 		\(moveString, errorMessage)	-> Control.Exception.throw . Data.Exception.mkInvalidDatum . showString "BishBosh.Test.HUnit.Evaluation.Fitness.testCases:\tfailed for " . showString Component.Move.tag . Text.ShowList.showsAssociation . shows moveString . showString "; " $ showString errorMessage "."
-	) (
+	) ||| (
 		\game -> Evaluation.Fitness.measureValueOfDefence game ~?= Attribute.CriterionValue.mkCriterionValue (3 / fromIntegral Evaluation.Fitness.maximumDefended :: T.CriterionValue)
 	) $ Test.HUnit.Model.Game.applyMoves [
 		"g2g3",	-- Advance King's Knight's Pawn.

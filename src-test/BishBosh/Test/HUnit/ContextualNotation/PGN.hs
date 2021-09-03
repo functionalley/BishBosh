@@ -38,13 +38,15 @@ import			Test.HUnit((~?))
 
 #ifdef USE_POLYPARSE
 import qualified	BishBosh.Text.Poly			as Text.Poly
-#if USE_POLYPARSE == 1
+#	if USE_POLYPARSE == 1
 import qualified	Data.Char
 import qualified	Text.ParserCombinators.Poly.Lazy	as Poly
-#else /* Plain */
+#	else /* Plain */
+import			Control.Arrow((|||))
 import qualified	Text.ParserCombinators.Poly.Plain	as Poly
-#endif
+#	endif
 #else /* Parsec */
+import			Control.Arrow((|||))
 import qualified	Text.ParserCombinators.Parsec		as Parsec
 #endif
 
@@ -61,25 +63,23 @@ testCases :: Test.HUnit.Test
 testCases	= Test.HUnit.test $ map (
 	\(isStrictlySequential, validateMoves, s) ->
 #ifdef USE_POLYPARSE
-#if USE_POLYPARSE == 1
+#	if USE_POLYPARSE == 1
 	(
 		\s' -> all Data.Char.isSpace s' ~? showString "Unparsed input: " (show s')
 	) . snd
-#else /* Plain */
-	either (
-		Control.Exception.throw . Data.Exception.mkParseFailure . showString "BishBosh.Test.HUnit.ContextualNotation.PGN.testCases:\tfailed: " . show
-	) (
-		const $ True ~? ""
+#	else /* Plain */
+	(
+		Control.Exception.throw . Data.Exception.mkParseFailure . showString "BishBosh.Test.HUnit.ContextualNotation.PGN.testCases:\tfailed: " . show ||| const (
+			True ~? ""
+		)
 	) . fst
-#endif
+#	endif
 	$ Poly.runParser (
 		ContextualNotation.PGN.parser isStrictlySequential validateMoves []	:: Text.Poly.TextParser PGN
 	)
 #else /* Parsec */
-	either (
-		Control.Exception.throw . Data.Exception.mkParseFailure . showString "BishBosh.Test.HUnit.ContextualNotation.PGN.testCases:\tfailed: " . show
-	) (
-		const $ True ~? ""
+	Control.Exception.throw . Data.Exception.mkParseFailure . showString "BishBosh.Test.HUnit.ContextualNotation.PGN.testCases:\tfailed: " . show ||| const (
+		True ~? ""
 	) $ Parsec.parse (
 		ContextualNotation.PGN.parser isStrictlySequential validateMoves []	:: Parsec.Parser PGN
 	) "PGN-parser"

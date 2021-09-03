@@ -33,10 +33,12 @@ import qualified	BishBosh.ContextualNotation.PGNComment	as ContextualNotation.PG
 import qualified	Test.QuickCheck
 
 #ifndef USE_POLYPARSE
+import			Control.Arrow((|||))
 import qualified	Text.ParserCombinators.Parsec
 #elif USE_POLYPARSE == 1
 import qualified	Text.ParserCombinators.Poly.Lazy	as Poly
 #else /* Plain */
+import			Control.Arrow((|||))
 import qualified	Text.ParserCombinators.Poly.Plain	as Poly
 #endif
 
@@ -54,14 +56,14 @@ results	= sequence [
 		f :: ContextualNotation.PGNComment.PGNComment -> Test.QuickCheck.Property
 		f pgnComment	= Test.QuickCheck.label "PGNComment.prop_io" .
 #ifdef USE_POLYPARSE
-#if USE_POLYPARSE == 1
+#	if USE_POLYPARSE == 1
 			(== s)
-#else /* Plain */
-			either (const False) (== s)
-#endif
+#	else /* Plain */
+			(const False ||| (== s))
+#	endif
 			. fst {-discard unparsed text-} . Poly.runParser ContextualNotation.PGNComment.parser
 #else /* Parsec */
-			either (const False) (== s) . Text.ParserCombinators.Parsec.parse ContextualNotation.PGNComment.parser "PGN parser"
+			(const False ||| (== s)) . Text.ParserCombinators.Parsec.parse ContextualNotation.PGNComment.parser "PGN parser"
 #endif
 			$ show pgnComment where
 				s	= ContextualNotation.PGNComment.getString pgnComment

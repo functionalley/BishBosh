@@ -31,7 +31,7 @@ module Main(main) where
 
 import			BishBosh.Data.Float()
 -- import		BishBosh.Data.Ratio()	-- Required if either criterionWeight or criterionValue is Rational.
-import			Control.Arrow((&&&), (***))
+import			Control.Arrow((&&&), (***), (|||))
 import			Control.Category((>>>))
 import			Data.Array.IArray((!))
 import qualified	BishBosh.Component.PieceSquareByCoordinatesByRank	as Component.PieceSquareByCoordinatesByRank
@@ -365,7 +365,7 @@ main	= do
 								(showsInfoPrefix, showsWarningPrefix)	= const (
 									Text.ShowColouredPrefix.showsPrefixInfo,
 									Text.ShowColouredPrefix.showsPrefixWarning
-								 ) `either` const (
+								 ) ||| const (
 									Text.ShowPrefix.showsPrefixInfo,
 									Text.ShowPrefix.showsPrefixWarning
 								 ) $ Input.UIOptions.getEitherNativeUIOrCECPOptions uiOptions
@@ -469,7 +469,7 @@ main	= do
 						in Control.Monad.void {-discard the state returned by processInputOptions-} . HXT.runX $ HXT.setTraceLevel hxtTraceLevel
 							>>> HXT.xunpickleDocument HXT.xpickle inputSysConfigList configFilePath
 							>>> HXT.traceMsg hxtTraceLevel (showString Input.Options.tag " parsed")
-							>>> HXT.arrIO processInputOptions
+							>>> HXT.arrIO processInputOptions	-- Lift an IO-function into an arrow.
 			| otherwise	-> Control.Exception.throwIO . Data.Exception.mkInsufficientData $ shows (Input.CommandLineOption.longFlagPrefix ++ inputConfigFilePathFlag) " must be specified."
 			where
 				categorisedCommandLineOptions		= Input.CommandLineOption.categorise $ map snd commandLineOptions

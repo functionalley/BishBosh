@@ -47,10 +47,12 @@ import qualified	Data.Word
 import qualified	Test.QuickCheck
 
 #ifndef USE_POLYPARSE
+import			Control.Arrow((|||))
 import qualified	Text.ParserCombinators.Parsec
 #elif USE_POLYPARSE == 1
 import qualified	Text.ParserCombinators.Poly.Lazy	as Poly
 #else /* Plain */
+import			Control.Arrow((|||))
 import qualified	Text.ParserCombinators.Poly.Plain	as Poly
 #endif
 
@@ -125,14 +127,14 @@ results	= sequence [
 		f :: Bool -> ContextualNotation.StandardAlgebraic.ValidateMoves -> Test.QuickCheck.Model.Game.Game -> Test.QuickCheck.Property
 		f isStrictlySequential validateMoves game	= Test.QuickCheck.label "PGN.prop_moveTextParser" .
 #ifdef USE_POLYPARSE
-#if USE_POLYPARSE == 1
+#	if USE_POLYPARSE == 1
 			(Model.Game.listTurns game ==) . Model.Game.listTurns
-#else /* Plain */
-			either (const False) ((Model.Game.listTurns game ==) . Model.Game.listTurns)
-#endif
+#	else /* Plain */
+			(const False ||| (Model.Game.listTurns game ==) . Model.Game.listTurns)
+#	endif
 			. fst {-discard unparsed text-} . Poly.runParser moveTextParser
 #else /* Parsec */
-			either (const False) ((Model.Game.listTurns game ==) . Model.Game.listTurns) . Text.ParserCombinators.Parsec.parse moveTextParser "Move-text parser"
+			(const False ||| (Model.Game.listTurns game ==) . Model.Game.listTurns) . Text.ParserCombinators.Parsec.parse moveTextParser "Move-text parser"
 #endif
 			$ ContextualNotation.PGN.showsMoveText game ""
 			where
@@ -142,14 +144,14 @@ results	= sequence [
 		f :: Bool -> ContextualNotation.StandardAlgebraic.ValidateMoves -> PGN -> [ContextualNotation.PGNComment.PGNComment] -> Test.QuickCheck.Property
 		f isStrictlySequential validateMoves pgn pgnComments	= Test.QuickCheck.label "PGN.prop_pgnParser" .
 #ifdef USE_POLYPARSE
-#if USE_POLYPARSE == 1
+#	if USE_POLYPARSE == 1
 			(== pgn)
-#else /* Plain */
-			either (const False) (== pgn)
-#endif
+#	else /* Plain */
+			(const False ||| (== pgn))
+#	endif
 			. fst {-discard unparsed text-} . Poly.runParser parser
 #else /* Parsec */
-			either (const False) (== pgn) . Text.ParserCombinators.Parsec.parse parser "PGN parser"
+			(const False ||| (== pgn)) . Text.ParserCombinators.Parsec.parse parser "PGN parser"
 #endif
 			. unlines . (
 				\l -> zipWith (++) l $ map (showChar '\t' . show) pgnComments ++ repeat "" {-pad comment-list with null lines-}

@@ -89,7 +89,7 @@ module BishBosh.Model.Game(
 	(/~)
 ) where
 
-import			Control.Arrow((&&&), (***))
+import			Control.Arrow((&&&), (***), (|||))
 import qualified	BishBosh.Attribute.LogicalColour		as Attribute.LogicalColour
 import qualified	BishBosh.Attribute.MoveType			as Attribute.MoveType
 import qualified	BishBosh.Attribute.Rank				as Attribute.Rank
@@ -350,7 +350,7 @@ instance (
 				s3'		-> Control.Arrow.first (
 					\enPassantDestination -> let
 						opponentsLogicalColour	= Property.Opposable.getOpposite nextLogicalColour
-					 in State.TurnsByLogicalColour.fromAssocs [
+					in State.TurnsByLogicalColour.fromAssocs [
 						(
 							nextLogicalColour,
 							[]
@@ -852,9 +852,9 @@ applyEitherQualifiedMove :: (
  ) => Component.EitherQualifiedMove.EitherQualifiedMove x y -> Transformation x y
 {-# SPECIALISE applyEitherQualifiedMove :: Component.EitherQualifiedMove.EitherQualifiedMove T.X T.Y -> Transformation T.X T.Y #-}
 applyEitherQualifiedMove eitherQualifiedMove game@MkGame { getBoard = board } = applyQualifiedMove (
-	Component.QualifiedMove.mkQualifiedMove move $ either (
-		($ State.Board.getMaybePieceByCoordinates board) . State.MaybePieceByCoordinates.inferMoveType move
-	) id $ Component.EitherQualifiedMove.getPromotionRankOrMoveType eitherQualifiedMove
+	Component.QualifiedMove.mkQualifiedMove move . (
+		($ State.Board.getMaybePieceByCoordinates board) . State.MaybePieceByCoordinates.inferMoveType move ||| id
+	) $ Component.EitherQualifiedMove.getPromotionRankOrMoveType eitherQualifiedMove
  ) game where
 	move	= Component.EitherQualifiedMove.getMove eitherQualifiedMove
 
@@ -874,17 +874,15 @@ applyEitherQualifiedMoves :: (
 {-# SPECIALISE applyEitherQualifiedMoves :: (a -> Either String (Component.EitherQualifiedMove.EitherQualifiedMove T.X T.Y)) -> Game T.X T.Y -> [a] -> Either (a, String) (Game T.X T.Y) #-}
 applyEitherQualifiedMoves moveConstructor	= Data.List.foldl' (
 	\eitherGame datum -> eitherGame >>= (
-		\game -> either (
-			Left . (,) datum	-- Constructor failed.
-		) (
+		\game -> Left . (,) datum {-Constructor failed-} ||| (
 			\eitherQualifiedMove -> Data.Maybe.maybe (
 				Right $ applyEitherQualifiedMove eitherQualifiedMove game
-			 ) (
+			) (
 				\errorMessage -> Left (
 					datum,
 					showString "board" . Text.ShowList.showsAssociation . shows (getBoard game) . showString " (" $ shows errorMessage ")"
 				) -- Pair.
-			 ) $ validateEitherQualifiedMove eitherQualifiedMove game
+			) $ validateEitherQualifiedMove eitherQualifiedMove game
 		) $ moveConstructor datum
 	)
  ) . Right
@@ -1130,7 +1128,7 @@ validateEitherQualifiedMove eitherQualifiedMove game@MkGame { getBoard = board }
 
 		inferredMoveType :: Attribute.MoveType.MoveType
 		inferredMoveType	= State.MaybePieceByCoordinates.inferMoveType move (
-			either id Attribute.Rank.getMaybePromotionRank promotionRankOrMoveType	-- Discard any move-type.
+			id ||| Attribute.Rank.getMaybePromotionRank $ promotionRankOrMoveType	-- Discard any move-type.
 		 ) maybePieceByCoordinates
 
 -- | Whether the specified /QualifiedMove/ is valid.

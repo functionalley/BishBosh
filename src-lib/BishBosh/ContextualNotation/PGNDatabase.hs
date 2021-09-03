@@ -57,12 +57,14 @@ import qualified	System.Process
 
 #ifdef USE_POLYPARSE
 import qualified	BishBosh.Text.Poly				as Text.Poly
-#if USE_POLYPARSE == 1
+#	if USE_POLYPARSE == 1
 import qualified	Text.ParserCombinators.Poly.Lazy		as Poly
-#else /* Plain */
+#	else /* Plain */
+import qualified	Control.Arrow
 import qualified	Text.ParserCombinators.Poly.Plain		as Poly
-#endif
+#	endif
 #else /* Parsec */
+import qualified	Control.Arrow
 import qualified	Text.ParserCombinators.Parsec			as Parsec
 import			Text.ParserCombinators.Parsec((<?>))
 #endif
@@ -119,14 +121,14 @@ parse :: (
 	-> Either String (PGNDatabase x y)
 {-# SPECIALISE parse :: String -> ContextualNotation.PGN.IsStrictlySequential -> ContextualNotation.StandardAlgebraic.ValidateMoves -> [ContextualNotation.PGN.Tag] -> PGNPredicate T.X T.Y -> MaybeMaximumGames -> String -> Either String (PGNDatabase T.X T.Y) #-}
 #ifdef USE_POLYPARSE
-#if USE_POLYPARSE == 1
+#	if USE_POLYPARSE == 1
 parse _ isStrictlySequential validateMoves identificationTags pgnPredicate maybeMaximumGames	= Right	-- N.B.: the lazy parser throws an exception rather than returning 'Either', because otherwise it can't choose whether to construct with 'Left' or 'Right' until the input has been fully parsed.
-#else /* Plain */
-parse name isStrictlySequential validateMoves identificationTags pgnPredicate maybeMaximumGames	= either (Left . showString "regarding " . shows name . showString ", ") Right
-#endif
+#	else /* Plain */
+parse name isStrictlySequential validateMoves identificationTags pgnPredicate maybeMaximumGames	= Control.Arrow.left (showString "regarding " . shows name . showString ", ")
+#	endif
 	. fst {-discard unparsed data-} . Poly.runParser parser'
 #else /* Parsec */
-parse name isStrictlySequential validateMoves identificationTags pgnPredicate maybeMaximumGames	= either (Left . showString "failed to parse; " . show) Right . Parsec.parse parser' name
+parse name isStrictlySequential validateMoves identificationTags pgnPredicate maybeMaximumGames	= Control.Arrow.left (showString "failed to parse; " . show) . Parsec.parse parser' name
 #endif
 	where
 		parser'	= (

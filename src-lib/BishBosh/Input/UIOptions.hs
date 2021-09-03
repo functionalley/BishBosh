@@ -52,7 +52,7 @@ module BishBosh.Input.UIOptions(
 ) where
 
 import			BishBosh.Data.Integral()	-- For 'HXT.XmlPickler NDecimalDigits'.
-import			Control.Arrow((&&&))
+import			Control.Arrow((&&&), (|||))
 import qualified	BishBosh.Data.Either		as Data.Either
 import qualified	BishBosh.Data.Exception		as Data.Exception
 import qualified	BishBosh.Input.CECPFeatures	as Input.CECPFeatures
@@ -136,11 +136,8 @@ instance (Show row, Show column) => Show (UIOptions row column) where
 			nDecimalDigitsTag,
 			shows nDecimalDigits
 		),
-		either (
-			(,) Input.NativeUIOptions.tag . shows
-		) (
-			(,) Input.CECPOptions.tag . shows
-		) eitherNativeUIOrCECPOptions, (
+		(,) Input.NativeUIOptions.tag . shows ||| (,) Input.CECPOptions.tag . shows $ eitherNativeUIOrCECPOptions,
+		(
 			Input.Verbosity.tag,
 			shows verbosity
 		)
@@ -203,8 +200,8 @@ mkUIOptions moveNotation maybePrintMoveTree nDecimalDigits eitherNativeUIOrCECPO
 	| nDecimalDigits < 1			= Control.Exception.throw . Data.Exception.mkOutOfBounds . showString "BishBosh.Input.UIOptions.mkUIOptions:\t" . showString nDecimalDigitsTag . Text.ShowList.showsAssociation $ shows nDecimalDigits " must exceed zero."
 	| nDecimalDigits > maxNDecimalDigits	= Control.Exception.throw . Data.Exception.mkOutOfBounds . showString "BishBosh.Input.UIOptions.mkUIOptions:\t" . showString nDecimalDigitsTag . Text.ShowList.showsAssociation . shows nDecimalDigits . showString " shouldn't exceed " $ shows maxNDecimalDigits "."
 	| (
-		const False `either` const True
-	) eitherNativeUIOrCECPOptions && not (
+		const False ||| const True $ eitherNativeUIOrCECPOptions
+	) && not (
 		Notation.MoveNotation.isPureCoordinate moveNotation
 	)					= Control.Exception.throw . Data.Exception.mkIncompatibleData . showString "BishBosh.Input.UIOptions.mkUIOptions:\t" . shows Input.CECPOptions.tag . showString " is incompatible with " . showString Notation.MoveNotation.tag . Text.ShowList.showsAssociation $ shows moveNotation "."
 	| otherwise	= MkUIOptions {
@@ -217,11 +214,9 @@ mkUIOptions moveNotation maybePrintMoveTree nDecimalDigits eitherNativeUIOrCECPO
 
 -- | Whether the chess-engine has been temporarily turned-off in order to set-up pieces.
 isCECPManualMode :: UIOptions row column -> Bool
-isCECPManualMode MkUIOptions { getEitherNativeUIOrCECPOptions = eitherNativeUIOrCECPOptions }	= (
-	const False `either` (
-		uncurry (||) . (Input.CECPOptions.getEditMode &&& Input.CECPOptions.getForceMode)
-	)
- ) eitherNativeUIOrCECPOptions
+isCECPManualMode MkUIOptions { getEitherNativeUIOrCECPOptions = eitherNativeUIOrCECPOptions }	= const False ||| (
+	uncurry (||) . (Input.CECPOptions.getEditMode &&& Input.CECPOptions.getForceMode)
+ ) $ eitherNativeUIOrCECPOptions
 
 -- | The type of a function used to transform 'UIOptions'.
 type Transformation row column	= UIOptions row column -> UIOptions row column

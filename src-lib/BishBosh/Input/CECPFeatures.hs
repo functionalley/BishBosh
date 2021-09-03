@@ -81,8 +81,9 @@ module BishBosh.Input.CECPFeatures(
 ) where
 
 import			BishBosh.Data.Bool()	-- For 'HXT.XmlPickler Bool'.
-import qualified	BishBosh.Data.Foldable		as Data.Foldable
+import			Control.Arrow((|||))
 import qualified	BishBosh.Data.Exception		as Data.Exception
+import qualified	BishBosh.Data.Foldable		as Data.Foldable
 import qualified	BishBosh.Text.ShowList		as Text.ShowList
 import qualified	Control.DeepSeq
 import qualified	Control.Exception
@@ -329,7 +330,7 @@ instance HXT.XmlPickler CECPFeatures where
 			\s -> case reads s of
 				[(i, "")]	-> Left i
 				_		-> Right s,
-			\value -> showChar '"' $ either shows showString value "\""
+			\value -> showChar '"' $ (shows ||| showString) value "\""
 		 ) (
 			HXT.xpAttr "value" HXT.xpText0
 		 )
@@ -345,10 +346,8 @@ mkCECPFeatures features done
 		not . all Data.Char.isAlpha . fst {-key-}
 	) features	= Control.Exception.throw . Data.Exception.mkInvalidDatum . showString "BishBosh.Input.CECPFeatures.mkCECPFeatures:\tinvalid key" . Text.ShowList.showsAssociation $ shows key "."
 	| Just (_, value)	<- Data.List.find (
-		either (
-			const False
-		) (
-			any (`elem` "\"\n\r")	-- Prevent command-injection.
+		(
+			const False ||| any (`elem` "\"\n\r") {-Prevent command-injection-}
 		) . snd {-value-}
 	) features	= Control.Exception.throw . Data.Exception.mkInvalidDatum . showString "BishBosh.Input.CECPFeatures.mkCECPFeatures:\tinvalid value" . Text.ShowList.showsAssociation $ shows value "."
 	| not $ null duplicateFeatures	= Control.Exception.throw . Data.Exception.mkDuplicateData . showString "BishBosh.Input.CECPFeatures.mkCECPFeatures:\tduplicate features " $ shows duplicateFeatures "."
@@ -380,11 +379,9 @@ deleteFeature feature@(key, value) cecpFeatures@MkCECPFeatures {
 	getFeatures	= features
 } = cecpFeatures {
 	getFeatures	= filter (
-		either (
-			const $ (/= key) . fst
-		) (
-			const (/= feature)	-- N.B.: string-valued features must also match the specified value, to account for possibility of duplicates.
-		) value
+		const (
+			(/= key) . fst
+		) ||| const (/= feature) {-N.B.: string-valued features must also match the specified value, to account for possibility of duplicates-} $ value
 	) features
 }
 
@@ -403,6 +400,6 @@ isFeatureDisabled key MkCECPFeatures {
 } = Data.Maybe.maybe (
 	Control.Exception.throw . Data.Exception.mkSearchFailure . showString "BishBosh.Input.CECPFeatures.isFeatureDisabled:\t" $ shows key " not found."
  ) (
-	(== 0) `either` null
+	(== 0) ||| null
  ) $ lookup key features
 

@@ -66,7 +66,7 @@ module BishBosh.State.Board(
 	exposesKing
 ) where
 
-import			Control.Arrow((&&&), (***))
+import			Control.Arrow((&&&), (***), (|||))
 import			Data.Array.IArray((!), (//))
 import qualified	BishBosh.Attribute.Direction				as Attribute.Direction
 import qualified	BishBosh.Attribute.LogicalColour			as Attribute.LogicalColour
@@ -342,7 +342,7 @@ movePiece move maybeMoveType board@MkBoard {
 
 		board'@MkBoard { getMaybePieceByCoordinates = maybePieceByCoordinates' }	= MkBoard {
 			getMaybePieceByCoordinates	= State.MaybePieceByCoordinates.movePiece move destinationPiece (
-				either Just (const Nothing) eitherPassingPawnsDestinationOrMaybeTakenRank
+				Just ||| const Nothing $ eitherPassingPawnsDestinationOrMaybeTakenRank
 			) maybePieceByCoordinates,
 			getCoordinatesByRankByLogicalColour	= State.CoordinatesByRankByLogicalColour.movePiece move sourcePiece maybePromotionRank eitherPassingPawnsDestinationOrMaybeTakenRank coordinatesByRankByLogicalColour,
 			getNDefendersByCoordinatesByLogicalColour	= let
@@ -368,19 +368,19 @@ movePiece move maybeMoveType board@MkBoard {
 				(! Attribute.LogicalColour.Black) &&& (! Attribute.LogicalColour.White) $ nDefendersByCoordinatesByLogicalColour // (
 					let
 						nDefendersByCoordinates	= nDefendersByCoordinatesByLogicalColour ! opponentsLogicalColour
-					in either (
+					in (
 						\passingPawnsDestination -> (:) (
 							opponentsLogicalColour,
 							Data.Map.Strict.delete passingPawnsDestination nDefendersByCoordinates	-- This Pawn has been taken.
 						)
-					) (
+					) ||| (
 						\maybeExplicitlyTakenRank -> if Data.Maybe.isJust maybeExplicitlyTakenRank
 							then (:) (
 								opponentsLogicalColour,
 								Data.Map.Strict.delete destination nDefendersByCoordinates	-- This piece has been taken.
 							)
 							else id
-					) eitherPassingPawnsDestinationOrMaybeTakenRank
+					) $ eitherPassingPawnsDestinationOrMaybeTakenRank
 				 ) [
 					(
 						logicalColour,
@@ -398,7 +398,7 @@ movePiece move maybeMoveType board@MkBoard {
 					Component.Piece.isFriend knight affectedPiece
 			] {-list-comprehension-} ++ [
 				(blockingCoordinates, blockingPiece) |
-					passingPawnsDestination			<- either return {-to List-monad-} (const []) eitherPassingPawnsDestinationOrMaybeTakenRank,
+					passingPawnsDestination			<- return {-to List-monad-} ||| const [] $ eitherPassingPawnsDestinationOrMaybeTakenRank,
 					(direction, antiParallelDirection)	<- Attribute.Direction.opposites,
 					(blockingCoordinates, blockingPiece)	<- case ($ direction) &&& ($ antiParallelDirection) $ ($ maybePieceByCoordinates') . (`State.MaybePieceByCoordinates.findBlockingPiece` passingPawnsDestination) of
 						(Just cp, Just cp')	-> [
@@ -421,7 +421,7 @@ movePiece move maybeMoveType board@MkBoard {
 						_			-> []
 			] {-list-comprehension-} ++ (destination, destinationPiece) : [
 				(blockingCoordinates, blockingPiece) |
-					let maybeExplicitlyTakenPiece	= either (const Nothing) id eitherPassingPawnsDestinationOrMaybeTakenPiece,
+					let maybeExplicitlyTakenPiece	= const Nothing ||| id $ eitherPassingPawnsDestinationOrMaybeTakenPiece,
 					(direction, antiParallelDirection)	<- Attribute.Direction.opposites,
 					(coordinates, piece)			<- [(source, sourcePiece), (destination, destinationPiece)],
 					(blockingCoordinates, blockingPiece)	<- case ($ direction) &&& ($ antiParallelDirection) $ ($ maybePieceByCoordinates') . (`State.MaybePieceByCoordinates.findBlockingPiece` coordinates) of

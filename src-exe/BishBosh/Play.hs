@@ -38,7 +38,7 @@ module BishBosh.Play(
 	play
  ) where
 
-import			Control.Arrow((&&&))
+import			Control.Arrow((&&&), (|||))
 import qualified	BishBosh.Component.Zobrist					as Component.Zobrist
 import qualified	BishBosh.ContextualNotation.PositionHashQualifiedMoveTree	as ContextualNotation.PositionHashQualifiedMoveTree
 import qualified	BishBosh.ContextualNotation.QualifiedMoveForest			as ContextualNotation.QualifiedMoveForest
@@ -169,7 +169,7 @@ play randomGen options qualifiedMoveForest	= Data.Maybe.maybe (
 			else Property.Empty.empty {-MoveFrequency-}
 	)
  ) >>= (
-	const UI.Raw.takeTurns `either` const UI.CECP.takeTurns $ Input.UIOptions.getEitherNativeUIOrCECPOptions uiOptions	-- Select a user-interface.
+	const UI.Raw.takeTurns ||| const UI.CECP.takeTurns $ Input.UIOptions.getEitherNativeUIOrCECPOptions uiOptions	-- Select a user-interface.
  ) (
 	ContextualNotation.PositionHashQualifiedMoveTree.fromQualifiedMoveForest (
 		Input.EvaluationOptions.getIncrementalEvaluation $ Input.Options.getEvaluationOptions options

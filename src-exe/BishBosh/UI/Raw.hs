@@ -29,7 +29,7 @@ module BishBosh.UI.Raw(
 	takeTurns
  ) where
 
-import			Control.Arrow((&&&))
+import			Control.Arrow((&&&), (|||))
 import			Control.Monad((>=>), (<=<))
 import qualified	BishBosh.Attribute.WeightedMeanAndCriterionValues		as Attribute.WeightedMeanAndCriterionValues
 import qualified	BishBosh.Component.Move						as Component.Move
@@ -322,18 +322,20 @@ readMove positionHashQualifiedMoveTree randomGen startUTCTime playState	= let
 		eventLoop :: IO (State.PlayState.PlayState column criterionValue criterionWeight pieceSquareValue positionHash rankValue row weightedMean x y)
 		eventLoop	= getLine >>= \line -> case Data.List.Extra.trim line of
 			"?"	-> onCommand $ UI.Command.Print UI.PrintObject.Help
-			':' : s	-> either (
-				\errorMessage -> do
-					System.IO.hPutStrLn System.IO.stderr . Text.ShowColouredPrefix.showsPrefixError $ showString errorMessage "."
-
-					eventLoop
-			 ) (
-				\(command, remainder) -> if null $ Data.List.Extra.trimStart remainder
-					then onCommand command
-					else do
-						System.IO.hPutStrLn System.IO.stderr . showString "unexpected trailing text " $ shows remainder "."
+			':' : s	-> (
+				(
+					\errorMessage -> do
+						System.IO.hPutStrLn System.IO.stderr . Text.ShowColouredPrefix.showsPrefixError $ showString errorMessage "."
 
 						eventLoop
+				) ||| (
+					\(command, remainder) -> if null $ Data.List.Extra.trimStart remainder
+						then onCommand command
+						else do
+							System.IO.hPutStrLn System.IO.stderr . showString "unexpected trailing text " $ shows remainder "."
+
+							eventLoop
+				)
 			 ) . UI.Command.readsCommand $ UI.Command.autoComplete s
 			s	-> let
 				corrections	= State.PlayState.suggestCorrections s playState
@@ -383,8 +385,8 @@ readMove positionHashQualifiedMoveTree randomGen startUTCTime playState	= let
 		Control.Monad.unless (verbosity == minBound) . putStrLn . showString "Enter either a move in " . shows moveNotation . showString "-notation, or '?' for " $ showString UI.PrintObject.helpTag ":"
 
 		eventLoop
- ) `either` (
-	const . Control.Exception.throwIO $ Data.Exception.mkInvalidDatum "BishBosh.UI.Raw.readMove:\tunexpected CECP-options."
+ ) ||| const (
+	Control.Exception.throwIO $ Data.Exception.mkInvalidDatum "BishBosh.UI.Raw.readMove:\tunexpected CECP-options."
  ) $ Input.UIOptions.getEitherNativeUIOrCECPOptions uiOptions
 
 -- | Plays the game.
@@ -649,7 +651,7 @@ takeTurns positionHashQualifiedMoveTree randomGen playState	= let
 		Control.Monad.unless (verbosity == minBound) . putStrLn . show2D $ State.PlayState.getGame playState
 
 		slave Nothing (Input.Options.getMaybeMaximumPlies options) (ToolShed.System.Random.randomGens randomGen) playState
- ) `either` (
-	const . Control.Exception.throwIO $ Data.Exception.mkInvalidDatum "BishBosh.UI.Raw.takeTurns:\tunexpected CECP-options."
+ ) ||| const (
+	Control.Exception.throwIO $ Data.Exception.mkInvalidDatum "BishBosh.UI.Raw.takeTurns:\tunexpected CECP-options."
  ) $ Input.UIOptions.getEitherNativeUIOrCECPOptions uiOptions
 

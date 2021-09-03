@@ -28,6 +28,7 @@ module BishBosh.Data.Either(
 	xpickle
 ) where
 
+import			Control.Arrow((|||))
 import qualified	Text.XML.HXT.Arrow.Pickle	as HXT
 
 {-
@@ -39,7 +40,7 @@ instance (HXT.XmlPickler l, HXT.XmlPickler r) => HXT.XmlPickler (Either l r) whe
 -- | Pickler for an arbitrary datum of type 'Either'.
 xpickle :: HXT.PU l -> HXT.PU r -> HXT.PU (Either l r)
 xpickle lPickler rPickler	= HXT.xpAlt (
-	const 0 `either` const 1	-- Index into the subsequent pickler-list.
+	const 0 ||| const 1	-- Index into the subsequent pickler-list.
  ) [
 	HXT.xpWrap (
 		Left,		-- Construct.

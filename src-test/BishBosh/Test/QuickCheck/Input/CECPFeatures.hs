@@ -25,7 +25,7 @@
 
 module BishBosh.Test.QuickCheck.Input.CECPFeatures() where
 
-import			Control.Arrow((***))
+import			Control.Arrow((***), (+++))
 import qualified	BishBosh.Input.CECPFeatures	as Input.CECPFeatures
 import qualified	Data.Char
 import qualified	Data.List
@@ -40,10 +40,8 @@ instance Test.QuickCheck.Arbitrary Input.CECPFeatures.CECPFeatures where
 		) . filter (
 			not . null . fst {-key-}
 		) . map (
-			filter Data.Char.isAlpha *** either (
-				Left . (`mod` 3)
-			) (
-				Right . filter Data.Char.isAlphaNum
+			filter Data.Char.isAlpha *** (
+				(`mod` 3) +++ filter Data.Char.isAlphaNum
 			)
 		) <$> Test.QuickCheck.arbitrary
 	 ) <*> Test.QuickCheck.arbitrary {-done-}

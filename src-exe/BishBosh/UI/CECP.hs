@@ -43,7 +43,7 @@ module BishBosh.UI.CECP(
 	takeTurns
  ) where
 
-import			Control.Arrow((&&&))
+import			Control.Arrow((&&&), (|||))
 import			Control.Monad((>=>))
 import qualified	BishBosh.Attribute.Rank						as Attribute.Rank
 import qualified	BishBosh.Attribute.RankValues					as Attribute.RankValues
@@ -261,9 +261,9 @@ readMove positionHashQualifiedMoveTree randomGen	= slave where
 		moveNotation	= Input.UIOptions.getMoveNotation uiOptions
 		nDecimalDigits	= Input.UIOptions.getNDecimalDigits uiOptions
 		verbosity	= Input.UIOptions.getVerbosity uiOptions
-	 in (
-		const . Control.Exception.throwIO $ Data.Exception.mkIncompatibleData "BishBosh.UI.CECP.readMove.slave:\tunexpectedly found 'NativeUIOptions'."
-	 ) `either` (
+	 in const (
+		Control.Exception.throwIO $ Data.Exception.mkIncompatibleData "BishBosh.UI.CECP.readMove.slave:\tunexpectedly found 'NativeUIOptions'."
+	 ) ||| (
 		\cecpOptions -> let
 			displaySAN	= Input.CECPOptions.getDisplaySAN cecpOptions
 
@@ -1142,9 +1142,9 @@ takeTurns positionHashQualifiedMoveTree randomGen playState	= do
 			-> IO (State.PlayState.PlayState column criterionValue criterionWeight pieceSquareValue positionHash rankValue row weightedMean x y)
 		slave maybePondering maybeMaximumPlies ~(randomGen' : randomGens) playState'	= let
 			(game', (searchOptions', uiOptions'))	= State.PlayState.getGame &&& (Input.Options.getSearchOptions &&& Input.IOOptions.getUIOptions . Input.Options.getIOOptions) . State.PlayState.getOptions $ playState'	-- Deconstruct.
-			(ponderMode, isPostMode)		= either (
-				const . Control.Exception.throw $ Data.Exception.mkIncompatibleData "BishBosh.UI.CECP.takeTurns.slave:\tunexpectedly found 'NativeUIOptions'."
-			 ) (
+			(ponderMode, isPostMode)		= const (
+				Control.Exception.throw $ Data.Exception.mkIncompatibleData "BishBosh.UI.CECP.takeTurns.slave:\tunexpectedly found 'NativeUIOptions'."
+			 ) ||| (
 				Input.CECPOptions.getPonderMode &&& Input.CECPOptions.getPostMode
 			 ) $ Input.UIOptions.getEitherNativeUIOrCECPOptions uiOptions'
 		 in Data.Maybe.maybe (
@@ -1220,9 +1220,9 @@ takeTurns positionHashQualifiedMoveTree randomGen playState	= do
 												showChar ' '
 											) id id (
 												zipWith (
-													\turn originalGame -> if either (
-														const . Control.Exception.throw $ Data.Exception.mkIncompatibleData "BishBosh.UI.CECP.takeTurns:\tunexpectedly found 'NativeUIOptions'."
-													) Input.CECPOptions.getDisplaySAN $ Input.UIOptions.getEitherNativeUIOrCECPOptions uiOptions
+													\turn originalGame -> if const (
+														Control.Exception.throw $ Data.Exception.mkIncompatibleData "BishBosh.UI.CECP.takeTurns:\tunexpectedly found 'NativeUIOptions'."
+													) ||| Input.CECPOptions.getDisplaySAN $ Input.UIOptions.getEitherNativeUIOrCECPOptions uiOptions
 														then ContextualNotation.StandardAlgebraic.showsTurn explicitEnpassant turn originalGame
 														else Notation.MoveNotation.showsNotation moveNotation turn
 												) (

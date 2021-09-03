@@ -55,6 +55,7 @@ module BishBosh.Data.Exception(
 	isBadRequest
 ) where
 
+import			Control.Arrow((|||))
 import qualified	Control.Exception
 import qualified	Data.Typeable
 
@@ -89,7 +90,7 @@ instance Show Exception where
 	showsPrec _ MkException {
 		getType		= eitherBadDataOrBadRequest,
 		getDetails	= details
-	} = either shows shows eitherBadDataOrBadRequest . showString "; " . showString details
+	} = (shows ||| shows) eitherBadDataOrBadRequest . showString "; " . showString details
 
 -- | Constructor.
 mkDuplicateData :: String -> Exception

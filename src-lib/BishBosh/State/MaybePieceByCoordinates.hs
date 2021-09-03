@@ -62,6 +62,7 @@ module BishBosh.State.MaybePieceByCoordinates(
 
 import			Control.Applicative((<|>))
 import			Control.Arrow((&&&), (***))
+import			Control.Category((>>>))
 import			Data.Array.IArray((!), (//))
 import qualified	BishBosh.Attribute.ColourScheme				as Attribute.ColourScheme
 import qualified	BishBosh.Attribute.Direction				as Attribute.Direction
@@ -168,7 +169,7 @@ instance (
 	Ord	y
  ) => Property.ExtendedPositionDescription.ShowsEPD (MaybePieceByCoordinates x y) where
 	showsEPD MkMaybePieceByCoordinates { deconstruct = byCoordinates }	= foldr1 (
-		flip (.)	-- Render the line with the highest y-coordinate first.
+		>>>	-- Render the line with the highest y-coordinate first.
 	 ) . Data.List.intersperse (
 		showChar rankSeparator	-- Separate the lines.
 	 ) . map (

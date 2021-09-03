@@ -33,7 +33,7 @@ module BishBosh.Test.HUnit.Model.Game(
 ) where
 
 import			BishBosh.Model.Game((/~))
-import			Control.Arrow((&&&), (***))
+import			Control.Arrow((&&&), (***), (|||))
 import			Data.Map((!))
 import qualified	BishBosh.Attribute.LogicalColour		as Attribute.LogicalColour
 import qualified	BishBosh.Attribute.MoveType			as Attribute.MoveType
@@ -145,9 +145,9 @@ testCases	= Test.HUnit.test [
 		"e1g1c",
 		"e1c1C"
 	] ~? "'BishBosh.Model.Game.rollback' failed to undo castling",
-	either (
+	(
 		\(moveString, errorMessage)	-> Control.Exception.throw . Data.Exception.mkInvalidDatum . showString "BishBosh.Test.HUnit.Model.Game.testCases:\tfailed for " . showString Component.Move.tag . Text.ShowList.showsAssociation . shows moveString . showString "; " $ showString errorMessage "."
-	) (
+	) ||| (
 		\game -> case Notation.MoveNotation.readsQualifiedMove Data.Default.def "a5b6E" of
 			[(eitherQualifiedMove, "")]	-> Model.Game.isValidEitherQualifiedMove eitherQualifiedMove game ~? "'BishBosh.Model.Game.isValidEitherQualifiedMove' failed for En-passant by White."
 			_				-> Control.Exception.throw . Data.Exception.mkParseFailure . showString "BishBosh.Test.HUnit.Model.Game.testCases:\t /~ " $ Notation.MoveNotation.showsMoveSyntax Data.Default.def ""
@@ -157,9 +157,9 @@ testCases	= Test.HUnit.test [
 		"a4a5",	-- White: Queen's Rook's Pawn.
 		"b7b5"	-- Black: Queen's Knight's Pawn.
 	],
-	either (
+	(
 		\(moveString, errorMessage)	-> Control.Exception.throw . Data.Exception.mkInvalidDatum . showString "BishBosh.Test.HUnit.Model.Game.testCases:\tfailed for " . showString Component.Move.tag . Text.ShowList.showsAssociation . shows moveString . showString "; " $ showString errorMessage "."
-	) (
+	) ||| (
 		\game -> case Notation.MoveNotation.readsQualifiedMove Data.Default.def "a4b3E" of
 			[(eitherQualifiedMove, "")]	-> Model.Game.isValidEitherQualifiedMove eitherQualifiedMove game ~? "'BishBosh.Model.Game.isValidEitherQualifiedMove' failed for En-passant by Black."
 			_				-> Control.Exception.throw $ Data.Exception.mkParseFailure "BishBosh.Test.HUnit.Model.Game.testCases:\tfailed to parse move."

@@ -57,7 +57,7 @@ module BishBosh.State.CoordinatesByRankByLogicalColour(
 	sortCoordinates
 ) where
 
-import			Control.Arrow((&&&))
+import			Control.Arrow((&&&), (|||))
 import			Data.Array.IArray((!), (//))
 import qualified	BishBosh.Attribute.Direction				as Attribute.Direction
 import qualified	BishBosh.Attribute.LogicalColour			as Attribute.LogicalColour
@@ -315,11 +315,11 @@ movePiece
 	-> Maybe Attribute.Rank.Rank							-- ^ The (possibly promoted) rank to place at the destination.
 	-> Either (Cartesian.Coordinates.Coordinates x y) (Maybe Attribute.Rank.Rank)	-- ^ Either the destination of any passed @Pawn@, or the /rank/ of any /piece/ taken.
 	-> Transformation x y
-movePiece move sourcePiece maybePromotionRank eitherPassingPawnsDestinationOrMaybeTakenRank MkCoordinatesByRankByLogicalColour { deconstruct = byLogicalColour }	= MkCoordinatesByRankByLogicalColour $ byLogicalColour // either (
-	(:) . (`deleteOpponentsCoordinates` Attribute.Rank.Pawn)
- ) (
-	Data.Maybe.maybe id {-quiet move-} $ (:) . deleteOpponentsCoordinates destination
- ) eitherPassingPawnsDestinationOrMaybeTakenRank [
+movePiece move sourcePiece maybePromotionRank eitherPassingPawnsDestinationOrMaybeTakenRank MkCoordinatesByRankByLogicalColour { deconstruct = byLogicalColour }	= MkCoordinatesByRankByLogicalColour $ byLogicalColour // (
+	(:) . (`deleteOpponentsCoordinates` Attribute.Rank.Pawn) ||| Data.Maybe.maybe id {-quiet move-} (
+		(:) . deleteOpponentsCoordinates destination
+	) $ eitherPassingPawnsDestinationOrMaybeTakenRank
+ ) [
 	let
 		byRank	= byLogicalColour ! logicalColour
 	in (
