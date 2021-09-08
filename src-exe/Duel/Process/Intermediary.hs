@@ -48,6 +48,10 @@ import qualified	BishBosh.Input.Verbosity		as Input.Verbosity
 import qualified	BishBosh.Model.Game			as Model.Game
 import qualified	BishBosh.Model.GameTerminationReason	as Model.GameTerminationReason
 import qualified	BishBosh.Property.Opposable		as Property.Opposable
+import qualified	BishBosh.Property.ShowFloat		as Property.ShowFloat
+import qualified	BishBosh.Property.SelfValidating	as Property.SelfValidating
+import qualified	BishBosh.Property.Switchable		as Property.Switchable
+import qualified	BishBosh.Time.GameClock			as Time.GameClock
 import qualified	BishBosh.Types				as T
 import qualified	BishBosh.UI.Command			as UI.Command
 import qualified	Control.Exception
@@ -142,29 +146,31 @@ copyMove verbosity readTimeout logicalColour stdOut stdIn = do
 			return {-to IO-monad-} Nothing
 	 )
 
--- | Contains stdin & stdout handles respectively.
+-- | Contains /stdin/ & /stdout/ handles respectively.
 type IOHandles	= (System.IO.Handle, System.IO.Handle)
 
 -- | Shuttle moves between the two child processes until the game terminates.
 play
-	:: Input.Verbosity.Verbosity
+	:: Property.Switchable.Switchable	gameClock
+	=> Input.Verbosity.Verbosity
 	-> Data.Options.ReadTimeout
 	-> IOHandles
 	-> IOHandles
-	-> IO Model.GameTerminationReason.GameTerminationReason
+	-> gameClock
+	-> IO (Model.GameTerminationReason.GameTerminationReason, gameClock)
 play verbosity readTimeout	= slave maxBound	where
-	slave logicalColour producer@(_, stdOut) consumer@(stdIn', stdOut')	= copyMove verbosity readTimeout logicalColour stdOut stdIn' >>= Data.Maybe.maybe (
+	slave logicalColour producer@(_, stdOut) consumer@(stdIn', stdOut') gameClock	= copyMove verbosity readTimeout logicalColour stdOut stdIn' >>= Data.Maybe.maybe (
 		do
 			Control.Monad.when (verbosity == maxBound) $ IO.Logger.printInfo "Swapping player-roles."
 
-			slave (Property.Opposable.getOpposite logicalColour) consumer producer	-- Recurse.
+			Property.Switchable.toggle gameClock >>= slave (Property.Opposable.getOpposite logicalColour) consumer producer	-- Recurse.
 	 ) (
 		\gameTerminationReason -> do
 			readMove verbosity readTimeout logicalColour stdOut' >>= (
 				\gameTerminationReason' -> do
 					Control.Monad.unless (gameTerminationReason == gameTerminationReason') . Control.Exception.throwIO . Data.Exception.mkIncompatibleData . showString "Duel.Process.Intermediary.play:\tsecond game terminated for a different reason; " $ shows gameTerminationReason' "."
 
-					return {-to IO-monad-} gameTerminationReason
+					return {-to IO-monad-} (gameTerminationReason, gameClock)
 			 ) ||| (
 				\move	-> Control.Exception.throwIO . Data.Exception.mkParseFailure . showString "Duel.Process.Intermediary.play:\tread from " . shows (Property.Opposable.getOpposite logicalColour) . showString ", unexpected move='" $ shows move "'."
 			 )
@@ -185,28 +191,37 @@ purge handle	= do
 type GameTerminationReasonsMap	= Data.Map.Strict.Map Model.GameTerminationReason.GameTerminationReason Int
 
 {- |
-	* Start two independently configured (though of matching move-notation) instances of 'bishbosh'.
+	* Constructs a game-clock.
+
+	* Starts two independently configured (though of matching move-notation) concurrent instances of 'bishbosh'.
 
 	* One instance automates White & one automates Black.
 
 	* Shuttle moves between the instances.
 
-	* Plays repeatedly & accumulating the final results of each game.
+	* Plays repeatedly, measuring both the total time taken by each side & accumulating the final results of each game.
+
+	* Prints the total time taken by either side, & returns the accumulated results of each game.
 -}
 startGame
 	:: Input.Verbosity.Verbosity
+	-> Property.ShowFloat.NDecimalDigits
 	-> Data.Options.ReadTimeout
 	-> IOHandles	-- ^ White's handles.
 	-> IOHandles	-- ^ Black's handles.
 	-> GameTerminationReasonsMap
 	-> Model.Game.NGames
 	-> IO GameTerminationReasonsMap
-startGame verbosity readTimeout producer consumer	= slave where
-	slave gameTerminationReasonsMap 0	= return {-to IO-monad-} gameTerminationReasonsMap
-	slave gameTerminationReasonsMap nGames	= do
+startGame verbosity nDecimalDigits readTimeout producer consumer gameTerminationReasonsMap nGames	= Property.Switchable.on >>= slave gameTerminationReasonsMap nGames where
+	slave :: GameTerminationReasonsMap -> Model.Game.NGames -> Time.GameClock.GameClock -> IO GameTerminationReasonsMap
+	slave gameTerminationReasonsMap' 0 gameClock	= do
+		Time.GameClock.showsElapsedTimes nDecimalDigits gameClock >>= IO.Logger.printInfo . showString "Elapsed time=" . ($ ".")
+
+		return {-to IO-monad-} gameTerminationReasonsMap'
+	slave gameTerminationReasonsMap' nGames' gameClock	= do
 		Control.Monad.when (verbosity == maxBound) $ IO.Logger.printInfo "Starting game."
 
-		gameTerminationReason	<- play verbosity readTimeout producer consumer
+		(gameTerminationReason, gameClock')	<- play verbosity readTimeout producer consumer gameClock
 
 		sequence_ $ [
 			\(_, stdOut) -> do
@@ -220,8 +235,10 @@ startGame verbosity readTimeout producer consumer	= slave where
 		 ] <*> [consumer, producer]
 
 		slave (
-			Data.Map.Strict.insertWith (const succ) gameTerminationReason 1 gameTerminationReasonsMap
-		 ) $ pred nGames -- Recurse.
+			Data.Map.Strict.insertWith (const succ) gameTerminationReason 1 gameTerminationReasonsMap'
+		 ) (
+			pred nGames' -- Recurse.
+		 ) gameClock'
 
 -- | Start 'bishbosh', print any errors, & return the process-handles.
 startProcess
@@ -239,11 +256,12 @@ startProcess verbosity configFilePath	= do
 
 -- | Starts the process, performs the requested action, then clean-up.
 bracketProcess
-	:: Data.Options.Options
+	:: Input.Verbosity.Verbosity
+	-> [System.FilePath.FilePath]	-- ^ The configuration-file paths for White & Black respectively.
 	-> ([Process.Handles.Handles] -> IO ())	-- ^ Run the game.
 	-> IO ()
-bracketProcess options = Control.Exception.bracket (
-	startProcess (Data.Options.getVerbosity options) `mapM` Data.Options.getInputConfigFilePaths options
+bracketProcess verbosity inputConfigFilePaths	= Control.Exception.bracket (
+	startProcess verbosity `mapM` inputConfigFilePaths
  ) (
 	sequence . (
 		[
@@ -253,22 +271,30 @@ bracketProcess options = Control.Exception.bracket (
 	)
  )
 
--- | Play the requested number of games & display the accumulated results.
+{- |
+	* Unpacks the configuration-options.
+
+	* Play the requested number of games.
+
+	* Prints the results.
+-}
 initialise :: Data.Options.Options -> IO ()
-initialise options	= let
-	verbosity	= Data.Options.getVerbosity options
- in Control.Exception.catch (
-	bracketProcess options $ \[handles, handles'] -> uncurry (
-		startGame verbosity $ Data.Options.getReadTimeout options
-	) (
-		($ handles) &&& ($ handles') $ Process.Handles.getHandlePair
-	) Data.Map.Strict.empty (
-		Data.Options.getNGames options
-	) >>= IO.Logger.printInfo . show . Data.Map.Strict.toList
- ) $ \e -> do
-	IO.Logger.printError . showString "caught " $ show (e :: Control.Exception.SomeException)
+initialise options
+	| errorMessages@(_ : _)	<- Property.SelfValidating.findInvalidity options	= Control.Exception.throwIO . Data.Exception.mkInsufficientData . showString "Duel.Process.Intermediary.initialise:\tinvalid options; " $ show errorMessages
+	| otherwise									= Control.Exception.catch (
+		bracketProcess verbosity inputConfigFilePaths $ \[handles, handles'] -> uncurry (
+			uncurry (startGame verbosity) $ (Data.Options.getNDecimalDigits &&& Data.Options.getReadTimeout) options
+		) (
+			($ handles) &&& ($ handles') $ Process.Handles.getHandlePair
+		) Data.Map.Strict.empty (
+			Data.Options.getNGames options
+		) >>= IO.Logger.printInfo . show . Data.Map.Strict.toList
+	) $ \e -> do
+		IO.Logger.printError . showString "caught " $ show (e :: Control.Exception.SomeException)
 
-	Control.Monad.when (verbosity == maxBound) $ IO.Logger.printInfo "Exiting."
+		Control.Monad.when (verbosity == maxBound) $ IO.Logger.printInfo "Exiting."
 
-	System.Exit.exitFailure
+		System.Exit.exitFailure
+	where
+		(verbosity, inputConfigFilePaths)	= Data.Options.getVerbosity &&& Data.Options.getInputConfigFilePaths $ options
 

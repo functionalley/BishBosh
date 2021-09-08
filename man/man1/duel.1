@@ -7,7 +7,8 @@
 .PP
 An application which automatically plays chess, by forking two independently configured instances of \fBbishbosh\fR.
 One instance automates the moves of White & the other automates the moves of Black.
-This application merely acts as an intermediary, passing moves between these instances to synchronise their positions, while collating the game-results to permit comparison of the fitness of their respective configurations.
+This application merely acts as an intermediary, passing moves between these instances to synchronise their positions,
+while measuring the total time taken by either side & collating the game-results to permit comparison of the fitness of their respective configurations.
 .PP
 This process facilitates optimisation of the complex configuration of \fBbishbosh\fR.
 .SH OPTIONS
@@ -15,20 +16,23 @@ This process facilitates optimisation of the complex configuration of \fBbishbos
 \fB--verbosity=\fR(\fBSilent\fR|\fBNormal\fR|\fBVerbose\fR|\fBDeafening\fR), defaulting to "\fBNormal\fR".
 Defines the quantity of ancillary output required.
 .TP
+\fB-d\fR \fIInt\fR, \fB--nDecimalDigits=\fR\fIInt\fR, defaulting to "\fB0\fR".
+The precision with which to display the total time taken by each side.
+.TP
 \fB-n\fR \fIInt\fR, \fB--nGames=\fR\fIInt\fR, defaulting to "\fB1\fR".
 The number of games to be played before presenting the results.
 .TP
 \fB-t\fR \fIInt\fR, \fB--readTimeout=\fR\fIInt\fR, defaulting to \fIindefinitely\fR.
-The number of seconds to wait for a move before aborting.
+The number of seconds to wait for one of the forked processes to return a move, before aborting.
 CAVEAT: the period typically required depends on;
 .IP \(bu
 the machine's speed,
 .IP \(bu
 what else is running on the machine,
 .IP \(bu
-the search-depth,
+the size of the machine's RAM,
 .IP \(bu
-the fitness-evaluation criteria.
+\fBbishbosh\fR's configuration (e.g. search-depth or fitness-evaluation criteria).
 .TP
 \fB-i\fR \fIFile-path\fR, \fB--appendInputConfigFilePath=\fR\fIFile-path\fR; there is no default.
 Define the path to a configuration-file to forward to \fBbishbosh\fR.
@@ -74,8 +78,6 @@ man/man1/bishbosh.1	The man-page for \fBbishbosh\fR.
 .SH AUTHOR
 Written by Dr. Alistair Ward.
 .SH BUGS
-.IP \(bu
-The comparison between the configurations of the two instances doesn't factor the time taken by each instance.
 .SS "REPORTING BUGS"
 Report bugs to "\fBbishbosh@functionalley.com\fR".
 .SH COPYRIGHT

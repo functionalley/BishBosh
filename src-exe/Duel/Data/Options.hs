@@ -32,15 +32,17 @@ module Duel.Data.Options(
 	Options(
 --		MkOptions,
 		getVerbosity,
+		getNDecimalDigits,
 		getNGames,
 		getReadTimeout,
 		getInputConfigFilePaths
 	),
 -- * Constants
-	requiredInputConfigFiles,
+--	requiredInputConfigFiles,
 -- * Functions
 -- ** Mutators
 	setVerbosity,
+	setNDecimalDigits,
 	setNGames,
 	setReadTimeout,
 	appendInputConfigFilePath
@@ -48,33 +50,48 @@ module Duel.Data.Options(
 
 import qualified	Control.Exception
 import qualified	Data.Default
-import qualified	BishBosh.Data.Exception		as Data.Exception
-import qualified	BishBosh.Input.Verbosity	as Input.Verbosity
-import qualified	BishBosh.Model.Game		as Model.Game
+import qualified	BishBosh.Data.Exception			as Data.Exception
+import qualified	BishBosh.Input.Verbosity		as Input.Verbosity
+import qualified	BishBosh.Model.Game			as Model.Game
+import qualified	BishBosh.Property.SelfValidating	as Property.SelfValidating
+import qualified	BishBosh.Property.ShowFloat		as Property.ShowFloat
 import qualified	System.FilePath
 
 -- | The read-timeout in ms.
 type ReadTimeout	= Int
 
--- | Container for all comand-line options.
+-- | Container for all command-line options.
 data Options	= MkOptions {
-	getVerbosity		:: Input.Verbosity.Verbosity,	-- ^ The extent to which logging is required. CAVEAT: this isn't forwarded to the forked instances of BishBosh.
-	getNGames		:: Model.Game.NGames,		-- ^ The number of successive games to play.
-	getReadTimeout		:: ReadTimeout,			-- ^ The seconds to wait for a move before timing-out. CAVEAT: a positive value should account for both search-depth & the machine-speed.
-	getInputConfigFilePaths	:: [System.FilePath.FilePath]
+	getVerbosity		:: Input.Verbosity.Verbosity,		-- ^ The extent to which logging is required. CAVEAT: this isn't forwarded to the forked instances of BishBosh.
+	getNDecimalDigits	:: Property.ShowFloat.NDecimalDigits,	-- ^ The number of successive games to play.
+	getNGames		:: Model.Game.NGames,			-- ^ The number of successive games to play.
+	getReadTimeout		:: ReadTimeout,				-- ^ The seconds to wait for a move before timing-out. CAVEAT: any positive value should account for both configuration-options (e.g. search-depth) & the machine-speed.
+	getInputConfigFilePaths	:: [System.FilePath.FilePath]		-- ^ The configuration-file paths for White & Black respectively.
 } deriving (Eq, Show)
 
 instance Data.Default.Default Options where
 	def = MkOptions {
 		getVerbosity		= Data.Default.def,
+		getNDecimalDigits	= 0,
 		getNGames		= 1,
 		getReadTimeout		= -1,	-- N.B.: a negative value is interpreted as an indefinite period.
-		getInputConfigFilePaths	= []
+		getInputConfigFilePaths	= []	-- CAVEAT: invalid; there must be exactly 2.
 	}
+
+instance Property.SelfValidating.SelfValidating Options where
+	findInvalidity	= Property.SelfValidating.findErrors [
+		((/= requiredInputConfigFiles) . length . getInputConfigFilePaths,	"There must be exactly one configuration file for White & one for Black.")
+	 ]
 
 -- | Mutator.
 setVerbosity :: Input.Verbosity.Verbosity -> Options -> Options
 setVerbosity verbosity options	= options { getVerbosity = verbosity }
+
+-- | Mutator.
+setNDecimalDigits :: Property.ShowFloat.NDecimalDigits -> Options -> Options
+setNDecimalDigits n options
+	| n < 0		= Control.Exception.throw . Data.Exception.mkOutOfBounds . showString "Duel.Data.Options:\tnDecimalDigits=" $ shows n " mustn't be negative."
+	| otherwise	= options { getNDecimalDigits = n }
 
 -- | Mutator.
 setNGames :: Model.Game.NGames -> Options -> Options
@@ -93,7 +110,7 @@ requiredInputConfigFiles	= 2
 -- | Mutator.
 appendInputConfigFilePath :: System.FilePath.FilePath -> Options -> Options
 appendInputConfigFilePath s options
-	| length inputConfigFilePaths == requiredInputConfigFiles	= Control.Exception.throw . Data.Exception.mkRedundantData . showString "Duel.Data.Options:\texactly " . shows requiredInputConfigFiles . showString " files are required:\t" $ shows inputConfigFilePaths "."
+	| length inputConfigFilePaths == requiredInputConfigFiles	= Control.Exception.throw . Data.Exception.mkRedundantData . showString "Duel.Data.Options:\texactly " . shows requiredInputConfigFiles . showString " file-paths are required:\t" $ shows inputConfigFilePaths "."
 	| otherwise							= options { getInputConfigFilePaths = s : inputConfigFilePaths }
 	where
 		inputConfigFilePaths	= getInputConfigFilePaths options

@@ -30,7 +30,7 @@
 module Main(main) where
 
 import			BishBosh.Data.Float()
--- import		BishBosh.Data.Ratio()	-- Required if either criterionWeight or criterionValue is Rational.
+--import		BishBosh.Data.Ratio()	-- Required if either criterionWeight or criterionValue is Rational.
 import			Control.Arrow((&&&), (***), (|||))
 import			Control.Category((>>>))
 import			Data.Array.IArray((!))

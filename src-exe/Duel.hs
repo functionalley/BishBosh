@@ -75,6 +75,13 @@ main	= do
 				) . mkTypeSpecification $ Text.Case.toUpperInitial Input.Verbosity.tag
 			) . showString "define the log-level; default '" $ shows (Data.Default.def :: Input.Verbosity.Verbosity) "'.",
 			let
+				flag	= "nDecimalDigits"
+			in G.Option "d"	[flag] (
+				G.ReqArg (
+					Just . (,) flag . Just &&& Input.CommandLineOption.mkOptionsMutator . Data.Options.setNDecimalDigits . Input.CommandLineOption.readBoundedIntegral
+				) $ mkTypeSpecification "Int"
+			) "define the precision with which to display floating-point numbers.",
+			let
 				flag	= "nGames"
 			in G.Option "n"	[flag] (
 				G.ReqArg (
@@ -94,7 +101,7 @@ main	= do
 				G.ReqArg (
 					Just . (,) flag . Just &&& Input.CommandLineOption.mkOptionsMutator . Data.Options.appendInputConfigFilePath
 				) $ mkTypeSpecification "File-path"
-			) . showString "define the path to an XML-file, to forward to an instance of bishbosh; " $ shows Data.Options.requiredInputConfigFiles " are required, White's first, then Black's."
+			) "define the path to an XML-file, to forward to an instance of bishbosh; specify White's first, then Black's."
 		 ] where
 			author :: String
 			author	= "Dr. Alistair Ward"

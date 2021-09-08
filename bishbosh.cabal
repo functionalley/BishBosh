@@ -150,7 +150,6 @@ Library
         BishBosh.Data.Num
         BishBosh.Data.Ratio
         BishBosh.Data.RoseTree
-        BishBosh.Data.Time
         BishBosh.Evaluation.Fitness
         BishBosh.Evaluation.PositionHashQuantifiedGameTree
         BishBosh.Evaluation.QuantifiedGame
@@ -190,7 +189,9 @@ Library
         BishBosh.Property.Orientated
         BishBosh.Property.Reflectable
         BishBosh.Property.Rotatable
+        BishBosh.Property.SelfValidating
         BishBosh.Property.ShowFloat
+        BishBosh.Property.Switchable
         BishBosh.Search.AlphaBeta
         BishBosh.Search.DynamicMoveData
         BishBosh.Search.EphemeralData
@@ -215,6 +216,8 @@ Library
         BishBosh.Text.Encoding
         BishBosh.Text.ShowList
         BishBosh.Text.ShowPrefix
+        BishBosh.Time.GameClock
+        BishBosh.Time.StopWatch
         BishBosh.Types
         BishBosh.UI.Command
         BishBosh.UI.PrintObject
@@ -254,7 +257,7 @@ Library
 
     if flag(polyparse)
         Build-depends:		polyparse
-        CPP-Options:		-DUSE_POLYPARSE=1
+        CPP-Options:		-DUSE_POLYPARSE=2
         Exposed-modules:	BishBosh.Text.Poly
     else
         Build-depends:		parsec
@@ -303,7 +306,6 @@ Executable bishbosh
         hxt,
         mtl,
         random,
-        time,
         toolshed >= 0.18
 
     if impl(ghc >= 7.0)
@@ -406,6 +408,8 @@ Test-Suite hunit-tests
         BishBosh.Test.HUnit.Search.Search
         BishBosh.Test.HUnit.State.Board
         BishBosh.Test.HUnit.Text.AutoComplete
+        BishBosh.Test.HUnit.Time.GameClock
+        BishBosh.Test.HUnit.Time.StopWatch
         Paths_bishbosh
 
     Build-depends:
@@ -427,7 +431,7 @@ Test-Suite hunit-tests
 
     if flag(polyparse)
         Build-depends:	polyparse
-        CPP-Options:	-DUSE_POLYPARSE=1
+        CPP-Options:	-DUSE_POLYPARSE=2
     else
         Build-depends:	parsec
 
@@ -495,6 +499,7 @@ Test-Suite quickcheck-tests
         BishBosh.Test.QuickCheck.StateProperty.Censor
         BishBosh.Test.QuickCheck.State.TurnsByLogicalColour
         BishBosh.Test.QuickCheck.Text.Encoding
+        BishBosh.Test.QuickCheck.Time.StopWatch
         BishBosh.Test.QuickCheck.UI.Command
         BishBosh.Test.QuickCheck.UI.PrintObject
         BishBosh.Test.QuickCheck.UI.ReportObject
@@ -519,7 +524,7 @@ Test-Suite quickcheck-tests
 
     if flag(polyparse)
         Build-depends:	polyparse
-        CPP-Options:	-DUSE_POLYPARSE=1
+        CPP-Options:	-DUSE_POLYPARSE=2
     else
         Build-depends:	parsec
 

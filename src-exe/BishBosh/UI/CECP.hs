@@ -57,7 +57,6 @@ import qualified	BishBosh.ContextualNotation.PositionHashQualifiedMoveTree	as Co
 import qualified	BishBosh.ContextualNotation.QualifiedMoveForest			as ContextualNotation.QualifiedMoveForest
 import qualified	BishBosh.ContextualNotation.StandardAlgebraic			as ContextualNotation.StandardAlgebraic
 import qualified	BishBosh.Data.Exception						as Data.Exception
-import qualified	BishBosh.Data.Time						as Data.Time
 import qualified	BishBosh.Evaluation.Fitness					as Evaluation.Fitness
 import qualified	BishBosh.Evaluation.PositionHashQuantifiedGameTree		as Evaluation.PositionHashQuantifiedGameTree
 import qualified	BishBosh.Evaluation.QuantifiedGame				as Evaluation.QuantifiedGame
@@ -75,6 +74,7 @@ import qualified	BishBosh.Notation.MoveNotation					as Notation.MoveNotation
 import qualified	BishBosh.Property.ExtendedPositionDescription			as Property.ExtendedPositionDescription
 import qualified	BishBosh.Property.ForsythEdwards				as Property.ForsythEdwards
 import qualified	BishBosh.Property.ShowFloat					as Property.ShowFloat
+import qualified	BishBosh.Property.Switchable					as Property.Switchable
 import qualified	BishBosh.Search.Search						as Search.Search
 import qualified	BishBosh.Search.SearchState					as Search.SearchState
 import qualified	BishBosh.State.ApplicationTerminationReason			as State.ApplicationTerminationReason
@@ -82,6 +82,7 @@ import qualified	BishBosh.State.InstancesByPosition				as State.InstancesByPosit
 import qualified	BishBosh.State.PlayState					as State.PlayState
 import qualified	BishBosh.Text.ShowList						as Text.ShowList
 import qualified	BishBosh.Text.ShowPrefix					as Text.ShowPrefix
+import qualified	BishBosh.Time.StopWatch						as Time.StopWatch
 import qualified	BishBosh.Types							as T
 import qualified	BishBosh.UI.Command						as UI.Command
 import qualified	BishBosh.UI.PrintObject						as UI.PrintObject
@@ -99,7 +100,6 @@ import qualified	Data.List
 import qualified	Data.List.Extra
 import qualified	Data.Map
 import qualified	Data.Maybe
-import qualified	Data.Time.Clock
 import qualified	Numeric
 import qualified	System.IO
 import qualified	System.Random
@@ -164,31 +164,32 @@ mkTooManyParametersError	= mkErrorMessage "too many parameters"
 mkParseFailureError :: ShowS
 mkParseFailureError	= mkErrorMessage "parse-failure"
 
--- | Format thinking-output suitable to be posted to xboard.
+-- | Format thinking-output suitable to be posted to /xboard/.
 showsThinking :: (
-	Fractional	rankValue,
-	Real		rankValue,
-	Real		weightedMean
+	Fractional			rankValue,
+	Property.ShowFloat.ShowFloat	stoppedWatch,
+	Real				rankValue,
+	Real				weightedMean
  )
 	=> Input.SearchOptions.SearchDepth
 	-> Input.EvaluationOptions.EvaluationOptions criterionWeight pieceSquareValue rankValue x y
 	-> weightedMean
-	-> Data.Time.Clock.NominalDiffTime	-- ^ Elapsed time.
-	-> Component.Move.NPlies		-- ^ Nodes searched.
-	-> String				-- ^ Principal variation.
+	-> stoppedWatch
+	-> Component.Move.NPlies	-- ^ Nodes searched.
+	-> String			-- ^ Principal variation.
 	-> ShowS
-showsThinking searchDepth evaluationOptions weightedMean elapsedTime nPlies principalVariation	= Text.ShowList.showsDelimitedList (showChar ' ') id id [
+showsThinking searchDepth evaluationOptions weightedMean stoppedWatch nPlies principalVariation	= Text.ShowList.showsDelimitedList (showChar ' ') id id [
 	shows searchDepth,
-	shows . (
-		round	:: Double -> Int
-	) $ 100 {-centi-Pawns-} * realToFrac (
+	shows . round' $ 100 {-centi-Pawns-} * realToFrac (
 		uncurry (/) . (
 			Attribute.RankValues.calculateMaximumTotalValue &&& Attribute.RankValues.findRankValue Attribute.Rank.Pawn
 		) $ Input.EvaluationOptions.getRankValues evaluationOptions
 	) * realToFrac weightedMean,
-	shows (round $ 100 {-centi-seconds-} * elapsedTime :: Int),
+	Property.ShowFloat.showsFloat (shows . round' . (* 100)) stoppedWatch,
 	shows nPlies
- ] . showChar '\t' . showString principalVariation
+ ] . showChar '\t' . showString principalVariation	where
+	round' :: Double -> Int
+	round'	= round
 
 {- |
 	* Reads a command-sequence from the user, terminating in either a request to move or to exit the game.
@@ -232,7 +233,7 @@ readMove :: forall column criterionValue criterionWeight pieceSquareValue positi
  )
 	=> ContextualNotation.PositionHashQualifiedMoveTree.PositionHashQualifiedMoveTree x y positionHash
 	-> randomGen
-	-> Data.Time.Clock.UTCTime
+	-> Time.StopWatch.StopWatch
 	-> State.PlayState.PlayState column criterionValue criterionWeight pieceSquareValue positionHash rankValue row weightedMean x y
 	-> IO (State.PlayState.PlayState column criterionValue criterionWeight pieceSquareValue positionHash rankValue row weightedMean x y)
 {-# SPECIALISE readMove :: (
@@ -244,12 +245,12 @@ readMove :: forall column criterionValue criterionWeight pieceSquareValue positi
  )
 	=> ContextualNotation.PositionHashQualifiedMoveTree.PositionHashQualifiedMoveTree T.X T.Y T.PositionHash
 	-> randomGen
-	-> Data.Time.Clock.UTCTime
+	-> Time.StopWatch.StopWatch
 	-> State.PlayState.PlayState column T.CriterionValue T.CriterionWeight T.PieceSquareValue T.PositionHash T.RankValue row T.WeightedMean T.X T.Y
 	-> IO (State.PlayState.PlayState column T.CriterionValue T.CriterionWeight T.PieceSquareValue T.PositionHash T.RankValue row T.WeightedMean T.X T.Y)
  #-}
 readMove positionHashQualifiedMoveTree randomGen	= slave where
-	slave startUTCTime playState	= let
+	slave runningWatch playState	= let
 		(game, options)			= State.PlayState.getGame &&& State.PlayState.getOptions $ playState
 		(searchOptions, ioOptions)	= Input.Options.getSearchOptions &&& Input.Options.getIOOptions $ options
 
@@ -403,7 +404,7 @@ readMove positionHashQualifiedMoveTree randomGen	= slave where
 					do
 						Control.Monad.when (verbosity == maxBound) . System.IO.hPutStrLn System.IO.stderr . Text.ShowPrefix.showsPrefixInfo . showString "setting " $ shows setObject "."
 
-						slave startUTCTime playState {
+						slave runningWatch playState {
 							State.PlayState.getOptions	= Control.DeepSeq.force $ case setObject of
 								UI.SetObject.SearchDepth searchDepth	-> options {
 									Input.Options.getSearchOptions	= Input.SearchOptions.setSearchDepth searchDepth $ Input.Options.getSearchOptions options
@@ -674,13 +675,13 @@ readMove positionHashQualifiedMoveTree randomGen	= slave where
 
 										eventLoop
 									| otherwise	-> do
-										elapsedTime	<- Data.Time.measureElapsedTime startUTCTime
+										stoppedWatch	<- Property.Switchable.toggle runningWatch
 
-										Control.Monad.when (verbosity == maxBound) . System.IO.hPutStrLn System.IO.stderr . Text.ShowPrefix.showsPrefixInfo . showString "paused => stopping the clock at " $ Data.Time.showsTimeAsSeconds nDecimalDigits elapsedTime "."
+										Control.Monad.when (verbosity == maxBound) . System.IO.hPutStrLn System.IO.stderr . Text.ShowPrefix.showsPrefixInfo . showString "paused => stopping the watch at " $ Property.ShowFloat.showsFloatToN nDecimalDigits stoppedWatch "s."
 
 										return {-to IO-monad-} playState {
 											State.PlayState.getOptions	= Input.Options.setEitherNativeUIOrCECPOptions (
-												Right cecpOptions { Input.CECPOptions.getMaybePaused = Just elapsedTime }
+												Right $ Input.CECPOptions.pause stoppedWatch cecpOptions
 											) options
 										}
 								"playother"
@@ -705,16 +706,14 @@ readMove positionHashQualifiedMoveTree randomGen	= slave where
 											) options
 										}
 								"resume"
-									| Just timeTaken <- maybePaused	-> do
-										startUTCTime'	<- Data.Time.Clock.getCurrentTime
+									| Just stoppedWatch <- maybePaused	-> do
+										Control.Monad.when (verbosity == maxBound) . System.IO.hPutStrLn System.IO.stderr $ Text.ShowPrefix.showsPrefixInfo "resuming => restarting the watch."
 
-										Control.Monad.when (verbosity == maxBound) . System.IO.hPutStrLn System.IO.stderr $ Text.ShowPrefix.showsPrefixInfo "resuming => restarting the clock."
+										runningWatch'	<- Property.Switchable.toggle stoppedWatch
 
-										slave (
-											Data.Time.Clock.addUTCTime (negate timeTaken) startUTCTime'	-- Restart the clock.
-										 ) playState {
+										slave runningWatch' playState {
 											State.PlayState.getOptions	= Input.Options.setEitherNativeUIOrCECPOptions (
-												Right cecpOptions { Input.CECPOptions.getMaybePaused = Nothing }
+												Right $ Input.CECPOptions.resume cecpOptions
 											) options
 										}
 									| otherwise		-> do
@@ -922,7 +921,7 @@ readMove positionHashQualifiedMoveTree randomGen	= slave where
 										| Just value	<- featureName `lookup` Input.CECPFeatures.getFeatures cecpFeatures	-> do
 											Control.Monad.when (verbosity >= Data.Default.def) . System.IO.hPutStrLn System.IO.stderr . Text.ShowPrefix.showsPrefixWarning . showString Input.CECPFeatures.featureTag . Text.ShowList.showsAssociation $ shows arg' " rejected."
 
-											slave startUTCTime playState {
+											slave runningWatch playState {
 												State.PlayState.getOptions	= either (
 													\i -> if i /= 0
 														then \options' -> options' {
@@ -940,7 +939,7 @@ readMove positionHashQualifiedMoveTree randomGen	= slave where
 									[(featureName, stringArg)]	-> do
 										Control.Monad.when (verbosity >= Data.Default.def) . System.IO.hPutStrLn System.IO.stderr . Text.ShowPrefix.showsPrefixWarning . showString Input.CECPFeatures.featureTag . Text.ShowList.showsAssociation $ shows arg' " rejected because of syntax."
 
-										slave startUTCTime playState {
+										slave runningWatch playState {
 											State.PlayState.getOptions	= options {
 												Input.Options.getIOOptions	= Input.IOOptions.deleteCECPFeature (
 													featureName,
@@ -1024,9 +1023,7 @@ readMove positionHashQualifiedMoveTree randomGen	= slave where
 
 								eventLoop	-- Recurse.
 							| otherwise	-> do
-								elapsedTime	<- if forceMode
-									then return {-to IO-monad-} 0
-									else Data.Time.measureElapsedTime startUTCTime
+								stoppedWatch	<- Property.Switchable.toggle runningWatch
 
 								let
 									game'		= Model.Game.applyEitherQualifiedMove eitherQualifiedMove game
@@ -1037,7 +1034,7 @@ readMove positionHashQualifiedMoveTree randomGen	= slave where
 										Notation.MoveNotation.showNotation moveNotation . Data.Maybe.fromMaybe (
 											Control.Exception.throw $ Data.Exception.mkResultUndefined "BishBosh.UI.CECP.readMove.onCommand.moveCommand:\tModel.Game.maybeLastTurn failed."
 										) $ Model.Game.maybeLastTurn game'
-									 ) . showString " was requested after " $ Data.Time.showsTimeAsSeconds nDecimalDigits elapsedTime "."
+									 ) . showString " was requested after " $ Property.ShowFloat.showsFloatToN nDecimalDigits stoppedWatch "s."
 
 									case ContextualNotation.PositionHashQualifiedMoveTree.findNextOnymousQualifiedMovesForPosition game' positionHashQualifiedMoveTree of
 										[]			-> return ()
@@ -1149,11 +1146,11 @@ takeTurns positionHashQualifiedMoveTree randomGen playState	= do
 			 ) $ Input.UIOptions.getEitherNativeUIOrCECPOptions uiOptions'
 		 in Data.Maybe.maybe (
 			do
-				startUTCTime	<- Data.Time.Clock.getCurrentTime
+				runningWatch	<- Property.Switchable.on
 
 				Data.Maybe.maybe (
 					do
-						playState''	<- readMove positionHashQualifiedMoveTree randomGen' startUTCTime playState'	-- Read the user's command or move.
+						playState''	<- readMove positionHashQualifiedMoveTree randomGen' runningWatch playState'	-- Read the user's command or move.
 
 						(,) playState'' `fmap` (
 							if playState' `State.PlayState.hasMorePlies` playState''
@@ -1199,7 +1196,7 @@ takeTurns positionHashQualifiedMoveTree randomGen playState	= do
 									quantifiedGames@(quantifiedGame : continuation {-optimal move-sequence-})	-> let
 										bestTurn	= Evaluation.QuantifiedGame.getLastTurn quantifiedGame
 									 in do
-										elapsedTime	<- bestTurn `seq` Data.Time.measureElapsedTime startUTCTime
+										stoppedWatch	<- bestTurn `seq` Property.Switchable.toggle runningWatch
 
 										Control.Monad.when (verbosity > Data.Default.def) . System.IO.hPutStrLn System.IO.stderr . Text.ShowPrefix.showsPrefixInfo . (
 											if verbosity == maxBound
@@ -1209,11 +1206,11 @@ takeTurns positionHashQualifiedMoveTree randomGen playState	= do
 													) evaluationOptions	:: Attribute.WeightedMeanAndCriterionValues.WeightedMeanAndCriterionValues weightedMean criterionValue
 												) . Search.Search.showsSeparator	-- Prepend the fitness of the original game prior to the result.
 												else id
-										 ) . Notation.MoveNotation.showsNotationFloatToNDecimals moveNotation nDecimalDigits searchResult' . showString " in " $ Data.Time.showsTimeAsSeconds nDecimalDigits elapsedTime "."
+										 ) . Notation.MoveNotation.showsNotationFloatToNDecimals moveNotation nDecimalDigits searchResult' . showString " in " $ Property.ShowFloat.showsFloatToN nDecimalDigits stoppedWatch "s."
 
 										Control.Monad.when isPostMode . putStrLn $ showsThinking searchDepth' evaluationOptions (
 											Evaluation.QuantifiedGame.getFitness $ last quantifiedGames
-										 ) elapsedTime (
+										 ) stoppedWatch (
 											Search.Search.getNPliesEvaluated searchResult'
 										 ) (
 											Text.ShowList.showsDelimitedList (
@@ -1258,7 +1255,7 @@ takeTurns positionHashQualifiedMoveTree randomGen playState	= do
 							 )
 					 ) (
 						\(qualifiedMove, names) -> do
-							elapsedTime	<- Data.Time.measureElapsedTime startUTCTime
+							stoppedWatch	<- Property.Switchable.toggle runningWatch
 
 							Data.Maybe.maybe (
 								return {-to IO-monad-} ()
@@ -1268,9 +1265,9 @@ takeTurns positionHashQualifiedMoveTree randomGen playState	= do
 
 							let selectedGame	= Model.Game.applyQualifiedMove qualifiedMove game'
 
-							Control.Monad.when (verbosity == maxBound) . System.IO.hPutStrLn System.IO.stderr . Text.ShowPrefix.showsPrefixInfo . showString "selected " . Notation.MoveNotation.showsNotation moveNotation qualifiedMove . showString " from:" . ContextualNotation.QualifiedMoveForest.showsNames maybeMaximumPGNNames names . showString "\n\tin " $ Data.Time.showsTimeAsSeconds nDecimalDigits elapsedTime "."
+							Control.Monad.when (verbosity == maxBound) . System.IO.hPutStrLn System.IO.stderr . Text.ShowPrefix.showsPrefixInfo . showString "selected " . Notation.MoveNotation.showsNotation moveNotation qualifiedMove . showString " from:" . ContextualNotation.QualifiedMoveForest.showsNames maybeMaximumPGNNames names . showString "\n\tin " $ Property.ShowFloat.showsFloatToN nDecimalDigits stoppedWatch "s."
 
-							Control.Monad.when isPostMode . putStrLn $ showsThinking searchDepth' evaluationOptions (0 :: weightedMean) elapsedTime 0 (
+							Control.Monad.when isPostMode . putStrLn $ showsThinking searchDepth' evaluationOptions (0 :: weightedMean) stoppedWatch 0 (
 								Data.List.intercalate (
 									showString ".\n" $ replicate 4 ' '	-- Continuations must be preceded by at least 4 spaces.
 								) $ Data.Maybe.maybe names (`take` names) maybeMaximumPGNNames
@@ -1321,7 +1318,7 @@ takeTurns positionHashQualifiedMoveTree randomGen playState	= do
 				 ) criterionValueStatistics "."
 
 				readMove positionHashQualifiedMoveTree randomGen' (
-					Control.Exception.throw $ Data.Exception.mkInvalidDatum "BishBosh.UI.CECP.takeTurns.slave:\tundefined startUTCTime."
+					Control.Exception.throw $ Data.Exception.mkInvalidDatum "BishBosh.UI.CECP.takeTurns.slave:\tundefined stop-watch."
 				 ) playState' {-there're zero valid moves, but the user can issue commands-} >>= slave Nothing maybeMaximumPlies randomGens	-- Tail recurse.
 
 		 ) $ Model.Game.getMaybeTerminationReason game'

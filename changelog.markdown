@@ -33,50 +33,67 @@ Added parent class **BishBosh.Property.ExtendedPositionDescription.EPD** for **P
 ### Bug-fixes:
 	* Upgraded the transposition-table in module **Search.DynamicMoveData**, from merely recording moves (which doesn't include the rank to which a Pawn is promoted), to recording qualified-moves.
 	* In function **Search.AlphaBeta.negaMax.descend.selectMax**, amended bound function **isFitter** to prefer shorter move-sequences where fitness is equal, & corrected the scenario in which all nodes were skipped because they were repetitious, but without ever defining alpha.
+
 ### Features:
 	* Added the configurable runtime ability to asynchronously decompress PGN-databases, & to set a maximum number of games to read.
 	* Added a configuration-option to normalise the values of specified piece-square tables into the closed unit-interval.
 	* Modularised the packaged config-files, by defining XML **External Entities** in the DTD.
 	* Added suggestions on failure to parse a user-command, & created a module **Text.AutoComplete** to contain common code.
-	* Added runtime commands:
-	-----------------------------------------
-	Command				| Purpose
-	--------------------------------| -------
-	**availableMoves**		| to report all available moves from the current position.
-	**maxPositionInstances**	| to reveal the maximum number of instances any available position has been visited.
-	**reversiblePlyCount**		| to count the number of consecutive reversible plies that have been made.
-	-----------------------------------------
 	* Added **makefile** to facilitate common tasks.
 	* Removed the configuration-option **preferMovesTowardsCentre** & its implementation in function **Cartesian.Coordinates.radiusSquared**, because of it's conceptually wobbly foundations.
+
+### New Runtime Cmmands:
+-----------------------------------------
+Command				| Purpose
+--------------------------------| -------
+**availableMoves**		| to report all available moves from the current position.
+**maxPositionInstances**	| to reveal the maximum number of instances any available position has been visited.
+**reversiblePlyCount**		| to count the number of consecutive reversible plies that have been made.
+-----------------------------------------
+
 ### Command-line Options:
 	* Added a new module **Input.CategorisedCommandLineOptions** to improved the partitioning of command-line options into functional categories.
 	* Added a command-line option **--formatPieceSquareTableForGNUPlot** to print the piece-square tables in a format suitable for **GNUPlot**.
+
 ### Performance:
 	* Included a compilation-flag **unboxedarrays**, to request the use of unboxed arrays where (infrequently) possible.
 	* Changed data-type **Component.PieceSquareByCoordinatesByRank.EitherPieceSquareValueByNPiecesByCoordinates**, bringing type **Cartesian.Coordinates.ByCoordinates** inside **Either**, leading to significant space/time gains.
 	* Constructed each large constant data-structure in parallel. Bracketed all data-parallel operations with CPP-conditionals controlled by the compilation-flag **threaded**.
 	* Parallelised function **Attribute.CriterionValue.calculateWeightedMean**.
-### Architectural:
-	* Added new modules:
-	-----------------------------------------
-	Module				| Purpose
-	--------------------------------| -------
-	**Component.CastlingMove**	| Forked from module **Component.Move**
-	**Data.Enum**			| Currently single-function.
-	**Data.Foldable**		| Currently single-function.
-	**Property.FixedMembership**	| Defines a class to which sum-types can conform.
-	**StateProperty.Censor**	| Relocated from directory **State/**
-	**StateProperty.Mutator**	| defines a class to express the dual implementations within **State.Board**.
-	**StateProperty.Seeker**	| defines a class to express the dual implementations within **State.Board**.
-	**Text.Case**			| Forked from **Text.ShowList** to contain case-related operations.
-	**Text.Prefix**			| Forked from **Text.ShowList** to define the constant prefixes of log-messages.
-	-----------------------------------------
+
+### New Modules
+-----------------------------------------
+Module				| Purpose
+--------------------------------| -------
+**Component.CastlingMove**	| Forked from module **Component.Move**.
+**Data.Enum**			| Currently single-function.
+**Data.Foldable**		| Currently single-function.
+**Property.FixedMembership**	| Defines a class to which sum-types can conform.
+**StateProperty.Censor**	| Relocated from directory **State/**.
+**StateProperty.Mutator**	| defines a class to express the dual implementations within **State.Board**.
+**StateProperty.Seeker**	| defines a class to express the dual implementations within **State.Board**.
+**Text.Case**			| Forked from **Text.ShowList** to contain case-related operations.
+**Text.Prefix**			| Forked from **Text.ShowList** to define the constant prefixes of log-messages.
+-----------------------------------------
+
 ### Testing:
 	* Split **src-test/Main.hs** into **src-test/HUnit.hs** & **src-test/QuickCheck.hs**, each referenced independently from the cabal file.
 	* Added an executable **duel** (to coordinate a battle between two independently configured instances of **bishbosh**) & a corresponding section-1 man-page.
 	* Validated the list of ranks supplied to construct either **Attribute.RankValues.RankValues** or **Input.PieceSquareTable.PieceSquareTable**.
+
 ### Refactoring:
 	* Flattened the nested array **Component.Zobrist.getRandomByCoordinatesByRankByLogicalColour**, by means of a composite index.
 	* Reimplemented function **Cartesian.Coordinates.getLogicalColourOfSquare**.
 	* Reimplemented function **Cartesian.Coordinates.interpolationsByDestinationBySource** in terms of function **Cartesian.Coordinates.extrapolationsByDirectionByCoordinates**.
 	* Used the **LambdaCase** language-extension.
+
+## 0.1.1.0
+### New modules:
+-------------------------------------------------
+Module					| Purpose
+----------------------------------------| -------
+**Data.Time.StopWatch**			| Replaces module **BishBosh.Data.Time** to encapsulate interaction with module **Data.Time.Clock**.
+**BishBosh.Time.GameClock**		| Contains two **Data.Time.StopWatch** to enable module **Duel.Process.Intermediary** to measure the time used by each player.
+**BishBosh.Property.Switchable**	| Exports a type-class, which both **BishBosh.Time.StopWatch** & **BishBosh.Time.GameClock** implement, to expose their functionality.
+**BishBosh.Property.SelfValidating**	| Exports a type-class, which both **BishBosh.Time.GameClock** & **Duel.Data.Options** implement, to validate themselves.
+

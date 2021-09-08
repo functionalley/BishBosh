@@ -1,6 +1,6 @@
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 {-
-	Copyright (C) 2018 Dr. Alistair Ward
+	Copyright (C) 2021 Dr. Alistair Ward
 
 	This file is part of BishBosh.
 
@@ -23,13 +23,11 @@
  [@DESCRIPTION@]	Implements 'Test.QuickCheck.Arbitrary'.
 -}
 
-module BishBosh.Test.QuickCheck.Input.CECPOptions() where
+module BishBosh.Test.QuickCheck.Time.StopWatch() where
 
-import			BishBosh.Test.QuickCheck.Input.CECPFeatures()
-import			BishBosh.Test.QuickCheck.Time.StopWatch()
-import qualified	BishBosh.Input.CECPOptions	as Input.CECPOptions
+import qualified	BishBosh.Time.StopWatch		as Time.StopWatch
 import qualified	Test.QuickCheck
 
-instance Test.QuickCheck.Arbitrary Input.CECPOptions.CECPOptions where
-	arbitrary	= Input.CECPOptions.mkCECPOptions <$> Test.QuickCheck.arbitrary {-analyseMode-} <*> Test.QuickCheck.arbitrary {-displaySAN-} <*> Test.QuickCheck.arbitrary {-editMode-} <*> Test.QuickCheck.arbitrary {-forceMode-} <*> Test.QuickCheck.arbitrary {-Maybe pause-} <*> Test.QuickCheck.arbitrary {-ponderMode-} <*> Test.QuickCheck.arbitrary {-postMode-} <*> Test.QuickCheck.elements [1 .. 3] {-protocolVersion-} <*> Test.QuickCheck.arbitrary {-CECPFeatures-}
+instance Test.QuickCheck.Arbitrary Time.StopWatch.StopWatch where
+	arbitrary	= Time.StopWatch.mkStoppedWatch . toEnum <$> Test.QuickCheck.arbitrary
 

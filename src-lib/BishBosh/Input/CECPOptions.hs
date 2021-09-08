@@ -62,17 +62,20 @@ module BishBosh.Input.CECPOptions(
 	setProtocolVersion,
 	updateFeature,
 	deleteFeature,
-	resetModes
+	resetModes,
+	pause,
+	resume
 ) where
 
 import qualified	BishBosh.Data.Exception		as Data.Exception
 import qualified	BishBosh.Input.CECPFeatures	as Input.CECPFeatures
+import qualified	BishBosh.Property.Switchable	as Property.Switchable
 import qualified	BishBosh.Text.ShowList		as Text.ShowList
+import qualified	BishBosh.Time.StopWatch		as Time.StopWatch
 import qualified	Control.DeepSeq
 import qualified	Control.Exception
 import qualified	Data.Default
 import qualified	Data.Maybe
-import qualified	Data.Time.Clock
 import qualified	Text.XML.HXT.Arrow.Pickle	as HXT
 
 -- | Used to qualify XML.
@@ -119,14 +122,14 @@ type ProtocolVersion	= Int
 
 -- | Defines options related to CECP.
 data CECPOptions	= MkCECPOptions {
-	getAnalyseMode		:: Mode,					-- ^ TODO.
-	getDisplaySAN		:: Bool,					-- ^ Whether to display moves in SAN or 'Input.UIOptions.getMoveNotation'.
-	getEditMode		:: Mode,					-- ^ Whether the game should be placed in set-up mode.
-	getForceMode		:: Mode,					-- ^ Neither player's moves are automated, allowing an arbitrary game to be configured.
-	getMaybePaused		:: Maybe Data.Time.Clock.NominalDiffTime,	-- ^ Whether the engine was paused after the specified time.
-	getPonderMode		:: Mode,					-- ^ Whether to keep thinking while it's one's opponent's turn.
-	getPostMode		:: Mode,					-- ^ Whether to show the details of deliberations.
-	getProtocolVersion	:: ProtocolVersion,				-- ^ The version of the CECP-protocol to use.
+	getAnalyseMode		:: Mode,				-- ^ TODO.
+	getDisplaySAN		:: Bool,				-- ^ Whether to display moves in SAN or 'Input.UIOptions.getMoveNotation'.
+	getEditMode		:: Mode,				-- ^ Whether the game should be placed in set-up mode.
+	getForceMode		:: Mode,				-- ^ Neither player's moves are automated, allowing an arbitrary game to be configured.
+	getMaybePaused		:: Maybe Time.StopWatch.StopWatch,	-- ^ Whether the engine was paused & a paused watch.
+	getPonderMode		:: Mode,				-- ^ Whether to keep thinking while it's one's opponent's turn.
+	getPostMode		:: Mode,				-- ^ Whether to show the details of deliberations.
+	getProtocolVersion	:: ProtocolVersion,			-- ^ The version of the CECP-protocol to use.
 	getCECPFeatures		:: Input.CECPFeatures.CECPFeatures
 } deriving Eq
 
@@ -200,19 +203,18 @@ instance Data.Default.Default CECPOptions where
 
 instance HXT.XmlPickler CECPOptions where
 	xpickle	= HXT.xpElem tag . HXT.xpWrap (
-		\(a, b, c, d, e, f, g, h, i) -> mkCECPOptions a b c d e f g h i,	-- Construct.
+		\(a, b, c, d, e, f, g, h) -> mkCECPOptions a b c d (getMaybePaused def) e f g h,	-- Construct.
 		\MkCECPOptions {
 			getAnalyseMode		= analyseMode,
 			getDisplaySAN		= displaySAN,
 			getEditMode		= editMode,
 			getForceMode		= forceMode,
-			getMaybePaused		= maybePaused,
 			getPonderMode		= ponderMode,
 			getPostMode		= postMode,
 			getProtocolVersion	= protocolVersion,
 			getCECPFeatures		= cecpFeatures
-		} -> (analyseMode, displaySAN, editMode, forceMode, maybePaused, ponderMode, postMode, protocolVersion, cecpFeatures) -- Deconstruct.
-	 ) $ HXT.xp9Tuple (
+		} -> (analyseMode, displaySAN, editMode, forceMode, ponderMode, postMode, protocolVersion, cecpFeatures) -- Deconstruct.
+	 ) $ HXT.xp8Tuple (
 		getAnalyseMode def `HXT.xpDefault` HXT.xpAttr analyseModeTag HXT.xpickle
 	 ) (
 		getDisplaySAN def `HXT.xpDefault` HXT.xpAttr displaySANTag HXT.xpickle
@@ -220,8 +222,6 @@ instance HXT.XmlPickler CECPOptions where
 		getEditMode def `HXT.xpDefault` HXT.xpAttr editModeTag HXT.xpickle
 	 ) (
 		getForceMode def `HXT.xpDefault` HXT.xpAttr forceModeTag HXT.xpickle
-	 ) (
-		HXT.xpOption . HXT.xpWrap (toEnum, fromEnum) $ HXT.xpAttr pausedTag HXT.xpInt
 	 ) (
 		getPonderMode def `HXT.xpDefault` HXT.xpAttr ponderModeTag HXT.xpickle
 	 ) (
@@ -233,23 +233,22 @@ instance HXT.XmlPickler CECPOptions where
 
 -- | Smart constructor.
 mkCECPOptions
-	:: Mode						-- ^ Analyse-mode.
-	-> Bool						-- ^ Display SAN.
-	-> Mode						-- ^ Edit-mode.
-	-> Mode						-- ^ Force-mode.
-	-> Maybe Data.Time.Clock.NominalDiffTime	-- ^ Paused.
-	-> Mode						-- ^ Ponder-mode.
-	-> Mode						-- ^ Post-mode.
+	:: Mode					-- ^ Analyse-mode.
+	-> Bool					-- ^ Display SAN.
+	-> Mode					-- ^ Edit-mode.
+	-> Mode					-- ^ Force-mode.
+	-> Maybe Time.StopWatch.StopWatch	-- ^ Paused.
+	-> Mode					-- ^ Ponder-mode.
+	-> Mode					-- ^ Post-mode.
 	-> ProtocolVersion
 	-> Input.CECPFeatures.CECPFeatures
 	-> CECPOptions
 mkCECPOptions analyseMode displaySAN editMode forceMode maybePaused ponderMode postMode protocolVersion cecpFeatures
-	| protocolVersion < 1				= Control.Exception.throw . Data.Exception.mkOutOfBounds . showString "BishBosh.UI.CECPOptions.mkCECPOptions:\t" $ shows protocolVersionTag " must exceed zero."
-	| Data.Maybe.maybe False (< 0) maybePaused	= Control.Exception.throw . Data.Exception.mkOutOfBounds . showString "BishBosh.UI.CECPOptions.mkCECPOptions:\t" $ shows pausedTag "; time already taken can't be negative."
-	| otherwise					= MkCECPOptions {
+	| protocolVersion < 1	= Control.Exception.throw . Data.Exception.mkOutOfBounds . showString "BishBosh.UI.CECPOptions.mkCECPOptions:\t" $ shows protocolVersionTag " must exceed zero."
+	| otherwise		= MkCECPOptions {
 		getAnalyseMode		= analyseMode,
-		getEditMode		= editMode,
 		getDisplaySAN		= displaySAN,
+		getEditMode		= editMode,
 		getForceMode		= forceMode,
 		getMaybePaused		= maybePaused,
 		getPonderMode		= ponderMode,
@@ -322,4 +321,16 @@ getNamedModes MkCECPOptions {
 		postMode
 	)
  ]
+
+-- | Mutator.
+pause :: Time.StopWatch.StopWatch -> CECPOptions -> CECPOptions
+pause _ MkCECPOptions { getMaybePaused = Just _ }	= Control.Exception.throw $ Data.Exception.mkRequestFailure "BishBosh.Input.CECPOptions.pause:\talready paused."
+pause stopWatch cecpOptions
+	| Property.Switchable.isOn stopWatch	= Control.Exception.throw $ Data.Exception.mkRequestFailure "BishBosh.Input.CECPOptions.pause:\tthe stop-watch is still running."
+	| otherwise				= cecpOptions { getMaybePaused = Just stopWatch }
+
+-- | Mutator.
+resume :: CECPOptions -> CECPOptions
+resume MkCECPOptions { getMaybePaused = Nothing }	= Control.Exception.throw $ Data.Exception.mkRequestFailure "BishBosh.Input.CECPOptions.resume:\talready resumed."
+resume cecpOptions					= cecpOptions { getMaybePaused = Nothing }
 

@@ -145,7 +145,6 @@
 					displaySAN	(False | True)	#IMPLIED
 					editMode	(False | True)	#IMPLIED
 					forceMode	(False | True)	#IMPLIED
-					pause		CDATA		#IMPLIED
 					ponderMode	(False | True)	#IMPLIED
 					postMode	(False | True)	#IMPLIED
 					protocolVersion	CDATA		#IMPLIED

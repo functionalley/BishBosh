@@ -44,6 +44,8 @@ import qualified	BishBosh.Test.HUnit.Model.GameTree					as Test.HUnit.Model.Game
 import qualified	BishBosh.Test.HUnit.Model.PositionHashTree				as Test.HUnit.Model.PositionHashTree
 import qualified	BishBosh.Test.HUnit.State.Board						as Test.HUnit.State.Board
 import qualified	BishBosh.Test.HUnit.Text.AutoComplete					as Test.HUnit.Text.AutoComplete
+import qualified	BishBosh.Test.HUnit.Time.GameClock					as Test.HUnit.Time.GameClock
+import qualified	BishBosh.Test.HUnit.Time.StopWatch					as Test.HUnit.Time.StopWatch
 import qualified	Test.HUnit
 
 #ifdef USE_SEARCH
@@ -63,6 +65,8 @@ main	= mapM_ Test.HUnit.runTestTT [
 	Test.HUnit.Component.Move.testCases,
 	Test.HUnit.Component.CastlingMove.testCases,
 	Test.HUnit.Component.Zobrist.testCases,
+	Test.HUnit.Time.StopWatch.testCases,
+	Test.HUnit.Time.GameClock.testCases,
 	Test.HUnit.State.Board.testCases,
 	Test.HUnit.Model.Game.testCases,
 	Test.HUnit.Model.GameTree.testCases,

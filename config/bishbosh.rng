@@ -268,7 +268,6 @@
 													<name>displaySAN</name>
 													<name>editMode</name>
 													<name>forceMode</name>
-													<name>pause</name>
 													<name>ponderMode</name>
 													<name>postMode</name>
 												</choice>
