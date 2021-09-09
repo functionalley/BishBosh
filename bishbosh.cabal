@@ -423,6 +423,7 @@ Test-Suite hunit-tests
         HUnit,
         hxt,
         mtl,
+        random,
         toolshed >= 0.18
 
 --  CPP-Options:	-DUSE_SEARCH

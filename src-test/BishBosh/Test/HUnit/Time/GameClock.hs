@@ -28,8 +28,13 @@ module BishBosh.Test.HUnit.Time.GameClock(
 ) where
 
 import qualified	BishBosh.Time.GameClock			as Time.GameClock
+import qualified	BishBosh.Time.StopWatch			as Time.StopWatch
 import qualified	BishBosh.Property.SelfValidating	as Property.SelfValidating
 import qualified	BishBosh.Property.Switchable		as Property.Switchable
+import qualified	Control.Concurrent
+import qualified	Data.Array.IArray
+import qualified	Data.Foldable
+import qualified	System.Random
 import qualified	Test.HUnit
 import			Test.HUnit((@?))
 
@@ -51,7 +56,27 @@ testCases	= Test.HUnit.test $ map Test.HUnit.TestCase [
 	do
 		runningGameClock	<- flick 3
 
-		Property.SelfValidating.isValid runningGameClock @? "Property.Switchable.Property.SelfValidating.isValid failed."
+		Property.SelfValidating.isValid runningGameClock @? "Property.Switchable.Property.SelfValidating.isValid failed.",
+	let
+		delayedFlick :: [Int] -> Time.GameClock.GameClock -> IO Time.GameClock.GameClock
+		delayedFlick (t : ts) gameClock	= do
+			Control.Concurrent.threadDelay t
+
+			Property.Switchable.toggle gameClock >>= delayedFlick ts
+		delayedFlick _ gameClock	= return {-to IO-monad-} gameClock
+	 in do
+		randomGenerator		<- System.Random.getStdGen
+		runningWatch		<- Property.Switchable.on
+		stoppedGameClock	<- Property.Switchable.switchOff =<< delayedFlick (take 16 $ System.Random.randomRs (1, 100000 {-uS-}) randomGenerator) =<< Property.Switchable.on
+		stoppedWatch		<- Property.Switchable.switchOff runningWatch
+
+		let
+			relativeError :: Rational
+			relativeError	= pred . (/ Time.StopWatch.getElapsedTime stoppedWatch) . Data.Foldable.sum . Data.Array.IArray.amap Time.StopWatch.getElapsedTime $ Time.GameClock.deconstruct stoppedGameClock
+
+		abs relativeError < recip 100000 @? showString "Time.GameClock.GameClock:\trelative error between sum of game-clock times & stop-watch time = " (
+			 shows (realToFrac relativeError :: Double) "."
+		 )
  ] where
 	flick :: Int -> IO Time.GameClock.GameClock
 	flick n	= Property.Switchable.on >>= Property.Switchable.flick n

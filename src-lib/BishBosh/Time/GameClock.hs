@@ -27,7 +27,7 @@ module BishBosh.Time.GameClock(
 -- ** Data-types
 	GameClock(
 --		MkGameClock,
---		deconstruct
+		deconstruct
 	),
 -- * Functions
 	showsElapsedTimes

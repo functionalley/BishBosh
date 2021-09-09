@@ -30,6 +30,7 @@ module BishBosh.Time.StopWatch(
 --		deconstruct
 	),
 -- * Functions
+	getElapsedTime,
 -- ** Constructor
 	mkStoppedWatch
  ) where
@@ -55,10 +56,7 @@ instance Data.Default.Default StopWatch where
 	def	= mkStoppedWatch 0
 
 instance Property.ShowFloat.ShowFloat StopWatch where
-	showsFloat fromDouble MkStopWatch {
-		deconstruct = Right nominalDiffTime
-	}			= fromDouble $ realToFrac nominalDiffTime
-	showsFloat _ _		= Control.Exception.throw $ Data.Exception.mkRequestFailure "BishBosh.Time.StopWatch.showsFloat:\tthe watch is still running."
+	showsFloat fromDouble	= fromDouble . getElapsedTime
 
 instance Property.Switchable.Switchable StopWatch where
 	on	= Property.Switchable.toggle Data.Default.def
@@ -74,4 +72,11 @@ instance Property.Switchable.Switchable StopWatch where
 -- | Constructor.
 mkStoppedWatch :: Data.Time.Clock.NominalDiffTime -> StopWatch
 mkStoppedWatch	= MkStopWatch . Right
+
+-- | Extract the elapsed time from a stopped watch.
+getElapsedTime :: Fractional f => StopWatch -> f
+getElapsedTime MkStopWatch {
+	deconstruct	= Right nominalDiffTime
+}			= realToFrac nominalDiffTime
+getElapsedTime _	= Control.Exception.throw $ Data.Exception.mkRequestFailure "BishBosh.Time.StopWatch.getElapsedTime:\tthe watch is still running."
 
