@@ -78,7 +78,7 @@ xboard: $(BIN_DIR)/$(PACKAGE_NAME)
 
 # Start a battle.
 duel: $(BIN_DIR)/duel
-	@$@ --verbosity='Verbose' --nGames=128 --readTimeout=30 -i 'config/Raw/bishbosh_$@_white.xml' -i 'config/Raw/bishbosh_$@_black.xml'
+	@$@ --nGames=32 --verbosity='Verbose' -i 'config/Raw/bishbosh_$@_white.xml' -i 'config/Raw/bishbosh_$@_black.xml'
 
 # Build the source-code documentation.
 haddock:

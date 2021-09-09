@@ -31,20 +31,22 @@ module Duel.Data.Options(
 -- ** Data-types
 	Options(
 --		MkOptions,
-		getVerbosity,
+		getInputConfigFilePaths,
 		getNDecimalDigits,
 		getNGames,
 		getReadTimeout,
-		getInputConfigFilePaths
+		getVerbosity,
+		getVerifyConfiguration
 	),
 -- * Constants
 --	requiredInputConfigFiles,
 -- * Functions
 -- ** Mutators
-	setVerbosity,
 	setNDecimalDigits,
 	setNGames,
 	setReadTimeout,
+	setVerbosity,
+	setVerifyConfiguration,
 	appendInputConfigFilePath
 ) where
 
@@ -62,30 +64,28 @@ type ReadTimeout	= Int
 
 -- | Container for all command-line options.
 data Options	= MkOptions {
-	getVerbosity		:: Input.Verbosity.Verbosity,		-- ^ The extent to which logging is required. CAVEAT: this isn't forwarded to the forked instances of BishBosh.
+	getInputConfigFilePaths	:: [System.FilePath.FilePath],		-- ^ The configuration-file paths for White & Black respectively.
 	getNDecimalDigits	:: Property.ShowFloat.NDecimalDigits,	-- ^ The number of successive games to play.
 	getNGames		:: Model.Game.NGames,			-- ^ The number of successive games to play.
 	getReadTimeout		:: ReadTimeout,				-- ^ The seconds to wait for a move before timing-out. CAVEAT: any positive value should account for both configuration-options (e.g. search-depth) & the machine-speed.
-	getInputConfigFilePaths	:: [System.FilePath.FilePath]		-- ^ The configuration-file paths for White & Black respectively.
+	getVerbosity		:: Input.Verbosity.Verbosity,		-- ^ The extent to which logging is required. CAVEAT: this isn't forwarded to the forked instances of BishBosh.
+	getVerifyConfiguration	:: Bool					-- ^ Whether to check the configuration-files before forwarding them.
 } deriving (Eq, Show)
 
 instance Data.Default.Default Options where
 	def = MkOptions {
-		getVerbosity		= Data.Default.def,
+		getInputConfigFilePaths	= [],	-- CAVEAT: invalid; there must be exactly 2.
 		getNDecimalDigits	= 0,
 		getNGames		= 1,
 		getReadTimeout		= -1,	-- N.B.: a negative value is interpreted as an indefinite period.
-		getInputConfigFilePaths	= []	-- CAVEAT: invalid; there must be exactly 2.
+		getVerbosity		= Data.Default.def,
+		getVerifyConfiguration	= False
 	}
 
 instance Property.SelfValidating.SelfValidating Options where
 	findInvalidity	= Property.SelfValidating.findErrors [
 		((/= requiredInputConfigFiles) . length . getInputConfigFilePaths,	"There must be exactly one configuration file for White & one for Black.")
 	 ]
-
--- | Mutator.
-setVerbosity :: Input.Verbosity.Verbosity -> Options -> Options
-setVerbosity verbosity options	= options { getVerbosity = verbosity }
 
 -- | Mutator.
 setNDecimalDigits :: Property.ShowFloat.NDecimalDigits -> Options -> Options
@@ -102,6 +102,14 @@ setNGames n options
 -- | Mutator.
 setReadTimeout :: ReadTimeout -> Options -> Options
 setReadTimeout t options	= options { getReadTimeout = t }
+
+-- | Mutator.
+setVerbosity :: Input.Verbosity.Verbosity -> Options -> Options
+setVerbosity verbosity options	= options { getVerbosity = verbosity }
+
+-- | Mutator.
+setVerifyConfiguration :: Bool -> Options -> Options
+setVerifyConfiguration b options	= options { getVerifyConfiguration = b }
 
 -- | The constant exact number of input config-files required.
 requiredInputConfigFiles :: Int

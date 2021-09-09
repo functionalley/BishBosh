@@ -232,7 +232,7 @@ main	= do
 			mkTypeSpecification s	= showChar '<' $ showString s ">"
 
 			intTypeSpecification, filePathTypeSpecification :: String
-			(intTypeSpecification, filePathTypeSpecification)		= ($ intString) &&& ($ filePathString) $ mkTypeSpecification
+			(intTypeSpecification, filePathTypeSpecification)	= ($ intString) &&& ($ filePathString) $ mkTypeSpecification
 
 			defaultUIOptions :: Input.UIOptions.UIOptions Row Column
 			defaultUIOptions	= Data.Default.def
@@ -330,17 +330,6 @@ main	= do
 						else let
 							configDir :: System.FilePath.FilePath
 							configDir	= dataDir </> "config"
-
-							inputSysConfigList :: HXT.SysConfigList
-							inputSysConfigList	= [
-								HXT.withRemoveWS HXT.yes,						-- Remove white-space, e.g. any indentation which might have been introduced by 'HXT.withIndent'.
-								HXT.withStrictInput HXT.yes,						-- Read the input file strictly (cf. lazily), this ensures file-closure even if not completely read.
-#ifdef USE_HXTRELAXNG
-								Text.XML.HXT.RelaxNG.withRelaxNG $ configDir </> progName <.> "rng"	-- Validate against the referenced RelaxNG schema.
-#else
-								HXT.withValidate HXT.yes						-- Validate against any DTD referenced from the specified XML-file.
-#endif
-							 ]
 
 							hxtTraceLevel :: Int
 							hxtTraceLevel	= fromEnum preVerbosity `min` 2	{-CAVEAT: HXT trace-levels 3 & 4 are too verbose-}
@@ -467,7 +456,15 @@ main	= do
 
 								return {-to IO-monad-} options'
 						in Control.Monad.void {-discard the state returned by processInputOptions-} . HXT.runX $ HXT.setTraceLevel hxtTraceLevel
-							>>> HXT.xunpickleDocument HXT.xpickle inputSysConfigList configFilePath
+							>>> HXT.xunpickleDocument HXT.xpickle [
+								HXT.withRemoveWS HXT.yes,						-- Remove white-space, e.g. any indentation which might have been introduced by 'HXT.withIndent'.
+								HXT.withStrictInput HXT.yes,						-- Read the input file strictly (cf. lazily), this ensures file-closure even if not completely read.
+#ifdef USE_HXTRELAXNG
+								Text.XML.HXT.RelaxNG.withRelaxNG $ configDir </> progName <.> "rng"	-- Validate against the referenced RelaxNG schema.
+#else
+								HXT.withValidate HXT.yes						-- Validate against any DTD referenced from the specified XML-file.
+#endif
+							] configFilePath
 							>>> HXT.traceMsg hxtTraceLevel (showString Input.Options.tag " parsed")
 							>>> HXT.arrIO processInputOptions	-- Lift an IO-function into an arrow.
 			| otherwise	-> Control.Exception.throwIO . Data.Exception.mkInsufficientData $ shows (Input.CommandLineOption.longFlagPrefix ++ inputConfigFilePathFlag) " must be specified."

@@ -367,6 +367,7 @@ Executable duel
         containers,
         data-default,
         filepath,
+        hxt,
         process >= 1.6.4
 
     CPP-Options:	-DMOVE_NOTATION='S'

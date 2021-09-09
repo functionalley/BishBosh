@@ -96,12 +96,20 @@ main	= do
 				) $ mkTypeSpecification "s"
 			) . showString "define the read-timeout; default " $ shows (Data.Options.getReadTimeout Data.Default.def) " s.",
 			let
+				flag	= "verifyConfiguration"
+			in G.Option ""	[flag] (
+				G.NoArg (
+					Nothing {-N/A-},
+					Input.CommandLineOption.mkOptionsMutator $ Data.Options.setVerifyConfiguration True
+				)
+			) "verify the mutual compatibility of the two configuration-files before forwarding each to a forked instance of 'bishbosh'.",
+			let
 				flag	= "appendInputConfigFilePath"
 			in G.Option "i"	[flag] (
 				G.ReqArg (
 					Just . (,) flag . Just &&& Input.CommandLineOption.mkOptionsMutator . Data.Options.appendInputConfigFilePath
 				) $ mkTypeSpecification "File-path"
-			) "define the path to an XML-file, to forward to an instance of bishbosh; specify White's first, then Black's."
+			) "define the path to an XML-file, to forward to a forked instance of 'bishbosh'; specify White's first, then Black's."
 		 ] where
 			author :: String
 			author	= "Dr. Alistair Ward"

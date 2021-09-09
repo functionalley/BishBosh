@@ -40,17 +40,25 @@ module Duel.Process.Intermediary (
 	initialise
 ) where
 
+import			BishBosh.Data.Float()
 import			Control.Arrow((&&&), (|||))
+import			Control.Category((>>>))
 import qualified	BishBosh.Attribute.LogicalColour	as Attribute.LogicalColour
 import qualified	BishBosh.Data.Exception			as Data.Exception
 import qualified	BishBosh.Input.CommandLineOption	as Input.CommandLineOption
+import qualified	BishBosh.Input.IOOptions		as Input.IOOptions
+import qualified	BishBosh.Input.Options			as Input.Options
+import qualified	BishBosh.Input.SearchOptions		as Input.SearchOptions
+import qualified	BishBosh.Input.UIOptions		as Input.UIOptions
 import qualified	BishBosh.Input.Verbosity		as Input.Verbosity
 import qualified	BishBosh.Model.Game			as Model.Game
 import qualified	BishBosh.Model.GameTerminationReason	as Model.GameTerminationReason
+import qualified	BishBosh.Notation.MoveNotation		as Notation.MoveNotation
 import qualified	BishBosh.Property.Opposable		as Property.Opposable
-import qualified	BishBosh.Property.ShowFloat		as Property.ShowFloat
 import qualified	BishBosh.Property.SelfValidating	as Property.SelfValidating
+import qualified	BishBosh.Property.ShowFloat		as Property.ShowFloat
 import qualified	BishBosh.Property.Switchable		as Property.Switchable
+import qualified	BishBosh.Text.ShowList			as Text.ShowList
 import qualified	BishBosh.Time.GameClock			as Time.GameClock
 import qualified	BishBosh.Types				as T
 import qualified	BishBosh.UI.Command			as UI.Command
@@ -65,6 +73,7 @@ import qualified	Duel.Process.Handles			as Process.Handles
 import qualified	System.Exit
 import qualified	System.FilePath
 import qualified	System.IO
+import qualified	Text.XML.HXT.Core			as HXT
 
 #ifdef MOVE_NOTATION
 #	if MOVE_NOTATION == 'I'
@@ -215,7 +224,7 @@ startGame
 startGame verbosity nDecimalDigits readTimeout producer consumer gameTerminationReasonsMap nGames	= Property.Switchable.on >>= slave gameTerminationReasonsMap nGames where
 	slave :: GameTerminationReasonsMap -> Model.Game.NGames -> Time.GameClock.GameClock -> IO GameTerminationReasonsMap
 	slave gameTerminationReasonsMap' 0 gameClock	= do
-		Time.GameClock.showsElapsedTimes nDecimalDigits gameClock >>= IO.Logger.printInfo . showString "Elapsed time=" . ($ ".")
+		Time.GameClock.showsElapsedTimes nDecimalDigits gameClock >>= IO.Logger.printInfo . showString "Elapsed time" . Text.ShowList.showsAssociation . ($ ".")
 
 		return {-to IO-monad-} gameTerminationReasonsMap'
 	slave gameTerminationReasonsMap' nGames' gameClock	= do
@@ -274,27 +283,51 @@ bracketProcess verbosity inputConfigFilePaths	= Control.Exception.bracket (
 {- |
 	* Unpacks the configuration-options.
 
-	* Play the requested number of games.
+	* Optionally verifies the compatibility of the two configuration-files.
+
+	* Plays the requested number of games.
 
 	* Prints the results.
 -}
 initialise :: Data.Options.Options -> IO ()
 initialise options
 	| errorMessages@(_ : _)	<- Property.SelfValidating.findInvalidity options	= Control.Exception.throwIO . Data.Exception.mkInsufficientData . showString "Duel.Process.Intermediary.initialise:\tinvalid options; " $ show errorMessages
-	| otherwise									= Control.Exception.catch (
-		bracketProcess verbosity inputConfigFilePaths $ \[handles, handles'] -> uncurry (
-			uncurry (startGame verbosity) $ (Data.Options.getNDecimalDigits &&& Data.Options.getReadTimeout) options
-		) (
-			($ handles) &&& ($ handles') $ Process.Handles.getHandlePair
-		) Data.Map.Strict.empty (
-			Data.Options.getNGames options
-		) >>= IO.Logger.printInfo . show . Data.Map.Strict.toList
+	| otherwise									= let
+		(verbosity, inputConfigFilePaths)	= Data.Options.getVerbosity &&& Data.Options.getInputConfigFilePaths $ options
+		hxtTraceLevel				= fromEnum verbosity `min` 2 {-CAVEAT: HXT trace-levels 3 & 4 are too verbose-}
+	in Control.Exception.catch (
+		do
+			Control.Monad.when (Data.Options.getVerifyConfiguration options) $ do
+				[(logicalColoursFirst, moveNotationFirst), (logicalColoursSecond, moveNotationSecond)]	<- mapM (
+					\configFilePath -> do
+						[pair]	<- HXT.runX $ HXT.setTraceLevel hxtTraceLevel
+							>>> HXT.xunpickleDocument HXT.xpickle [
+								HXT.withRemoveWS HXT.yes,
+								HXT.withStrictInput HXT.no	-- Only a fraction of the document is required.
+							] configFilePath
+							>>> HXT.arr (
+								 \inputOptions -> Input.SearchOptions.identifyAutomatedPlayers . Input.Options.getSearchOptions &&& Input.UIOptions.getMoveNotation . Input.IOOptions.getUIOptions . Input.Options.getIOOptions $ (
+									inputOptions	:: Input.Options.Options T.X T.CriterionWeight T.PieceSquareValue T.RankValue T.Y T.X T.Y	-- Arbitrary concrete type.
+								 )
+							) -- Lift function into an arrow.
+
+						return {-to IO-monad-} pair
+				 ) inputConfigFilePaths
+
+				Control.Monad.unless (logicalColoursFirst == [maxBound] && logicalColoursSecond == [minBound]) . Control.Exception.throwIO . Data.Exception.mkIncompatibleData . showString "Duel.Process.Intermediary.initialise:\tconfiguration-files must automate White & Black respectively; " $ shows (logicalColoursFirst ++ logicalColoursSecond) "."
+
+				Control.Monad.unless (moveNotationFirst == moveNotationSecond) . Control.Exception.throwIO . Data.Exception.mkIncompatibleData . showString "Duel.Process.Intermediary.initialise:\tconfiguration-files must define the same " . showString Notation.MoveNotation.tag . Text.ShowList.showsAssociation $ shows (moveNotationFirst, moveNotationSecond) "."
+
+			bracketProcess verbosity inputConfigFilePaths $ \[handles, handles'] -> uncurry (
+				uncurry (startGame verbosity) $ (Data.Options.getNDecimalDigits &&& Data.Options.getReadTimeout) options
+			 ) (
+				($ handles) &&& ($ handles') $ Process.Handles.getHandlePair
+			 ) Data.Map.Strict.empty (
+				Data.Options.getNGames options
+			 ) >>= IO.Logger.printInfo . show . Data.Map.Strict.toList
 	) $ \e -> do
 		IO.Logger.printError . showString "caught " $ show (e :: Control.Exception.SomeException)
 
 		Control.Monad.when (verbosity == maxBound) $ IO.Logger.printInfo "Exiting."
 
 		System.Exit.exitFailure
-	where
-		(verbosity, inputConfigFilePaths)	= Data.Options.getVerbosity &&& Data.Options.getInputConfigFilePaths $ options
-

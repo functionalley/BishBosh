@@ -71,6 +71,7 @@ module BishBosh.Input.SearchOptions(
 	getSearchDepth,
 	maybeRetireTranspositionsAfter,
 	maybeMinimumTranspositionSearchDepth,
+	identifyAutomatedPlayers,
 -- ** Mutators
 	setSearchDepth,
 	swapSearchDepth,
@@ -400,5 +401,12 @@ swapSearchDepth searchOptions@MkSearchOptions {
 	getSearchDepthByLogicalColour	= Data.Map.Strict.mapKeys Property.Opposable.getOpposite searchDepthByLogicalColour
 }
 
+-- | Extract those /logical colour/s for which a search-depth has been defined, which implies that the corresponding player is automated.
+identifyAutomatedPlayers :: SearchOptions -> [Attribute.LogicalColour.LogicalColour]
+identifyAutomatedPlayers MkSearchOptions {
+	getSearchDepthByLogicalColour	= searchDepthByLogicalColour
+} = Data.Map.Strict.keys searchDepthByLogicalColour
+
 -- | Self-documentation.
 type Reader	= Control.Monad.Reader.Reader SearchOptions
+

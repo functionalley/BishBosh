@@ -24,7 +24,7 @@ The number of games to be played before presenting the results.
 .TP
 \fB-t\fR \fIInt\fR, \fB--readTimeout=\fR\fIInt\fR, defaulting to \fIindefinitely\fR.
 The number of seconds to wait for one of the forked processes to return a move, before aborting.
-CAVEAT: the period typically required depends on;
+CAVEAT: the required period typically required depends on;
 .IP \(bu
 the machine's speed,
 .IP \(bu
@@ -33,6 +33,12 @@ what else is running on the machine,
 the size of the machine's RAM,
 .IP \(bu
 \fBbishbosh\fR's configuration (e.g. search-depth or fitness-evaluation criteria).
+.TP
+.B --verifyConfiguration
+Verify the mutual compatibility of the two configuration-files before forwarding each to a forked instance of \fBbishbosh\fR,
+where the syntactic & semantic correctness will be independently verified.
+The configurations are required to define the same move-notation & to define the logical colour of the automated player in the correct order to avoid deadlock.
+N.B. since verification of this compatibility-requirement necessitates parsing, syntactic-verification is an inevitable side-effect.
 .TP
 \fB-i\fR \fIFile-path\fR, \fB--appendInputConfigFilePath=\fR\fIFile-path\fR; there is no default.
 Define the path to a configuration-file to forward to \fBbishbosh\fR.
@@ -48,12 +54,14 @@ Displays a usage-message & then exits.
 \fB0\fR on success, & >\fB0\fR if an error occurs.
 .SH EXAMPLES
 .nf
-.B duel --verbosity='Verbose' --nGames=128 -i 'config/Raw/bishbosh_duel_white.xml' -i 'config/Raw/bishbosh_duel_black.xml'
+.B duel --nGames=32 --verbosity='Verbose' --verifyConfiguration -i 'config/Raw/bishbosh_duel_white.xml' -i 'config/Raw/bishbosh_duel_black.xml'
 .fi
 .IP \(bu
 The application has been instructed to provide a relatively large amount of feedback.
 .IP \(bu
-Two packaged configuration-files have been referenced, the first referring to the instance playing White, as required.
+Two packaged configuration-files have been referenced.
+.IP \(bu
+The compatibility of the configuration-files is verified to confirm that they automate White & Black respectively, & that they use the same move-notation.
 .IP \(bu
 CAVEAT: assumes that the executable exists on \fB$PATH\fR, otherwise an explicit path will be required.
 .PP
@@ -61,7 +69,7 @@ CAVEAT: assumes that the executable exists on \fB$PATH\fR, otherwise an explicit
 .B make duel
 .fi
 .IP \(bu
-The same as above.
+Much the same as the previous example, but verification is unnecessary since the configuration-files are hard-coded.
 .IP \(bu
 The current working directory must be \fBbishbosh\fR's installation-directory where the required \fBmakefile\fR is defined.
 .SH FILES
