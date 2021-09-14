@@ -13,7 +13,7 @@
 # You should have received a copy of the GNU General Public License
 # along with BishBosh.  If not, see <http://www.gnu.org/licenses/>.
 
-.PHONY: hlint test prof cabalCheck sdist findOmissions xboard duel haddock graphmod
+.PHONY: hlint test randomTest prof cabalCheck sdist findOmissions xboard duel haddock graphmod
 
 PACKAGE_NAME	= bishbosh
 SHELL		= /bin/bash
@@ -22,34 +22,43 @@ BIN_DIR		= $$HOME/.local/bin/
 
 # Build hlint.
 $(BIN_DIR)/hlint:
-	@stack install hlint
+	@stack install hlint $(GHC_OPTIONS)
 
 # Check for lint.
 hlint: $(BIN_DIR)/hlint
-	@$@	--cpp-define 'USE_PARALLEL'\
+	@$@ -j --no-exit-code\
+		--cpp-define 'USE_PARALLEL'\
 		--cpp-define 'USE_POLYPARSE=1'\
 		--cpp-define 'USE_UNBOXED_ARRAYS'\
+		--cpp-define 'USE_NEWTYPE_WRAPPERS'\
 		--ignore 'Use tuple-section'\
-		src-lib/ +RTS -N -RTS || true
-	@$@	--cpp-define 'USE_HXTRELAXNG'\
+		src-lib/ +RTS -N -RTS
+	@$@ -j --no-exit-code\
+		--cpp-define 'USE_HXTRELAXNG'\
 		--cpp-define 'USE_PARALLEL'\
 		--cpp-define 'USE_UNBOXED_ARRAYS'\
 		--cpp-define 'USE_UNIX'\
 		--cpp-define 'MOVE_NOTATION=S'\
 		--ignore 'Reduce duplication'\
-		src-exe/ +RTS -N -RTS || true
-	@$@	--cpp-define 'USE_PARALLEL'\
+		src-exe/ +RTS -N -RTS
+	@$@ -j 	--cpp-define 'USE_PARALLEL'\
 		--cpp-define 'USE_POLYPARSE=1'\
 		--cpp-define 'USE_SEARCH'\
 		--ignore 'Use tuple-section'\
 		src-test/ +RTS -N -RTS
 
-# Compile with various CPP-flags & run the test-suites.
+# Serially compile with various CPP-flags & run the test-suites.
 test:
-	@for FLAG in -narrownumbers -polyparse -hxtrelaxng narrownumbers -threaded unboxedarrays; do\
+	@for FLAG in -threaded -polyparse -newtypewrappers -hxtrelaxng narrownumbers unboxedarrays; do\
 		echo $${FLAG};\
 		stack '$@' --flag="$(PACKAGE_NAME):$${FLAG}" $(GHC_OPTIONS) || break;\
 	done
+
+# Compile with random CPP-flags & run the test-suites.
+randomTest:
+	@FLAGS=$$(shuf --echo -- hxtrelaxng -hxtrelaxng narrownumbers -narrownumbers newtypewrappers -newtypewrappers polyparse -polyparse threaded -threaded unboxedarrays -unboxedarrays | head --lines=3 | sed -e 's/\(.*\)/--flag=$(PACKAGE_NAME):\1/');\
+	echo $$FLAGS;\
+	stack test $${FLAGS} $(GHC_OPTIONS)
 
 # Profile.
 prof:
