@@ -27,7 +27,7 @@
 	* Each reason corresponds to a rule in chess.
 -}
 
-module BishBosh.Model.GameTerminationReason(
+module BishBosh.Rule.GameTerminationReason(
 -- * Types
 -- ** Data-types
 	GameTerminationReason(),
@@ -47,17 +47,17 @@ module BishBosh.Model.GameTerminationReason(
 ) where
 
 import qualified	BishBosh.Attribute.LogicalColour	as Attribute.LogicalColour
-import qualified	BishBosh.Model.DrawReason		as Model.DrawReason
-import qualified	BishBosh.Model.Result			as Model.Result
 import qualified	BishBosh.Property.FixedMembership	as Property.FixedMembership
 import qualified	BishBosh.Property.Opposable		as Property.Opposable
+import qualified	BishBosh.Rule.DrawReason		as Rule.DrawReason
+import qualified	BishBosh.Rule.Result			as Rule.Result
 import qualified	Control.DeepSeq
 
 -- | The sum-type of ways in which a game can legally be terminated.
 data GameTerminationReason
 	= CheckMateOf Attribute.LogicalColour.LogicalColour	-- ^ The /logical colour/ of the /check-mated/ player.
 	| ResignationBy Attribute.LogicalColour.LogicalColour	-- ^ The /logical colour/ of the player who resigned.
-	| Draw Model.DrawReason.DrawReason
+	| Draw Rule.DrawReason.DrawReason
 	deriving (Eq, Ord, Read, Show)
 
 instance Control.DeepSeq.NFData GameTerminationReason where
@@ -74,8 +74,8 @@ instance Property.FixedMembership.FixedMembership GameTerminationReason where
 	members	= map CheckMateOf Property.FixedMembership.members ++ map ResignationBy Property.FixedMembership.members ++ map Draw Property.FixedMembership.members
 
 -- | Convert to a /result/.
-toResult :: GameTerminationReason -> Model.Result.Result
-toResult	= Property.Opposable.getOpposite . Model.Result.mkResult . \case
+toResult :: GameTerminationReason -> Rule.Result.Result
+toResult	= Property.Opposable.getOpposite . Rule.Result.mkResult . \case
 	CheckMateOf logicalColour	-> Just logicalColour
 	ResignationBy logicalColour	-> Just logicalColour
 	Draw _				-> Nothing
@@ -89,7 +89,7 @@ mkResignation :: Attribute.LogicalColour.LogicalColour -> GameTerminationReason
 mkResignation	= ResignationBy
 
 -- | Constructor.
-mkDraw :: Model.DrawReason.DrawReason -> GameTerminationReason
+mkDraw :: Rule.DrawReason.DrawReason -> GameTerminationReason
 mkDraw	= Draw
 
 -- | Whether the game was won by the specified player.
@@ -114,11 +114,11 @@ isDraw _	= False
 
 -- | Predicate.
 isDrawByInsufficientMaterial :: GameTerminationReason -> Bool
-isDrawByInsufficientMaterial (Draw draw)	= draw == Model.DrawReason.insufficientMaterial
+isDrawByInsufficientMaterial (Draw draw)	= draw == Rule.DrawReason.insufficientMaterial
 isDrawByInsufficientMaterial _			= False
 
 -- | Predicate.
 isStaleMate :: GameTerminationReason -> Bool
-isStaleMate (Draw draw)	= draw == Model.DrawReason.staleMate
+isStaleMate (Draw draw)	= draw == Rule.DrawReason.staleMate
 isStaleMate _		= False
 

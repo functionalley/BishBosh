@@ -54,11 +54,11 @@ import qualified	BishBosh.Component.Turn				as Component.Turn
 import qualified	BishBosh.Component.Zobrist			as Component.Zobrist
 import qualified	BishBosh.ContextualNotation.QualifiedMoveForest	as ContextualNotation.QualifiedMoveForest
 import qualified	BishBosh.Model.Game				as Model.Game
-import qualified	BishBosh.Model.Result				as Model.Result
 import qualified	BishBosh.Property.Reflectable			as Property.Reflectable
+import qualified	BishBosh.Rule.Result				as Rule.Result
 import qualified	BishBosh.State.Board				as State.Board
-import qualified	BishBosh.Types					as T
 import qualified	BishBosh.Type.Count				as Type.Count
+import qualified	BishBosh.Types					as T
 import qualified	Control.Arrow
 import qualified	Control.Exception
 import qualified	Data.Array.IArray
@@ -355,7 +355,7 @@ maybeRandomlySelectOnymousQualifiedMove randomGen matchSwitches game positionHas
 						then id
 						else negate
 				) 1 {-victory-}
-			) . Model.Result.findMaybeVictor . snd {-result-}	-- Score the result, according to which side we'd like to win.
+			) . Rule.Result.findMaybeVictor . snd {-result-}	-- Score the result, according to which side we'd like to win.
 		) . snd {-[OnymousResult]-}
 	 ) onymousQualifiedMoves
 

@@ -69,12 +69,12 @@ import qualified	BishBosh.Input.SearchOptions					as Input.SearchOptions
 import qualified	BishBosh.Input.StandardOpeningOptions				as Input.StandardOpeningOptions
 import qualified	BishBosh.Input.UIOptions					as Input.UIOptions
 import qualified	BishBosh.Model.Game						as Model.Game
-import qualified	BishBosh.Model.GameTerminationReason				as Model.GameTerminationReason
 import qualified	BishBosh.Notation.MoveNotation					as Notation.MoveNotation
 import qualified	BishBosh.Property.ExtendedPositionDescription			as Property.ExtendedPositionDescription
 import qualified	BishBosh.Property.ForsythEdwards				as Property.ForsythEdwards
 import qualified	BishBosh.Property.ShowFloat					as Property.ShowFloat
 import qualified	BishBosh.Property.Switchable					as Property.Switchable
+import qualified	BishBosh.Rule.GameTerminationReason				as Rule.GameTerminationReason
 import qualified	BishBosh.Search.Search						as Search.Search
 import qualified	BishBosh.Search.SearchState					as Search.SearchState
 import qualified	BishBosh.State.ApplicationTerminationReason			as State.ApplicationTerminationReason
@@ -1307,7 +1307,7 @@ takeTurns positionHashQualifiedMoveTree randomGen playState	= do
 				 )
 		 ) (
 			\gameTerminationReason -> do
-				putStrLn . shows (Model.GameTerminationReason.toResult gameTerminationReason) . showString " {" $ shows gameTerminationReason "}"	-- Send the result to the GUI.
+				putStrLn . shows (Rule.GameTerminationReason.toResult gameTerminationReason) . showString " {" $ shows gameTerminationReason "}"	-- Send the result to the GUI.
 
 				let
 					criterionValueStatistics	= State.PlayState.calculateCriterionValueStatistics playState'

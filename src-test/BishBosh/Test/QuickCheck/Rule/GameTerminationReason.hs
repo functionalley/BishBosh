@@ -23,25 +23,25 @@
  [@DESCRIPTION@]	Implements 'Test.QuickCheck.Arbitrary' & defines /QuickCheck/-properties.
 -}
 
-module BishBosh.Test.QuickCheck.Model.GameTerminationReason(
+module BishBosh.Test.QuickCheck.Rule.GameTerminationReason(
 -- * Constants
 	results
 ) where
 
 import			Control.Arrow((&&&))
-import qualified	BishBosh.Model.GameTerminationReason	as Model.GameTerminationReason
 import qualified	BishBosh.Property.FixedMembership	as Property.FixedMembership
 import qualified	BishBosh.Property.Opposable		as Property.Opposable
+import qualified	BishBosh.Rule.GameTerminationReason	as Rule.GameTerminationReason
 import qualified	Test.QuickCheck
 
-instance Test.QuickCheck.Arbitrary Model.GameTerminationReason.GameTerminationReason where
+instance Test.QuickCheck.Arbitrary Rule.GameTerminationReason.GameTerminationReason where
 	arbitrary	= Test.QuickCheck.elements Property.FixedMembership.members
 
 -- | The constant test-results for this data-type.
 results :: IO [Test.QuickCheck.Result]
 results	= sequence [
 	let
-		f :: Model.GameTerminationReason.GameTerminationReason -> Test.QuickCheck.Property
+		f :: Rule.GameTerminationReason.GameTerminationReason -> Test.QuickCheck.Property
 		f	= Test.QuickCheck.label "GameTerminationReason.prop_getOpposite" . uncurry (==) . (Property.Opposable.getOpposite . Property.Opposable.getOpposite &&& id)
 	in Test.QuickCheck.quickCheckWithResult Test.QuickCheck.stdArgs { Test.QuickCheck.maxSuccess = 8 } f
  ]

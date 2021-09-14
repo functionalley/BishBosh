@@ -51,11 +51,11 @@ import qualified	BishBosh.Input.Options			as Input.Options
 import qualified	BishBosh.Input.SearchOptions		as Input.SearchOptions
 import qualified	BishBosh.Input.UIOptions		as Input.UIOptions
 import qualified	BishBosh.Input.Verbosity		as Input.Verbosity
-import qualified	BishBosh.Model.GameTerminationReason	as Model.GameTerminationReason
 import qualified	BishBosh.Notation.MoveNotation		as Notation.MoveNotation
 import qualified	BishBosh.Property.Opposable		as Property.Opposable
 import qualified	BishBosh.Property.SelfValidating	as Property.SelfValidating
 import qualified	BishBosh.Property.Switchable		as Property.Switchable
+import qualified	BishBosh.Rule.GameTerminationReason	as Rule.GameTerminationReason
 import qualified	BishBosh.Text.ShowList			as Text.ShowList
 import qualified	BishBosh.Time.GameClock			as Time.GameClock
 import qualified	BishBosh.Type.Count			as Type.Count
@@ -117,7 +117,7 @@ readMove
 	-> Type.Count.NSeconds				-- ^ Read-timout.
 	-> Attribute.LogicalColour.LogicalColour	-- ^ Whose turn it is.
 	-> System.IO.Handle				-- ^ Output handle from which data should be read.
-	-> IO (Either Model.GameTerminationReason.GameTerminationReason (MoveNotation T.X T.Y))
+	-> IO (Either Rule.GameTerminationReason.GameTerminationReason (MoveNotation T.X T.Y))
 readMove verbosity readTimeout logicalColour stdOut = do
 	Control.Monad.when (verbosity == maxBound) . IO.Logger.printInfo . showString "Waiting for " $ shows logicalColour "."
 
@@ -146,7 +146,7 @@ copyMove
 	-> Attribute.LogicalColour.LogicalColour	-- ^ Whose turn it is.
 	-> System.IO.Handle				-- ^ Output handle from which move should be read.
 	-> System.IO.Handle				-- ^ Input handle to which move should be forwarded.
-	-> IO (Maybe Model.GameTerminationReason.GameTerminationReason)
+	-> IO (Maybe Rule.GameTerminationReason.GameTerminationReason)
 copyMove verbosity readTimeout logicalColour stdOut stdIn = do
 	readMove verbosity readTimeout logicalColour stdOut >>= return {-to IO-monad-} . Just ||| (
 		\move	-> do
@@ -166,7 +166,7 @@ play
 	-> IOHandles
 	-> IOHandles
 	-> gameClock
-	-> IO (Model.GameTerminationReason.GameTerminationReason, gameClock)
+	-> IO (Rule.GameTerminationReason.GameTerminationReason, gameClock)
 play verbosity readTimeout	= slave maxBound	where
 	slave logicalColour producer@(_, stdOut) consumer@(stdIn', stdOut') gameClock	= copyMove verbosity readTimeout logicalColour stdOut stdIn' >>= Data.Maybe.maybe (
 		do
@@ -195,9 +195,9 @@ purge handle	= do
 {- |
 	* Accumulates the frequency of each game-termination reason
 
-	* N.B.: the recorded result is merely a string, though it could be read into a 'BishBosh.Model.GameTerminationReason'.
+	* N.B.: the recorded result is merely a string, though it could be read into a 'BishBosh.Rule.GameTerminationReason'.
 -}
-type GameTerminationReasonsMap	= Data.Map.Strict.Map Model.GameTerminationReason.GameTerminationReason Type.Count.NGames
+type GameTerminationReasonsMap	= Data.Map.Strict.Map Rule.GameTerminationReason.GameTerminationReason Type.Count.NGames
 
 {- |
 	* Constructs a game-clock.

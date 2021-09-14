@@ -26,7 +26,7 @@
 	* Each reason corresponds to a rule in chess.
 -}
 
-module BishBosh.Model.DrawReason(
+module BishBosh.Rule.DrawReason(
 -- * Types
 -- ** Data-types
 	DrawReason(),

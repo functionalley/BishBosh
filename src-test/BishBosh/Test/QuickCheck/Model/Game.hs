@@ -41,21 +41,21 @@ import qualified	BishBosh.Component.Move				as Component.Move
 import qualified	BishBosh.Component.Piece			as Component.Piece
 import qualified	BishBosh.Component.QualifiedMove		as Component.QualifiedMove
 import qualified	BishBosh.Component.Turn				as Component.Turn
-import qualified	BishBosh.Model.DrawReason			as Model.DrawReason
 import qualified	BishBosh.Model.Game				as Model.Game
 import qualified	BishBosh.Property.FixedMembership		as Property.FixedMembership
 import qualified	BishBosh.Property.ForsythEdwards		as Property.ForsythEdwards
 import qualified	BishBosh.Property.Null				as Property.Null
 import qualified	BishBosh.Property.Opposable			as Property.Opposable
 import qualified	BishBosh.Property.Reflectable			as Property.Reflectable
+import qualified	BishBosh.Rule.DrawReason			as Rule.DrawReason
 import qualified	BishBosh.State.Board				as State.Board
 import qualified	BishBosh.State.CastleableRooksByLogicalColour	as State.CastleableRooksByLogicalColour
 import qualified	BishBosh.State.CoordinatesByRankByLogicalColour	as State.CoordinatesByRankByLogicalColour
 import qualified	BishBosh.State.MaybePieceByCoordinates		as State.MaybePieceByCoordinates
 import qualified	BishBosh.StateProperty.Seeker			as StateProperty.Seeker
 import qualified	BishBosh.State.TurnsByLogicalColour		as State.TurnsByLogicalColour
-import qualified	BishBosh.Types					as T
 import qualified	BishBosh.Type.Count				as Type.Count
+import qualified	BishBosh.Types					as T
 import qualified	Data.Array.IArray
 import qualified	Data.Default
 import qualified	Data.Foldable
@@ -119,7 +119,7 @@ results	= sequence [
 	let
 		f :: Game -> Test.QuickCheck.Property
 		f game	= Test.QuickCheck.label "Game.prop_fen/Half move clock" $ uncurry (&&) . (
-			(>= 0) &&& (<= Model.DrawReason.maximumConsecutiveRepeatablePlies)
+			(>= 0) &&& (<= Rule.DrawReason.maximumConsecutiveRepeatablePlies)
 		 ) . fromInteger . read . (
 			!! 4	-- Half-move Clock.
 		 ) . words $ Property.ForsythEdwards.showFEN game

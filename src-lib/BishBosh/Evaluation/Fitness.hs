@@ -65,8 +65,8 @@ import qualified	BishBosh.Component.Turn					as Component.Turn
 import qualified	BishBosh.Input.CriteriaWeights				as Input.CriteriaWeights
 import qualified	BishBosh.Input.EvaluationOptions			as Input.EvaluationOptions
 import qualified	BishBosh.Model.Game					as Model.Game
-import qualified	BishBosh.Model.GameTerminationReason			as Model.GameTerminationReason
 import qualified	BishBosh.Property.Opposable				as Property.Opposable
+import qualified	BishBosh.Rule.GameTerminationReason			as Rule.GameTerminationReason
 import qualified	BishBosh.State.Board					as State.Board
 import qualified	BishBosh.State.CastleableRooksByLogicalColour		as State.CastleableRooksByLogicalColour
 import qualified	BishBosh.Type.Count					as Type.Count
@@ -382,7 +382,7 @@ evaluateFitness :: (
 {-# SPECIALISE evaluateFitness :: Maybe Type.Mass.PieceSquareValue -> Model.Game.Game T.X T.Y -> Input.EvaluationOptions.Reader Type.Mass.CriterionWeight Type.Mass.PieceSquareValue Type.Mass.RankValue T.X T.Y (Attribute.WeightedMeanAndCriterionValues.WeightedMeanAndCriterionValues Type.Mass.WeightedMean Type.Mass.CriterionValue) #-}
 evaluateFitness maybePieceSquareValue game
 	| Just gameTerminationReason <- Model.Game.getMaybeTerminationReason game	= return {-to Reader-monad-} $ Attribute.WeightedMeanAndCriterionValues.mkWeightedMeanAndCriterionValues (
-		if Model.GameTerminationReason.isCheckMate gameTerminationReason
+		if Rule.GameTerminationReason.isCheckMate gameTerminationReason
 			then 1	-- The last player to move, has won.
 			else 0	-- A draw.
 	) []

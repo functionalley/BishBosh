@@ -48,13 +48,13 @@ import qualified	BishBosh.Test.QuickCheck.Input.EvaluationOptions				as Test.Qui
 import qualified	BishBosh.Test.QuickCheck.Input.Options						as Test.QuickCheck.Input.Options
 import qualified	BishBosh.Test.QuickCheck.Input.PieceSquareTable					as Test.QuickCheck.Input.PieceSquareTable
 import qualified	BishBosh.Test.QuickCheck.Model.Game						as Test.QuickCheck.Model.Game
-import qualified	BishBosh.Test.QuickCheck.Model.GameTerminationReason				as Test.QuickCheck.Model.GameTerminationReason
 import qualified	BishBosh.Test.QuickCheck.Model.GameTree						as Test.QuickCheck.Model.GameTree
 import qualified	BishBosh.Test.QuickCheck.Model.MoveFrequency					as Test.QuickCheck.Model.MoveFrequency
-import qualified	BishBosh.Test.QuickCheck.Model.Result						as Test.QuickCheck.Model.Result
 import qualified	BishBosh.Test.QuickCheck.Notation.ICCFNumeric					as Test.QuickCheck.Notation.ICCFNumeric
 import qualified	BishBosh.Test.QuickCheck.Notation.PureCoordinate				as Test.QuickCheck.Notation.PureCoordinate
 import qualified	BishBosh.Test.QuickCheck.Notation.Smith						as Test.QuickCheck.Notation.Smith
+import qualified	BishBosh.Test.QuickCheck.Rule.GameTerminationReason				as Test.QuickCheck.Rule.GameTerminationReason
+import qualified	BishBosh.Test.QuickCheck.Rule.Result						as Test.QuickCheck.Rule.Result
 import qualified	BishBosh.Test.QuickCheck.Search.KillerMoves					as Test.QuickCheck.Search.KillerMoves
 -- import qualified	BishBosh.Test.QuickCheck.Search.Search						as Test.QuickCheck.Search.Search
 import qualified	BishBosh.Test.QuickCheck.State.Board						as Test.QuickCheck.State.Board
@@ -93,11 +93,11 @@ main	= mapM_ (
 	Test.QuickCheck.Component.Move.results,
 	Test.QuickCheck.Component.QualifiedMove.results,
 	Test.QuickCheck.Component.Turn.results,
+	Test.QuickCheck.Rule.GameTerminationReason.results,
+	Test.QuickCheck.Rule.Result.results,
 	Test.QuickCheck.Notation.ICCFNumeric.results,
 	Test.QuickCheck.Notation.PureCoordinate.results,
 	Test.QuickCheck.Notation.Smith.results,
-	Test.QuickCheck.Model.GameTerminationReason.results,
-	Test.QuickCheck.Model.Result.results,
 	Test.QuickCheck.State.CastleableRooksByLogicalColour.results,
 	Test.QuickCheck.State.Position.results,
 	Test.QuickCheck.State.InstancesByPosition.results,

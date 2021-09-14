@@ -23,7 +23,7 @@
  [@DESCRIPTION@]	Defines the result of a /game/.
 -}
 
-module BishBosh.Model.Result(
+module BishBosh.Rule.Result(
 -- * Types
 -- ** Data-types
 	Result(
@@ -51,8 +51,8 @@ data Result
 	deriving Eq
 
 instance Control.DeepSeq.NFData Result where
-	rnf (VictoryBy logicalColour)		= Control.DeepSeq.rnf logicalColour
-	rnf Draw				= ()
+	rnf (VictoryBy logicalColour)	= Control.DeepSeq.rnf logicalColour
+	rnf Draw			= ()
 
 -- | Convert a game-termination reason into PGN's @Result@ field; <https://www.chessclub.com/help/pgn-spec>.
 instance Show Result where

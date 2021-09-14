@@ -174,13 +174,10 @@ Library
         BishBosh.Input.StandardOpeningOptions
         BishBosh.Input.UIOptions
         BishBosh.Input.Verbosity
-        BishBosh.Model.DrawReason
         BishBosh.Model.Game
-        BishBosh.Model.GameTerminationReason
         BishBosh.Model.GameTree
         BishBosh.Model.MoveFrequency
         BishBosh.Model.PositionHashTree
-        BishBosh.Model.Result
         BishBosh.Notation.ICCFNumeric
         BishBosh.Notation.MoveNotation
         BishBosh.Notation.PureCoordinate
@@ -198,6 +195,9 @@ Library
         BishBosh.Property.SelfValidating
         BishBosh.Property.ShowFloat
         BishBosh.Property.Switchable
+        BishBosh.Rule.DrawReason
+        BishBosh.Rule.GameTerminationReason
+        BishBosh.Rule.Result
         BishBosh.Search.AlphaBeta
         BishBosh.Search.DynamicMoveData
         BishBosh.Search.EphemeralData
@@ -224,9 +224,9 @@ Library
         BishBosh.Text.ShowPrefix
         BishBosh.Time.GameClock
         BishBosh.Time.StopWatch
-        BishBosh.Types
         BishBosh.Type.Count
         BishBosh.Type.Mass
+        BishBosh.Types
         BishBosh.UI.Command
         BishBosh.UI.PrintObject
         BishBosh.UI.ReportObject
@@ -490,16 +490,16 @@ Test-Suite quickcheck-tests
         BishBosh.Test.QuickCheck.Input.StandardOpeningOptions
         BishBosh.Test.QuickCheck.Input.UIOptions
         BishBosh.Test.QuickCheck.Input.Verbosity
-        BishBosh.Test.QuickCheck.Model.DrawReason
         BishBosh.Test.QuickCheck.Model.Game
-        BishBosh.Test.QuickCheck.Model.GameTerminationReason
         BishBosh.Test.QuickCheck.Model.GameTree
         BishBosh.Test.QuickCheck.Model.MoveFrequency
-        BishBosh.Test.QuickCheck.Model.Result
         BishBosh.Test.QuickCheck.Notation.ICCFNumeric
         BishBosh.Test.QuickCheck.Notation.MoveNotation
         BishBosh.Test.QuickCheck.Notation.PureCoordinate
         BishBosh.Test.QuickCheck.Notation.Smith
+        BishBosh.Test.QuickCheck.Rule.DrawReason
+        BishBosh.Test.QuickCheck.Rule.GameTerminationReason
+        BishBosh.Test.QuickCheck.Rule.Result
         BishBosh.Test.QuickCheck.Search.KillerMoves
         BishBosh.Test.QuickCheck.Search.Search
         BishBosh.Test.QuickCheck.Search.SearchState

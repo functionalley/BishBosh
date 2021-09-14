@@ -79,13 +79,13 @@ import qualified	BishBosh.ContextualNotation.PGNComment		as ContextualNotation.P
 import qualified	BishBosh.ContextualNotation.StandardAlgebraic	as ContextualNotation.StandardAlgebraic
 import qualified	BishBosh.Data.Exception				as Data.Exception
 import qualified	BishBosh.Model.Game				as Model.Game
-import qualified	BishBosh.Model.GameTerminationReason		as Model.GameTerminationReason
-import qualified	BishBosh.Model.Result				as Model.Result
 import qualified	BishBosh.Property.FixedMembership		as Property.FixedMembership
+import qualified	BishBosh.Rule.GameTerminationReason		as Rule.GameTerminationReason
+import qualified	BishBosh.Rule.Result				as Rule.Result
 import qualified	BishBosh.State.TurnsByLogicalColour		as State.TurnsByLogicalColour
 import qualified	BishBosh.Text.ShowList				as Text.ShowList
-import qualified	BishBosh.Types					as T
 import qualified	BishBosh.Type.Count				as Type.Count
+import qualified	BishBosh.Types					as T
 import qualified	Control.Applicative
 import qualified	Control.Arrow
 import qualified	Control.DeepSeq
@@ -243,7 +243,7 @@ instance (
 		), (
 			blackPlayerNameTag,	representUnknownTagValue maybeBlackPlayerName
 		), (
-			resultTag,		quote . Data.Maybe.maybe (showChar inProgressFlag) (shows . Model.GameTerminationReason.toResult) $ Model.Game.getMaybeTerminationReason game
+			resultTag,		quote . Data.Maybe.maybe (showChar inProgressFlag) (shows . Rule.GameTerminationReason.toResult) $ Model.Game.getMaybeTerminationReason game
 		)
 	 ] ++ map (
 		Control.Arrow.second $ quote . showString
@@ -380,7 +380,7 @@ showsMoveText game	= foldr (.) (
 		(
 			\(s, showsPGN) -> showsBlockComment s . showChar ' ' . showsPGN
 		) . (
-			filter (/= ContextualNotation.PGNComment.blockCommentEnd) . show &&& shows . Model.GameTerminationReason.toResult
+			filter (/= ContextualNotation.PGNComment.blockCommentEnd) . show &&& shows . Rule.GameTerminationReason.toResult
 		)
 	) $ Model.Game.getMaybeTerminationReason game
  ) $ Data.List.unfoldr (
@@ -469,7 +469,7 @@ moveNumberParser	= Parsec.try $ Control.Applicative.many ContextualNotation.PGNC
 -- | Parse an optional result.
 maybeResultParser ::
 #ifdef USE_POLYPARSE
-	Text.Poly.TextParser (Maybe Model.Result.Result)
+	Text.Poly.TextParser (Maybe Rule.Result.Result)
 maybeResultParser	= Control.Applicative.many ContextualNotation.PGNComment.blockCommentParser >> Text.Poly.spaces >> Poly.oneOf' [
 	(
 		"Result",
@@ -482,7 +482,7 @@ maybeResultParser	= Control.Applicative.many ContextualNotation.PGNComment.block
 	)
  ]
 #else /* Parsec */
-	Parsec.Parser (Maybe Model.Result.Result)
+	Parsec.Parser (Maybe Rule.Result.Result)
 maybeResultParser	= Control.Applicative.many ContextualNotation.PGNComment.blockCommentParser >> Parsec.spaces >> (
 	Parsec.try (
 		Parsec.choice $ map (

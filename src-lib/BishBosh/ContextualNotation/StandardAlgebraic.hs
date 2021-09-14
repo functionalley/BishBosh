@@ -69,9 +69,9 @@ import qualified	BishBosh.Component.QualifiedMove	as Component.QualifiedMove
 import qualified	BishBosh.Component.Turn			as Component.Turn
 import qualified	BishBosh.Data.Exception			as Data.Exception
 import qualified	BishBosh.Model.Game			as Model.Game
-import qualified	BishBosh.Model.GameTerminationReason	as Model.GameTerminationReason
 import qualified	BishBosh.Notation.PureCoordinate	as Notation.PureCoordinate
 import qualified	BishBosh.Property.ForsythEdwards	as Property.ForsythEdwards
+import qualified	BishBosh.Rule.GameTerminationReason	as Rule.GameTerminationReason
 import qualified	BishBosh.State.Board			as State.Board
 import qualified	BishBosh.State.MaybePieceByCoordinates	as State.MaybePieceByCoordinates
 import qualified	BishBosh.Text.ShowList			as Text.ShowList
@@ -200,7 +200,7 @@ showsTurn explicitEnPassant turn game
 				 ) . showsDestination
 	) . (
 		if Data.Maybe.isJust $ Model.Game.getMaybeChecked game'
-			then showChar $ if Data.Maybe.maybe False Model.GameTerminationReason.isCheckMate $ Model.Game.getMaybeTerminationReason game'
+			then showChar $ if Data.Maybe.maybe False Rule.GameTerminationReason.isCheckMate $ Model.Game.getMaybeTerminationReason game'
 				then checkMateFlag
 				else checkFlag
 			else id

@@ -102,3 +102,5 @@ New Module				| Purpose
 ### Duel:
 	* Added a command-line option **--verifyConfiguration**, to request that the mutual compatibility of the two configuration-files be verified before forwarding each to a forked instance of **bishbosh**.
 
+### BishBosh:
+	* Created a new directory **Rule/** to which **Model.[DrawReason, GameTerminationReason, Result]** were relocated.

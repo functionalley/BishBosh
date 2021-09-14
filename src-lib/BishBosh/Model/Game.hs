@@ -103,9 +103,6 @@ import qualified	BishBosh.Component.QualifiedMove		as Component.QualifiedMove
 import qualified	BishBosh.Component.Turn				as Component.Turn
 import qualified	BishBosh.Component.Zobrist			as Component.Zobrist
 import qualified	BishBosh.Data.Exception				as Data.Exception
-import qualified	BishBosh.Model.DrawReason			as Model.DrawReason
-import qualified	BishBosh.Model.GameTerminationReason		as Model.GameTerminationReason
-import qualified	BishBosh.Model.Result				as Model.Result
 import qualified	BishBosh.Notation.MoveNotation			as Notation.MoveNotation
 import qualified	BishBosh.Notation.PureCoordinate		as Notation.PureCoordinate
 import qualified	BishBosh.Property.Empty				as Property.Empty
@@ -116,6 +113,9 @@ import qualified	BishBosh.Property.Null				as Property.Null
 import qualified	BishBosh.Property.Opposable			as Property.Opposable
 import qualified	BishBosh.Property.Orientated			as Property.Orientated
 import qualified	BishBosh.Property.Reflectable			as Property.Reflectable
+import qualified	BishBosh.Rule.DrawReason			as Rule.DrawReason
+import qualified	BishBosh.Rule.GameTerminationReason		as Rule.GameTerminationReason
+import qualified	BishBosh.Rule.Result				as Rule.Result
 import qualified	BishBosh.State.Board				as State.Board
 import qualified	BishBosh.State.CastleableRooksByLogicalColour	as State.CastleableRooksByLogicalColour
 import qualified	BishBosh.State.CoordinatesByRankByLogicalColour	as State.CoordinatesByRankByLogicalColour
@@ -128,8 +128,8 @@ import qualified	BishBosh.StateProperty.Mutator			as StateProperty.Mutator
 import qualified	BishBosh.StateProperty.Seeker			as StateProperty.Seeker
 import qualified	BishBosh.State.TurnsByLogicalColour		as State.TurnsByLogicalColour
 import qualified	BishBosh.Text.ShowList				as Text.ShowList
-import qualified	BishBosh.Types					as T
 import qualified	BishBosh.Type.Count				as Type.Count
+import qualified	BishBosh.Types					as T
 import qualified	Control.Arrow
 import qualified	Control.DeepSeq
 import qualified	Control.Exception
@@ -190,7 +190,7 @@ data Game x y	= MkGame {
 	getMaybeChecked					:: Maybe Attribute.LogicalColour.LogicalColour,					-- ^ The player (if any), whose currently /checked/; which will typically be 'getNextLogicalColour', but 'listQualifiedMovesAvailableTo' can be called for either player.
 	getInstancesByPosition				:: InstancesByPosition x y,							-- ^ The number of instances of various positions since the last unrepeatable move.
 	getAvailableQualifiedMovesByLogicalColour	:: AvailableQualifiedMovesByLogicalColour x y,					-- ^ The /move/s available to each player. Since this is merely required for efficiency, it needn't have an entry for both players; & typically doesn't when checked, since radical pruning would otherwise be required. CAVEAT: doesn't account for game-termination.
-	getMaybeTerminationReason			:: Maybe Model.GameTerminationReason.GameTerminationReason			-- ^ The reason (where appropriate) why the game was terminated.
+	getMaybeTerminationReason			:: Maybe Rule.GameTerminationReason.GameTerminationReason			-- ^ The reason (where appropriate) why the game was terminated.
 }
 
 instance (
@@ -1414,7 +1414,7 @@ resignationBy :: Attribute.LogicalColour.LogicalColour -> Transformation x y
 resignationBy logicalColour game
 	| isTerminated game	= game	-- Already terminated.
 	| otherwise		= game {
-		getMaybeTerminationReason	= Just $ Model.GameTerminationReason.mkResignation logicalColour
+		getMaybeTerminationReason	= Just $ Rule.GameTerminationReason.mkResignation logicalColour
 	}
 
 -- | Resignation by the player who currently holds the choice of /move/.
@@ -1426,7 +1426,7 @@ agreeToADraw :: Transformation x y
 agreeToADraw game
 	| isTerminated game	= game	-- Already terminated.
 	| otherwise		= game {
-		getMaybeTerminationReason	= Just $ Model.GameTerminationReason.mkDraw Model.DrawReason.byAgreement
+		getMaybeTerminationReason	= Just $ Rule.GameTerminationReason.mkDraw Rule.DrawReason.byAgreement
 	}
 
 -- | Whether the game has been terminated.
@@ -1445,31 +1445,31 @@ inferMaybeTerminationReason :: (
 	Ord	y,
 	Show	x,
 	Show	y
- ) => Game x y -> Maybe Model.GameTerminationReason.GameTerminationReason
-{-# SPECIALISE inferMaybeTerminationReason :: Game T.X T.Y -> Maybe Model.GameTerminationReason.GameTerminationReason #-}
+ ) => Game x y -> Maybe Rule.GameTerminationReason.GameTerminationReason
+{-# SPECIALISE inferMaybeTerminationReason :: Game T.X T.Y -> Maybe Rule.GameTerminationReason.GameTerminationReason #-}
 inferMaybeTerminationReason game@MkGame {
 	getBoard		= board,
 	getInstancesByPosition	= instancesByPosition
 }
 	| haveZeroMoves
-	, Just logicalColour <- getMaybeChecked game	= Just $ Model.GameTerminationReason.mkCheckMate logicalColour
-	| otherwise					= fmap Model.GameTerminationReason.mkDraw maybeDrawReason
+	, Just logicalColour <- getMaybeChecked game	= Just $ Rule.GameTerminationReason.mkCheckMate logicalColour
+	| otherwise					= fmap Rule.GameTerminationReason.mkDraw maybeDrawReason
 	where
 		haveZeroMoves :: Bool
 		haveZeroMoves	= null $ findQualifiedMovesAvailableToNextPlayer game
 
-		maybeDrawReason :: Maybe Model.DrawReason.DrawReason
+		maybeDrawReason :: Maybe Rule.DrawReason.DrawReason
 		maybeDrawReason
-			| haveZeroMoves																= Just Model.DrawReason.staleMate
-			| State.InstancesByPosition.anyInstancesByPosition (== Model.DrawReason.maximumConsecutiveRepeatablePositions) instancesByPosition	= Just Model.DrawReason.fiveFoldRepetition
-			| State.InstancesByPosition.countConsecutiveRepeatablePlies instancesByPosition == Model.DrawReason.maximumConsecutiveRepeatablePlies	= Just Model.DrawReason.seventyFiveMoveRule
-			| StateProperty.Censor.hasInsufficientMaterial $ State.Board.getCoordinatesByRankByLogicalColour board					= Just Model.DrawReason.insufficientMaterial
+			| haveZeroMoves																= Just Rule.DrawReason.staleMate
+			| State.InstancesByPosition.anyInstancesByPosition (== Rule.DrawReason.maximumConsecutiveRepeatablePositions) instancesByPosition	= Just Rule.DrawReason.fiveFoldRepetition
+			| State.InstancesByPosition.countConsecutiveRepeatablePlies instancesByPosition == Rule.DrawReason.maximumConsecutiveRepeatablePlies	= Just Rule.DrawReason.seventyFiveMoveRule
+			| StateProperty.Censor.hasInsufficientMaterial $ State.Board.getCoordinatesByRankByLogicalColour board					= Just Rule.DrawReason.insufficientMaterial
 			| otherwise																= Nothing
 
 -- | Provided that the game hasn't already terminated, update the termination-reason according to whether the specified result implies either a /draw by agreement/ or a /resignation/.
-updateTerminationReasonWith :: Model.Result.Result -> Transformation x y
+updateTerminationReasonWith :: Rule.Result.Result -> Transformation x y
 updateTerminationReasonWith result game
-	| Just victorsLogicalColour <- Model.Result.findMaybeVictor result	= resignationBy (Property.Opposable.getOpposite victorsLogicalColour) game
+	| Just victorsLogicalColour <- Rule.Result.findMaybeVictor result	= resignationBy (Property.Opposable.getOpposite victorsLogicalColour) game
 	| otherwise								= agreeToADraw game
 
 -- | Forwards request to "State.CastleableRooksByLogicalColour".

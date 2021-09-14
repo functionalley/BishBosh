@@ -43,11 +43,11 @@ import qualified	BishBosh.Component.Move				as Component.Move
 import qualified	BishBosh.Component.QualifiedMove		as Component.QualifiedMove
 import qualified	BishBosh.Data.Exception				as Data.Exception
 import qualified	BishBosh.Model.Game				as Model.Game
-import qualified	BishBosh.Model.GameTerminationReason		as Model.GameTerminationReason
 import qualified	BishBosh.Notation.MoveNotation			as Notation.MoveNotation
 import qualified	BishBosh.Notation.Smith				as Notation.Smith
 import qualified	BishBosh.Property.ExtendedPositionDescription	as Property.ExtendedPositionDescription
 import qualified	BishBosh.Property.ForsythEdwards		as Property.ForsythEdwards
+import qualified	BishBosh.Rule.GameTerminationReason		as Rule.GameTerminationReason
 import qualified	BishBosh.Test.HUnit.Cartesian.Coordinates	as Test.HUnit.Cartesian.Coordinates
 import qualified	BishBosh.Text.ShowList				as Text.ShowList
 import qualified	BishBosh.Types					as T
@@ -170,13 +170,13 @@ testCases	= Test.HUnit.test [
 		"a5a4",	-- Black: Queen's Rook's Pawn.
 		"b2b4"	-- White: Queen's Knight's Pawn.
 	],
-	Data.Maybe.maybe False Model.GameTerminationReason.isStaleMate (
+	Data.Maybe.maybe False Rule.GameTerminationReason.isStaleMate (
 		Model.Game.getMaybeTerminationReason (
 			Model.Game.fromBoard $ Property.ForsythEdwards.readFEN "rnbqk2r/pppppp2/8/8/8/7p/6np/6bK"	:: Game
 		)
 	) ~? "'BishBosh.Model.Game.getMaybeTerminationReason' failed to detect \"Stale-mate\".",
 	all (
-		\s -> Data.Maybe.maybe False Model.GameTerminationReason.isDrawByInsufficientMaterial $ Model.Game.getMaybeTerminationReason (
+		\s -> Data.Maybe.maybe False Rule.GameTerminationReason.isDrawByInsufficientMaterial $ Model.Game.getMaybeTerminationReason (
 			Model.Game.fromBoard $ Property.ForsythEdwards.readFEN s	:: Game
 		)
 	) [
@@ -185,7 +185,7 @@ testCases	= Test.HUnit.test [
 		"8/8/2KB4/8/7k/2B5/5b2/8"
 	] ~? "'BishBosh.Model.Game.getMaybeTerminationReason' failed to detect \"Draw by Insufficient Material\".",
 	all (
-		\s -> Data.Maybe.maybe True (not . Model.GameTerminationReason.isDrawByInsufficientMaterial) $ Model.Game.getMaybeTerminationReason (
+		\s -> Data.Maybe.maybe True (not . Rule.GameTerminationReason.isDrawByInsufficientMaterial) $ Model.Game.getMaybeTerminationReason (
 			Model.Game.fromBoard $ Property.ForsythEdwards.readFEN s	:: Game
 		)
 	) [
@@ -210,7 +210,7 @@ testCases	= Test.HUnit.test [
 	either (
 		\(moveString, s)	-> Control.Exception.throw . Data.Exception.mkInvalidDatum . showString "BishBosh.Test.HUnit.Model.Game.testCases:\t" . showString moveString . showString "; " $ showString s "."
 	) (
-		Data.Maybe.maybe False Model.GameTerminationReason.isDraw . Model.Game.getMaybeTerminationReason
+		Data.Maybe.maybe False Rule.GameTerminationReason.isDraw . Model.Game.getMaybeTerminationReason
 	) (
 		applyMoves . concat . replicate 4 $ words "g1f3 g8f6 f3g1 f6g8"
 	) ~? "'BishBosh.Model.Game./~' failed to account for Draw by Five-fold Repetition.",

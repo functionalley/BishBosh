@@ -23,12 +23,12 @@
  [@DESCRIPTION@]	Implements 'Test.QuickCheck.Arbitrary'.
 -}
 
-module BishBosh.Test.QuickCheck.Model.DrawReason() where
+module BishBosh.Test.QuickCheck.Rule.DrawReason() where
 
-import qualified	BishBosh.Model.DrawReason		as Model.DrawReason
 import qualified	BishBosh.Property.FixedMembership	as Property.FixedMembership
+import qualified	BishBosh.Rule.DrawReason		as Rule.DrawReason
 import qualified	Test.QuickCheck
 
-instance Test.QuickCheck.Arbitrary Model.DrawReason.DrawReason where
+instance Test.QuickCheck.Arbitrary Rule.DrawReason.DrawReason where
 	arbitrary	= Test.QuickCheck.elements Property.FixedMembership.members
 

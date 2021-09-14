@@ -50,23 +50,23 @@ module BishBosh.ContextualNotation.QualifiedMoveForest(
 
 import			Control.Applicative((<|>))
 import			Control.Arrow((&&&), (***))
-import qualified	BishBosh.Attribute.MoveType			as Attribute.MoveType
-import qualified	BishBosh.Component.QualifiedMove		as Component.QualifiedMove
-import qualified	BishBosh.Component.Turn				as Component.Turn
-import qualified	BishBosh.ContextualNotation.PGN			as ContextualNotation.PGN
-import qualified	BishBosh.ContextualNotation.PGNDatabase		as ContextualNotation.PGNDatabase
-import qualified	BishBosh.Data.RoseTree				as Data.RoseTree
-import qualified	BishBosh.Model.Game				as Model.Game
-import qualified	BishBosh.Model.GameTerminationReason		as Model.GameTerminationReason
-import qualified	BishBosh.Model.GameTree				as Model.GameTree
-import qualified	BishBosh.Model.Result				as Model.Result
-import qualified	BishBosh.Notation.MoveNotation			as Notation.MoveNotation
-import qualified	BishBosh.Property.Empty				as Property.Empty
-import qualified	BishBosh.Property.Null				as Property.Null
-import qualified	BishBosh.State.Board				as State.Board
-import qualified	BishBosh.Text.ShowList				as Text.ShowList
-import qualified	BishBosh.Types					as T
-import qualified	BishBosh.Type.Count				as Type.Count
+import qualified	BishBosh.Attribute.MoveType		as Attribute.MoveType
+import qualified	BishBosh.Component.QualifiedMove	as Component.QualifiedMove
+import qualified	BishBosh.Component.Turn			as Component.Turn
+import qualified	BishBosh.ContextualNotation.PGN		as ContextualNotation.PGN
+import qualified	BishBosh.ContextualNotation.PGNDatabase	as ContextualNotation.PGNDatabase
+import qualified	BishBosh.Data.RoseTree			as Data.RoseTree
+import qualified	BishBosh.Model.Game			as Model.Game
+import qualified	BishBosh.Model.GameTree			as Model.GameTree
+import qualified	BishBosh.Notation.MoveNotation		as Notation.MoveNotation
+import qualified	BishBosh.Property.Empty			as Property.Empty
+import qualified	BishBosh.Property.Null			as Property.Null
+import qualified	BishBosh.Rule.GameTerminationReason	as Rule.GameTerminationReason
+import qualified	BishBosh.Rule.Result			as Rule.Result
+import qualified	BishBosh.State.Board			as State.Board
+import qualified	BishBosh.Text.ShowList			as Text.ShowList
+import qualified	BishBosh.Type.Count			as Type.Count
+import qualified	BishBosh.Types				as T
 import qualified	Control.Arrow
 import qualified	Data.Default
 import qualified	Data.List
@@ -77,7 +77,7 @@ import qualified	Data.Tree
 type Name	= String
 
 -- | The name of a /game/, & it's /result/.
-type OnymousResult	= (Name, Model.Result.Result)
+type OnymousResult	= (Name, Rule.Result.Result)
 
 {- |
 	* Terminal nodes contain the unique name of the /move/-sequence leading to them, from which other information can be found as required, from the original database.
@@ -143,8 +143,8 @@ mergePGNDatabase
 mergePGNDatabase pgnDatabase MkQualifiedMoveForest { deconstruct = initialForest }	= MkQualifiedMoveForest $ foldr (
 	\pgn -> merge (
 		mkCompositeIdentifier &&& Data.Maybe.maybe (
-			Model.Result.mkResult Nothing	-- The game is still in progress.
-		) Model.GameTerminationReason.toResult . Model.Game.getMaybeTerminationReason . ContextualNotation.PGN.getGame $ pgn	-- Construct an onymous result.
+			Rule.Result.mkResult Nothing	-- The game is still in progress.
+		) Rule.GameTerminationReason.toResult . Model.Game.getMaybeTerminationReason . ContextualNotation.PGN.getGame $ pgn	-- Construct an onymous result.
 	) (
 		map Component.Turn.getQualifiedMove . Model.Game.listTurnsChronologically $ ContextualNotation.PGN.getGame pgn	-- Extract the list of qualified moves defining this game.
 	)
