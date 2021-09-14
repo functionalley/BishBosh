@@ -72,7 +72,7 @@ results	= sequence [
 	let
 		f :: QualifiedMoveForest -> Test.QuickCheck.Property
 		f qualifiedMoveForest	= not (Property.Null.isNull qualifiedMoveForest) ==> Test.QuickCheck.label "QualifiedMoveForest.prop_count" . uncurry (==) $ (
-			snd {-nMoves-} . ContextualNotation.QualifiedMoveForest.count &&& length . tail {-remove the apex-} . Data.Tree.flatten . Model.GameTree.deconstruct . ContextualNotation.QualifiedMoveForest.toGameTree
+			snd {-nPositions-} . ContextualNotation.QualifiedMoveForest.count &&& fromIntegral . length . tail {-remove the apex-} . Data.Tree.flatten . Model.GameTree.deconstruct . ContextualNotation.QualifiedMoveForest.toGameTree
 		 ) qualifiedMoveForest
 	in Test.QuickCheck.quickCheckWithResult Test.QuickCheck.stdArgs { Test.QuickCheck.maxSuccess = 256 } f
  ]

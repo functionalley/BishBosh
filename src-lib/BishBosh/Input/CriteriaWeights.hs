@@ -64,7 +64,7 @@ import qualified	BishBosh.Attribute.WeightedMeanAndCriterionValues	as Attribute.
 import qualified	BishBosh.Data.Exception					as Data.Exception
 import qualified	BishBosh.Property.ShowFloat				as Property.ShowFloat
 import qualified	BishBosh.Text.ShowList					as Text.ShowList
-import qualified	BishBosh.Types						as T
+import qualified	BishBosh.Type.Mass					as Type.Mass
 import qualified	Control.Arrow
 import qualified	Control.DeepSeq
 import qualified	Control.Exception
@@ -268,16 +268,16 @@ calculateWeightedMean :: (
 	-> Attribute.CriterionValue.CriterionValue criterionValue						-- ^ /passedPawns/:	maximum when this player has 8 /passed/ @Pawn@s & the opponent has none.
 	-> Attribute.WeightedMeanAndCriterionValues.WeightedMeanAndCriterionValues weightedMean criterionValue	-- ^ The individual /criteria/ values, & their /weighted mean/.
 {-# SPECIALISE calculateWeightedMean
-	:: CriteriaWeights T.CriterionWeight
-	-> Attribute.CriterionValue.CriterionValue T.CriterionValue
-	-> Attribute.CriterionValue.CriterionValue T.CriterionValue
-	-> Attribute.CriterionValue.CriterionValue T.CriterionValue
-	-> Attribute.CriterionValue.CriterionValue T.CriterionValue
-	-> Attribute.CriterionValue.CriterionValue T.CriterionValue
-	-> Attribute.CriterionValue.CriterionValue T.CriterionValue
-	-> Attribute.CriterionValue.CriterionValue T.CriterionValue
-	-> Attribute.CriterionValue.CriterionValue T.CriterionValue
-	-> Attribute.WeightedMeanAndCriterionValues.WeightedMeanAndCriterionValues T.WeightedMean T.CriterionValue
+	:: CriteriaWeights Type.Mass.CriterionWeight
+	-> Attribute.CriterionValue.CriterionValue Type.Mass.CriterionValue
+	-> Attribute.CriterionValue.CriterionValue Type.Mass.CriterionValue
+	-> Attribute.CriterionValue.CriterionValue Type.Mass.CriterionValue
+	-> Attribute.CriterionValue.CriterionValue Type.Mass.CriterionValue
+	-> Attribute.CriterionValue.CriterionValue Type.Mass.CriterionValue
+	-> Attribute.CriterionValue.CriterionValue Type.Mass.CriterionValue
+	-> Attribute.CriterionValue.CriterionValue Type.Mass.CriterionValue
+	-> Attribute.CriterionValue.CriterionValue Type.Mass.CriterionValue
+	-> Attribute.WeightedMeanAndCriterionValues.WeightedMeanAndCriterionValues Type.Mass.WeightedMean Type.Mass.CriterionValue
  #-}
 calculateWeightedMean MkCriteriaWeights {
 	getWeightOfMaterial		= weightOfMaterial,

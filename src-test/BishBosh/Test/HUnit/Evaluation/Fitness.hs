@@ -46,14 +46,14 @@ import qualified	BishBosh.StateProperty.Seeker		as StateProperty.Seeker
 import qualified	BishBosh.Test.HUnit.Model.Game		as Test.HUnit.Model.Game
 import qualified	BishBosh.Test.HUnit.State.Board		as Test.HUnit.State.Board
 import qualified	BishBosh.Text.ShowList			as Text.ShowList
-import qualified	BishBosh.Types				as T
+import qualified	BishBosh.Type.Mass			as Type.Mass
 import qualified	Control.Exception
 import qualified	Data.Default
 import qualified	Test.HUnit
 import			Test.HUnit((~:), (~?=))
 
 -- | A suitable concrete type.
-type CriterionValue	= Attribute.CriterionValue.CriterionValue T.CriterionValue
+type CriterionValue	= Attribute.CriterionValue.CriterionValue Type.Mass.CriterionValue
 
 -- | Check the sanity of the implementation, by validating a list of static test-cases.
 testCases :: Test.HUnit.Test
@@ -154,21 +154,28 @@ testCases	= Test.HUnit.test [
 			Data.Default.def	:: Test.HUnit.State.Board.Board
 		)
 	) ~?= Attribute.CriterionValue.mkCriterionValue (
-		19 / fromIntegral Evaluation.Fitness.maximumDefended	:: T.CriterionValue
+		19 / fromIntegral Evaluation.Fitness.maximumDefended	:: Type.Mass.CriterionValue
 	),
 	"'BishBosh.Evaluation.Fitness.measureValueOfDefence' failed after Pawn-advance." ~: case Notation.MoveNotation.readsQualifiedMove Data.Default.def "g2g3" {-advance King's Knight's Pawn-} of
 		[(eitherQualifiedMove, "")]	-> Evaluation.Fitness.measureValueOfDefence (
 			Model.Game.applyEitherQualifiedMove eitherQualifiedMove (
 				Data.Default.def	:: Test.HUnit.Model.Game.Game
 			)
-		 ) ~?= Attribute.CriterionValue.mkCriterionValue (recip $ fromIntegral Evaluation.Fitness.maximumDefended :: T.CriterionValue)
+		 ) ~?= Attribute.CriterionValue.mkCriterionValue (recip $ fromIntegral Evaluation.Fitness.maximumDefended :: Type.Mass.CriterionValue)
 		_				-> Control.Exception.throw $ Data.Exception.mkParseFailure "BishBosh.Test.HUnit.Evaluation.Fitness.testCases:\tfailed to parse move.",
 	"'BishBosh.Evaluation.Fitness.measureValueOfDefence' failed after Pawn advance & Knight move." ~: (
 		\(moveString, errorMessage)	-> Control.Exception.throw . Data.Exception.mkInvalidDatum . showString "BishBosh.Test.HUnit.Evaluation.Fitness.testCases:\tfailed for " . showString Component.Move.tag . Text.ShowList.showsAssociation . shows moveString . showString "; " $ showString errorMessage "."
 	) ||| (
-		\game -> Evaluation.Fitness.measureValueOfDefence game ~?= Attribute.CriterionValue.mkCriterionValue (3 / fromIntegral Evaluation.Fitness.maximumDefended :: T.CriterionValue)
+		\game -> Evaluation.Fitness.measureValueOfDefence game ~?= Attribute.CriterionValue.mkCriterionValue (3 / fromIntegral Evaluation.Fitness.maximumDefended :: Type.Mass.CriterionValue)
 	) $ Test.HUnit.Model.Game.applyMoves [
 		"g2g3",	-- Advance King's Knight's Pawn.
 		"b8c6"	-- Advance Queen's Knight.
-	]
+	],
+	"'BishBosh.Evaluation.Fitness.measureValueOfDefence' failed." ~: Evaluation.Fitness.measureValueOfDefence (
+		Model.Game.fromBoard (
+			read "k7/8/2p5/8/4RQQB/4QQQN/4NQQK/4BQQR"	:: Test.HUnit.State.Board.Board
+		)
+	) ~?= (
+		minBound	:: CriterionValue	-- White is the next player.
+	)
  ]

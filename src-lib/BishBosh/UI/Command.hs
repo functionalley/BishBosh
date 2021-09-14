@@ -51,11 +51,11 @@ module BishBosh.UI.Command (
 	autoComplete
  ) where
 
-import qualified	BishBosh.Component.Move		as Component.Move
 import qualified	BishBosh.Data.List
 import qualified	BishBosh.Input.Options		as Input.Options
 import qualified	BishBosh.Input.SearchOptions	as Input.SearchOptions
 import qualified	BishBosh.Text.AutoComplete	as Text.AutoComplete
+import qualified	BishBosh.Type.Count		as Type.Count
 import qualified	BishBosh.UI.PrintObject		as UI.PrintObject
 import qualified	BishBosh.UI.ReportObject	as UI.ReportObject
 import qualified	BishBosh.UI.SetObject		as UI.SetObject
@@ -136,7 +136,7 @@ data Command x y
 	| Report UI.ReportObject.ReportObject		-- ^ Report on the requested dynamic data.
 	| Resign					-- ^ Admit defeat.
 	| Restart					-- ^ Abandon the current game, & start afresh.
-	| RollBack (Maybe Component.Move.NPlies)	-- ^ Roll-back the optionally specified number of plies.
+	| RollBack (Maybe Type.Count.NPlies)		-- ^ Roll-back the optionally specified number of plies.
 	| Save						-- ^ Persist the current game-state.
 	| Set UI.SetObject.SetObject			-- ^ I.E. mutate a configuration-value.
 	| Swap						-- ^ Swap options between the two sides; which causes the players to swap sides.
@@ -234,9 +234,9 @@ readsCommand s	= case Control.Arrow.first Data.List.Extra.lower `map` lex s of
 	[("rollback", s')]	-> case Data.List.Extra.trimStart s' of
 		[]	-> Right (RollBack Nothing, s')
 		s''	-> case reads s'' of
-			[(nMoves, s''')]
-				| nMoves <= 0	-> Left . showString "the specified number of plies (" $ shows nMoves ") must exceed zero"
-				| otherwise	-> Right (RollBack (Just nMoves), s''')
+			[(nPlies, s''')]
+				| nPlies <= 0	-> Left . showString "the specified number of plies (" $ shows nPlies ") must exceed zero"
+				| otherwise	-> Right (RollBack (Just $ fromInteger nPlies), s''')
 			_			-> Left . showString "failed to read the integral number of plies to " . showString rollBackTag . showString " from " $ show s''
 	[("swap", s')]		-> Right (Swap, s')
 	(command, _) : _	-> Left . showString "failed to read a command from " . shows s . showString "; did you mean " . show . BishBosh.Data.List.findClosest command $ map (\(tag, _, _) -> tag) commands

@@ -41,6 +41,7 @@ import qualified	BishBosh.Property.SelfValidating	as Property.SelfValidating
 import qualified	BishBosh.Property.Switchable		as Property.Switchable
 import qualified	BishBosh.Text.ShowList			as Text.ShowList
 import qualified	BishBosh.Time.StopWatch			as Time.StopWatch
+import qualified	BishBosh.Type.Count			as Type.Count
 import qualified	Control.Exception
 import qualified	Data.Array.IArray
 import qualified	Data.Default
@@ -78,7 +79,7 @@ instance Property.SelfValidating.SelfValidating GameClock where
 	 ]
 
 -- | Show the elapsed times.
-showsElapsedTimes :: Property.ShowFloat.NDecimalDigits -> GameClock -> IO ShowS
+showsElapsedTimes :: Type.Count.NDecimalDigits -> GameClock -> IO ShowS
 showsElapsedTimes nDecimalDigits	= fmap (
 	Text.ShowList.showsAssociationList' . map (
 		show *** Property.ShowFloat.showsFloatToN nDecimalDigits

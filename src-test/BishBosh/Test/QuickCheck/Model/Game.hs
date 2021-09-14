@@ -55,6 +55,7 @@ import qualified	BishBosh.State.MaybePieceByCoordinates		as State.MaybePieceByCo
 import qualified	BishBosh.StateProperty.Seeker			as StateProperty.Seeker
 import qualified	BishBosh.State.TurnsByLogicalColour		as State.TurnsByLogicalColour
 import qualified	BishBosh.Types					as T
+import qualified	BishBosh.Type.Count				as Type.Count
 import qualified	Data.Array.IArray
 import qualified	Data.Default
 import qualified	Data.Foldable
@@ -119,15 +120,15 @@ results	= sequence [
 		f :: Game -> Test.QuickCheck.Property
 		f game	= Test.QuickCheck.label "Game.prop_fen/Half move clock" $ uncurry (&&) . (
 			(>= 0) &&& (<= Model.DrawReason.maximumConsecutiveRepeatablePlies)
-		 ) . read . (
+		 ) . fromInteger . read . (
 			!! 4	-- Half-move Clock.
 		 ) . words $ Property.ForsythEdwards.showFEN game
 	in Test.QuickCheck.quickCheckWithResult Test.QuickCheck.stdArgs { Test.QuickCheck.maxSuccess = 256 } f,
 	let
 		f :: Game -> Test.QuickCheck.Property
 		f game	= Test.QuickCheck.label "Game.prop_fen/Full move counter" $ (
-			> (0 :: Component.Move.NMoves)
-		 ) . read . (
+			> (0 :: Type.Count.NMoves)
+		 ) . fromInteger . read . (
 			!! 5	-- Full Move Counter.
 		 ) . words $ Property.ForsythEdwards.showFEN game
 	in Test.QuickCheck.quickCheckWithResult Test.QuickCheck.stdArgs { Test.QuickCheck.maxSuccess = 256 } f,
@@ -208,11 +209,11 @@ results	= sequence [
 	in Test.QuickCheck.quickCheckWithResult Test.QuickCheck.stdArgs { Test.QuickCheck.maxSuccess = 4096 } f,
 	let
 		f :: Game -> Test.QuickCheck.Property
-		f game	= Test.QuickCheck.label "Game.prop_(findQualifiedMovesAvailableTo => countMovesAvailableTo)" $ all (
-			\logicalColour -> Model.Game.countMovesAvailableTo logicalColour game == (
+		f game	= Test.QuickCheck.label "Game.prop_(findQualifiedMovesAvailableTo => countPliesAvailableTo)" $ all (
+			\logicalColour -> Model.Game.countPliesAvailableTo logicalColour game == (
 				if Model.Game.isTerminated game
 					then 0
-					else length $ Model.Game.findQualifiedMovesAvailableTo logicalColour game
+					else fromIntegral . length $ Model.Game.findQualifiedMovesAvailableTo logicalColour game
 			)
 		 ) Property.FixedMembership.members
 	in Test.QuickCheck.quickCheckWithResult Test.QuickCheck.stdArgs { Test.QuickCheck.maxSuccess = 256 } f,
@@ -237,8 +238,8 @@ results	= sequence [
 	let
 		f :: Game -> Test.QuickCheck.Property
 		f game	= Test.QuickCheck.label "Game.prop_(getCoordinatesByRankByLogicalColour => getNPawnsByFileByLogicalColour)" . all (
-			\(logicalColour, nPawnsByFile) -> Data.Foldable.sum nPawnsByFile == length (
-				State.CoordinatesByRankByLogicalColour.dereference logicalColour Attribute.Rank.Pawn $ State.Board.getCoordinatesByRankByLogicalColour board
+			\(logicalColour, nPawnsByFile) -> Data.Foldable.sum nPawnsByFile == fromIntegral (
+				length . State.CoordinatesByRankByLogicalColour.dereference logicalColour Attribute.Rank.Pawn $ State.Board.getCoordinatesByRankByLogicalColour board
 			)
 		 ) . Data.Array.IArray.assocs $ State.Board.getNPawnsByFileByLogicalColour board where
 			board	= Model.Game.getBoard game

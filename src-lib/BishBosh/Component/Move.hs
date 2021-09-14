@@ -25,8 +25,6 @@
 module BishBosh.Component.Move(
 -- * Types
 -- ** Type-synonyms
-	NMoves,
-	NPlies,
 	Move(
 --		MkMove,
 		getSource,
@@ -51,6 +49,7 @@ import qualified	BishBosh.Property.Opposable		as Property.Opposable
 import qualified	BishBosh.Property.Orientated		as Property.Orientated
 import qualified	BishBosh.Property.Reflectable		as Property.Reflectable
 import qualified	BishBosh.Types				as T
+import qualified	BishBosh.Type.Count			as Type.Count
 import qualified	Control.Arrow
 import qualified	Control.DeepSeq
 import qualified	Control.Exception
@@ -60,14 +59,8 @@ import qualified	Data.Ord
 tag :: String
 tag	= "move"
 
--- | A number of moves.
-type NMoves	= Int
-
--- | A number of half-moves into a /game/.
-type NPlies	= NMoves
-
 -- | The constant number of plies per move.
-nPliesPerMove :: NPlies
+nPliesPerMove :: Type.Count.NPlies
 nPliesPerMove	= 2
 
 {- |

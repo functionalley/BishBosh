@@ -50,7 +50,7 @@ results	= sequence [
 	let
 		f
 			:: Input.SearchOptions.SearchOptions
-			-> Input.SearchOptions.SearchDepth
+			-> Int	-- ^ Search-depth.
 			-> Test.QuickCheck.Search.SearchState.SearchState
 			-> Test.QuickCheck.Property
 		f searchOptions searchDepth searchState	= searchOptions /= Data.Default.def && not (
@@ -65,7 +65,7 @@ results	= sequence [
 
 			}
 
-			getQuantifiedGames	= Search.Search.getQuantifiedGames . Control.Monad.Reader.runReader (Search.Search.search (Input.SearchOptions.minimumSearchDepth + mod searchDepth 3) searchState)
+			getQuantifiedGames	= Search.Search.getQuantifiedGames . Control.Monad.Reader.runReader (Search.Search.search (Input.SearchOptions.minimumSearchDepth + fromIntegral (searchDepth `mod` 3)) searchState)
 	in Test.QuickCheck.quickCheckWithResult Test.QuickCheck.stdArgs { Test.QuickCheck.maxSuccess = 128 } f
  ]
 

@@ -41,13 +41,12 @@ module BishBosh.Search.AlphaBeta(
 --	updateTranspositions,
 	negaMax,
 --	negateFitnessOfResult,
---	addNMovesToResult
+--	addNPositionsToResult
  ) where
 
 import			BishBosh.Model.Game((=~))
 import			Control.Applicative((<|>))
 import			Control.Arrow((&&&))
-import qualified	BishBosh.Component.Move					as Component.Move
 import qualified	BishBosh.Component.QualifiedMove			as Component.QualifiedMove
 import qualified	BishBosh.Component.Turn					as Component.Turn
 import qualified	BishBosh.Data.Exception					as Data.Exception
@@ -64,6 +63,8 @@ import qualified	BishBosh.Search.Transpositions				as Search.Transpositions
 import qualified	BishBosh.Search.TranspositionValue			as Search.TranspositionValue
 import qualified	BishBosh.State.InstancesByPosition			as State.InstancesByPosition
 import qualified	BishBosh.State.TurnsByLogicalColour			as State.TurnsByLogicalColour
+import qualified	BishBosh.Type.Count					as Type.Count
+import qualified	BishBosh.Type.Mass					as Type.Mass
 import qualified	BishBosh.Types						as T
 import qualified	Control.Exception
 import qualified	Control.Monad.Reader
@@ -75,26 +76,26 @@ import qualified	Data.Tree
 data Result x y positionHash criterionValue weightedMean	= MkResult {
 	getDynamicMoveData	:: Search.DynamicMoveData.DynamicMoveData x y positionHash,	-- ^ Killer moves & transpositions.
 	getQuantifiedGame	:: Evaluation.QuantifiedGame.QuantifiedGame x y criterionValue weightedMean,
-	getNPliesEvaluated	:: Component.Move.NPlies					-- ^ The total number of nodes analysed, before making the selection.
+	getNPositionsEvaluated	:: Type.Count.NPositions					-- ^ The total number of nodes analysed, before making the selection.
 }
 
 {- |
-	* Drop the specified number of /turn/s; typically those made before starting the search.
+	* Drop the specified number of plies; typically those made before starting the search.
 
 	* CAVEAT: abandons the fitness component of the quantified game.
 -}
 extractSelectedTurns
-	:: Component.Move.NPlies
+	:: Type.Count.NPlies
 	-> Result x y positionHash criterionValue weightedMean
-	-> (Search.DynamicMoveData.DynamicMoveData x y positionHash, [Component.Turn.Turn x y], Component.Move.NPlies)
+	-> (Search.DynamicMoveData.DynamicMoveData x y positionHash, [Component.Turn.Turn x y], Type.Count.NPositions)
 extractSelectedTurns nPlies MkResult {
 	getDynamicMoveData	= dynamicMoveData,
 	getQuantifiedGame	= quantifiedGame,
-	getNPliesEvaluated	= nPliesEvaluated
+	getNPositionsEvaluated	= nPositionsEvaluated
 } = (
 	dynamicMoveData,
 	Evaluation.QuantifiedGame.getLatestTurns nPlies quantifiedGame,
-	nPliesEvaluated
+	nPositionsEvaluated
  )
 
 -- | Record the last move as a killer, unless it's a capture move.
@@ -135,7 +136,7 @@ findTranspositionTerminalQuantifiedGame :: (
 	-> Evaluation.QuantifiedGame.QuantifiedGame x y criterionValue weightedMean
 findTranspositionTerminalQuantifiedGame positionHashQuantifiedGameTree transpositionValue	= Data.Maybe.maybe (
 	Control.Exception.throw . Data.Exception.mkSearchFailure . showString "BishBosh.Search.AlphaBeta.findTranspositionTerminalQuantifiedGame:\tEvaluation.PositionHashQuantifiedGameTree.traceMatchingMoves failed; " . shows transpositionValue . showString ":\n" $ (
-		Notation.MoveNotation.showsNotationFloatToNDecimals Data.Default.def {-move-notation-} 3 {-decimal digits-} $ Property.Arboreal.prune inferredSearchDepth positionHashQuantifiedGameTree
+		Notation.MoveNotation.showsNotationFloatToNDecimals Data.Default.def {-move-notation-} 3 {-decimal digits-} $ Property.Arboreal.prune (fromIntegral inferredSearchDepth) positionHashQuantifiedGameTree
 	 ) ""
  ) (
 	(
@@ -158,7 +159,7 @@ updateTranspositions :: (
 	Show	y
  )
 	=> Search.TranspositionValue.IsOptimal
-	-> Component.Move.NPlies
+	-> Type.Count.NPlies
 	-> positionHash
 	-> [Component.Turn.Turn x y]
 	-> Evaluation.PositionHashQuantifiedGameTree.PositionHashQuantifiedGameTree x y positionHash criterionValue weightedMean
@@ -185,10 +186,10 @@ negaMax :: (
 	Show	x,
 	Show	y
  )
-	=> Input.SearchOptions.SearchDepth	-- ^ The depth to which the tree should be searched; i.e. the number of plies to look-ahead.
+	=> Type.Count.NPlies	-- ^ The depth to which the tree should be searched; i.e. the number of plies to look-ahead.
 	-> Search.SearchState.SearchState x y positionHash criterionValue weightedMean
 	-> Input.SearchOptions.Reader (Result x y positionHash criterionValue weightedMean)
-{-# SPECIALISE negaMax :: Input.SearchOptions.SearchDepth -> Search.SearchState.SearchState T.X T.Y T.PositionHash T.CriterionValue T.WeightedMean -> Input.SearchOptions.Reader (Result T.X T.Y T.PositionHash T.CriterionValue T.WeightedMean) #-}
+{-# SPECIALISE negaMax :: Type.Count.NPlies -> Search.SearchState.SearchState T.X T.Y T.PositionHash Type.Mass.CriterionValue Type.Mass.WeightedMean -> Input.SearchOptions.Reader (Result T.X T.Y T.PositionHash Type.Mass.CriterionValue Type.Mass.WeightedMean) #-}
 negaMax initialSearchDepth initialSearchState	= do
 	maybeMinimumTranspositionSearchDepth	<- Control.Monad.Reader.asks Input.SearchOptions.maybeMinimumTranspositionSearchDepth
 	recordKillerMoves			<- Control.Monad.Reader.asks Input.SearchOptions.recordKillerMoves
@@ -199,7 +200,7 @@ negaMax initialSearchDepth initialSearchState	= do
 {-
 		descend
 			:: Evaluation.QuantifiedGame.OpenInterval x y criterionValue weightedMean
-			-> Input.SearchOptions.SearchDepth
+			-> Type.Count.NPlies
 			-> Search.SearchState.SearchState x y positionHash criterionValue weightedMean
 			-> Result x y positionHash criterionValue weightedMean
 -}
@@ -207,7 +208,7 @@ negaMax initialSearchDepth initialSearchState	= do
 			| searchDepth == 0 || Model.Game.isTerminated game	= MkResult {
 				getDynamicMoveData	= dynamicMoveData,
 				getQuantifiedGame	= Evaluation.QuantifiedGame.negateFitness quantifiedGame,	-- CAVEAT: zero new moves have been applied, so the last move was the opponent's.
-				getNPliesEvaluated	= 1								-- Fitness-negation requires evaluation.
+				getNPositionsEvaluated	= 1								-- Fitness-negation requires evaluation.
 			} -- Terminate the recursion.
 			| useTranspositions
 			, Just transpositionValue	<- Search.Transpositions.find positionHash $ Search.DynamicMoveData.getTranspositions dynamicMoveData	-- Look for a previously encountered position with a matching positionHash.
@@ -225,7 +226,7 @@ negaMax initialSearchDepth initialSearchState	= do
 					then MkResult {
 						getDynamicMoveData	= dynamicMoveData,
 						getQuantifiedGame	= Control.Exception.assert (transposedQuantifiedGame == getQuantifiedGame selectMaxUsingTranspositions) transposedQuantifiedGame,
-						getNPliesEvaluated	= 0
+						getNPositionsEvaluated	= 0
 					}
 					else Data.Maybe.maybe selectMaxUsingTranspositions (
 						\betaQuantifiedGame -> if Evaluation.QuantifiedGame.compareFitness transposedQuantifiedGame betaQuantifiedGame == LT
@@ -233,7 +234,7 @@ negaMax initialSearchDepth initialSearchState	= do
 							else MkResult {
 								getDynamicMoveData	= dynamicMoveData,
 								getQuantifiedGame	= Control.Exception.assert (betaQuantifiedGame == getQuantifiedGame selectMaxUsingTranspositions) betaQuantifiedGame,
-								getNPliesEvaluated	= 0
+								getNPositionsEvaluated	= 0
 							}
 					) maybeBetaQuantifiedGame
 			| otherwise	= selectMaxWithSorter id
@@ -265,7 +266,7 @@ negaMax initialSearchDepth initialSearchState	= do
 -}
 				selectMax dynamicMoveData' maybeAlphaQuantifiedGame' (node : remainingNodes)
 					| trapRepeatedPositions
-					, nDistinctPositions >= State.InstancesByPosition.leastCyclicPlies	-- CAVEAT: accounting for the typically (except when its the initial position) unrepeatable first distinct position.
+					, nDistinctPositions >= fromIntegral State.InstancesByPosition.leastCyclicPlies	-- CAVEAT: accounting for the typically (except when its the initial position) unrepeatable first distinct position.
 					, State.InstancesByPosition.getNDistinctPositions (
 						Model.Game.getInstancesByPosition . Evaluation.QuantifiedGame.getGame $ Evaluation.PositionHashQuantifiedGameTree.getRootQuantifiedGame' node	-- If the size hasn't increased, then the recently added position must have already been a member; (size == 1) during successive unrepeatable moves also, but that exception is caught above.
 					) == nDistinctPositions	= selectMax dynamicMoveData' (
@@ -285,8 +286,8 @@ negaMax initialSearchDepth initialSearchState	= do
 						) dynamicMoveData'',
 						getQuantifiedGame	= betaQuantifiedGame
 					} -- Beta-cutoff; the solution-space is either zero or negative.
-					| otherwise	= addNMovesToResult (
-						getNPliesEvaluated result''
+					| otherwise	= addNPositionsToResult (
+						getNPositionsEvaluated result''
 					) $ let
 						isFitter	= Data.Maybe.maybe True {-alpha is undefined => anything qualifies-} (
 							\alphaQuantifiedGame -> case quantifiedGame'' `Evaluation.QuantifiedGame.compareFitness` alphaQuantifiedGame of
@@ -327,7 +328,7 @@ negaMax initialSearchDepth initialSearchState	= do
 							Control.Exception.throw . Data.Exception.mkResultUndefined . showString "BishBosh.Search.AlphaBeta.negaMax.descend.selectMax:\tthere are zero nodes to process, but neither alpha nor beta is defined; " $ shows game "."
 						) maybeBetaQuantifiedGame	-- Return the only viable position known.
 					) maybeAlphaQuantifiedGame',	-- Return the fittest viable position found.
-					getNPliesEvaluated	= 0
+					getNPositionsEvaluated	= 0
 				} -- Zero moves remain => terminate the recursion.
 	return {-to Reader-monad-} . (
 		\result@MkResult {
@@ -355,8 +356,8 @@ negateFitnessOfResult result@MkResult { getQuantifiedGame = quantifiedGame }	= r
 }
 
 -- | Mutator.
-addNMovesToResult :: Component.Move.NPlies -> Transformation x y positionHash criterionValue weightedMean
-addNMovesToResult nPlies result@MkResult { getNPliesEvaluated = nPliesEvaluated }	= Control.Exception.assert (nPlies > 0) result {
-	getNPliesEvaluated	= nPlies + nPliesEvaluated
+addNPositionsToResult :: Type.Count.NPositions -> Transformation x y positionHash criterionValue weightedMean
+addNPositionsToResult nPositions result@MkResult { getNPositionsEvaluated = nPositionsEvaluated }	= Control.Exception.assert (nPositions > 0) result {
+	getNPositionsEvaluated	= nPositions + nPositionsEvaluated
 }
 

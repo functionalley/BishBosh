@@ -46,7 +46,7 @@ results	= sequence [
 		 ) == State.TurnsByLogicalColour.getNPlies (
 			Model.Game.getTurnsByLogicalColour . Data.Tree.rootLabel $ Model.GameTree.deconstruct gameTree
 		 ) + pred {-the apex is counted in 'getNPlies'-} (
-			Data.Foldable.length $ Model.GameTree.deconstruct gameTree
+			fromIntegral . Data.Foldable.length $ Model.GameTree.deconstruct gameTree
 		 )
 	in Test.QuickCheck.quickCheckWithResult Test.QuickCheck.stdArgs { Test.QuickCheck.maxSuccess = 16 } f
  ]

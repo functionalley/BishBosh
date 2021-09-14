@@ -47,7 +47,7 @@ module BishBosh.Attribute.CriterionValue(
 import			Control.Arrow((&&&))
 import qualified	BishBosh.Attribute.CriterionWeight			as Attribute.CriterionWeight
 import qualified	BishBosh.Attribute.WeightedMeanAndCriterionValues	as Attribute.WeightedMeanAndCriterionValues
-import qualified	BishBosh.Types						as T
+import qualified	BishBosh.Type.Mass					as Type.Mass
 import qualified	Control.Exception
 import qualified	Factory.Math.Statistics
 
@@ -91,7 +91,7 @@ calculateWeightedMean :: (
 	Real			criterionWeight
  ) => [(CriterionValue criterionValue, Attribute.CriterionWeight.CriterionWeight criterionWeight)] -> Attribute.WeightedMeanAndCriterionValues.WeightedMeanAndCriterionValues weightedMean criterionValue
 {-# INLINABLE calculateWeightedMean #-}
-{-# SPECIALISE calculateWeightedMean :: [(CriterionValue T.CriterionValue, Attribute.CriterionWeight.CriterionWeight T.CriterionWeight)] -> Attribute.WeightedMeanAndCriterionValues.WeightedMeanAndCriterionValues T.WeightedMean T.CriterionValue #-}
+{-# SPECIALISE calculateWeightedMean :: [(CriterionValue Type.Mass.CriterionValue, Attribute.CriterionWeight.CriterionWeight Type.Mass.CriterionWeight)] -> Attribute.WeightedMeanAndCriterionValues.WeightedMeanAndCriterionValues Type.Mass.WeightedMean Type.Mass.CriterionValue #-}
 calculateWeightedMean assocs	= uncurry Attribute.WeightedMeanAndCriterionValues.mkWeightedMeanAndCriterionValues $ (
 	Factory.Math.Statistics.getWeightedMean &&& map fst
  )

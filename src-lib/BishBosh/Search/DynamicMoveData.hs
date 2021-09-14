@@ -51,6 +51,7 @@ import qualified	BishBosh.Property.Empty			as Property.Empty
 import qualified	BishBosh.Search.EphemeralData		as Search.EphemeralData
 import qualified	BishBosh.Search.KillerMoves		as Search.KillerMoves
 import qualified	BishBosh.Search.Transpositions		as Search.Transpositions
+import qualified	BishBosh.Type.Count			as Type.Count
 import qualified	Data.Maybe
 
 {- |
@@ -99,6 +100,6 @@ instance Search.EphemeralData.MaybeEphemeralData (DynamicMoveData x y positionHa
 			Search.EphemeralData.euthanise . reduceNPlies
 		) maybeRetireTranspositionsAfter transpositions
 	} where
-		reduceNPlies :: Component.Move.NMoves -> Component.Move.NPlies
-		reduceNPlies	= (`subtract` nPlies) . (* 2) {-convert full moves to plies-}
+		reduceNPlies :: Type.Count.NMoves -> Type.Count.NPlies
+		reduceNPlies	= (`subtract` nPlies) . (* Component.Move.nPliesPerMove) . fromIntegral
 

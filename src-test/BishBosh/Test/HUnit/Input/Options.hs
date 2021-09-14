@@ -32,6 +32,7 @@ import			BishBosh.Data.Float()	-- HXT.XmlPickler.
 import			Control.Category((>>>))
 import qualified	BishBosh.Data.Exception	as Data.Exception
 import qualified	BishBosh.Input.Options	as Input.Options
+import qualified	BishBosh.Type.Mass	as Type.Mass
 import qualified	BishBosh.Types		as T
 import qualified	Control.Exception
 import qualified	Data.List
@@ -85,7 +86,7 @@ testCases	= Test.HUnit.test [
 				(== Just (head optionsList)) (
 					(HXT.unpickleDoc HXT.xpickle . HXT.pickleDoc HXT.xpickle) =<< Data.Maybe.listToMaybe (
 						optionsList :: [
-							Input.Options.Options T.Y {-column-} T.CriterionWeight T.PieceSquareValue T.RankValue T.X {-row-} T.X T.Y
+							Input.Options.Options T.Y {-column-} Type.Mass.CriterionWeight Type.Mass.PieceSquareValue Type.Mass.RankValue T.X {-row-} T.X T.Y
 						]
 					)
 				 ) @? "Input.Options.pickler failed."

@@ -80,20 +80,20 @@ main	= do
 				G.ReqArg (
 					Just . (,) flag . Just &&& Input.CommandLineOption.mkOptionsMutator . Data.Options.setNDecimalDigits . Input.CommandLineOption.readBoundedIntegral
 				) $ mkTypeSpecification "Int"
-			) "define the precision with which to display floating-point numbers.",
+			) . showString "define the precision with which to display floating-point numbers; default " $ shows (Data.Options.getNDecimalDigits Data.Default.def) ".",
 			let
 				flag	= "nGames"
 			in G.Option "n"	[flag] (
 				G.ReqArg (
 					Just . (,) flag . Just &&& Input.CommandLineOption.mkOptionsMutator . Data.Options.setNGames . Input.CommandLineOption.readBoundedIntegral
 				) $ mkTypeSpecification "Int"
-			) "define the number of games to play.",
+			) . showString "define the number of games to play; default " $ shows (Data.Options.getNGames Data.Default.def) ".",
 			let
 				flag	= "readTimeout"
 			in G.Option "t"	[flag] (
 				G.ReqArg (
 					Just . (,) flag . Just &&& Input.CommandLineOption.mkOptionsMutator . Data.Options.setReadTimeout . Input.CommandLineOption.readBoundedIntegral
-				) $ mkTypeSpecification "s"
+				) $ mkTypeSpecification "Seconds"
 			) . showString "define the read-timeout; default " $ shows (Data.Options.getReadTimeout Data.Default.def) " s.",
 			let
 				flag	= "verifyConfiguration"

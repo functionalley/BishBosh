@@ -32,7 +32,6 @@
 module BishBosh.Model.Game(
 -- * Types
 -- ** Type-synonyms
-	NGames,
 --	InstancesByPosition,
 --	AvailableQualifiedMoves,
 --	AvailableQualifiedMovesByLogicalColour,
@@ -51,7 +50,7 @@ module BishBosh.Model.Game(
 	),
 -- * Functions
 --	inferMaybeTerminationReason,
-	countMovesAvailableTo,
+	countPliesAvailableTo,
 	rollBack,
 --	listMaybePromotionRanks,
 --	listQualifiedMovesAvailableTo,
@@ -130,6 +129,7 @@ import qualified	BishBosh.StateProperty.Seeker			as StateProperty.Seeker
 import qualified	BishBosh.State.TurnsByLogicalColour		as State.TurnsByLogicalColour
 import qualified	BishBosh.Text.ShowList				as Text.ShowList
 import qualified	BishBosh.Types					as T
+import qualified	BishBosh.Type.Count				as Type.Count
 import qualified	Control.Arrow
 import qualified	Control.DeepSeq
 import qualified	Control.Exception
@@ -146,9 +146,6 @@ import qualified	Data.Ord
 import qualified	ToolShed.Data.List
 
 infix 4 =~, /~	-- Same as (==) & (/=).
-
--- | A number of games.
-type NGames	= Int
 
 {- |
 	* Focus the polymorphic key-type used by 'State.InstancesByPosition.InstancesByPosition'.
@@ -1382,23 +1379,23 @@ findQualifiedMovesAvailableTo logicalColour game@MkGame { getAvailableQualifiedM
 	] -- List-comprehension.
 	| otherwise	= listQualifiedMovesAvailableTo logicalColour game	-- Generate the list of moves for this player.
 
--- | Count the number of moves (plies) available to the specified player.
-countMovesAvailableTo :: (
+-- | Count the number of plies available to the specified player.
+countPliesAvailableTo :: (
 	Enum	x,
 	Enum	y,
 	Ord	x,
 	Ord	y,
 	Show	x,
 	Show	y
- ) => Attribute.LogicalColour.LogicalColour -> Game x y -> Component.Move.NPlies
-{-# SPECIALISE countMovesAvailableTo :: Attribute.LogicalColour.LogicalColour -> Game T.X T.Y -> Component.Move.NPlies #-}
-countMovesAvailableTo logicalColour game@MkGame { getAvailableQualifiedMovesByLogicalColour = availableQualifiedMovesByLogicalColour }
+ ) => Attribute.LogicalColour.LogicalColour -> Game x y -> Type.Count.NPlies
+{-# SPECIALISE countPliesAvailableTo :: Attribute.LogicalColour.LogicalColour -> Game T.X T.Y -> Type.Count.NPlies #-}
+countPliesAvailableTo logicalColour game@MkGame { getAvailableQualifiedMovesByLogicalColour = availableQualifiedMovesByLogicalColour }
 	| isTerminated game	= 0
 	| Just availableQualifiedMoves	<- Data.Map.lookup logicalColour availableQualifiedMovesByLogicalColour	-- N.B.: 'findQualifiedMovesAvailableToNextPlayer' unnecessarily constructs a list.
 --	= length $ Data.Foldable.concat availableQualifiedMoves			-- CAVEAT: terrible performance.
 --	= Data.Map.foldl' (flip $ (+) . length) 0 availableQualifiedMoves	-- CAVEAT: poor performance.
-	= Data.Map.Strict.foldl' (\acc -> (+ acc) . length) 0 availableQualifiedMoves
-	| otherwise	= length $ listQualifiedMovesAvailableTo logicalColour game
+	= fromIntegral $ Data.Map.Strict.foldl' (\acc -> (+ acc) . length) 0 availableQualifiedMoves
+	| otherwise	= fromIntegral . length $ listQualifiedMovesAvailableTo logicalColour game
 
 -- | Retrieve the recorded value, or generate the list of /move/s available to the next player.
 findQualifiedMovesAvailableToNextPlayer :: (

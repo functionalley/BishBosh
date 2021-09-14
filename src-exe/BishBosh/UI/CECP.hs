@@ -83,6 +83,8 @@ import qualified	BishBosh.State.PlayState					as State.PlayState
 import qualified	BishBosh.Text.ShowList						as Text.ShowList
 import qualified	BishBosh.Text.ShowPrefix					as Text.ShowPrefix
 import qualified	BishBosh.Time.StopWatch						as Time.StopWatch
+import qualified	BishBosh.Type.Count						as Type.Count
+import qualified	BishBosh.Type.Mass						as Type.Mass
 import qualified	BishBosh.Types							as T
 import qualified	BishBosh.UI.Command						as UI.Command
 import qualified	BishBosh.UI.PrintObject						as UI.PrintObject
@@ -100,7 +102,6 @@ import qualified	Data.List
 import qualified	Data.List.Extra
 import qualified	Data.Map
 import qualified	Data.Maybe
-import qualified	Numeric
 import qualified	System.IO
 import qualified	System.Random
 import qualified	ToolShed.System.Random
@@ -171,11 +172,11 @@ showsThinking :: (
 	Real				rankValue,
 	Real				weightedMean
  )
-	=> Input.SearchOptions.SearchDepth
+	=> Type.Count.NPlies		-- ^ Search-depth.
 	-> Input.EvaluationOptions.EvaluationOptions criterionWeight pieceSquareValue rankValue x y
 	-> weightedMean
 	-> stoppedWatch
-	-> Component.Move.NPlies	-- ^ Nodes searched.
+	-> Type.Count.NPositions	-- ^ Nodes searched.
 	-> String			-- ^ Principal variation.
 	-> ShowS
 showsThinking searchDepth evaluationOptions weightedMean stoppedWatch nPlies principalVariation	= Text.ShowList.showsDelimitedList (showChar ' ') id id [
@@ -246,8 +247,8 @@ readMove :: forall column criterionValue criterionWeight pieceSquareValue positi
 	=> ContextualNotation.PositionHashQualifiedMoveTree.PositionHashQualifiedMoveTree T.X T.Y T.PositionHash
 	-> randomGen
 	-> Time.StopWatch.StopWatch
-	-> State.PlayState.PlayState column T.CriterionValue T.CriterionWeight T.PieceSquareValue T.PositionHash T.RankValue row T.WeightedMean T.X T.Y
-	-> IO (State.PlayState.PlayState column T.CriterionValue T.CriterionWeight T.PieceSquareValue T.PositionHash T.RankValue row T.WeightedMean T.X T.Y)
+	-> State.PlayState.PlayState column Type.Mass.CriterionValue Type.Mass.CriterionWeight Type.Mass.PieceSquareValue T.PositionHash Type.Mass.RankValue row Type.Mass.WeightedMean T.X T.Y
+	-> IO (State.PlayState.PlayState column Type.Mass.CriterionValue Type.Mass.CriterionWeight Type.Mass.PieceSquareValue T.PositionHash Type.Mass.RankValue row Type.Mass.WeightedMean T.X T.Y)
  #-}
 readMove positionHashQualifiedMoveTree randomGen	= slave where
 	slave runningWatch playState	= let
@@ -362,13 +363,14 @@ readMove positionHashQualifiedMoveTree randomGen	= slave where
 					}
 				}
 			onCommand (UI.Command.RollBack maybeNPlies)	= let
-				rollBack :: Component.Move.NPlies -> IO (State.PlayState.PlayState column criterionValue criterionWeight pieceSquareValue positionHash rankValue row weightedMean x y)
+				rollBack :: Type.Count.NPlies -> IO (State.PlayState.PlayState column criterionValue criterionWeight pieceSquareValue positionHash rankValue row weightedMean x y)
 				rollBack nPlies
-					| (game', _) : _ <- drop (pred nPlies) $ Model.Game.rollBack game	= return {-to IO-monad-} $ State.PlayState.reconstructPositionHashQuantifiedGameTree game' playState
-					| otherwise								= onCommand UI.Command.Restart
+					| (game', _) : _ <- drop (fromIntegral $ pred nPlies) $ Model.Game.rollBack game	= return {-to IO-monad-} $ State.PlayState.reconstructPositionHashQuantifiedGameTree game' playState
+					| otherwise										= onCommand UI.Command.Restart
 			 in Data.Maybe.maybe (
 				let
-					nPlies	= succ $ Data.Map.size searchDepthByLogicalColour	-- In fully manual play, rollback one ply, in semi-manual play rollback two plies.
+					nPlies :: Type.Count.NPlies
+					nPlies	= fromIntegral . succ $ Data.Map.size searchDepthByLogicalColour	-- In fully manual play, rollback one ply, in semi-manual play rollback two plies.
 				in do
 					Control.Monad.when (verbosity == maxBound) . System.IO.hPutStrLn System.IO.stderr . Text.ShowPrefix.showsPrefixInfo . showString "rolling-back " $ shows nPlies " plies."
 
@@ -1112,8 +1114,8 @@ takeTurns :: forall column criterionValue criterionWeight pieceSquareValue posit
  )
 	=> ContextualNotation.PositionHashQualifiedMoveTree.PositionHashQualifiedMoveTree T.X T.Y T.PositionHash
 	-> randomGen
-	-> State.PlayState.PlayState column T.CriterionValue T.CriterionWeight T.PieceSquareValue T.PositionHash T.RankValue row T.WeightedMean T.X T.Y
-	-> IO (State.PlayState.PlayState column T.CriterionValue T.CriterionWeight T.PieceSquareValue T.PositionHash T.RankValue row T.WeightedMean T.X T.Y)
+	-> State.PlayState.PlayState column Type.Mass.CriterionValue Type.Mass.CriterionWeight Type.Mass.PieceSquareValue T.PositionHash Type.Mass.RankValue row Type.Mass.WeightedMean T.X T.Y
+	-> IO (State.PlayState.PlayState column Type.Mass.CriterionValue Type.Mass.CriterionWeight Type.Mass.PieceSquareValue T.PositionHash Type.Mass.RankValue row Type.Mass.WeightedMean T.X T.Y)
  #-}
 takeTurns positionHashQualifiedMoveTree randomGen playState	= do
 	mVar	<- Control.Concurrent.newEmptyMVar
@@ -1133,7 +1135,7 @@ takeTurns positionHashQualifiedMoveTree randomGen playState	= do
 
 		slave
 			:: Maybe (Concurrent.Pondering.Pondering (Component.Move.Move x y))
-			-> Maybe Component.Move.NPlies
+			-> Maybe Type.Count.NPlies
 			-> [randomGen]
 			-> State.PlayState.PlayState column criterionValue criterionWeight pieceSquareValue positionHash rankValue row weightedMean x y
 			-> IO (State.PlayState.PlayState column criterionValue criterionWeight pieceSquareValue positionHash rankValue row weightedMean x y)
@@ -1211,7 +1213,7 @@ takeTurns positionHashQualifiedMoveTree randomGen playState	= do
 										Control.Monad.when isPostMode . putStrLn $ showsThinking searchDepth' evaluationOptions (
 											Evaluation.QuantifiedGame.getFitness $ last quantifiedGames
 										 ) stoppedWatch (
-											Search.Search.getNPliesEvaluated searchResult'
+											Search.Search.getNPositionsEvaluated searchResult'
 										 ) (
 											Text.ShowList.showsDelimitedList (
 												showChar ' '
@@ -1270,7 +1272,9 @@ takeTurns positionHashQualifiedMoveTree randomGen playState	= do
 							Control.Monad.when isPostMode . putStrLn $ showsThinking searchDepth' evaluationOptions (0 :: weightedMean) stoppedWatch 0 (
 								Data.List.intercalate (
 									showString ".\n" $ replicate 4 ' '	-- Continuations must be preceded by at least 4 spaces.
-								) $ Data.Maybe.maybe names (`take` names) maybeMaximumPGNNames
+								) $ Data.Maybe.maybe names (
+									(`take` names) . fromIntegral
+								) maybeMaximumPGNNames
 							 ) "."
 
 							putStrLn . showString moveTag . showChar ' ' $ Notation.MoveNotation.showNotation moveNotation qualifiedMove	-- Send the move to the GUI.
@@ -1309,7 +1313,7 @@ takeTurns positionHashQualifiedMoveTree randomGen playState	= do
 					criterionValueStatistics	= State.PlayState.calculateCriterionValueStatistics playState'
 
 					showsFloat :: Double -> ShowS
-					showsFloat	= Numeric.showFFloat $ Just nDecimalDigits
+					showsFloat	= Property.ShowFloat.showsFloatToN' nDecimalDigits
 
 				Control.Monad.when (
 					verbosity == maxBound && not (null criterionValueStatistics)

@@ -59,8 +59,6 @@ module BishBosh.Input.Options(
 ) where
 
 import			BishBosh.Data.Bool()		-- For 'HXT.xpickle'.
-import			BishBosh.Data.Integral()	-- For 'HXT.XmlPickler NMoves'.
-import qualified	BishBosh.Component.Move			as Component.Move
 import qualified	BishBosh.Data.Exception			as Data.Exception
 import qualified	BishBosh.Input.EvaluationOptions	as Input.EvaluationOptions
 import qualified	BishBosh.Input.IOOptions		as Input.IOOptions
@@ -70,6 +68,7 @@ import qualified	BishBosh.Input.Verbosity		as Input.Verbosity
 import qualified	BishBosh.Property.Arboreal		as Property.Arboreal
 import qualified	BishBosh.Property.ShowFloat		as Property.ShowFloat
 import qualified	BishBosh.Text.ShowList			as Text.ShowList
+import qualified	BishBosh.Type.Count			as Type.Count
 import qualified	Control.DeepSeq
 import qualified	Control.Exception
 import qualified	Data.Default
@@ -94,7 +93,7 @@ type RandomSeed	= Int
 
 -- | Defines the application's options.
 data Options column criterionWeight pieceSquareValue rankValue row x y	= MkOptions {
-	getMaybeMaximumPlies	:: Maybe Component.Move.NPlies,									-- ^ The maximum number of plies before the game is terminated; required for profiling the application.
+	getMaybeMaximumPlies	:: Maybe Type.Count.NPlies,									-- ^ The maximum number of plies before the game is terminated; required for profiling the application.
 	getMaybeRandomSeed	:: Maybe RandomSeed,										-- ^ Optionally seed the pseudo-random number-generator to produce a repeatable sequence.
 	getEvaluationOptions	:: Input.EvaluationOptions.EvaluationOptions criterionWeight pieceSquareValue rankValue x y,	-- ^ The single set of options by which all automated /move/s are evaluated.
 	getSearchOptions	:: Input.SearchOptions.SearchOptions,								-- ^ The options by which to automatically select /move/s.
@@ -209,14 +208,14 @@ instance (
 			ioOptions
 		) -- Deconstruct.
 	 ) $ HXT.xp5Tuple (
-		HXT.xpAttrImplied maximumPliesTag HXT.xpInt {-NMoves-}
+		HXT.xpAttrImplied maximumPliesTag HXT.xpickle {-NPlies-}
 	 ) (
 		HXT.xpAttrImplied randomSeedTag HXT.xpInt
 	 ) HXT.xpickle {-EvaluationOptions-} HXT.xpickle {-SearchOptions-} HXT.xpickle {-IOOptions-}
 
 -- | Smart constructor.
 mkOptions
-	:: Maybe Component.Move.NPlies	-- ^ The maximum number of plies before the game is terminated; required for profiling the application.
+	:: Maybe Type.Count.NPlies	-- ^ The maximum number of plies before the game is terminated; required for profiling the application.
 	-> Maybe RandomSeed		-- ^ Optionally seed the pseudo-random number-generator to produce a repeatable sequence.
 	-> Input.EvaluationOptions.EvaluationOptions criterionWeight pieceSquareValue rankValue x y
 	-> Input.SearchOptions.SearchOptions

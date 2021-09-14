@@ -51,6 +51,7 @@ import qualified	BishBosh.Property.ExtendedPositionDescription	as Property.Exten
 import qualified	BishBosh.Property.FixedMembership		as Property.FixedMembership
 import qualified	BishBosh.Property.ForsythEdwards		as Property.ForsythEdwards
 import qualified	BishBosh.Property.Opposable			as Property.Opposable
+import qualified	BishBosh.Type.Count				as Type.Count
 import qualified	Control.DeepSeq
 import qualified	Control.Exception
 import qualified	Data.Array.IArray
@@ -92,8 +93,8 @@ instance Property.FixedMembership.FixedMembership LogicalColour where
 	members	= range
 
 -- | The constant number of distinct /logical colour/s.
-nDistinctLogicalColours :: Int
-nDistinctLogicalColours	= length range
+nDistinctLogicalColours :: Type.Count.NLogicalColours
+nDistinctLogicalColours	= fromIntegral $ length range
 
 instance HXT.XmlPickler LogicalColour where
 	xpickle	= HXT.xpAttr tag . HXT.xpWrap (read, show) . HXT.xpTextDT . Text.XML.HXT.Arrow.Pickle.Schema.scEnum $ map show range

@@ -40,7 +40,7 @@ results	= sequence [
 		f :: Test.QuickCheck.Model.Game.Game -> Test.QuickCheck.Property
 		f = Test.QuickCheck.label "InstancesByPosition.prop_countPositionRepetitions" . uncurry (==) . (
 			State.InstancesByPosition.countPositionRepetitions &&& uncurry (-) . (
-				succ . State.InstancesByPosition.countConsecutiveRepeatablePlies &&& State.InstancesByPosition.getNDistinctPositions
+				succ . fromIntegral . State.InstancesByPosition.countConsecutiveRepeatablePlies &&& State.InstancesByPosition.getNDistinctPositions
 			)
 		 ) . Model.Game.getInstancesByPosition
 	in Test.QuickCheck.quickCheckWithResult Test.QuickCheck.stdArgs { Test.QuickCheck.maxSuccess = 256 } f,

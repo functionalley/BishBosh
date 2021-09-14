@@ -31,7 +31,6 @@ module BishBosh.Attribute.Rank(
 -- * Types
 -- ** Type-synonyms
 	EvaluateRank,
---	NRanks,
 	ArrayByRank,
 	UArrayByRank,
 -- ** Data-types
@@ -51,6 +50,7 @@ module BishBosh.Attribute.Rank(
 	earthBound,
 	expendable,
 	nDistinctRanks,
+--	allocationPerSide,
 -- * Functions
 	compareByLVA,
 	findUndefinedRanks,
@@ -60,6 +60,7 @@ module BishBosh.Attribute.Rank(
 ) where
 
 import qualified	BishBosh.Property.FixedMembership	as Property.FixedMembership
+import qualified	BishBosh.Type.Count			as Type.Count
 import qualified	Control.DeepSeq
 import qualified	Control.Exception
 import qualified	Data.Array.IArray
@@ -199,12 +200,13 @@ compareByLVA evaluateRank rankL rankR
 	| rankR == King		= LT
 	| otherwise		= Data.Ord.comparing evaluateRank rankL rankR
 
--- | A number of ranks.
-type NRanks	= Int
-
 -- | The constant number of distinct /rank/s.
-nDistinctRanks :: NRanks
-nDistinctRanks	= length range
+nDistinctRanks :: Type.Count.NRanks
+nDistinctRanks	= fromIntegral $ length range
+
+-- | The number of each rank allocated to each side.
+allocationPerSide :: ArrayByRank Type.Count.NRanks
+allocationPerSide	= listArrayByRank [8, 2, 2, 2, 1, 1]
 
 -- | A boxed array indexed by /rank/, of arbitrary values.
 type ArrayByRank	= Data.Array.IArray.Array Rank

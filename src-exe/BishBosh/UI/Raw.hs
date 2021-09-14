@@ -66,6 +66,8 @@ import qualified	BishBosh.Text.ShowColouredPrefix				as Text.ShowColouredPrefix
 import qualified	BishBosh.Text.ShowList						as Text.ShowList
 import qualified	BishBosh.Text.ShowPrefix					as Text.ShowPrefix
 import qualified	BishBosh.Time.StopWatch						as Time.StopWatch
+import qualified	BishBosh.Type.Count						as Type.Count
+import qualified	BishBosh.Type.Mass						as Type.Mass
 import qualified	BishBosh.Types							as T
 import qualified	BishBosh.UI.Command						as UI.Command
 import qualified	BishBosh.UI.PrintObject						as UI.PrintObject
@@ -82,7 +84,6 @@ import qualified	Data.Default
 import qualified	Data.List.Extra
 import qualified	Data.Map
 import qualified	Data.Maybe
-import qualified	Numeric
 import qualified	System.IO
 import qualified	System.Random
 import qualified	ToolShed.System.Random
@@ -150,8 +151,8 @@ readMove :: forall column criterionValue criterionWeight pieceSquareValue positi
 	=> ContextualNotation.PositionHashQualifiedMoveTree.PositionHashQualifiedMoveTree T.X T.Y T.PositionHash
 	-> randomGen
 	-> Time.StopWatch.StopWatch
-	-> State.PlayState.PlayState column T.CriterionValue T.CriterionWeight T.PieceSquareValue T.PositionHash T.RankValue row T.WeightedMean T.X T.Y
-	-> IO (State.PlayState.PlayState column T.CriterionValue T.CriterionWeight T.PieceSquareValue T.PositionHash T.RankValue row T.WeightedMean T.X T.Y)
+	-> State.PlayState.PlayState column Type.Mass.CriterionValue Type.Mass.CriterionWeight Type.Mass.PieceSquareValue T.PositionHash Type.Mass.RankValue row Type.Mass.WeightedMean T.X T.Y
+	-> IO (State.PlayState.PlayState column Type.Mass.CriterionValue Type.Mass.CriterionWeight Type.Mass.PieceSquareValue T.PositionHash Type.Mass.RankValue row Type.Mass.WeightedMean T.X T.Y)
  #-}
 readMove positionHashQualifiedMoveTree randomGen runningWatch playState	= let
 	(game, options)			= State.PlayState.getGame &&& State.PlayState.getOptions $ playState
@@ -252,16 +253,17 @@ readMove positionHashQualifiedMoveTree randomGen runningWatch playState	= let
 
 			return {-to IO-monad-} $ State.PlayState.resetPositionHashQuantifiedGameTree playState
 		onCommand (UI.Command.RollBack maybeNPlies)	= let
-			rollBack :: Component.Move.NPlies -> IO (State.PlayState.PlayState column criterionValue criterionWeight pieceSquareValue positionHash rankValue row weightedMean x y)
+			rollBack :: Type.Count.NPlies -> IO (State.PlayState.PlayState column criterionValue criterionWeight pieceSquareValue positionHash rankValue row weightedMean x y)
 			rollBack nPlies
-				| (game', _) : _ <- drop (pred nPlies) $ Model.Game.rollBack game	= do
+				| (game', _) : _ <- drop (fromIntegral $ pred nPlies) $ Model.Game.rollBack game	= do
 					Control.Monad.when (verbosity == maxBound) . putStrLn $ show2D game'
 
 					return {-to IO-monad-} $ State.PlayState.reconstructPositionHashQuantifiedGameTree game' playState
 				| otherwise	= onCommand UI.Command.Restart
 		 in Data.Maybe.maybe (
 			let
-				nPlies	= succ $ Data.Map.size searchDepthByLogicalColour	-- In fully manual play, rollback one ply, in semi-manual play rollback two plies.
+				nPlies :: Type.Count.NPlies
+				nPlies	= fromIntegral . succ $ Data.Map.size searchDepthByLogicalColour	-- In fully manual play, rollback one ply, in semi-manual play rollback two plies.
 			in do
 				Control.Monad.when (verbosity == maxBound) . System.IO.hPutStrLn System.IO.stderr . Text.ShowColouredPrefix.showsPrefixInfo . showString "rolling-back " $ shows nPlies " plies."
 
@@ -443,8 +445,8 @@ takeTurns :: forall column criterionValue criterionWeight pieceSquareValue posit
  )
 	=> ContextualNotation.PositionHashQualifiedMoveTree.PositionHashQualifiedMoveTree T.X T.Y T.PositionHash
 	-> randomGen
-	-> State.PlayState.PlayState column T.CriterionValue T.CriterionWeight T.PieceSquareValue T.PositionHash T.RankValue row T.WeightedMean T.X T.Y
-	-> IO (State.PlayState.PlayState column T.CriterionValue T.CriterionWeight T.PieceSquareValue T.PositionHash T.RankValue row T.WeightedMean T.X T.Y)
+	-> State.PlayState.PlayState column Type.Mass.CriterionValue Type.Mass.CriterionWeight Type.Mass.PieceSquareValue T.PositionHash Type.Mass.RankValue row Type.Mass.WeightedMean T.X T.Y
+	-> IO (State.PlayState.PlayState column Type.Mass.CriterionValue Type.Mass.CriterionWeight Type.Mass.PieceSquareValue T.PositionHash Type.Mass.RankValue row Type.Mass.WeightedMean T.X T.Y)
  #-}
 takeTurns positionHashQualifiedMoveTree randomGen playState	= let
 	options	= State.PlayState.getOptions playState
@@ -470,7 +472,7 @@ takeTurns positionHashQualifiedMoveTree randomGen playState	= let
 
 			slave
 				:: Maybe (Concurrent.Pondering.Pondering (Component.Move.Move x y))
-				-> Maybe Component.Move.NPlies
+				-> Maybe Type.Count.NPlies
 				-> [randomGen]
 				-> State.PlayState.PlayState column criterionValue criterionWeight pieceSquareValue positionHash rankValue row weightedMean x y
 				-> IO (State.PlayState.PlayState column criterionValue criterionWeight pieceSquareValue positionHash rankValue row weightedMean x y)
@@ -632,7 +634,7 @@ takeTurns positionHashQualifiedMoveTree randomGen playState	= let
 							criterionValueStatistics	= State.PlayState.calculateCriterionValueStatistics playState'
 
 							showsFloat :: Double -> ShowS
-							showsFloat	= Numeric.showFFloat $ Just nDecimalDigits
+							showsFloat	= Property.ShowFloat.showsFloatToN' nDecimalDigits
 
 						Control.Monad.when (
 							verbosity == maxBound && not (null criterionValueStatistics)

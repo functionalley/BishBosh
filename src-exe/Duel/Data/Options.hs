@@ -26,8 +26,6 @@
 
 module Duel.Data.Options(
 -- * Types
--- ** Type-synonyms
-	ReadTimeout,
 -- ** Data-types
 	Options(
 --		MkOptions,
@@ -38,8 +36,6 @@ module Duel.Data.Options(
 		getVerbosity,
 		getVerifyConfiguration
 	),
--- * Constants
---	requiredInputConfigFiles,
 -- * Functions
 -- ** Mutators
 	setNDecimalDigits,
@@ -52,24 +48,21 @@ module Duel.Data.Options(
 
 import qualified	Control.Exception
 import qualified	Data.Default
+import qualified	BishBosh.Attribute.LogicalColour	as Attribute.LogicalColour
 import qualified	BishBosh.Data.Exception			as Data.Exception
 import qualified	BishBosh.Input.Verbosity		as Input.Verbosity
-import qualified	BishBosh.Model.Game			as Model.Game
 import qualified	BishBosh.Property.SelfValidating	as Property.SelfValidating
-import qualified	BishBosh.Property.ShowFloat		as Property.ShowFloat
+import qualified	BishBosh.Type.Count			as Type.Count
 import qualified	System.FilePath
-
--- | The read-timeout in ms.
-type ReadTimeout	= Int
 
 -- | Container for all command-line options.
 data Options	= MkOptions {
-	getInputConfigFilePaths	:: [System.FilePath.FilePath],		-- ^ The configuration-file paths for White & Black respectively.
-	getNDecimalDigits	:: Property.ShowFloat.NDecimalDigits,	-- ^ The number of successive games to play.
-	getNGames		:: Model.Game.NGames,			-- ^ The number of successive games to play.
-	getReadTimeout		:: ReadTimeout,				-- ^ The seconds to wait for a move before timing-out. CAVEAT: any positive value should account for both configuration-options (e.g. search-depth) & the machine-speed.
-	getVerbosity		:: Input.Verbosity.Verbosity,		-- ^ The extent to which logging is required. CAVEAT: this isn't forwarded to the forked instances of BishBosh.
-	getVerifyConfiguration	:: Bool					-- ^ Whether to check the configuration-files before forwarding them.
+	getInputConfigFilePaths	:: [System.FilePath.FilePath],	-- ^ The configuration-file paths for White & Black respectively.
+	getNDecimalDigits	:: Type.Count.NDecimalDigits,	-- ^ The precision with which floating-point quantities are diaplayed.
+	getNGames		:: Type.Count.NGames,		-- ^ The number of successive games to play.
+	getReadTimeout		:: Type.Count.NSeconds,		-- ^ The seconds to wait for a move before timing-out. CAVEAT: any positive value should account for both configuration-options (e.g. search-depth) & the machine-speed.
+	getVerbosity		:: Input.Verbosity.Verbosity,	-- ^ The extent to which logging is required. CAVEAT: this isn't forwarded to the forked instances of BishBosh.
+	getVerifyConfiguration	:: Bool				-- ^ Whether to check the configuration-files before forwarding them.
 } deriving (Eq, Show)
 
 instance Data.Default.Default Options where
@@ -84,23 +77,23 @@ instance Data.Default.Default Options where
 
 instance Property.SelfValidating.SelfValidating Options where
 	findInvalidity	= Property.SelfValidating.findErrors [
-		((/= requiredInputConfigFiles) . length . getInputConfigFilePaths,	"There must be exactly one configuration file for White & one for Black.")
+		((/= Attribute.LogicalColour.nDistinctLogicalColours) . fromIntegral . length . getInputConfigFilePaths,	"There must be exactly one configuration file for White & one for Black.")
 	 ]
 
 -- | Mutator.
-setNDecimalDigits :: Property.ShowFloat.NDecimalDigits -> Options -> Options
-setNDecimalDigits n options
-	| n < 0		= Control.Exception.throw . Data.Exception.mkOutOfBounds . showString "Duel.Data.Options:\tnDecimalDigits=" $ shows n " mustn't be negative."
-	| otherwise	= options { getNDecimalDigits = n }
+setNDecimalDigits :: Type.Count.NDecimalDigits -> Options -> Options
+setNDecimalDigits nDecimalDigits options
+	| nDecimalDigits < 0	= Control.Exception.throw . Data.Exception.mkOutOfBounds . showString "Duel.Data.Options:\tnDecimalDigits=" $ shows nDecimalDigits " mustn't be negative."
+	| otherwise		= options { getNDecimalDigits = nDecimalDigits }
 
 -- | Mutator.
-setNGames :: Model.Game.NGames -> Options -> Options
-setNGames n options
-	| n <= 0	= Control.Exception.throw . Data.Exception.mkOutOfBounds . showString "Duel.Data.Options:\tnGames=" $ shows n " must exceed zero."
-	| otherwise	= options { getNGames = n }
+setNGames :: Type.Count.NGames -> Options -> Options
+setNGames nGames options
+	| nGames <= 0	= Control.Exception.throw . Data.Exception.mkOutOfBounds . showString "Duel.Data.Options:\tnGames=" $ shows nGames " must exceed zero."
+	| otherwise	= options { getNGames = nGames }
 
 -- | Mutator.
-setReadTimeout :: ReadTimeout -> Options -> Options
+setReadTimeout :: Type.Count.NSeconds -> Options -> Options
 setReadTimeout t options	= options { getReadTimeout = t }
 
 -- | Mutator.
@@ -111,14 +104,12 @@ setVerbosity verbosity options	= options { getVerbosity = verbosity }
 setVerifyConfiguration :: Bool -> Options -> Options
 setVerifyConfiguration b options	= options { getVerifyConfiguration = b }
 
--- | The constant exact number of input config-files required.
-requiredInputConfigFiles :: Int
-requiredInputConfigFiles	= 2
-
 -- | Mutator.
 appendInputConfigFilePath :: System.FilePath.FilePath -> Options -> Options
 appendInputConfigFilePath s options
-	| length inputConfigFilePaths == requiredInputConfigFiles	= Control.Exception.throw . Data.Exception.mkRedundantData . showString "Duel.Data.Options:\texactly " . shows requiredInputConfigFiles . showString " file-paths are required:\t" $ shows inputConfigFilePaths "."
-	| otherwise							= options { getInputConfigFilePaths = s : inputConfigFilePaths }
+	| fromIntegral (
+		length inputConfigFilePaths
+	) == Attribute.LogicalColour.nDistinctLogicalColours	= Control.Exception.throw . Data.Exception.mkRedundantData . showString "Duel.Data.Options:\texactly " . shows Attribute.LogicalColour.nDistinctLogicalColours . showString " file-paths are required:\t" $ shows inputConfigFilePaths "."
+	| otherwise						= options { getInputConfigFilePaths = s : inputConfigFilePaths }
 	where
 		inputConfigFilePaths	= getInputConfigFilePaths options

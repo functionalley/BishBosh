@@ -25,7 +25,6 @@
 module BishBosh.Input.SearchOptions(
 -- * Types
 -- ** Type-synonyms
-	SearchDepth,
 	SortOnStandardOpeningMoveFrequency,
 	HammingDistance,
 --	Transformation,
@@ -80,17 +79,16 @@ module BishBosh.Input.SearchOptions(
 ) where
 
 import			BishBosh.Data.Bool()		-- For 'HXT.xpickle'.
-import			BishBosh.Data.Integral()	-- For 'HXT.XmlPickler NMoves'.
 import			Control.Arrow((***))
 import qualified	BishBosh.Attribute.CaptureMoveSortAlgorithm	as Attribute.CaptureMoveSortAlgorithm
 import qualified	BishBosh.Attribute.LogicalColour		as Attribute.LogicalColour
-import qualified	BishBosh.Component.Move				as Component.Move
 import qualified	BishBosh.Data.Exception				as Data.Exception
 import qualified	BishBosh.Data.Foldable
 import qualified	BishBosh.Input.StandardOpeningOptions		as Input.StandardOpeningOptions
 import qualified	BishBosh.Property.Opposable			as Property.Opposable
 import qualified	BishBosh.Text.Case				as Text.Case
 import qualified	BishBosh.Text.ShowList				as Text.ShowList
+import qualified	BishBosh.Type.Count				as Type.Count
 import qualified	Control.DeepSeq
 import qualified	Control.Exception
 import qualified	Control.Monad.Reader
@@ -140,11 +138,8 @@ searchDepthTag				= "searchDepth"
 searchDepthByLogicalColourTag :: String
 searchDepthByLogicalColourTag		= showString searchDepthTag . showString "By" $ Text.Case.toUpperInitial Attribute.LogicalColour.tag
 
--- | The number of plies to search for the optimal move.
-type SearchDepth	= Component.Move.NPlies
-
 -- | The constant minimum permissible search-depth.
-minimumSearchDepth :: SearchDepth
+minimumSearchDepth :: Type.Count.NPlies
 minimumSearchDepth	= 1
 
 {- |
@@ -152,7 +147,7 @@ minimumSearchDepth	= 1
 
 	* CAVEAT: this is rather arbitrary.
 -}
-defaultSearchDepth :: SearchDepth
+defaultSearchDepth :: Type.Count.NPlies
 defaultSearchDepth	= 4
 
 -- | Sort moves on the decreasing frequency of occurrence in standard openings.
@@ -162,7 +157,7 @@ type SortOnStandardOpeningMoveFrequency	= Bool
 type HammingDistance			= Int
 
 -- | The number of full moves (one for each player) after which to retire killer moves.
-type MaybeRetireAfterNMoves		= Maybe Component.Move.NMoves
+type MaybeRetireAfterNMoves		= Maybe Type.Count.NMoves
 
 -- | Whether to short-circuit the fitness-evaluation of /position/s which have been visited before in the current /game/.
 type TrapRepeatedPositions		= Bool
@@ -171,22 +166,22 @@ type TrapRepeatedPositions		= Bool
 type UsePondering			= Bool
 
 -- | The number of full moves (one for each player) after which to retire transpositions & the search-depth beneath which they aren't recorded at all.
-type MaybeUseTranspositions		= Maybe (Component.Move.NMoves, SearchDepth)
+type MaybeUseTranspositions		= Maybe (Type.Count.NMoves, Type.Count.NPlies)
 
 -- | The depth to search for each /logical colour/.
-type SearchDepthByLogicalColour		= Data.Map.Strict.Map Attribute.LogicalColour.LogicalColour SearchDepth
+type SearchDepthByLogicalColour		= Data.Map.Strict.Map Attribute.LogicalColour.LogicalColour Type.Count.NPlies
 
 -- | Defines options related to searching for a move.
 data SearchOptions	= MkSearchOptions {
-	getSortOnStandardOpeningMoveFrequency	:: SortOnStandardOpeningMoveFrequency,
+	getSortOnStandardOpeningMoveFrequency	:: SortOnStandardOpeningMoveFrequency,	-- ^ Whether to sort moves on the decreasing frequency of occurrence in standard openings.
 	getMaybeCaptureMoveSortAlgorithm	:: Maybe Attribute.CaptureMoveSortAlgorithm.CaptureMoveSortAlgorithm,
-	getMaybeMinimumHammingDistance		:: Maybe HammingDistance,
-	getMaybeRetireKillerMovesAfter		:: MaybeRetireAfterNMoves,
-	getTrapRepeatedPositions		:: TrapRepeatedPositions,
-	getUsePondering				:: UsePondering,
+	getMaybeMinimumHammingDistance		:: Maybe HammingDistance,		-- ^ The optional minimum Hamming-distance between the random numbers from which Zobrist-hashes are composed.
+	getMaybeRetireKillerMovesAfter		:: MaybeRetireAfterNMoves,		-- ^ The number of full moves (one for each player) after which to retire killer moves.
+	getTrapRepeatedPositions		:: TrapRepeatedPositions,		-- ^ Whether to short-circuit the fitness-evaluation of /position/s which have been visited before in the current /game/.
+	getUsePondering				:: UsePondering,			-- ^ Whether to ponder about one's next move while the opponent is thinking.
 	getMaybeUseTranspositions		:: MaybeUseTranspositions,
 	getStandardOpeningOptions		:: Input.StandardOpeningOptions.StandardOpeningOptions,
-	getSearchDepthByLogicalColour		:: SearchDepthByLogicalColour
+	getSearchDepthByLogicalColour		:: SearchDepthByLogicalColour		-- ^ The depth to search for each /logical colour/.
 } deriving Eq
 
 instance Control.DeepSeq.NFData SearchOptions where
@@ -298,13 +293,13 @@ instance HXT.XmlPickler SearchOptions where
 	 ) (
 		HXT.xpAttrImplied minimumHammingDistanceTag HXT.xpInt
 	 ) (
-		HXT.xpAttrImplied retireKillerMovesAfterTag HXT.xpInt
+		HXT.xpAttrImplied retireKillerMovesAfterTag HXT.xpickle {-NMoves-}
 	 ) (
 		getTrapRepeatedPositions def `HXT.xpDefault` HXT.xpAttr trapRepeatedPositionsTag HXT.xpickle {-Bool-}
 	 ) (
 		getUsePondering def `HXT.xpDefault` HXT.xpAttr usePonderingTag HXT.xpickle {-Bool-}
 	 ) (
-		HXT.xpOption . HXT.xpElem "transpositions" $ HXT.xpAttr retireTranspositionsAfterTag HXT.xpInt `HXT.xpPair` HXT.xpAttr minimumTranspositionSearchDepthTag HXT.xpInt
+		HXT.xpOption . HXT.xpElem "transpositions" $ HXT.xpAttr retireTranspositionsAfterTag HXT.xpickle {-NMoves-} `HXT.xpPair` HXT.xpAttr minimumTranspositionSearchDepthTag HXT.xpickle {-NPlies-}
 	 ) HXT.xpickle {-standardOpeningOptions-} (
 		HXT.xpElem searchDepthByLogicalColourTag . HXT.xpWrap (
 			Data.Map.Strict.fromList . (
@@ -317,7 +312,7 @@ instance HXT.XmlPickler SearchOptions where
 			Data.Map.Strict.toList		-- Deconstruct to a List.
 		) . HXT.xpList {-potentially null-} . HXT.xpElem (
 			showString "by" $ Text.Case.toUpperInitial Attribute.LogicalColour.tag
-		) $ HXT.xpickle {-LogicalColour-} `HXT.xpPair` HXT.xpAttr searchDepthTag HXT.xpInt
+		) $ HXT.xpickle {-LogicalColour-} `HXT.xpPair` HXT.xpAttr searchDepthTag HXT.xpickle {-NPlies-}
 	 ) where
 		def	= Data.Default.def
 
@@ -366,7 +361,7 @@ mkSearchOptions sortOnStandardOpeningMoveFrequency maybeCaptureMoveSortAlgorithm
 	}
 
 -- | Get either player's search-depth, using a default value when none are defined.
-getSearchDepth :: SearchOptions -> SearchDepth
+getSearchDepth :: SearchOptions -> Type.Count.NPlies
 getSearchDepth MkSearchOptions { getSearchDepthByLogicalColour = searchDepthByLogicalColour }	= Data.Maybe.fromMaybe defaultSearchDepth . Data.Maybe.listToMaybe $ Data.Map.Strict.elems searchDepthByLogicalColour	-- Manual players don't have a searchDepth, so use the opponent's settings.
 
 -- | Self-documentation.
@@ -378,17 +373,17 @@ recordKillerMoves MkSearchOptions { getMaybeRetireKillerMovesAfter = maybeRetire
 
 -- | When to retire transpositions.
 maybeRetireTranspositionsAfter :: SearchOptions -> MaybeRetireAfterNMoves
-maybeRetireTranspositionsAfter MkSearchOptions { getMaybeUseTranspositions = maybeUseTranspositions }	= fmap fst maybeUseTranspositions
+maybeRetireTranspositionsAfter MkSearchOptions { getMaybeUseTranspositions = maybeUseTranspositions }	= fmap fst {-NMoves-} maybeUseTranspositions
 
 -- | The search-depth beneath which transpositions aren't recorded.
-maybeMinimumTranspositionSearchDepth :: SearchOptions -> Maybe SearchDepth
-maybeMinimumTranspositionSearchDepth MkSearchOptions { getMaybeUseTranspositions = maybeUseTranspositions }	= fmap snd maybeUseTranspositions
+maybeMinimumTranspositionSearchDepth :: SearchOptions -> Maybe Type.Count.NPlies
+maybeMinimumTranspositionSearchDepth MkSearchOptions { getMaybeUseTranspositions = maybeUseTranspositions }	= fmap snd {-NPlies-} maybeUseTranspositions
 
 -- | The type of a function used to transform 'SearchOptions'.
 type Transformation	= SearchOptions -> SearchOptions
 
 -- | Mutator.
-setSearchDepth :: SearchDepth -> Transformation
+setSearchDepth :: Type.Count.NPlies -> Transformation
 setSearchDepth searchDepth searchOptions@MkSearchOptions { getSearchDepthByLogicalColour = searchDepthByLogicalColour }
 	| searchDepth < minimumSearchDepth	= Control.Exception.throw . Data.Exception.mkOutOfBounds . showString "BishBosh.Input.SearchOptions.setSearchDepth:\t" . showString searchDepthTag . Text.ShowList.showsAssociation $ shows searchDepth " must be positive."
 	| otherwise	= searchOptions { getSearchDepthByLogicalColour = Data.Map.Strict.map (const searchDepth) searchDepthByLogicalColour }

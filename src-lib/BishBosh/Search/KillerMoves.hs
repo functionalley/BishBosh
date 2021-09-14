@@ -38,9 +38,9 @@ module BishBosh.Search.KillerMoves (
 import			Control.Arrow((&&&))
 import			Data.Array.IArray((!), (//))
 import qualified	BishBosh.Attribute.LogicalColour	as Attribute.LogicalColour
-import qualified	BishBosh.Component.Move			as Component.Move
 import qualified	BishBosh.Property.Empty			as Property.Empty
 import qualified	BishBosh.Search.EphemeralData		as Search.EphemeralData
+import qualified	BishBosh.Type.Count			as Type.Count
 import qualified	Data.Array.IArray
 import qualified	Data.Foldable
 import qualified	Data.IntMap.Strict
@@ -56,7 +56,7 @@ import qualified	Data.Maybe
 -}
 type NInstancesByNPliesByKeyByLogicalColour killerMoveKey	= Attribute.LogicalColour.ArrayByLogicalColour (
 	Data.Map.Map killerMoveKey (
-		Data.IntMap.Strict.IntMap Component.Move.NPlies
+		Data.IntMap.Strict.IntMap Type.Count.NPlies {-NInstances-}	-- CAVEAT: 'Int' is used to represent the number of plies into the game (in order to utilise 'IntMap') though it ought to be NPlies also.
 	)
  )
 
@@ -69,7 +69,7 @@ instance Property.Empty.Empty (KillerMoves killerMoveKey) where
 	empty	= MkKillerMoves . Attribute.LogicalColour.listArrayByLogicalColour $ repeat Property.Empty.empty
 
 instance Search.EphemeralData.EphemeralData (KillerMoves killerMoveKey) where
-	getSize MkKillerMoves { deconstruct = nInstancesByNPliesByKeyByLogicalColour }	= Data.Foldable.foldl' (
+	getSize MkKillerMoves { deconstruct = nInstancesByNPliesByKeyByLogicalColour }	= fromIntegral $ Data.Foldable.foldl' (
 		Data.Map.foldl' $ Data.IntMap.Strict.foldl' (+)
 	 ) 0 nInstancesByNPliesByKeyByLogicalColour
 
@@ -77,7 +77,7 @@ instance Search.EphemeralData.EphemeralData (KillerMoves killerMoveKey) where
 		| nPlies <= 0	= killerMoves	-- This might occur at the start of the game, because the caller subtracts a fixed value from the current number of plies.
 		| otherwise	= MkKillerMoves $ Data.Array.IArray.amap (
 			Data.Map.mapMaybe $ \m -> let
-				m'	= Data.IntMap.Strict.filterWithKey (\nPlies' _ -> nPlies' > nPlies) m
+				m'	= Data.IntMap.Strict.filterWithKey (\nPlies' _ -> nPlies' > fromIntegral nPlies) m
 			in if Data.IntMap.Strict.null m'
 				then Nothing
 				else Just m'
@@ -89,14 +89,14 @@ type Transformation killerMoveKey	= KillerMoves killerMoveKey -> KillerMoves kil
 -- | Insert a killer-move.
 insert
 	:: Ord killerMoveKey
-	=> Component.Move.NPlies	-- ^ The total number of plies applied to the game.
+	=> Type.Count.NPlies	-- ^ The total number of plies applied to the game.
 	-> killerMoveKey
 	-> Transformation killerMoveKey
 insert nPlies killerMoveKey MkKillerMoves { deconstruct = nInstancesByNPliesByKeyByLogicalColour }	= MkKillerMoves $ nInstancesByNPliesByKeyByLogicalColour // [
 	id &&& Data.Map.insertWith (
 		Data.IntMap.Strict.unionWith (+)
 	) killerMoveKey (
-		Data.IntMap.Strict.singleton nPlies 1
+		Data.IntMap.Strict.singleton (fromIntegral nPlies) 1
 	) . (
 		nInstancesByNPliesByKeyByLogicalColour !
 	) $ if even nPlies

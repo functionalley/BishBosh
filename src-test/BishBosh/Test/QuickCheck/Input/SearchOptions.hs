@@ -37,24 +37,24 @@ import qualified	Test.QuickCheck
 instance Test.QuickCheck.Arbitrary Input.SearchOptions.SearchOptions where
 	arbitrary	= do
 		searchDepthByLogicalColour	<- Data.Map.map (
-			(+ Input.SearchOptions.minimumSearchDepth) . (`mod` 4)
+			(+ Input.SearchOptions.minimumSearchDepth) . fromInteger . (`mod` 4)
 		 ) <$> Test.QuickCheck.arbitrary
 
 		Input.SearchOptions.mkSearchOptions <$> Test.QuickCheck.arbitrary {-SortOnStandardOpeningMoveFrequency-} <*> Test.QuickCheck.arbitrary {-maybeCaptureMoveSortAlgorithm-} <*> (
 			fmap (succ . (`mod` 3)) <$> Test.QuickCheck.arbitrary	-- maybeMinimumHammingDistance.
 		 ) <*> (
-			fmap (`mod` 4) <$> Test.QuickCheck.arbitrary	-- maybeRetireKillerMovesAfter.
+			fmap (fromInteger . (`mod` 4)) <$> Test.QuickCheck.arbitrary	-- maybeRetireKillerMovesAfter.
 		 ) <*> Test.QuickCheck.arbitrary {-trapRepeatedPositions-} <*> (
 			if Data.Map.size searchDepthByLogicalColour == 1
 				then Test.QuickCheck.arbitrary
 				else return {-to Gen-monad-} False	-- UsePondering.
 		 ) <*> (
 			fmap (
-				(`mod` 3) *** (
+				fromInteger . (`mod` 3) *** (
 					if Data.Map.null searchDepthByLogicalColour
 						then id
 						else min $ Data.Foldable.maximum searchDepthByLogicalColour
-				) . succ . (`mod` 3)
+				) . fromInteger . succ . (`mod` 3)
 			) <$> Test.QuickCheck.arbitrary {-maybeUseTranspositions-}
 		 ) <*> Test.QuickCheck.arbitrary {-standardOpeningOptions-} <*> return {-to Gen-monad-} searchDepthByLogicalColour
 

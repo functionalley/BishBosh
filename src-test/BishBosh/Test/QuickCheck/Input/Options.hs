@@ -37,6 +37,7 @@ import			BishBosh.Test.QuickCheck.Input.EvaluationOptions()
 import			BishBosh.Test.QuickCheck.Input.IOOptions()
 import			BishBosh.Test.QuickCheck.Input.SearchOptions()
 import qualified	BishBosh.Input.Options	as Input.Options
+import qualified	BishBosh.Type.Mass	as Type.Mass
 import qualified	BishBosh.Types		as T
 import qualified	Test.QuickCheck
 
@@ -47,7 +48,7 @@ type Row	= T.Y
 type Column	= T.X
 
 -- | Defines a concrete type for testing.
-type Options	= Input.Options.Options Column T.CriterionWeight T.PieceSquareValue T.RankValue Row T.X T.Y
+type Options	= Input.Options.Options Column Type.Mass.CriterionWeight Type.Mass.PieceSquareValue Type.Mass.RankValue Row T.X T.Y
 
 instance (
 	Enum				pieceSquareValue,
@@ -76,7 +77,7 @@ instance (
 		(maybeMaximumPlies, maybeRandomSeed, evaluationOptions, searchOptions, ioOptions)	<- Test.QuickCheck.arbitrary
 
 		return {-to Gen-monad-} $ Input.Options.mkOptions (
-			fmap (succ . abs) maybeMaximumPlies
+			fmap (fromInteger . succ . abs) maybeMaximumPlies
 		 ) maybeRandomSeed evaluationOptions searchOptions ioOptions
 
 -- | The constant test-results for this data-type.

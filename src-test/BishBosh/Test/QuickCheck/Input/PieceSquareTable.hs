@@ -37,13 +37,14 @@ import qualified	BishBosh.Attribute.Rank			as Attribute.Rank
 import qualified	BishBosh.Cartesian.Coordinates		as Cartesian.Coordinates
 import qualified	BishBosh.Input.PieceSquareTable		as Input.PieceSquareTable
 import qualified	BishBosh.Property.FixedMembership	as Property.FixedMembership
+import qualified	BishBosh.Type.Mass			as Type.Mass
 import qualified	BishBosh.Types				as T
 import qualified	Data.List
 import qualified	Test.QuickCheck
 import			Test.QuickCheck((==>))
 
 -- | Defines a concrete type for testing.
-type PieceSquareTable	= Input.PieceSquareTable.PieceSquareTable T.X T.Y T.PieceSquareValue
+type PieceSquareTable	= Input.PieceSquareTable.PieceSquareTable T.X T.Y Type.Mass.PieceSquareValue
 
 instance (
 	Enum		x,
@@ -76,7 +77,7 @@ instance (
 results :: IO [Test.QuickCheck.Result]
 results	= sequence [
 	let
-		f :: Input.PieceSquareTable.Assocs Attribute.Rank.Rank T.PieceSquareValue -> Test.QuickCheck.Property
+		f :: Input.PieceSquareTable.Assocs Attribute.Rank.Rank Type.Mass.PieceSquareValue -> Test.QuickCheck.Property
 		f assocs	= length (Data.List.nub $ concatMap snd assocs) > 1 ==> Test.QuickCheck.label "PieceSquareTable.prop_closedUnitInterval" . Input.PieceSquareTable.inClosedUnitInterval $ Input.PieceSquareTable.normaliseToUnitInterval assocs
 	in Test.QuickCheck.quickCheckWithResult Test.QuickCheck.stdArgs { Test.QuickCheck.maxSuccess = 256 } f,
 	let

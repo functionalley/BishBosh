@@ -44,7 +44,7 @@ module BishBosh.Model.GameTree(
 --	staticExchangeEvaluation,
 --	getRankAndMove,
 	countGames,
-	countMoves,
+	countPositions,
 	traceRoute,
 	sortGameTree,
 	toMoveFrequency,
@@ -70,6 +70,8 @@ import qualified	BishBosh.Property.Empty				as Property.Empty
 import qualified	BishBosh.Property.FixedMembership		as Property.FixedMembership
 import qualified	BishBosh.Property.Null				as Property.Null
 import qualified	BishBosh.State.TurnsByLogicalColour		as State.TurnsByLogicalColour
+import qualified	BishBosh.Type.Count				as Type.Count
+import qualified	BishBosh.Type.Mass				as Type.Mass
 import qualified	BishBosh.Types					as T
 import qualified	Control.Exception
 import qualified	Data.Default
@@ -204,12 +206,12 @@ fromGame	= MkGameTree . Data.Tree.unfoldTree (
 
 	* N.B.: some of the /game-state/s may have identical positions, reached by different sequences of /move/s.
 -}
-countGames :: Property.Arboreal.Depth -> Model.Game.NGames
+countGames :: Property.Arboreal.Depth -> Type.Count.NGames
 countGames depth	= Data.RoseTree.countTerminalNodes . deconstruct $ Property.Arboreal.prune depth (Data.Default.def :: GameTree T.X T.Y)
 
--- | Counts the number of possible plies in chess, down to the specified depth.
-countMoves :: Property.Arboreal.Depth -> Model.Game.NGames
-countMoves depth	= pred {-the apex is constructed without moving-} . Data.Foldable.length . deconstruct $ Property.Arboreal.prune depth (Data.Default.def :: GameTree T.X T.Y)
+-- | Counts the number of possible positions in chess, down to the specified depth. N.B.: some of these may be transpositions.
+countPositions :: Property.Arboreal.Depth -> Type.Count.NPositions
+countPositions depth	= fromIntegral . pred {-the apex is constructed without moving-} . Data.Foldable.length . deconstruct $ Property.Arboreal.prune depth (Data.Default.def :: GameTree T.X T.Y)
 
 -- | Trace the route down the tree which matches the specified list of turns.
 traceRoute
@@ -242,7 +244,7 @@ sortGameTree :: (
 	-> Attribute.Rank.EvaluateRank rankValue
 	-> MoveFrequency x y
 	-> Transformation x y
-{-# SPECIALISE sortGameTree :: Maybe Attribute.CaptureMoveSortAlgorithm.CaptureMoveSortAlgorithm -> Attribute.Rank.EvaluateRank T.RankValue -> MoveFrequency T.X T.Y -> Transformation T.X T.Y #-}
+{-# SPECIALISE sortGameTree :: Maybe Attribute.CaptureMoveSortAlgorithm.CaptureMoveSortAlgorithm -> Attribute.Rank.EvaluateRank Type.Mass.RankValue -> MoveFrequency T.X T.Y -> Transformation T.X T.Y #-}
 sortGameTree maybeCaptureMoveSortAlgorithm evaluateRank standardOpeningMoveFrequency MkGameTree { deconstruct = bareGameTree }	= MkGameTree $ Data.RoseTree.mapForest (
 	\game -> Data.Maybe.maybe id (
 		\case

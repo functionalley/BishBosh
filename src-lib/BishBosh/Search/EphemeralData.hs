@@ -28,19 +28,19 @@ module BishBosh.Search.EphemeralData(
 	MaybeEphemeralData(..)
 ) where
 
-import qualified	BishBosh.Component.Move		as Component.Move
 import qualified	BishBosh.Input.SearchOptions	as Input.SearchOptions
+import qualified	BishBosh.Type.Count		as Type.Count
 import			Prelude(Int)
 
 -- | An interface for short-lived data.
 class EphemeralData a where
-	getSize		:: a -> Int				-- ^ Get the current size of the collection.
-	euthanise	:: Component.Move.NPlies -> a -> a	-- ^ Prune data older than the specified number of plies, from the collection.
+	getSize		:: a -> Int			-- ^ Get the current size of the collection.
+	euthanise	:: Type.Count.NPlies -> a -> a	-- ^ Prune items older than the specified number of plies, from the data.
 
 -- | For data which can be killed.
 class MaybeEphemeralData a where
 	maybeEuthanise
-		:: Component.Move.NPlies			-- ^ The age at which to die.
+		:: Type.Count.NPlies				-- ^ The age at which to die.
 		-> Input.SearchOptions.MaybeRetireAfterNMoves	-- ^ The optional age at which to retire killer-moves.
 		-> Input.SearchOptions.MaybeRetireAfterNMoves	-- ^ The optional age at which to retire transpositions.
 		-> a

@@ -25,7 +25,6 @@
 module BishBosh.State.InstancesByPosition(
 -- * Types
 -- ** Type-synonyms
---	NBoardsByPosition,
 --	Transformation.
 -- * Constants
 	leastCyclicPlies,
@@ -46,49 +45,43 @@ module BishBosh.State.InstancesByPosition(
 	anyInstancesByPosition
 ) where
 
-import qualified	BishBosh.Component.Move		as Component.Move
 import qualified	BishBosh.Data.Exception		as Data.Exception
 import qualified	BishBosh.Property.Reflectable	as Property.Reflectable
-import qualified	BishBosh.State.Board		as State.Board
+import qualified	BishBosh.Type.Count		as Type.Count
 import qualified	Control.DeepSeq
 import qualified	Control.Exception
 import qualified	Data.Foldable
 import qualified	Data.Map.Strict
 
--- | The smallest number of repeatable plies required to form a cycle.
-leastCyclicPlies :: Component.Move.NPlies
+-- | The smallest number of repeatable plies (applied by alternating players) required to form a cycle.
+leastCyclicPlies :: Type.Count.NPlies
 leastCyclicPlies	= 4
-
-{- |
-	* The number of times each /position/ has been encountered.
-
-	* The /position/ can either be represented by a physical 'State.Position.Position', or by proxy using a hash.
--}
-type NBoardsByPosition position	= Data.Map.Strict.Map position State.Board.NBoards
 
 {- |
 	* A count of the number of instances of /position/s which have occurred.
 
 	* N.B.: a number greater than @1@ represents repetition.
+
+	* The /position/ can either be represented by a physical 'State.Position.Position', or by proxy using a hash.
 -}
 newtype InstancesByPosition position	= MkInstancesByPosition {
-	getNBoardsByPosition	:: NBoardsByPosition position
+	getNPositionsByPosition	:: Data.Map.Strict.Map position Type.Count.NPositions
 } deriving Eq
 
 instance Control.DeepSeq.NFData position => Control.DeepSeq.NFData (InstancesByPosition position) where
-	rnf MkInstancesByPosition { getNBoardsByPosition = m }	= Control.DeepSeq.rnf m
+	rnf MkInstancesByPosition { getNPositionsByPosition = m }	= Control.DeepSeq.rnf m
 
 instance (
 	Ord					position,
 	Property.Reflectable.ReflectableOnX	position
  ) => Property.Reflectable.ReflectableOnX (InstancesByPosition position) where
-	reflectOnX MkInstancesByPosition { getNBoardsByPosition = m }	= MkInstancesByPosition $ Data.Map.Strict.mapKeys Property.Reflectable.reflectOnX m
+	reflectOnX MkInstancesByPosition { getNPositionsByPosition = m }	= MkInstancesByPosition $ Data.Map.Strict.mapKeys Property.Reflectable.reflectOnX m
 
 -- | Smart constructor.
-mkInstancesByPosition :: NBoardsByPosition position -> InstancesByPosition position
-mkInstancesByPosition nBoardsByPosition
-	| Data.Foldable.any (< 1) nBoardsByPosition	= Control.Exception.throw $ Data.Exception.mkOutOfBounds "BishBosh.State.InstancesByPosition.mkInstancesByPosition:\teach specified position must have been visited at least once."
-	| otherwise					= MkInstancesByPosition nBoardsByPosition
+mkInstancesByPosition :: Data.Map.Strict.Map position Type.Count.NPositions -> InstancesByPosition position
+mkInstancesByPosition nPositionsByPosition
+	| Data.Foldable.any (< 1) nPositionsByPosition	= Control.Exception.throw $ Data.Exception.mkOutOfBounds "BishBosh.State.InstancesByPosition.mkInstancesByPosition:\teach specified position must have been visited at least once."
+	| otherwise					= MkInstancesByPosition nPositionsByPosition
 
 -- | Constructor.
 mkSingleton :: position -> InstancesByPosition position
@@ -99,35 +92,35 @@ mkSingleton position	= MkInstancesByPosition $ Data.Map.Strict.singleton positio
 
 	* This is equivalent to the number of entries in the map, since adding a non-repeatable move triggers a purge.
 -}
-countConsecutiveRepeatablePlies :: InstancesByPosition position -> Component.Move.NPlies
-countConsecutiveRepeatablePlies MkInstancesByPosition { getNBoardsByPosition = m }	= Data.Map.Strict.foldl' (+) (
+countConsecutiveRepeatablePlies :: InstancesByPosition position -> Type.Count.NPlies
+countConsecutiveRepeatablePlies MkInstancesByPosition { getNPositionsByPosition = m }	= fromIntegral $ Data.Map.Strict.foldl' (+) (
 	negate 1	-- The map is never empty, since before the first move a singleton is constructed with the initial position.
  ) m
 
 -- | Count the total number of repetitions of /position/s.
-countPositionRepetitions :: InstancesByPosition position -> State.Board.NBoards
-countPositionRepetitions MkInstancesByPosition { getNBoardsByPosition = m }	= Data.Map.Strict.foldl' (
+countPositionRepetitions :: InstancesByPosition position -> Type.Count.NPositions
+countPositionRepetitions MkInstancesByPosition { getNPositionsByPosition = m }	= Data.Map.Strict.foldl' (
 	(+) . pred	-- The initial instance isn't a repetition.
  ) 0 m
 
 -- | The number of distinct /position/s.
-getNDistinctPositions :: InstancesByPosition position -> State.Board.NBoards
-getNDistinctPositions MkInstancesByPosition { getNBoardsByPosition = m }	= Data.Map.Strict.size m
+getNDistinctPositions :: InstancesByPosition position -> Type.Count.NPositions
+getNDistinctPositions MkInstancesByPosition { getNPositionsByPosition = m }	= fromIntegral $ Data.Map.Strict.size m {-the number of keys-}
 
 -- | Predicate: apply the specified predicate to the map.
 anyInstancesByPosition
-	:: (State.Board.NBoards -> Bool)
+	:: (Type.Count.NPositions -> Bool)
 	-> InstancesByPosition position
 	-> Bool
-anyInstancesByPosition predicate MkInstancesByPosition { getNBoardsByPosition = m }	= Data.Foldable.any predicate m
+anyInstancesByPosition predicate MkInstancesByPosition { getNPositionsByPosition = m }	= Data.Foldable.any predicate m
 
 {- |
 	* Find the maximum number of times any one position has already been visited.
 
 	* CAVEAT: only those positions that can still be reached are considered.
 -}
-findMaximumInstances :: InstancesByPosition position -> State.Board.NBoards
-findMaximumInstances MkInstancesByPosition { getNBoardsByPosition = m }
+findMaximumInstances :: InstancesByPosition position -> Type.Count.NPositions
+findMaximumInstances MkInstancesByPosition { getNPositionsByPosition = m }
 	| Data.Map.Strict.null m	= 0	-- CAVEAT: this shouldn't happen.
 	| otherwise			= Data.Foldable.maximum m
 
@@ -140,13 +133,13 @@ insertPosition
 	=> Bool	-- ^ Whether the /turn/ which led to the specified /position/, was repeatable.
 	-> position
 	-> Transformation position
-insertPosition isRepeatable position MkInstancesByPosition { getNBoardsByPosition = m }
+insertPosition isRepeatable position MkInstancesByPosition { getNPositionsByPosition = m }
 	| isRepeatable	= MkInstancesByPosition $ Data.Map.Strict.insertWith (const succ) position 1 m	-- Include this position.
 	| otherwise	= mkSingleton position								-- The previous position can't be revisited without rolling-back.
 
 -- | Remove a /position/ from the collection, as required to implement rollback.
 deletePosition :: Ord position => position -> Transformation position
-deletePosition position MkInstancesByPosition { getNBoardsByPosition = m }	= MkInstancesByPosition . Data.Map.Strict.update (
+deletePosition position MkInstancesByPosition { getNPositionsByPosition = m }	= MkInstancesByPosition . Data.Map.Strict.update (
 	\n -> if n == 1
 		then Nothing		-- Delete the entry.
 		else Just $ pred n	-- Decrement the number of instances.

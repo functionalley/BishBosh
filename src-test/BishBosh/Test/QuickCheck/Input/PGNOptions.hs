@@ -40,5 +40,5 @@ instance Test.QuickCheck.Arbitrary Input.PGNOptions.PGNOptions where
 		["FICSGamesDBGameNo"],
 		["ECO"],
 		["FICSGamesDBGameNo", "ECO"]
-	 ] <*> fmap (`mod` 128) Test.QuickCheck.arbitrary {-minimumPlies-} <*> Test.QuickCheck.elements (Nothing : map Just [1 .. 10]) {-maybeMaximumGames-}
+	 ] <*> fmap (fromInteger . (`mod` 128)) Test.QuickCheck.arbitrary {-minimumPlies-} <*> Test.QuickCheck.elements (Nothing : map Just [1 .. 10]) {-maybeMaximumGames-}
 

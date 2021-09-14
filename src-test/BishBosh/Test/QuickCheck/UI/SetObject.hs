@@ -34,7 +34,7 @@ import qualified	Test.QuickCheck
 import qualified	ToolShed.Test.ReversibleIO
 
 instance Test.QuickCheck.Arbitrary UI.SetObject.SetObject where
-	arbitrary	= fmap (UI.SetObject.SearchDepth . (+ Input.SearchOptions.minimumSearchDepth) . (`mod` 4)) Test.QuickCheck.arbitrary
+	arbitrary	= fmap (UI.SetObject.mkSearchDepth . (+ Input.SearchOptions.minimumSearchDepth) . fromInteger . (`mod` 4)) Test.QuickCheck.arbitrary
 
 -- | The constant test-results for this data-type.
 results :: IO [Test.QuickCheck.Result]

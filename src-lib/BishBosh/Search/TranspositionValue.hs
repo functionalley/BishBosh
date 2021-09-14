@@ -42,8 +42,8 @@ module BishBosh.Search.TranspositionValue (
 	isBetter
  ) where
 
-import qualified	BishBosh.Component.Move	as Component.Move
 import qualified	BishBosh.Data.Exception	as Data.Exception
+import qualified	BishBosh.Type.Count	as Type.Count
 import qualified	Control.Exception
 import qualified	Data.Ord
 
@@ -52,15 +52,15 @@ type IsOptimal	= Bool
 
 -- | The type of the values in the transposition-table.
 data TranspositionValue qualifiedMove	= MkTranspositionValue {
-	getIsOptimal		:: IsOptimal,			-- ^ Whether the recorded move-sequence is known to be optimal.
-	getNPlies		:: Component.Move.NPlies,	-- ^ The number of plies applied to the /game/ before application of any of the specified moves.
-	getQualifiedMoves	:: [qualifiedMove]		-- ^ The sequence of qualifiedMoves applied to the /game/, which caused the alpha-beta event.
+	getIsOptimal		:: IsOptimal,		-- ^ Whether the recorded move-sequence is known to be optimal.
+	getNPlies		:: Type.Count.NPlies,	-- ^ The number of plies applied to the /game/ before application of any of the specified moves.
+	getQualifiedMoves	:: [qualifiedMove]	-- ^ The sequence of qualifiedMoves applied to the /game/, which caused the alpha-beta event.
 } deriving Show
 
 -- | Smart constructor.
 mkTranspositionValue
 	:: IsOptimal
-	-> Component.Move.NPlies
+	-> Type.Count.NPlies
 	-> [qualifiedMove]
 	-> TranspositionValue qualifiedMove
 mkTranspositionValue _ _ []	= Control.Exception.throw $ Data.Exception.mkNullDatum "BishBosh.Search.TranspositionValue.mkTranspositionValue:\tnull list of qualifiedMoves."
@@ -73,8 +73,8 @@ mkTranspositionValue isOptimal nPlies qualifiedMoves
 	}
 
 -- | Infer the search-depth from the length of the qualifiedMove-sequence.
-inferSearchDepth :: TranspositionValue qualifiedMove -> Component.Move.NPlies
-inferSearchDepth	= length . getQualifiedMoves
+inferSearchDepth :: TranspositionValue qualifiedMove -> Type.Count.NPlies
+inferSearchDepth	= fromIntegral . length . getQualifiedMoves
 
 {- |
 	* The type of a function which can find the fitness of the game resulting from the recorded sequence of qualifiedMoves.

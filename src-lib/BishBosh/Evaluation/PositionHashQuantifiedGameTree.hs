@@ -81,6 +81,7 @@ import qualified	BishBosh.Model.GameTree					as Model.GameTree
 import qualified	BishBosh.Notation.MoveNotation				as Notation.MoveNotation
 import qualified	BishBosh.Property.Arboreal				as Property.Arboreal
 import qualified	BishBosh.Property.Null					as Property.Null
+import qualified	BishBosh.Type.Mass					as Type.Mass
 import qualified	BishBosh.Types						as T
 import qualified	Control.Arrow
 import qualified	Control.Monad.Reader
@@ -180,12 +181,12 @@ mkPositionHashQuantifiedGameTree :: (
 	-> Model.Game.Game x y	-- ^ The current state of the /game/.
 	-> PositionHashQuantifiedGameTree x y positionHash criterionValue weightedMean
 {-# SPECIALISE mkPositionHashQuantifiedGameTree
-	:: Input.EvaluationOptions.EvaluationOptions T.CriterionWeight T.PieceSquareValue T.RankValue T.X T.Y
+	:: Input.EvaluationOptions.EvaluationOptions Type.Mass.CriterionWeight Type.Mass.PieceSquareValue Type.Mass.RankValue T.X T.Y
 	-> Input.SearchOptions.SearchOptions
 	-> Component.Zobrist.Zobrist T.X T.Y T.PositionHash
 	-> Model.GameTree.MoveFrequency T.X T.Y
 	-> Model.Game.Game T.X T.Y
-	-> PositionHashQuantifiedGameTree T.X T.Y T.PositionHash T.CriterionValue T.WeightedMean
+	-> PositionHashQuantifiedGameTree T.X T.Y T.PositionHash Type.Mass.CriterionValue Type.Mass.WeightedMean
  #-}
 mkPositionHashQuantifiedGameTree evaluationOptions searchOptions zobrist moveFrequency seedGame	= MkPositionHashQuantifiedGameTree (
 	if Input.EvaluationOptions.getIncrementalEvaluation evaluationOptions

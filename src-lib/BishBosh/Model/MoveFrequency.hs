@@ -44,9 +44,9 @@ module BishBosh.Model.MoveFrequency(
 import			Data.Array.IArray((!), (//))
 import qualified	BishBosh.Attribute.LogicalColour	as Attribute.LogicalColour
 import qualified	BishBosh.Attribute.Rank			as Attribute.Rank
-import qualified	BishBosh.Component.Move			as Component.Move
 import qualified	BishBosh.Property.Empty			as Property.Empty
 import qualified	BishBosh.Property.Null			as Property.Null
+import qualified	BishBosh.Type.Count			as Type.Count
 import qualified	Data.Foldable
 import qualified	Data.List
 import qualified	Data.List.Extra
@@ -54,13 +54,13 @@ import qualified	Data.Map.Strict
 import qualified	Data.Ord
 
 {- |
-	* Records the number of instances, by /move/, by /rank/, by /logical colour/.
+	* Records the number of instances, indexed by /move/, by /rank/, by /logical colour/.
 
-	* CAVEAT: no record of the /move-type/ is stored.
+	* CAVEAT: the /move-type/ isn't recorded.
 -}
 type InstancesByMoveByRankByLogicalColour move	= Attribute.LogicalColour.ArrayByLogicalColour (
 	Attribute.Rank.ArrayByRank (
-		Data.Map.Strict.Map move Component.Move.NMoves
+		Data.Map.Strict.Map move Type.Count.NPlies
 	)
  )
 
@@ -76,14 +76,14 @@ instance Property.Null.Null (MoveFrequency move) where
 	isNull MkMoveFrequency { deconstruct = instancesByMoveByRankByLogicalColour }	= Data.Foldable.all (Data.Foldable.all Data.Map.Strict.null) instancesByMoveByRankByLogicalColour
 
 -- | Count the total number of entries.
-countEntries :: MoveFrequency move -> Component.Move.NMoves
+countEntries :: MoveFrequency move -> Type.Count.NPlies
 countEntries MkMoveFrequency { deconstruct = instancesByMoveByRankByLogicalColour }	= Data.Foldable.foldl' (
 	Data.Foldable.foldl' $ \acc -> (acc +) . Data.Foldable.sum
  ) 0 instancesByMoveByRankByLogicalColour
 
 -- | Count the total number of distinct entries.
-countDistinctEntries :: MoveFrequency move -> Component.Move.NMoves
-countDistinctEntries MkMoveFrequency { deconstruct = instancesByMoveByRankByLogicalColour }	= Data.Foldable.foldl' (
+countDistinctEntries :: MoveFrequency move -> Type.Count.NPlies
+countDistinctEntries MkMoveFrequency { deconstruct = instancesByMoveByRankByLogicalColour }	= fromIntegral $ Data.Foldable.foldl' (
 	Data.Foldable.foldl' $ \acc -> (acc +) . Data.Map.Strict.size
  ) 0 instancesByMoveByRankByLogicalColour
 

@@ -64,6 +64,8 @@ import qualified	BishBosh.Model.Game					as Model.Game
 import qualified	BishBosh.Notation.MoveNotation				as Notation.MoveNotation
 import qualified	BishBosh.Property.Null					as Property.Null
 import qualified	BishBosh.Text.ShowList					as Text.ShowList
+import qualified	BishBosh.Type.Count					as Type.Count
+import qualified	BishBosh.Type.Mass					as Type.Mass
 import qualified	BishBosh.Types						as T
 import qualified	Control.DeepSeq
 import qualified	Control.Exception
@@ -123,7 +125,7 @@ fromGame :: (
 	=> Maybe pieceSquareValue	-- ^ The value for the specified game.
 	-> Model.Game.Game x y		-- ^ The current state of the /game/.
 	-> Input.EvaluationOptions.Reader criterionWeight pieceSquareValue rankValue x y (QuantifiedGame x y criterionValue weightedMean)
-{-# SPECIALISE fromGame :: Maybe T.PieceSquareValue -> Model.Game.Game T.X T.Y -> Input.EvaluationOptions.Reader T.CriterionWeight T.PieceSquareValue T.RankValue T.X T.Y (QuantifiedGame T.X T.Y T.CriterionValue T.WeightedMean) #-}
+{-# SPECIALISE fromGame :: Maybe Type.Mass.PieceSquareValue -> Model.Game.Game T.X T.Y -> Input.EvaluationOptions.Reader Type.Mass.CriterionWeight Type.Mass.PieceSquareValue Type.Mass.RankValue T.X T.Y (QuantifiedGame T.X T.Y Type.Mass.CriterionValue Type.Mass.WeightedMean) #-}
 fromGame maybePieceSquareValue game	= MkQuantifiedGame game `fmap` Evaluation.Fitness.evaluateFitness maybePieceSquareValue game
 
 -- | Retrieve the /turn/ used to generate the selected /game/.
@@ -132,12 +134,12 @@ getLastTurn MkQuantifiedGame { getGame = game }	= Data.Maybe.fromMaybe (
 	Control.Exception.throw $ Data.Exception.mkResultUndefined "BishBosh.Evaluation.QuantifiedGame.getLastTurn:\tzero turns have been made."
  ) $ Model.Game.maybeLastTurn game
 
--- | Drop the specified number of old turns from the start of the chronological sequence, leaving the most recent.
+-- | Drop the specified number of plies from the start of the chronological sequence, leaving the most recent.
 getLatestTurns
-	:: Component.Move.NPlies
+	:: Type.Count.NPlies	-- ^ The number of plies to drop from the start of the chronological sequence.
 	-> QuantifiedGame x y criterionValue weightedMean
 	-> [Component.Turn.Turn x y]
-getLatestTurns nPlies MkQuantifiedGame { getGame = game }	= drop nPlies $ Model.Game.listTurnsChronologically game
+getLatestTurns nPlies MkQuantifiedGame { getGame = game }	= fromIntegral nPlies `drop` Model.Game.listTurnsChronologically game
 
 -- | Represent the /fitness/ of the /game/ resulting from a future /move/ by the opponent, from the perspective of the current player.
 negateFitness :: Num weightedMean => QuantifiedGame x y criterionValue weightedMean -> QuantifiedGame x y criterionValue weightedMean

@@ -39,7 +39,6 @@ module BishBosh.State.Board(
 -- ** Type-synonyms
 --	Transformation,
 --	NDefendersByCoordinatesByLogicalColour,
-	NBoards,
 -- ** Data-types
 	Board(
 --		MkBoard,
@@ -90,6 +89,8 @@ import qualified	BishBosh.State.MaybePieceByCoordinates			as State.MaybePieceByC
 import qualified	BishBosh.StateProperty.Censor				as StateProperty.Censor
 import qualified	BishBosh.StateProperty.Mutator				as StateProperty.Mutator
 import qualified	BishBosh.StateProperty.Seeker				as StateProperty.Seeker
+import qualified	BishBosh.Type.Count					as Type.Count
+import qualified	BishBosh.Type.Mass					as Type.Mass
 import qualified	BishBosh.Types						as T
 import qualified	Control.Arrow
 import qualified	Control.DeepSeq
@@ -109,10 +110,7 @@ import qualified	Data.Array.Unboxed
 type Transformation x y	= Board x y -> Board x y
 
 -- | The number of defenders for each /piece/, belonging to each side.
-type NDefendersByCoordinatesByLogicalColour x y	= Attribute.LogicalColour.ArrayByLogicalColour (Data.Map.Strict.Map (Cartesian.Coordinates.Coordinates x y) Component.Piece.NPieces)
-
--- | A number of boards.
-type NBoards	= Int
+type NDefendersByCoordinatesByLogicalColour x y	= Attribute.LogicalColour.ArrayByLogicalColour (Data.Map.Strict.Map (Cartesian.Coordinates.Coordinates x y) Type.Count.NPieces)
 
 {- |
 	* The board is modelled as two alternative structures representing the same data, but indexed by either /coordinates/ or /piece/.
@@ -120,13 +118,13 @@ type NBoards	= Int
 	* For efficiency some ancillary structures are also maintained.
 -}
 data Board x y	= MkBoard {
-	getMaybePieceByCoordinates			:: State.MaybePieceByCoordinates.MaybePieceByCoordinates x y,				-- ^ Defines any /piece/ currently located at each /coordinate/.
-	getCoordinatesByRankByLogicalColour		:: State.CoordinatesByRankByLogicalColour.CoordinatesByRankByLogicalColour x y,		-- ^ The /coordinates/ of each /piece/.
-	getNDefendersByCoordinatesByLogicalColour	:: NDefendersByCoordinatesByLogicalColour x y,						-- ^ The number of defenders of each /piece/, indexed by /logical colour/ & then by /coordinates/.
-	getNPiecesDifferenceByRank			:: StateProperty.Censor.NPiecesByRank,								-- ^ The difference in the number of /piece/s of each /rank/ held by either side. @White@ /piece/s are arbitrarily considered positive & @Black@ ones negative.
-	getNPawnsByFileByLogicalColour			:: State.CoordinatesByRankByLogicalColour.NPiecesByFileByLogicalColour x,		-- ^ The number of @Pawn@s of each /logical colour/, for each /file/.
-	getNPieces					:: Component.Piece.NPieces,								-- ^ The total number of pieces on the board, including @Pawn@s.
-	getPassedPawnCoordinatesByLogicalColour		:: State.CoordinatesByRankByLogicalColour.CoordinatesByLogicalColour x y		-- ^ The /coordinates/ of any /passed/ @Pawn@s.
+	getMaybePieceByCoordinates			:: State.MaybePieceByCoordinates.MaybePieceByCoordinates x y,			-- ^ Defines any /piece/ currently located at each /coordinate/.
+	getCoordinatesByRankByLogicalColour		:: State.CoordinatesByRankByLogicalColour.CoordinatesByRankByLogicalColour x y,	-- ^ The /coordinates/ of each /piece/.
+	getNDefendersByCoordinatesByLogicalColour	:: NDefendersByCoordinatesByLogicalColour x y,					-- ^ The number of defenders of each /piece/, indexed by /logical colour/ & then by /coordinates/.
+	getNPiecesDifferenceByRank			:: StateProperty.Censor.NPiecesByRank,						-- ^ The difference in the number of /piece/s of each /rank/ held by either side. @White@ /piece/s are arbitrarily considered positive & @Black@ ones negative.
+	getNPawnsByFileByLogicalColour			:: State.CoordinatesByRankByLogicalColour.NPiecesByFileByLogicalColour x,	-- ^ The number of @Pawn@s of each /logical colour/, for each /file/.
+	getNPieces					:: Type.Count.NPieces,								-- ^ The total number of pieces on the board, including @Pawn@s.
+	getPassedPawnCoordinatesByLogicalColour		:: State.CoordinatesByRankByLogicalColour.CoordinatesByLogicalColour x y	-- ^ The /coordinates/ of any /passed/ @Pawn@s.
 }
 
 instance (
@@ -145,9 +143,7 @@ instance (
 		getMaybePieceByCoordinates			= maybePieceByCoordinates,
 		getCoordinatesByRankByLogicalColour		= coordinatesByRankByLogicalColour,
 		getNDefendersByCoordinatesByLogicalColour	= nDefendersByCoordinatesByLogicalColour,
-#ifndef USE_UNBOXED_ARRAYS
 		getNPiecesDifferenceByRank			= nPiecesDifferenceByRank,
-#endif
 		getNPawnsByFileByLogicalColour			= nPawnsByFileByLogicalColour,
 		getNPieces					= nPieces,
 		getPassedPawnCoordinatesByLogicalColour		= passedPawnCoordinatesByLogicalColour
@@ -155,9 +151,7 @@ instance (
 		maybePieceByCoordinates,
 		coordinatesByRankByLogicalColour,
 		nDefendersByCoordinatesByLogicalColour,
-#ifndef USE_UNBOXED_ARRAYS
 		nPiecesDifferenceByRank,
-#endif
 		nPawnsByFileByLogicalColour,
 		nPieces,
 		passedPawnCoordinatesByLogicalColour
@@ -284,9 +278,9 @@ fromMaybePieceByCoordinates maybePieceByCoordinates	= board where
 		getMaybePieceByCoordinates			= maybePieceByCoordinates,
 		getCoordinatesByRankByLogicalColour		= State.CoordinatesByRankByLogicalColour.fromMaybePieceByCoordinates maybePieceByCoordinates,				-- Infer.
 		getNDefendersByCoordinatesByLogicalColour	= countDefendersByCoordinatesByLogicalColour board,									-- Infer.
-		getNPiecesDifferenceByRank			= StateProperty.Censor.countPieceDifferenceByRank coordinatesByRankByLogicalColour,						-- Infer.
+		getNPiecesDifferenceByRank			= StateProperty.Censor.countPieceDifferenceByRank coordinatesByRankByLogicalColour,					-- Infer.
 		getNPawnsByFileByLogicalColour			= State.CoordinatesByRankByLogicalColour.countPawnsByFileByLogicalColour coordinatesByRankByLogicalColour,		-- Infer.
-		getNPieces					= StateProperty.Censor.countPieces coordinatesByRankByLogicalColour,								-- Infer.
+		getNPieces					= StateProperty.Censor.countPieces coordinatesByRankByLogicalColour,							-- Infer.
 		getPassedPawnCoordinatesByLogicalColour		= State.CoordinatesByRankByLogicalColour.findPassedPawnCoordinatesByLogicalColour coordinatesByRankByLogicalColour	-- Infer.
 	}
 
@@ -361,7 +355,7 @@ movePiece move maybeMoveType board@MkBoard {
 						if Attribute.LogicalColour.isBlack logicalColour'
 							then Control.Arrow.first
 							else Control.Arrow.second
-					) . Data.Map.Strict.insert affectedCoordinates {-overwrite-} . length $ findAttackersOf (
+					) . Data.Map.Strict.insert affectedCoordinates {-overwrite-} . fromIntegral . length $ findAttackersOf (
 						Property.Opposable.getOpposite logicalColour'	-- Investigate an attack on the affected coordinates by the affected piece's own logical colour, i.e. defence.
 					) affectedCoordinates board'
 			) (
@@ -467,12 +461,12 @@ movePiece move maybeMoveType board@MkBoard {
 						)
 					]
 				) maybePromotionRank,
-			getNPawnsByFileByLogicalColour	= if Component.Piece.isPawn sourcePiece && (
+			getNPawnsByFileByLogicalColour		= if Component.Piece.isPawn sourcePiece && (
 				Cartesian.Coordinates.getX source /= Cartesian.Coordinates.getX destination {-includes En-passant-} || Attribute.MoveType.isPromotion moveType
 			) || Attribute.MoveType.getMaybeExplicitlyTakenRank moveType == Just Attribute.Rank.Pawn
 				then State.CoordinatesByRankByLogicalColour.countPawnsByFileByLogicalColour coordinatesByRankByLogicalColour'
 				else getNPawnsByFileByLogicalColour board,
-			getNPieces	= Attribute.MoveType.nPiecesMutator moveType nPieces,
+			getNPieces				= Attribute.MoveType.nPiecesMutator moveType nPieces,
 			getPassedPawnCoordinatesByLogicalColour	= if Component.Piece.isPawn sourcePiece {-includes En-passant & promotion-} || Attribute.MoveType.getMaybeExplicitlyTakenRank moveType == Just Attribute.Rank.Pawn
 				then State.CoordinatesByRankByLogicalColour.findPassedPawnCoordinatesByLogicalColour coordinatesByRankByLogicalColour'
 				else getPassedPawnCoordinatesByLogicalColour board
@@ -505,7 +499,7 @@ sumPieceSquareValueByLogicalColour :: (
 #endif
 		pieceSquareValue
 {-# SPECIALISE sumPieceSquareValueByLogicalColour
-	:: Component.PieceSquareByCoordinatesByRank.PieceSquareByCoordinatesByRank T.X T.Y T.PieceSquareValue
+	:: Component.PieceSquareByCoordinatesByRank.PieceSquareByCoordinatesByRank T.X T.Y Type.Mass.PieceSquareValue
 	-> Board T.X T.Y
 	->
 #ifdef USE_UNBOXED_ARRAYS
@@ -513,7 +507,7 @@ sumPieceSquareValueByLogicalColour :: (
 #else
 	Attribute.LogicalColour.ArrayByLogicalColour
 #endif
-		T.PieceSquareValue
+		Type.Mass.PieceSquareValue
  #-}
 sumPieceSquareValueByLogicalColour pieceSquareByCoordinatesByRank MkBoard {
 	getCoordinatesByRankByLogicalColour	= coordinatesByRankByLogicalColour,
@@ -645,17 +639,17 @@ countDefendersByCoordinatesByLogicalColour board@MkBoard { getCoordinatesByRankB
 	Data.Map.Strict.fromList [
 		(
 			coordinates,
-			length $ findAttackersOf (
+			fromIntegral . length $ findAttackersOf (
 				Property.Opposable.getOpposite logicalColour	-- Investigate an attack on these coordinates by one's own logical colour.
 			) coordinates board
 		) |
-			rank		<- Attribute.Rank.expendable,
+			rank		<- Attribute.Rank.expendable,	-- CAVEAT: there's no point defending one's own King.
 			coordinates	<- State.CoordinatesByRankByLogicalColour.dereference logicalColour rank coordinatesByRankByLogicalColour
 	] {-list-comprehension-} | logicalColour <- Property.FixedMembership.members
  ] -- List-comprehension.
 
 -- | Collapses 'NDefendersByCoordinatesByLogicalColour' into the total number of defenders on either side.
-summariseNDefendersByLogicalColour :: Board x y -> Attribute.LogicalColour.ArrayByLogicalColour Component.Piece.NPieces
+summariseNDefendersByLogicalColour :: Board x y -> Attribute.LogicalColour.ArrayByLogicalColour Type.Count.NPieces
 summariseNDefendersByLogicalColour MkBoard { getNDefendersByCoordinatesByLogicalColour = nDefendersByCoordinatesByLogicalColour }	= Data.Array.IArray.amap (
 	Data.Map.Strict.foldl' (+) 0	-- CAVEAT: 'Data.Foldable.sum' is too slow.
  ) nDefendersByCoordinatesByLogicalColour

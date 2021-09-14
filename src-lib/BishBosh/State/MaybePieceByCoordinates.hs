@@ -91,6 +91,7 @@ import qualified	BishBosh.StateProperty.Censor				as StateProperty.Censor
 import qualified	BishBosh.StateProperty.Mutator				as StateProperty.Mutator
 import qualified	BishBosh.StateProperty.Seeker				as StateProperty.Seeker
 import qualified	BishBosh.Text.ShowList					as Text.ShowList
+import qualified	BishBosh.Type.Mass					as Type.Mass
 import qualified	BishBosh.Types						as T
 import qualified	Control.Arrow
 import qualified	Control.DeepSeq
@@ -264,7 +265,7 @@ instance (
 		in nBlack `seq` nWhite `seq` acc'
 	 ) (0, 0) . getPieces
 
-	countPieces	= length . getPieces
+	countPieces	= fromIntegral . length . getPieces
 
 	countPieceDifferenceByRank	= Data.Array.IArray.accumArray (+) 0 (minBound, maxBound) . map (
 		Component.Piece.getRank &&& (
@@ -727,7 +728,7 @@ sumPieceSquareValueByLogicalColour :: (
 	=> Component.PieceSquareByCoordinatesByRank.FindPieceSquareValue x y pieceSquareValue
 	-> MaybePieceByCoordinates x y
 	-> [pieceSquareValue]
-{-# SPECIALISE sumPieceSquareValueByLogicalColour :: Component.PieceSquareByCoordinatesByRank.FindPieceSquareValue T.X T.Y T.PieceSquareValue -> MaybePieceByCoordinates T.X T.Y -> [T.PieceSquareValue] #-}
+{-# SPECIALISE sumPieceSquareValueByLogicalColour :: Component.PieceSquareByCoordinatesByRank.FindPieceSquareValue T.X T.Y Type.Mass.PieceSquareValue -> MaybePieceByCoordinates T.X T.Y -> [Type.Mass.PieceSquareValue] #-}
 sumPieceSquareValueByLogicalColour findPieceSquareValue	= (
 	\(b, w) -> [b, w]
  ) . Data.List.foldl' (

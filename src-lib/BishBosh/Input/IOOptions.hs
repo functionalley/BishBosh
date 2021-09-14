@@ -26,7 +26,6 @@ module BishBosh.Input.IOOptions(
 -- * Types
 -- ** Type-synonyms
 --	Transformation,
-	MaximumPGNNames,
 -- ** Data-types
 	IOOptions(
 --		MkIOOptions,
@@ -63,6 +62,7 @@ import qualified	BishBosh.Input.UIOptions	as Input.UIOptions
 import qualified	BishBosh.Input.Verbosity	as Input.Verbosity
 import qualified	BishBosh.Property.Arboreal	as Property.Arboreal
 import qualified	BishBosh.Text.ShowList		as Text.ShowList
+import qualified	BishBosh.Type.Count		as Type.Count
 import qualified	Control.Arrow
 import qualified	Control.DeepSeq
 import qualified	Control.Exception
@@ -95,14 +95,11 @@ filePathTag		= "filePath"
 automaticTag :: String
 automaticTag		= "automatic"
 
--- | The maximum number names, of matching games from the PGN-database, to display.
-type MaximumPGNNames	= Int
-
 -- | Defines options related to i/o.
 data IOOptions row column	= MkIOOptions {
 	getMaybeOutputConfigFilePath	:: Maybe System.FilePath.FilePath,		-- ^ An optional path to a file, into which the unprocessed configuration, formatted as XML, should be written (obliterating any existing file-contents).
-	getMaybeMaximumPGNNames		:: Maybe MaximumPGNNames,			-- ^ The maximum number names, of matching games from the PGN-database, to display; @Nothing@ implies no maximum.
-	getPGNOptionsList		:: [Input.PGNOptions.PGNOptions],		-- ^ How to construct PGN-databases.
+	getMaybeMaximumPGNNames		:: Maybe Type.Count.NGames,			-- ^ The maximum number of names to display, of matching games from the PGN-database; @Nothing@ implies unlimited. CAVEAT: pedantically, it's a number of names not a number of games.
+	getPGNOptionsList		:: [Input.PGNOptions.PGNOptions],		-- ^ How to construct each PGN-database.
 	getMaybePersistence		:: Maybe (System.FilePath.FilePath, Bool),	-- ^ Optional path to a file, into which game-state can be persisted (obliterating any existing content), & whether to save this state automatically after each move.
 	getUIOptions			:: Input.UIOptions.UIOptions row column		-- ^ Options which define the user-interface.
 } deriving Eq
@@ -183,7 +180,7 @@ instance (
 	 ) $ HXT.xp5Tuple (
 		HXT.xpOption $ HXT.xpTextAttr outputConfigFilePathTag {-can't be null-}
 	 ) (
-		HXT.xpAttrImplied maximumPGNNamesTag HXT.xpInt
+		HXT.xpAttrImplied maximumPGNNamesTag HXT.xpickle
 	 ) HXT.xpickle {-PGNOptions-} (
 		HXT.xpOption $ HXT.xpElem persistenceTag (
 			HXT.xpTextAttr filePathTag `HXT.xpPair` HXT.xpDefault True (HXT.xpAttr automaticTag HXT.xpickle {-Bool-})
@@ -193,7 +190,7 @@ instance (
 -- | Smart constructor.
 mkIOOptions
 	:: Maybe System.FilePath.FilePath		-- ^ An optional path to a file, into which the unprocessed configuration, formatted as XML, should be written (obliterating any existing file-contents).
-	-> Maybe MaximumPGNNames			-- ^ The optional maximum number of names, of matching PGN-games, to display; @Nothing@ implies unlimited.
+	-> Maybe Type.Count.NGames			-- ^ The optional maximum number of names, of matching PGN-games, to display; @Nothing@ implies unlimited.
 	-> [Input.PGNOptions.PGNOptions]		-- ^ How to find & process PGN-databases.
 	-> Maybe (System.FilePath.FilePath, Bool)	-- ^ Optional path to a file, into which game-state can be persisted (obliterating any existing content), & whether to save this state automatically after each move.
 	-> Input.UIOptions.UIOptions row column

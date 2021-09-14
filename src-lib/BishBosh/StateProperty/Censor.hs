@@ -1,4 +1,3 @@
-{-# LANGUAGE CPP #-}
 {-
 	Copyright (C) 2018 Dr. Alistair Ward
 
@@ -31,28 +30,22 @@ module BishBosh.StateProperty.Censor(
 	Censor(..)
 ) where
 
-import qualified	BishBosh.Attribute.Rank		as Attribute.Rank
-import qualified	BishBosh.Component.Piece	as Component.Piece
+import qualified	BishBosh.Attribute.Rank	as Attribute.Rank
+import qualified	BishBosh.Type.Count	as Type.Count
 
 -- | The difference in the number of /piece/s of each /rank/ held by either side.
-type NPiecesByRank	=
-#ifdef USE_UNBOXED_ARRAYS
-	Attribute.Rank.UArrayByRank
-#else
-	Attribute.Rank.ArrayByRank
-#endif
-	Component.Piece.NPieces
+type NPiecesByRank	= Attribute.Rank.ArrayByRank Type.Count.NPieces
 
 -- | An interface which may be implemented by data which can perform a census of the /piece/s on the /board/.
 class Censor censor where
-	countPiecesByLogicalColour	:: censor -> (Component.Piece.NPieces, Component.Piece.NPieces)	-- ^ The total number of /piece/s, partitioned into @Black@ & @White@ respectively.
+	countPiecesByLogicalColour	:: censor -> (Type.Count.NPieces, Type.Count.NPieces)	-- ^ The total number of /piece/s, partitioned into @Black@ & @White@ respectively.
 
-	countPieces			:: censor -> Component.Piece.NPieces				-- ^ The total number of /piece/s on the board, regardless of logical colour.
+	countPieces			:: censor -> Type.Count.NPieces				-- ^ The total number of /piece/s on the board, regardless of logical colour.
 	countPieces	= uncurry (+) . countPiecesByLogicalColour	-- Default implementation.
 
-	countPieceDifferenceByRank	:: censor -> NPiecesByRank					-- ^ Finds the difference between the number of /piece/s of each /rank/ held by each side. N.B. for this purpose, @White@ is arbitrarily considered positive & @Black@ negative.
+	countPieceDifferenceByRank	:: censor -> NPiecesByRank				-- ^ Finds the difference between the number of /piece/s of each /rank/ held by each side. N.B. for this purpose, @White@ is arbitrarily considered positive & @Black@ negative.
 
-	hasInsufficientMaterial		:: censor -> Bool						-- ^ Whether insufficient material remains on the board, to force check-mate; <https://en.wikipedia.org/wiki/Draw_(chess)>.
+	hasInsufficientMaterial		:: censor -> Bool					-- ^ Whether insufficient material remains on the board, to force check-mate; <https://en.wikipedia.org/wiki/Draw_(chess)>.
 
-	hasBothKings			:: censor -> Bool						-- ^ Whether there's exactly one @King@ of each /logical colour/.
+	hasBothKings			:: censor -> Bool					-- ^ Whether there's exactly one @King@ of each /logical colour/.
 

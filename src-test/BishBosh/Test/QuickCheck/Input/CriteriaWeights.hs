@@ -34,7 +34,7 @@ module BishBosh.Test.QuickCheck.Input.CriteriaWeights(
 
 import			BishBosh.Test.QuickCheck.Attribute.CriterionWeight()
 import qualified	BishBosh.Input.CriteriaWeights	as Input.CriteriaWeights
-import qualified	BishBosh.Types			as T
+import qualified	BishBosh.Type.Mass		as Type.Mass
 import qualified	Test.QuickCheck
 
 instance (
@@ -45,7 +45,7 @@ instance (
 	arbitrary	= Input.CriteriaWeights.mkCriteriaWeights <$> Test.QuickCheck.arbitrary <*> Test.QuickCheck.arbitrary <*> Test.QuickCheck.arbitrary <*> Test.QuickCheck.arbitrary <*> Test.QuickCheck.arbitrary <*> Test.QuickCheck.arbitrary <*> Test.QuickCheck.arbitrary <*> Test.QuickCheck.arbitrary
 
 -- | Defines a concrete type for testing.
-type CriteriaWeights	= Input.CriteriaWeights.CriteriaWeights T.CriterionWeight
+type CriteriaWeights	= Input.CriteriaWeights.CriteriaWeights Type.Mass.CriterionWeight
 
 -- | The constant test-results for this data-type.
 results :: IO [Test.QuickCheck.Result]

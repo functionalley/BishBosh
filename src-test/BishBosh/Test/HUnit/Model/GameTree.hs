@@ -38,6 +38,7 @@ import qualified	BishBosh.Notation.MoveNotation			as Notation.MoveNotation
 import qualified	BishBosh.Property.Empty				as Property.Empty
 import qualified	BishBosh.Property.FixedMembership		as Property.FixedMembership
 import qualified	BishBosh.Property.ForsythEdwards		as Property.ForsythEdwards
+import qualified	BishBosh.Type.Mass				as Type.Mass
 import qualified	BishBosh.Types					as T
 import qualified	Data.Default
 import qualified	Data.Maybe
@@ -51,8 +52,8 @@ testCases	= Test.HUnit.test [
 	let
 		maxDepth	= 4
 	in "'BishBosh.Model.GameTree.countGames' failed" ~: map Model.GameTree.countGames [0 .. maxDepth] ~?= take (succ maxDepth) [1, 20, 400, 8902, 197281, 4865609],	-- <https://oeis.org/A048987>
-	"'BishBosh.Model.GameTree.countMoves' failed" ~: map (
-		\searchDepth -> Model.GameTree.countMoves searchDepth ~?= foldr (
+	"'BishBosh.Model.GameTree.countPositions' failed" ~: map (
+		\searchDepth -> fromIntegral (Model.GameTree.countPositions searchDepth) ~?= foldr (
 			(+) . Model.GameTree.countGames
 		) 0 [1 .. searchDepth]
 	) [1 .. 4],
@@ -78,7 +79,7 @@ testCases	= Test.HUnit.test [
 	 ) . Data.Tree.subForest . Model.GameTree.deconstruct . Model.GameTree.sortGameTree maybeSortAlgorithm (
 		`Attribute.RankValues.findRankValue` Attribute.RankValues.fromAssocs (
 			zip Property.FixedMembership.members $ map (/ 10) [
-				1	:: T.RankValue,
+				1	:: Type.Mass.RankValue,
 				5,	-- R
 				3,	-- N
 				7 / 2,	-- B

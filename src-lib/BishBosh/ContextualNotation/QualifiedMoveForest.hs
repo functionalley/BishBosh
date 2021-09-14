@@ -51,8 +51,6 @@ module BishBosh.ContextualNotation.QualifiedMoveForest(
 import			Control.Applicative((<|>))
 import			Control.Arrow((&&&), (***))
 import qualified	BishBosh.Attribute.MoveType			as Attribute.MoveType
-import qualified	BishBosh.Component.Move				as Component.Move
-import qualified	BishBosh.Component.Piece			as Component.Piece
 import qualified	BishBosh.Component.QualifiedMove		as Component.QualifiedMove
 import qualified	BishBosh.Component.Turn				as Component.Turn
 import qualified	BishBosh.ContextualNotation.PGN			as ContextualNotation.PGN
@@ -68,6 +66,7 @@ import qualified	BishBosh.Property.Null				as Property.Null
 import qualified	BishBosh.State.Board				as State.Board
 import qualified	BishBosh.Text.ShowList				as Text.ShowList
 import qualified	BishBosh.Types					as T
+import qualified	BishBosh.Type.Count				as Type.Count
 import qualified	Control.Arrow
 import qualified	Data.Default
 import qualified	Data.List
@@ -119,19 +118,19 @@ instance (Enum x, Enum y) => Notation.MoveNotation.ShowNotation (QualifiedMoveFo
 		) maybeOnymousResult ""
 	 ) forest
 
--- | Shows a list of the names of archived games, optionally capped at the specified number.
+-- | Shows an optional capped list of the names of archived games.
 showsNames
-	:: Maybe Int	-- ^ The optional maximum number of names to show.
+	:: Maybe Type.Count.NGames	-- ^ The optional maximum number of names to show.
 	-> [Name]
 	-> ShowS
 showsNames maybeMaximumPGNNames names	= Text.ShowList.showsUnterminatedList . map (
 	\name -> showString "\n\t" . showString name
  ) $ Data.Maybe.maybe id (
 	\maximumPGNNames -> (
-		if maximumPGNNames < length names'
+		if fromIntegral maximumPGNNames < length names'
 			then (++ ["..."])
 			else id
-	) . take maximumPGNNames
+	) . take (fromIntegral maximumPGNNames)
  ) maybeMaximumPGNNames names' where
 	names'	= Data.List.nub $ Data.List.sort names
 
@@ -192,7 +191,7 @@ fromPGNDatabase :: (Eq x, Eq y) => ContextualNotation.PGNDatabase.PGNDatabase x 
 fromPGNDatabase	= (`mergePGNDatabase` Property.Empty.empty {-QualifiedMoveForest-})
 
 -- | Find the minimum number of /piece/s in any of the recorded /game/s.
-findMinimumPieces :: QualifiedMoveForest x y -> Component.Piece.NPieces
+findMinimumPieces :: QualifiedMoveForest x y -> Type.Count.NPieces
 findMinimumPieces	= slave (
 	State.Board.getNPieces (
 		Data.Default.def	:: State.Board.Board T.X T.Y	-- CAVEAT: this assumes the game to which the moves in the forest refer.
@@ -208,22 +207,22 @@ findMinimumPieces	= slave (
 		) subForest	-- Recurse.
 	 ) forest
 
--- | Count the number of /game/s & /plies/.
-count :: QualifiedMoveForest x y -> (Model.Game.NGames, Component.Move.NPlies)
+-- | Count the number of /game/s & distinct /positions/.
+count :: QualifiedMoveForest x y -> (Type.Count.NGames, Type.Count.NPositions)
 count	= slave . deconstruct where
 	slave	= Data.List.foldl' (
-		\(nGames, nPlies) Data.Tree.Node {
+		\(nGames, nPositions) Data.Tree.Node {
 			Data.Tree.rootLabel	= (_, maybeOnymousResult),
 			Data.Tree.subForest	= forest
 		} -> let
-			acc@(nGames', nPlies')	= (
+			acc@(nGames', nPositions')	= (
 				(+ nGames) . (
 					if Data.Maybe.isJust maybeOnymousResult
 						then succ
 						else id
-				) *** (+ nPlies) . succ
+				) *** (+ nPositions) . succ
 			 ) $ slave forest {-recurse-}
-		in nGames' `seq` nPlies' `seq` acc
+		in nGames' `seq` nPositions' `seq` acc
 	 ) (0, 0)
 
 {- |

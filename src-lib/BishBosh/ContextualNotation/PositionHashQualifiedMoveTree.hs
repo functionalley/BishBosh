@@ -58,6 +58,7 @@ import qualified	BishBosh.Model.Result				as Model.Result
 import qualified	BishBosh.Property.Reflectable			as Property.Reflectable
 import qualified	BishBosh.State.Board				as State.Board
 import qualified	BishBosh.Types					as T
+import qualified	BishBosh.Type.Count				as Type.Count
 import qualified	Control.Arrow
 import qualified	Control.Exception
 import qualified	Data.Array.IArray
@@ -89,7 +90,7 @@ type Tree x y positionHash	= Data.Tree.Tree (NodeLabel x y positionHash)
 data PositionHashQualifiedMoveTree x y positionHash	= MkPositionHashQualifiedMoveTree {
 	getZobrist		:: Component.Zobrist.Zobrist x y positionHash,	-- ^ Used to hash each position in the tree.
 	getTree			:: Tree x y positionHash,
-	getMinimumPieces	:: Component.Piece.NPieces			-- ^ The minimum number of /piece/s remaining after the last /move/ in any game defined in the tree.
+	getMinimumPieces	:: Type.Count.NPieces				-- ^ The minimum number of /piece/s remaining after the last /move/ in any game defined in the tree.
 }
 
 -- | Augment the specified /qualified-move forest/ with a /Zobrist-hash/ of the /position/ & include the default initial game at the apex.
@@ -213,7 +214,7 @@ findNextOnymousQualifiedMovesForPosition requiredGame positionHashQualifiedMoveT
 		}
 			| nPieces < State.Board.getNPieces (
 				Model.Game.getBoard requiredGame
-			)		= []	-- There are fewer pieces remaining in the tree than required.
+			)		= []	-- There are fewer pieces remaining in the tree than required. CAVEAT: breaking this check into nPieces/side isn't cost-effective.
 			| otherwise	= (
 				if positionHash == Component.Zobrist.hash2D requiredGame zobrist
 					then (

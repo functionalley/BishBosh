@@ -51,15 +51,15 @@ import qualified	BishBosh.Input.Options			as Input.Options
 import qualified	BishBosh.Input.SearchOptions		as Input.SearchOptions
 import qualified	BishBosh.Input.UIOptions		as Input.UIOptions
 import qualified	BishBosh.Input.Verbosity		as Input.Verbosity
-import qualified	BishBosh.Model.Game			as Model.Game
 import qualified	BishBosh.Model.GameTerminationReason	as Model.GameTerminationReason
 import qualified	BishBosh.Notation.MoveNotation		as Notation.MoveNotation
 import qualified	BishBosh.Property.Opposable		as Property.Opposable
 import qualified	BishBosh.Property.SelfValidating	as Property.SelfValidating
-import qualified	BishBosh.Property.ShowFloat		as Property.ShowFloat
 import qualified	BishBosh.Property.Switchable		as Property.Switchable
 import qualified	BishBosh.Text.ShowList			as Text.ShowList
 import qualified	BishBosh.Time.GameClock			as Time.GameClock
+import qualified	BishBosh.Type.Count			as Type.Count
+import qualified	BishBosh.Type.Mass			as Type.Mass
 import qualified	BishBosh.Types				as T
 import qualified	BishBosh.UI.Command			as UI.Command
 import qualified	Control.Exception
@@ -114,14 +114,14 @@ runBishBosh verbosity configFilePath	= let
 -- | Read either a move or a game-termination reason from the specified handle.
 readMove
 	:: Input.Verbosity.Verbosity
-	-> Data.Options.ReadTimeout
+	-> Type.Count.NSeconds				-- ^ Read-timout.
 	-> Attribute.LogicalColour.LogicalColour	-- ^ Whose turn it is.
 	-> System.IO.Handle				-- ^ Output handle from which data should be read.
 	-> IO (Either Model.GameTerminationReason.GameTerminationReason (MoveNotation T.X T.Y))
 readMove verbosity readTimeout logicalColour stdOut = do
 	Control.Monad.when (verbosity == maxBound) . IO.Logger.printInfo . showString "Waiting for " $ shows logicalColour "."
 
-	inputReady	<- System.IO.hWaitForInput stdOut $ 1000 * readTimeout
+	inputReady	<- System.IO.hWaitForInput stdOut $ 1000 * fromIntegral readTimeout
 
 	Control.Monad.unless inputReady . Control.Exception.throwIO . Data.Exception.mkRequestFailure . showString "Duel.Process.Intermediary.readMove:\ttimed-out after " $ shows readTimeout " s."
 
@@ -142,7 +142,7 @@ readMove verbosity readTimeout logicalColour stdOut = do
 -- | Read either a move from the first handle & write it to the second.
 copyMove
 	:: Input.Verbosity.Verbosity
-	-> Data.Options.ReadTimeout
+	-> Type.Count.NSeconds				-- ^ Read-timout.
 	-> Attribute.LogicalColour.LogicalColour	-- ^ Whose turn it is.
 	-> System.IO.Handle				-- ^ Output handle from which move should be read.
 	-> System.IO.Handle				-- ^ Input handle to which move should be forwarded.
@@ -160,9 +160,9 @@ type IOHandles	= (System.IO.Handle, System.IO.Handle)
 
 -- | Shuttle moves between the two child processes until the game terminates.
 play
-	:: Property.Switchable.Switchable	gameClock
+	:: Property.Switchable.Switchable gameClock
 	=> Input.Verbosity.Verbosity
-	-> Data.Options.ReadTimeout
+	-> Type.Count.NSeconds				-- ^ Read-timout.
 	-> IOHandles
 	-> IOHandles
 	-> gameClock
@@ -197,7 +197,7 @@ purge handle	= do
 
 	* N.B.: the recorded result is merely a string, though it could be read into a 'BishBosh.Model.GameTerminationReason'.
 -}
-type GameTerminationReasonsMap	= Data.Map.Strict.Map Model.GameTerminationReason.GameTerminationReason Int
+type GameTerminationReasonsMap	= Data.Map.Strict.Map Model.GameTerminationReason.GameTerminationReason Type.Count.NGames
 
 {- |
 	* Constructs a game-clock.
@@ -214,15 +214,15 @@ type GameTerminationReasonsMap	= Data.Map.Strict.Map Model.GameTerminationReason
 -}
 startGame
 	:: Input.Verbosity.Verbosity
-	-> Property.ShowFloat.NDecimalDigits
-	-> Data.Options.ReadTimeout
-	-> IOHandles	-- ^ White's handles.
-	-> IOHandles	-- ^ Black's handles.
+	-> Type.Count.NDecimalDigits
+	-> Type.Count.NSeconds	-- ^ Read-timeout.
+	-> IOHandles		-- ^ White's handles.
+	-> IOHandles		-- ^ Black's handles.
 	-> GameTerminationReasonsMap
-	-> Model.Game.NGames
+	-> Type.Count.NGames
 	-> IO GameTerminationReasonsMap
 startGame verbosity nDecimalDigits readTimeout producer consumer gameTerminationReasonsMap nGames	= Property.Switchable.on >>= slave gameTerminationReasonsMap nGames where
-	slave :: GameTerminationReasonsMap -> Model.Game.NGames -> Time.GameClock.GameClock -> IO GameTerminationReasonsMap
+	slave :: GameTerminationReasonsMap -> Type.Count.NGames -> Time.GameClock.GameClock -> IO GameTerminationReasonsMap
 	slave gameTerminationReasonsMap' 0 gameClock	= do
 		Time.GameClock.showsElapsedTimes nDecimalDigits gameClock >>= IO.Logger.printInfo . showString "Elapsed time" . Text.ShowList.showsAssociation . ($ ".")
 
@@ -307,7 +307,7 @@ initialise options
 							] configFilePath
 							>>> HXT.arr (
 								 \inputOptions -> Input.SearchOptions.identifyAutomatedPlayers . Input.Options.getSearchOptions &&& Input.UIOptions.getMoveNotation . Input.IOOptions.getUIOptions . Input.Options.getIOOptions $ (
-									inputOptions	:: Input.Options.Options T.X T.CriterionWeight T.PieceSquareValue T.RankValue T.Y T.X T.Y	-- Arbitrary concrete type.
+									inputOptions	:: Input.Options.Options T.X Type.Mass.CriterionWeight Type.Mass.PieceSquareValue Type.Mass.RankValue T.Y T.X T.Y	-- Arbitrary concrete type.
 								 )
 							) -- Lift function into an arrow.
 

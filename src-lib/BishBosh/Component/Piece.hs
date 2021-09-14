@@ -27,7 +27,6 @@
 module BishBosh.Component.Piece(
 -- * Types
 -- ** Type-synonyms
-	NPieces,
 --	ByRankByLogicalColour,
 --	AttackDestinationsByCoordinatesByRankByLogicalColour,
 --	ArrayByPiece,
@@ -93,6 +92,7 @@ import qualified	BishBosh.Property.FixedMembership		as Property.FixedMembership
 import qualified	BishBosh.Property.ForsythEdwards		as Property.ForsythEdwards
 import qualified	BishBosh.Property.Opposable			as Property.Opposable
 import qualified	BishBosh.Types					as T
+import qualified	BishBosh.Type.Count				as Type.Count
 import qualified	Control.DeepSeq
 import qualified	Control.Exception
 import qualified	Data.Array.IArray
@@ -111,12 +111,9 @@ import qualified	Control.Parallel.Strategies
 tag :: String
 tag	= "piece"
 
--- | A number of /piece/s.
-type NPieces	= Int	-- N.B.: 'Data.Int.Int8' saves neither time nor space.
-
 -- | The initial number of pieces per side in a standard opening position; some of which are duplicates.
-nPiecesPerSide :: NPieces
-nPiecesPerSide	= fromIntegral Cartesian.Abscissa.xLength * 2 {-rows-}
+nPiecesPerSide :: Type.Count.NPieces
+nPiecesPerSide	= fromIntegral $ Cartesian.Abscissa.xLength * 2 {-rows-}
 
 -- | A Chess-piece has a /logical colour/ & a /rank/.
 data Piece	= MkPiece {
@@ -136,7 +133,7 @@ instance Data.Array.IArray.Ix Piece where
 	index (lower, upper) MkPiece {
 		getLogicalColour	= logicalColour,
 		getRank			= rank
-	} = Control.Exception.assert (lower == minBound && upper == maxBound) $ fromEnum logicalColour * Attribute.Rank.nDistinctRanks + fromEnum rank
+	} = Control.Exception.assert (lower == minBound && upper == maxBound) $ fromEnum logicalColour * fromIntegral Attribute.Rank.nDistinctRanks + fromEnum rank
 
 instance Read Piece where
 	readsPrec _	= Property.ForsythEdwards.readsFEN

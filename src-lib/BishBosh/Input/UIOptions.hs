@@ -51,7 +51,6 @@ module BishBosh.Input.UIOptions(
 	isCECPManualMode
 ) where
 
-import			BishBosh.Data.Integral()	-- For 'HXT.XmlPickler NDecimalDigits'.
 import			Control.Arrow((&&&), (|||))
 import qualified	BishBosh.Data.Either		as Data.Either
 import qualified	BishBosh.Data.Exception		as Data.Exception
@@ -61,8 +60,8 @@ import qualified	BishBosh.Input.NativeUIOptions	as Input.NativeUIOptions
 import qualified	BishBosh.Input.Verbosity	as Input.Verbosity
 import qualified	BishBosh.Notation.MoveNotation	as Notation.MoveNotation
 import qualified	BishBosh.Property.Arboreal	as Property.Arboreal
-import qualified	BishBosh.Property.ShowFloat	as Property.ShowFloat
 import qualified	BishBosh.Text.ShowList		as Text.ShowList
+import qualified	BishBosh.Type.Count		as Type.Count
 import qualified	Control.DeepSeq
 import qualified	Control.Exception
 import qualified	Data.Default
@@ -82,7 +81,7 @@ nDecimalDigitsTag :: String
 nDecimalDigitsTag	= "nDecimalDigits"
 
 -- | The maximum number of decimal digits that can be represented using a double-precision floating-point number.
-maxNDecimalDigits :: Property.ShowFloat.NDecimalDigits
+maxNDecimalDigits :: Type.Count.NDecimalDigits
 maxNDecimalDigits	= floor $ fromIntegral (
 	floatDigits (
 		undefined	:: Double	-- CAVEAT: the actual type could be merely 'Float', but that's currently unknown.
@@ -96,7 +95,7 @@ type EitherNativeUIOrCECPOptions row column	= Either (Input.NativeUIOptions.Nati
 data UIOptions row column = MkUIOptions {
 	getMoveNotation			:: Notation.MoveNotation.MoveNotation,		-- ^ The notation used to describe /move/s.
 	getMaybePrintMoveTree		:: Maybe Property.Arboreal.Depth,		-- ^ Print the move-tree to the specified depth.
-	getNDecimalDigits		:: Property.ShowFloat.NDecimalDigits,		-- ^ The precision to which fractional auxiliary data is displayed.
+	getNDecimalDigits		:: Type.Count.NDecimalDigits,			-- ^ The precision to which fractional auxiliary data is displayed.
 	getEitherNativeUIOrCECPOptions	:: EitherNativeUIOrCECPOptions row column,	-- ^ When a native display is configured some additional style-parameters are required.
 	getVerbosity			:: Input.Verbosity.Verbosity			-- ^ Set the threshold for ancillary information-output.
 } deriving Eq
@@ -190,13 +189,13 @@ instance (
 mkUIOptions
 	:: Notation.MoveNotation.MoveNotation	-- ^ The chess-notation used to describe /move/s.
 	-> Maybe Property.Arboreal.Depth
-	-> Property.ShowFloat.NDecimalDigits	-- ^ The precision to which fractional auxiliary data is displayed.
+	-> Type.Count.NDecimalDigits		-- ^ The precision to which fractional auxiliary data is displayed.
 	-> EitherNativeUIOrCECPOptions row column
 	-> Input.Verbosity.Verbosity		-- ^ Set the threshold for logging.
 	-> UIOptions row column
 mkUIOptions moveNotation maybePrintMoveTree nDecimalDigits eitherNativeUIOrCECPOptions verbosity
 	| Just depth <- maybePrintMoveTree
-	, depth <= 0				= Control.Exception.throw . Data.Exception.mkOutOfBounds . showString "BishBosh.Input.UIOptions.mkUIOptions:\t" . showString printMoveTreeTag . Text.ShowList.showsAssociation $ shows depth " must exceed zero."
+	, depth <= 0						= Control.Exception.throw . Data.Exception.mkOutOfBounds . showString "BishBosh.Input.UIOptions.mkUIOptions:\t" . showString printMoveTreeTag . Text.ShowList.showsAssociation $ shows depth " must exceed zero."
 	| nDecimalDigits < 1			= Control.Exception.throw . Data.Exception.mkOutOfBounds . showString "BishBosh.Input.UIOptions.mkUIOptions:\t" . showString nDecimalDigitsTag . Text.ShowList.showsAssociation $ shows nDecimalDigits " must exceed zero."
 	| nDecimalDigits > maxNDecimalDigits	= Control.Exception.throw . Data.Exception.mkOutOfBounds . showString "BishBosh.Input.UIOptions.mkUIOptions:\t" . showString nDecimalDigitsTag . Text.ShowList.showsAssociation . shows nDecimalDigits . showString " shouldn't exceed " $ shows maxNDecimalDigits "."
 	| (
@@ -204,7 +203,7 @@ mkUIOptions moveNotation maybePrintMoveTree nDecimalDigits eitherNativeUIOrCECPO
 	) && not (
 		Notation.MoveNotation.isPureCoordinate moveNotation
 	)					= Control.Exception.throw . Data.Exception.mkIncompatibleData . showString "BishBosh.Input.UIOptions.mkUIOptions:\t" . shows Input.CECPOptions.tag . showString " is incompatible with " . showString Notation.MoveNotation.tag . Text.ShowList.showsAssociation $ shows moveNotation "."
-	| otherwise	= MkUIOptions {
+	| otherwise				= MkUIOptions {
 		getMoveNotation			= moveNotation,
 		getMaybePrintMoveTree		= maybePrintMoveTree,
 		getNDecimalDigits		= nDecimalDigits,

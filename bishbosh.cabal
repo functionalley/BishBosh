@@ -85,6 +85,12 @@ flag narrownumbers
     Manual:		True
     Default:		False
 
+-- Whether, to wrap common types in 'newtype' for increased type-safety. CAVEAT: there's a small performance-penalty.
+flag newtypewrappers
+    Description:	Wrap common types in newtype for increased type-safety.
+    Manual:		True
+    Default:		True
+
 -- Concurrency is used to implement Pondering, & parallelism is used when searching through archived games.
 flag threaded
     Description:	Build for parallel runtime.
@@ -219,6 +225,8 @@ Library
         BishBosh.Time.GameClock
         BishBosh.Time.StopWatch
         BishBosh.Types
+        BishBosh.Type.Count
+        BishBosh.Type.Mass
         BishBosh.UI.Command
         BishBosh.UI.PrintObject
         BishBosh.UI.ReportObject
@@ -264,6 +272,9 @@ Library
 
     if flag(narrownumbers)
         CPP-Options:		-DUSE_NARROW_NUMBERS
+
+    if flag(newtypewrappers)
+        CPP-Options:		-DUSE_NEWTYPE_WRAPPERS
 
     if flag(threaded)
         Build-depends:		parallel >= 3.0
@@ -425,8 +436,6 @@ Test-Suite hunit-tests
         mtl,
         random,
         toolshed >= 0.18
-
---  CPP-Options:	-DUSE_SEARCH
 
     if impl(ghc >= 8.0)
         GHC-options:	-Wredundant-constraints

@@ -37,12 +37,12 @@ module BishBosh.Test.QuickCheck.Search.KillerMoves(
 
 import			BishBosh.Test.QuickCheck.Component.Turn()
 import			Control.Arrow((&&&))
-import qualified	BishBosh.Component.Move		as Component.Move
 import qualified	BishBosh.Property.Empty		as Property.Empty
 import qualified	BishBosh.Search.DynamicMoveData	as Search.DynamicMoveData
 import qualified	BishBosh.Search.EphemeralData	as Search.EphemeralData
 import qualified	BishBosh.Search.KillerMoves	as Search.KillerMoves
 import qualified	BishBosh.Types			as T
+import qualified	BishBosh.Type.Count		as Type.Count
 import qualified	Test.QuickCheck
 
 -- | Defines a concrete type for testing.
@@ -59,12 +59,12 @@ instance (
 --	{-# SPECIALISE instance Test.QuickCheck.Arbitrary KillerMoveKey #-}
 	arbitrary	= fmap Search.DynamicMoveData.mkKillerMoveKeyFromTurn Test.QuickCheck.arbitrary
 
--- |
-normalise :: Int -> Component.Move.NPlies
-normalise	= succ . (`mod` 4)
+-- | Map the Int-domain into a smaller number of plies.
+normalise :: Int -> Type.Count.NPlies
+normalise	= fromIntegral . succ . (`mod` 4)
 
 -- |
-populate :: Ord key => [(Component.Move.NPlies, key)] -> Search.KillerMoves.KillerMoves key
+populate :: Ord key => [(Int, key)] -> Search.KillerMoves.KillerMoves key
 populate	= foldr (\(nPlies, killerMoveKey) -> Search.KillerMoves.insert (normalise nPlies) killerMoveKey) Property.Empty.empty {-KillerMoves-}
 
 -- | Defines a concrete type for testing.
@@ -81,7 +81,7 @@ instance (
 results :: IO [Test.QuickCheck.Result]
 results	= sequence [
 	let
-		f :: [(Component.Move.NPlies, KillerMoveKey)] -> Test.QuickCheck.Property
+		f :: [(Int, KillerMoveKey)] -> Test.QuickCheck.Property
 		f	= Test.QuickCheck.label "KillerMoves.prop_insert/getNMoves" . uncurry (==) . (Search.EphemeralData.getSize . populate &&& length)
 	in Test.QuickCheck.quickCheckWithResult Test.QuickCheck.stdArgs { Test.QuickCheck.maxSuccess = 256 } f
  ]

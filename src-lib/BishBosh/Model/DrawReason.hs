@@ -44,6 +44,7 @@ module BishBosh.Model.DrawReason(
 
 import qualified	BishBosh.Component.Move			as Component.Move
 import qualified	BishBosh.Property.FixedMembership	as Property.FixedMembership
+import qualified	BishBosh.Type.Count			as Type.Count
 import qualified	Control.DeepSeq
 
 -- | The sum-type of ways in which a game can be drawn.
@@ -92,9 +93,10 @@ fiveFoldRepetition :: DrawReason
 fiveFoldRepetition	= FiveFoldRepetition
 
 -- | The number of consecutive plies required to trigger a draw by the seventy-five move rule.
-maximumConsecutiveRepeatablePlies :: Component.Move.NPlies
+maximumConsecutiveRepeatablePlies :: Type.Count.NPlies
 maximumConsecutiveRepeatablePlies	= Component.Move.nPliesPerMove * 75
 
 -- | The number of consecutive repeatable positions required for a draw by the five-fold repetition rule.
-maximumConsecutiveRepeatablePositions :: Component.Move.NMoves
+maximumConsecutiveRepeatablePositions :: Type.Count.NPositions
 maximumConsecutiveRepeatablePositions	= 5
+

@@ -56,17 +56,22 @@ import qualified	BishBosh.Component.Piece		as Component.Piece
 import qualified	BishBosh.Property.FixedMembership	as Property.FixedMembership
 import qualified	BishBosh.Property.Reflectable		as Property.Reflectable
 import qualified	BishBosh.Text.ShowList			as Text.ShowList
+import qualified	BishBosh.Type.Count			as Type.Count
+import qualified	BishBosh.Type.Mass			as Type.Mass
 import qualified	BishBosh.Types				as T
 import qualified	Control.DeepSeq
 import qualified	Data.Array.IArray
 import qualified	Data.List
 
 -- | The piece-square value may vary as the game progresses.
-type PieceSquareValueByNPieces pieceSquareValue	= Data.Array.IArray.Array Component.Piece.NPieces pieceSquareValue
+type PieceSquareValueByNPieces pieceSquareValue	= Data.Array.IArray.Array Type.Count.NPieces pieceSquareValue
 
 -- | The bounds of the number of pieces on the board, at the end-game & opening-game respectively.
-nPiecesBounds :: (Component.Piece.NPieces, Component.Piece.NPieces)
-nPiecesBounds	= (3 {-minimum sufficient material-}, Attribute.LogicalColour.nDistinctLogicalColours * Component.Piece.nPiecesPerSide)
+nPiecesBounds :: (Type.Count.NPieces, Type.Count.NPieces)
+nPiecesBounds	= (
+	3 {-minimum sufficient material-},
+	fromIntegral Attribute.LogicalColour.nDistinctLogicalColours * Component.Piece.nPiecesPerSide
+ )
 
 -- | Self-documentation.
 type EitherPieceSquareValueByNPiecesByCoordinates x y pieceSquareValue	= Either (
@@ -107,19 +112,19 @@ findPieceSquareValue :: (
 	Ord	x,
 	Ord	y
  )
-	=> Component.Piece.NPieces			-- ^ The progress through the game.
+	=> Type.Count.NPieces				-- ^ The progress through the game.
 	-> Attribute.LogicalColour.LogicalColour	-- ^ The /piece/'s /logical colour/.
 	-> Attribute.Rank.Rank				-- ^ The /piece/'s /rank/.
 	-> Cartesian.Coordinates.Coordinates x y	-- ^ The /piece/'s location.
 	-> PieceSquareByCoordinatesByRank x y pieceSquareValue
 	-> pieceSquareValue
 {-# SPECIALISE findPieceSquareValue
-	:: Component.Piece.NPieces
+	:: Type.Count.NPieces
 	-> Attribute.LogicalColour.LogicalColour
 	-> Attribute.Rank.Rank
 	-> Cartesian.Coordinates.Coordinates T.X T.Y
-	-> PieceSquareByCoordinatesByRank T.X T.Y T.PieceSquareValue
-	-> T.PieceSquareValue
+	-> PieceSquareByCoordinatesByRank T.X T.Y Type.Mass.PieceSquareValue
+	-> Type.Mass.PieceSquareValue
  #-}
 findPieceSquareValue nPieces logicalColour rank coordinates MkPieceSquareByCoordinatesByRank { deconstruct = byRank }	= (
 	(!) ||| (
@@ -145,19 +150,19 @@ findPieceSquareValues :: (
 	Ord	x,
 	Ord	y
  )
-	=> Component.Piece.NPieces			-- ^ The progress through the game.
+	=> Type.Count.NPieces				-- ^ The progress through the game.
 	-> Attribute.LogicalColour.LogicalColour	-- ^ The /piece/'s /logical colour/.
 	-> Attribute.Rank.Rank				-- ^ The /piece/'s /rank/.
 	-> [Cartesian.Coordinates.Coordinates x y]	-- ^ The locations of interest for the specified /piece/.
 	-> PieceSquareByCoordinatesByRank x y pieceSquareValue
 	-> [pieceSquareValue]
 {-# SPECIALISE findPieceSquareValues
-	:: Component.Piece.NPieces
+	:: Type.Count.NPieces
 	-> Attribute.LogicalColour.LogicalColour
 	-> Attribute.Rank.Rank
 	-> [Cartesian.Coordinates.Coordinates T.X T.Y]
-	-> PieceSquareByCoordinatesByRank T.X T.Y T.PieceSquareValue
-	-> [T.PieceSquareValue]
+	-> PieceSquareByCoordinatesByRank T.X T.Y Type.Mass.PieceSquareValue
+	-> [Type.Mass.PieceSquareValue]
  #-}
 findPieceSquareValues nPieces logicalColour rank coordinatesList MkPieceSquareByCoordinatesByRank { deconstruct = byRank }	= (
 	(!) ||| (

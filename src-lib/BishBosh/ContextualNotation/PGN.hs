@@ -75,7 +75,6 @@ module BishBosh.ContextualNotation.PGN(
 
 import			Control.Arrow((&&&), (***))
 import qualified	BishBosh.Attribute.LogicalColour		as Attribute.LogicalColour
-import qualified	BishBosh.Component.Move				as Component.Move
 import qualified	BishBosh.ContextualNotation.PGNComment		as ContextualNotation.PGNComment
 import qualified	BishBosh.ContextualNotation.StandardAlgebraic	as ContextualNotation.StandardAlgebraic
 import qualified	BishBosh.Data.Exception				as Data.Exception
@@ -86,6 +85,7 @@ import qualified	BishBosh.Property.FixedMembership		as Property.FixedMembership
 import qualified	BishBosh.State.TurnsByLogicalColour		as State.TurnsByLogicalColour
 import qualified	BishBosh.Text.ShowList				as Text.ShowList
 import qualified	BishBosh.Types					as T
+import qualified	BishBosh.Type.Count				as Type.Count
 import qualified	Control.Applicative
 import qualified	Control.Arrow
 import qualified	Control.DeepSeq
@@ -396,7 +396,7 @@ showsMoveText game	= foldr (.) (
 		 ) $ Data.List.splitAt 1 remainder
 		_				-> Nothing
  ) (
-	1	:: Component.Move.NMoves,
+	1	:: Type.Count.NMoves,
 	reverse {-chronological-} $ fst . foldr (
 		\turn (l, game')	-> (
 			ContextualNotation.StandardAlgebraic.showsTurn False turn game' : l,
@@ -453,12 +453,12 @@ nagParser	= Parsec.try $ do
 
 	* N.B.: officially terminated by a single period (for White), or three (by Black); though this parser is more flexible.
 -}
-moveNumberParser :: Num n =>
+moveNumberParser ::
 #ifdef USE_POLYPARSE
-	Text.Poly.TextParser n
+	Text.Poly.TextParser Type.Count.NMoves
 moveNumberParser	= Control.Applicative.many ContextualNotation.PGNComment.blockCommentParser >> Text.Poly.unsignedDecimal `Poly.discard` Control.Applicative.some (Text.Poly.char moveNumberTerminator)
 #else /* Parsec */
-	Parsec.Parser n
+	Parsec.Parser Type.Count.NMoves
 moveNumberParser	= Parsec.try $ Control.Applicative.many ContextualNotation.PGNComment.blockCommentParser >> Parsec.spaces >> fmap Data.Integral.stringToUnsignedDecimal (
 	Parsec.manyTill Parsec.digit (
 		Control.Applicative.some $ Parsec.char moveNumberTerminator
@@ -518,7 +518,8 @@ moveTextParser isStrictlySequential validateMoves	= let
 		Show	y
 	 ) => Model.Game.Game x y -> Text.Poly.TextParser (Model.Game.Game x y)
 	elementSequenceParser game	= let
-		expectedMoveNumber	= succ . (`div` 2) . State.TurnsByLogicalColour.getNPlies $ Model.Game.getTurnsByLogicalColour game
+		expectedMoveNumber :: Type.Count.NMoves
+		expectedMoveNumber	= fromIntegral . succ . (`div` 2) . State.TurnsByLogicalColour.getNPlies $ Model.Game.getTurnsByLogicalColour game
 	 in do
 		moveNumber	<- (
 			if Attribute.LogicalColour.isBlack $ Model.Game.getNextLogicalColour game
@@ -564,7 +565,8 @@ moveTextParser isStrictlySequential validateMoves	= let
 		Show	y
 	 ) => Model.Game.Game x y -> Parsec.Parser (Model.Game.Game x y)
 	elementSequenceParser game	= let
-		expectedMoveNumber	= succ . (`div` 2) . State.TurnsByLogicalColour.getNPlies $ Model.Game.getTurnsByLogicalColour game
+		expectedMoveNumber :: Type.Count.NMoves
+		expectedMoveNumber	= fromIntegral . succ . (`div` 2) . State.TurnsByLogicalColour.getNPlies $ Model.Game.getTurnsByLogicalColour game
 	 in do
 		moveNumber	<- (
 			if Attribute.LogicalColour.isBlack $ Model.Game.getNextLogicalColour game

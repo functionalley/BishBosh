@@ -58,10 +58,10 @@ import qualified	BishBosh.Notation.PureCoordinate	as Notation.PureCoordinate
 import qualified	BishBosh.Notation.Smith			as Notation.Smith
 import qualified	BishBosh.Property.FixedMembership	as Property.FixedMembership
 import qualified	BishBosh.Property.ShowFloat		as Property.ShowFloat
+import qualified	BishBosh.Type.Count			as Type.Count
 import qualified	Control.Arrow
 import qualified	Control.DeepSeq
 import qualified	Data.Default
-import qualified	Numeric
 import qualified	Text.XML.HXT.Arrow.Pickle		as HXT
 import qualified	Text.XML.HXT.Arrow.Pickle.Schema
 
@@ -162,6 +162,6 @@ class ShowNotationFloat a where
 	showsNotationFloat	:: MoveNotation -> (Double -> ShowS) -> a -> ShowS
 
 -- | Render the specified data in the specified notation, & to the specified number of decimal digits.
-showsNotationFloatToNDecimals :: ShowNotationFloat a => MoveNotation -> Property.ShowFloat.NDecimalDigits -> a -> ShowS
-showsNotationFloatToNDecimals moveNotation nDecimalDigits	= showsNotationFloat moveNotation (Numeric.showFFloat $ Just nDecimalDigits)
+showsNotationFloatToNDecimals :: ShowNotationFloat a => MoveNotation -> Type.Count.NDecimalDigits -> a -> ShowS
+showsNotationFloatToNDecimals moveNotation	= showsNotationFloat moveNotation . Property.ShowFloat.showsFloatToN'
 

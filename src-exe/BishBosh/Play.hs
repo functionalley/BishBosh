@@ -54,6 +54,7 @@ import qualified	BishBosh.Property.Empty						as Property.Empty
 import qualified	BishBosh.Search.SearchState					as Search.SearchState
 import qualified	BishBosh.State.PlayState					as State.PlayState
 import qualified	BishBosh.Text.ShowColouredPrefix				as Text.ShowColouredPrefix
+import qualified	BishBosh.Type.Mass						as Type.Mass
 import qualified	BishBosh.Types							as T
 import qualified	BishBosh.UI.CECP						as UI.CECP
 import qualified	BishBosh.UI.Raw							as UI.Raw
@@ -126,9 +127,9 @@ play :: (
 	System.Random.RandomGen	randomGen
  )
 	=> randomGen
-	-> Input.Options.Options column T.CriterionWeight T.PieceSquareValue T.RankValue row T.X T.Y
+	-> Input.Options.Options column Type.Mass.CriterionWeight Type.Mass.PieceSquareValue Type.Mass.RankValue row T.X T.Y
 	-> ContextualNotation.QualifiedMoveForest.QualifiedMoveForest T.X T.Y
-	-> IO (State.PlayState.PlayState column T.CriterionValue T.CriterionWeight T.PieceSquareValue T.PositionHash T.RankValue row T.WeightedMean T.X T.Y)
+	-> IO (State.PlayState.PlayState column Type.Mass.CriterionValue Type.Mass.CriterionWeight Type.Mass.PieceSquareValue T.PositionHash Type.Mass.RankValue row Type.Mass.WeightedMean T.X T.Y)
  #-}
 play randomGen options qualifiedMoveForest	= Data.Maybe.maybe (
 	return {-to IO-monad-} Data.Default.def {-game-}

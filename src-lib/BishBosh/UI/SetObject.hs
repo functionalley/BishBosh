@@ -35,13 +35,14 @@ module BishBosh.UI.SetObject (
 import qualified	BishBosh.Data.Exception		as Data.Exception
 import qualified	BishBosh.Input.SearchOptions	as Input.SearchOptions
 import qualified	BishBosh.Text.AutoComplete	as Text.AutoComplete
+import qualified	BishBosh.Type.Count		as Type.Count
 import qualified	Control.Arrow
 import qualified	Control.DeepSeq
 import qualified	Control.Exception
 import qualified	Data.List.Extra
 
 -- | The fields a user can mutate; currently there's only one.
-newtype SetObject	= SearchDepth Input.SearchOptions.SearchDepth	deriving Eq
+newtype SetObject	= SearchDepth Type.Count.NPlies	deriving Eq
 
 instance Control.DeepSeq.NFData SetObject where
 	rnf (SearchDepth searchDepth)		= Control.DeepSeq.rnf searchDepth
@@ -51,11 +52,11 @@ instance Show SetObject where
 
 instance Read SetObject where
 	readsPrec _ s	= case Control.Arrow.first Data.List.Extra.lower `map` lex s of
-		[("searchdepth", s')]		-> Control.Arrow.first mkSearchDepth `map` reads s'
+		[("searchdepth", s')]		-> Control.Arrow.first (mkSearchDepth . fromInteger) `map` reads s'
 		_				-> []	-- No parse.
 
 -- | Smart constructor.
-mkSearchDepth :: Input.SearchOptions.SearchDepth -> SetObject
+mkSearchDepth :: Type.Count.NPlies -> SetObject
 mkSearchDepth searchDepth
 	| searchDepth < Input.SearchOptions.minimumSearchDepth	= Control.Exception.throw . Data.Exception.mkOutOfBounds . showString "BishBosh.UI.SetObject.mkSearchDepth:\t" $ shows Input.SearchOptions.searchDepthTag " must be positive."
 	| otherwise						= SearchDepth searchDepth

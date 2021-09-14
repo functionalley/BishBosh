@@ -52,7 +52,6 @@ module BishBosh.Input.PGNOptions(
 ) where
 
 import			BishBosh.Data.Bool()
-import qualified	BishBosh.Component.Move				as Component.Move
 import qualified	BishBosh.ContextualNotation.PGN			as ContextualNotation.PGN
 import qualified	BishBosh.ContextualNotation.PGNDatabase		as ContextualNotation.PGNDatabase
 import qualified	BishBosh.ContextualNotation.StandardAlgebraic	as ContextualNotation.StandardAlgebraic
@@ -60,6 +59,7 @@ import qualified	BishBosh.Data.Exception				as Data.Exception
 import qualified	BishBosh.Data.Foldable				as Data.Foldable
 import qualified	BishBosh.Text.Encoding				as Text.Encoding
 import qualified	BishBosh.Text.ShowList				as Text.ShowList
+import qualified	BishBosh.Type.Count				as Type.Count
 import qualified	Control.DeepSeq
 import qualified	Control.Exception
 import qualified	Data.Char
@@ -109,8 +109,8 @@ data PGNOptions	= MkPGNOptions {
 	getValidateMoves	:: ContextualNotation.StandardAlgebraic.ValidateMoves,	-- ^ Whether moves should be validated, which can become tedious if they're already known to be valid.
 	getTextEncoding		:: System.IO.TextEncoding,				-- ^ The conversion-scheme between byte-sequences & Unicode characters.
 	getIdentificationTags	:: [ContextualNotation.PGN.Tag],			-- ^ The tags to extract from this PGN-database to form a unique composite game-identifier.
-	getMinimumPlies		:: Component.Move.NPlies,				-- ^ The minimum number of plies required from a recorded game.
-	getMaybeMaximumGames	:: Maybe Int						-- ^ The optional maximum number of games to read from the PGN-database.
+	getMinimumPlies		:: Type.Count.NPlies,					-- ^ The minimum number of plies required before a recorded game is considered useful.
+	getMaybeMaximumGames	:: ContextualNotation.PGNDatabase.MaybeMaximumGames	-- ^ The optional maximum number of games to read from the PGN-database.
 } deriving Eq
 
 instance Control.DeepSeq.NFData PGNOptions where
@@ -198,7 +198,7 @@ instance HXT.XmlPickler PGNOptions where
 	 ) HXT.xpickle {-TextEncoding-} (
 		HXT.xpList . HXT.xpElem identificationTagTag $ HXT.xpTextAttr "tag"
 	 ) (
-		getMinimumPlies def `HXT.xpDefault` HXT.xpAttr minimumPliesTag HXT.xpickle {-NMoves-}
+		getMinimumPlies def `HXT.xpDefault` HXT.xpAttr minimumPliesTag HXT.xpickle {-NPlies-}
 	 ) (
 		HXT.xpOption $ HXT.xpAttr maximumGamesTag HXT.xpickle {-NGames-}
 	 ) where
@@ -212,8 +212,8 @@ mkPGNOptions
 	-> ContextualNotation.StandardAlgebraic.ValidateMoves
 	-> System.IO.TextEncoding
 	-> [ContextualNotation.PGN.Tag]				-- ^ Optional identification tags.
-	-> Component.Move.NPlies				-- ^ The minimum plies.
-	-> Maybe Int						-- ^ The optional maximum number of games to read from the database.
+	-> Type.Count.NPlies					-- ^ The minimum plies.
+	-> ContextualNotation.PGNDatabase.MaybeMaximumGames	-- ^ The optional maximum number of games to read from the database.
 	-> PGNOptions
 mkPGNOptions databaseFilePath maybeDecompressor isStrictlySequential validateMoves textEncoding identificationTags minimumPlies maybeMaximumGames
 	| not $ System.FilePath.isValid databaseFilePath	= Control.Exception.throw . Data.Exception.mkInvalidDatum . showString "BishBosh.Input.PGNOptions.mkPGNOptions:\tinvalid " . showString databaseFilePathTag . Text.ShowList.showsAssociation $ shows databaseFilePath "."

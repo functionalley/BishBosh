@@ -74,7 +74,7 @@ testCases	= Test.HUnit.test $ map Test.HUnit.TestCase [
 			relativeError :: Rational
 			relativeError	= pred . (/ Time.StopWatch.getElapsedTime stoppedWatch) . Data.Foldable.sum . Data.Array.IArray.amap Time.StopWatch.getElapsedTime $ Time.GameClock.deconstruct stoppedGameClock
 
-		abs relativeError < recip 100000 @? showString "Time.GameClock.GameClock:\trelative error between sum of game-clock times & stop-watch time = " (
+		abs relativeError < recip 50000 @? showString "Time.GameClock.GameClock:\trelative error between sum of game-clock times & stop-watch time = " (
 			 shows (realToFrac relativeError :: Double) "."
 		 )
  ] where

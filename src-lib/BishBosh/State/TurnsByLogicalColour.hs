@@ -46,12 +46,12 @@ module BishBosh.State.TurnsByLogicalColour(
 import			Control.Arrow((&&&), (***))
 import			Data.Array.IArray((!), (//))
 import qualified	BishBosh.Attribute.LogicalColour	as Attribute.LogicalColour
-import qualified	BishBosh.Component.Move			as Component.Move
 import qualified	BishBosh.Data.Exception			as Data.Exception
 import qualified	BishBosh.Property.Empty			as Property.Empty
 import qualified	BishBosh.Property.Null			as Property.Null
 import qualified	BishBosh.Property.Opposable		as Property.Opposable
 import qualified	BishBosh.Property.Reflectable		as Property.Reflectable
+import qualified	BishBosh.Type.Count			as Type.Count
 import qualified	Control.Arrow
 import qualified	Control.DeepSeq
 import qualified	Control.Exception
@@ -63,7 +63,7 @@ import qualified	Data.List.Extra
 -- | The type used to hold a record of each player's /turn/s.
 data TurnsByLogicalColour turn	= MkTurnsByLogicalColour {
 	getTurnsByLogicalColour	:: Attribute.LogicalColour.ArrayByLogicalColour [turn],
-	getNPlies		:: Component.Move.NPlies	-- ^ The number of plies applied to the game; this could alternatively be derived using 'countPlies'.
+	getNPlies		:: Type.Count.NPlies	-- ^ The total number of plies applied to the game for both players; this could alternatively be derived using 'countPlies'.
 }
 
 instance Eq turn => Eq (TurnsByLogicalColour turn) where
@@ -101,7 +101,9 @@ instance Property.Reflectable.ReflectableOnX turn => Property.Reflectable.Reflec
 -- | Smart constructor.
 fromAssocs :: Show turn => [(Attribute.LogicalColour.LogicalColour, [turn])] -> TurnsByLogicalColour turn
 fromAssocs assocs
-	| length assocs /= Attribute.LogicalColour.nDistinctLogicalColours	= Control.Exception.throw . Data.Exception.mkInsufficientData . showString "BishBosh.State.TurnsByLogicalColour.fromAssocs:\tboth logical colours must be defined; " $ shows assocs "."
+	| fromIntegral (
+		length assocs
+	) /= Attribute.LogicalColour.nDistinctLogicalColours			= Control.Exception.throw . Data.Exception.mkInsufficientData . showString "BishBosh.State.TurnsByLogicalColour.fromAssocs:\tboth logical colours must be defined; " $ shows assocs "."
 	| Data.List.Extra.anySame $ map fst {-logicalColour-} assocs		= Control.Exception.throw . Data.Exception.mkDuplicateData . showString "BishBosh.State.TurnsByLogicalColour.fromAssocs:\tduplicates specified; " $ shows assocs "."
 	| (> 1) . abs {-allow for Property.Reflectable.reflectOnX-} . uncurry (-) $ (
 		length . (! Attribute.LogicalColour.White) &&& length . (! Attribute.LogicalColour.Black)
@@ -125,12 +127,12 @@ inferNextLogicalColour MkTurnsByLogicalColour { getNPlies = nPlies }
 	| otherwise	= Attribute.LogicalColour.Black
 
 {- |
-	* Count the number of plies.
+	* Count the total number of plies, regardless of the player.
 
 	* CAVEAT: 'getNPlies' is more efficient.
 -}
-countPlies :: TurnsByLogicalColour turn -> Component.Move.NPlies
-countPlies MkTurnsByLogicalColour { getTurnsByLogicalColour = byLogicalColour }	= Data.Foldable.foldl' (\acc -> (+ acc) . length) 0 byLogicalColour
+countPlies :: TurnsByLogicalColour turn -> Type.Count.NPlies
+countPlies MkTurnsByLogicalColour { getTurnsByLogicalColour = byLogicalColour }	= fromIntegral $ Data.Foldable.foldl' (\acc -> (+ acc) . length) 0 byLogicalColour
 
 -- | Dereference.
 dereference :: Attribute.LogicalColour.LogicalColour -> TurnsByLogicalColour turn -> [turn]

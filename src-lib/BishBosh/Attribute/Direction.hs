@@ -32,7 +32,6 @@
 module BishBosh.Attribute.Direction(
 -- * Types
 -- ** Type-synonyms
-	NDirections,
 	ArrayByDirection,
 -- ** Data-types
 	Direction(
@@ -73,6 +72,7 @@ import qualified	BishBosh.Property.FixedMembership	as Property.FixedMembership
 import qualified	BishBosh.Property.Opposable		as Property.Opposable
 import qualified	BishBosh.Property.Orientated		as Property.Orientated
 import qualified	BishBosh.Property.Reflectable		as Property.Reflectable
+import qualified	BishBosh.Type.Count			as Type.Count
 import qualified	Control.DeepSeq
 import qualified	Control.Exception
 import qualified	Data.Array.IArray
@@ -115,9 +115,6 @@ s	= MkDirection EQ LT
 -- | Constant direction.
 se :: Direction
 se	= MkDirection GT LT
-
--- | A number of /direction/s.
-type NDirections	= Int	-- N.B.: 'Data.Int.Int8' saves neither time nor space.
 
 -- | Define a /direction/ by the sense of change to /x/ & /y/ coordinates.
 data Direction	= MkDirection {
@@ -241,8 +238,8 @@ diagonals :: [Direction]
 diagonals	= [sw, nw, se, ne]
 
 -- | The constant number of distinct /direction/s.
-nDistinctDirections :: NDirections
-nDistinctDirections	= length range
+nDistinctDirections :: Type.Count.NDirections
+nDistinctDirections	= fromIntegral $ length range
 
 {- |
 	* Returns a list of /direction/s, each paired with its anti-parallel.

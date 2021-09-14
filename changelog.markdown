@@ -61,7 +61,7 @@ Command				| Purpose
 	* Constructed each large constant data-structure in parallel. Bracketed all data-parallel operations with CPP-conditionals controlled by the compilation-flag **threaded**.
 	* Parallelised function **Attribute.CriterionValue.calculateWeightedMean**.
 
-### New Modules
+### New Modules:
 -----------------------------------------
 Module				| Purpose
 --------------------------------| -------
@@ -88,14 +88,16 @@ Module				| Purpose
 	* Used the **LambdaCase** language-extension.
 
 ## 0.1.1.0
-### New modules:
+### New Modules:
 -------------------------------------------------
-Module					| Purpose
+New Module				| Purpose
 ----------------------------------------| -------
 **Data.Time.StopWatch**			| Replaces module **BishBosh.Data.Time** to encapsulate interaction with module **Data.Time.Clock**.
 **BishBosh.Time.GameClock**		| Contains two **Data.Time.StopWatch** to enable module **Duel.Process.Intermediary** to measure the time used by each player.
 **BishBosh.Property.Switchable**	| Exports a type-class, which both **BishBosh.Time.StopWatch** & **BishBosh.Time.GameClock** implement, to expose their functionality.
 **BishBosh.Property.SelfValidating**	| Exports a type-class, which both **BishBosh.Time.GameClock** & **Duel.Data.Options** implement, to validate themselves.
+**BishBosh.Types.Countable**		| Defines newtypes to enhance type-safety, replacing type-synonyms for **Int**. There is a performance-degradation, so this enhancement can be disabled using a new cabal-flag.
+**BishBosh.Types.Mass**			|
 
 ### Duel:
 	* Added a command-line option **--verifyConfiguration**, to request that the mutual compatibility of the two configuration-files be verified before forwarding each to a forked instance of **bishbosh**.

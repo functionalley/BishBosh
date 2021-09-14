@@ -35,7 +35,7 @@ module BishBosh.ContextualNotation.PGNDatabase(
 	PGNDatabase,
 --	PGNPredicate,
 	Decompressor,
---	MaybeMaximumGames,
+	MaybeMaximumGames,
 -- * Functions
 --	parser,
 --	parse,
@@ -47,6 +47,7 @@ import qualified	BishBosh.ContextualNotation.PGN			as ContextualNotation.PGN
 import qualified	BishBosh.ContextualNotation.StandardAlgebraic	as ContextualNotation.StandardAlgebraic
 import qualified	BishBosh.Data.Exception				as Data.Exception
 import qualified	BishBosh.Types					as T
+import qualified	BishBosh.Type.Count				as Type.Count
 import qualified	Control.Exception
 import qualified	Control.Monad
 import qualified	Data.Maybe
@@ -100,7 +101,7 @@ parser isStrictlySequential validateMoves identificationTags	= Parsec.manyTill p
 type PGNPredicate x y	= ContextualNotation.PGN.PGN x y -> Bool
 
 -- | The optional maximum number of games to read.
-type MaybeMaximumGames	= Maybe Int
+type MaybeMaximumGames	= Maybe Type.Count.NGames
 
 -- | Parses a PGN-database from the specified string.
 parse :: (
@@ -132,7 +133,7 @@ parse name isStrictlySequential validateMoves identificationTags pgnPredicate ma
 #endif
 	where
 		parser'	= (
-			Data.Maybe.maybe id take maybeMaximumGames . filter pgnPredicate	-- CAVEAT: apply the filter before extracting the required number of games.
+			Data.Maybe.maybe id (take . fromIntegral) maybeMaximumGames . filter pgnPredicate	-- CAVEAT: apply the filter before extracting the required number of games.
 		 ) `fmap` parser isStrictlySequential validateMoves identificationTags
 
 -- | The name of an executable used to decompress (to stdout) the PGN-file.

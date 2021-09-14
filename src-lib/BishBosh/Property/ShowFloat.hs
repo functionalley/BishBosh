@@ -25,23 +25,23 @@
 module BishBosh.Property.ShowFloat(
 -- * Type-classes
 	ShowFloat(..),
--- * Types
--- ** Type-synonyms
-	NDecimalDigits,
 -- * Functions
+	showsFloatToN',
 	showsFloatToN
 ) where
 
+import qualified	BishBosh.Type.Count	as Type.Count
 import qualified	Numeric
 
--- | A number of decimals digits.
-type NDecimalDigits	= Int
+-- | Render the specified data to the specified number of decimal digits.
+showsFloatToN' :: RealFloat a => Type.Count.NDecimalDigits -> a -> ShowS
+showsFloatToN' nDecimalDigits	= Numeric.showFFloat (Just $ fromIntegral nDecimalDigits)
 
 -- | An alternative to 'Show', for floating-point data.
 class ShowFloat a where
 	showsFloat	:: (Double -> ShowS) -> a -> ShowS
 
 -- | Render the specified data to the specified number of decimal digits.
-showsFloatToN :: ShowFloat a => NDecimalDigits -> a -> ShowS
-showsFloatToN nDecimalDigits	= showsFloat (Numeric.showFFloat $ Just nDecimalDigits)
+showsFloatToN :: ShowFloat a => Type.Count.NDecimalDigits -> a -> ShowS
+showsFloatToN nDecimalDigits	= showsFloat $ showsFloatToN' nDecimalDigits
 

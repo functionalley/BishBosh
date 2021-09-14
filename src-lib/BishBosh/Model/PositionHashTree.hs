@@ -36,11 +36,11 @@ module BishBosh.Model.PositionHashTree(
 
 import qualified	BishBosh.Component.Zobrist	as Component.Zobrist
 import qualified	BishBosh.Data.Exception		as Data.Exception
-import qualified	BishBosh.Model.Game		as Model.Game
 import qualified	BishBosh.Model.GameTree		as Model.GameTree
 import qualified	BishBosh.Property.Arboreal	as Property.Arboreal
 import qualified	BishBosh.Text.ShowList		as Text.ShowList
 import qualified	BishBosh.Types			as T
+import qualified	BishBosh.Type.Count		as Type.Count
 import qualified	Control.Exception
 import qualified	Data.Array.IArray
 import qualified	Data.Bits
@@ -77,16 +77,16 @@ mkPositionHashTree :: (
 	-> PositionHashTree positionHash
 mkPositionHashTree zobrist	= MkPositionHashTree . fmap (`Component.Zobrist.hash2D` zobrist) . Model.GameTree.deconstruct
 
--- | Count the number of distinct games, irrespective of the sequence of moves taken to reach that state.
+-- | Count the number of distinct positions, irrespective of the sequence of moves taken to reach that terminal state.
 countDistinctPositions
 	:: Ord positionHash
 	=> Property.Arboreal.Depth
 	-> PositionHashTree positionHash
-	-> Model.Game.NGames
-{-# SPECIALISE countDistinctPositions :: Property.Arboreal.Depth -> PositionHashTree T.PositionHash -> Model.Game.NGames #-}
+	-> Type.Count.NPositions
+{-# SPECIALISE countDistinctPositions :: Property.Arboreal.Depth -> PositionHashTree T.PositionHash -> Type.Count.NPositions #-}
 countDistinctPositions depth MkPositionHashTree { deconstruct = barePositionHashTree }
 	| depth < 0	= Control.Exception.throw . Data.Exception.mkOutOfBounds . showString "BishBosh.Component.PositionHashTree.countDistinctPositions:\tdepth" . Text.ShowList.showsAssociation $ shows depth "must be positive"
-	| otherwise	= Data.Set.size $ slave depth barePositionHashTree
+	| otherwise	= fromIntegral . Data.Set.size $ slave depth barePositionHashTree
 	where
 		slave 0 Data.Tree.Node { Data.Tree.rootLabel = hash }		= Data.Set.singleton hash	-- Having reached the maximum depth, include this game's hash.
 		slave _ Data.Tree.Node {

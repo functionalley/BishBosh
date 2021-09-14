@@ -30,14 +30,9 @@
 module BishBosh.Types(
 -- * Types
 -- ** Type-synonyms
-	CriterionWeight,
-	CriterionValue,
-	WeightedMean,
 	X,
 	Y,
 	Distance,
-	RankValue,
-	PieceSquareValue,
 	PositionHash
 ) where
 
@@ -46,20 +41,6 @@ import qualified	Data.Word
 #ifdef USE_NARROW_NUMBERS
 import qualified	Data.Int
 #endif
-
--- | The preferred type by which to weight criteria.
-type CriterionWeight	=
-#ifdef USE_NARROW_NUMBERS
-	Float
-#else
-	Double	-- N.B.: 'Rational' is more accurate, but slower alternative.
-#endif
-
--- | The preferred type by which to value criteria.
-type CriterionValue	= CriterionWeight
-
--- | The preferred type by which to represent fitness.
-type WeightedMean	= CriterionValue
 
 -- | The preferred type by which to represent the abscissa. CAVEAT: while conceptually unsigned, various unguarded calls to 'pred' prevent this.
 type X	=
@@ -78,16 +59,6 @@ type Y	= X	-- N.B.: it can be independent of 'X'.
 	* N.B.: since /distance/ is used to represent only the horizontal or vertical component of a move, rather than a diagonal length, it can be represented by an integral value.
 -}
 type Distance	= X	-- N.B.: conceptually independent of both 'X' & 'Y' which could be unsigned.
-
--- | The preferred type by which to represent the value of a /rank/.
-type RankValue	= CriterionValue
-
-{- |
-	* The preferred type by which to represent a /piece-square/ value.
-
-	* CAVEAT: performance of 'BishBosh.Evaluation.Fitness.interpolatePieceSquareValues' suffers from use of 'Rational'.
--}
-type PieceSquareValue	= CriterionValue
 
 -- | The type of the hash used to uniquely represent a /position/.
 type PositionHash	=

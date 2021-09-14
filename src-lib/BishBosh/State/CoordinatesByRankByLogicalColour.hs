@@ -74,6 +74,8 @@ import qualified	BishBosh.Property.Opposable				as Property.Opposable
 import qualified	BishBosh.State.MaybePieceByCoordinates			as State.MaybePieceByCoordinates
 import qualified	BishBosh.StateProperty.Censor				as StateProperty.Censor
 import qualified	BishBosh.StateProperty.Seeker				as StateProperty.Seeker
+import qualified	BishBosh.Type.Count					as Type.Count
+import qualified	BishBosh.Type.Mass					as Type.Mass
 import qualified	BishBosh.Types						as T
 import qualified	Control.Arrow
 import qualified	Control.DeepSeq
@@ -103,17 +105,17 @@ instance (
 	rnf MkCoordinatesByRankByLogicalColour { deconstruct = byLogicalColour }	= Control.DeepSeq.rnf byLogicalColour
 
 instance (Enum x, Enum y) => StateProperty.Censor.Censor (CoordinatesByRankByLogicalColour x y) where
-	countPiecesByLogicalColour MkCoordinatesByRankByLogicalColour { deconstruct = byLogicalColour }	= ($ Attribute.LogicalColour.Black) &&& ($ Attribute.LogicalColour.White) $ Data.List.foldl' (\acc -> (+ acc) . length) 0 . (byLogicalColour !)
+	countPiecesByLogicalColour MkCoordinatesByRankByLogicalColour { deconstruct = byLogicalColour }	= ($ Attribute.LogicalColour.Black) &&& ($ Attribute.LogicalColour.White) $ Data.List.foldl' (\acc -> (+ acc) . fromIntegral . length) 0 . (byLogicalColour !)
 
 	countPieces MkCoordinatesByRankByLogicalColour { deconstruct = byLogicalColour }	= Data.Foldable.foldl' (
-		Data.List.foldl' $ \acc -> (+ acc) . length
+		Data.List.foldl' $ \acc -> (+ acc) . fromIntegral . length
 	 ) 0 byLogicalColour
 
 	countPieceDifferenceByRank MkCoordinatesByRankByLogicalColour { deconstruct = byLogicalColour }	= Attribute.Rank.listArrayByRank . uncurry (
 		zipWith (-)
 	 ) . (
 		($ Attribute.LogicalColour.White) &&& ($ Attribute.LogicalColour.Black)
-	 ) $ map length . Data.Array.IArray.elems . (byLogicalColour !)
+	 ) $ map (fromIntegral . length) . Data.Array.IArray.elems . (byLogicalColour !)
 
 	hasInsufficientMaterial MkCoordinatesByRankByLogicalColour { deconstruct = byLogicalColour }	= Data.Foldable.all (
 		\byRank -> all (
@@ -223,7 +225,7 @@ getKingsCoordinates logicalColour MkCoordinatesByRankByLogicalColour { deconstru
 	coordinates	= byLogicalColour ! logicalColour ! Attribute.Rank.King
 
 -- | The number of /piece/s in each file, for each /logical colour/.
-type NPiecesByFileByLogicalColour x	= Attribute.LogicalColour.ArrayByLogicalColour (Data.Map.Strict.Map x Component.Piece.NPieces)
+type NPiecesByFileByLogicalColour x	= Attribute.LogicalColour.ArrayByLogicalColour (Data.Map.Strict.Map x Type.Count.NPieces)
 
 {- |
 	* Counts the number of @Pawn@s of each /logical colour/ with similar /x/-coordinates; their /y/-coordinate is irrelevant.
@@ -288,7 +290,7 @@ sumPieceSquareValueByLogicalColour
 	=> Component.PieceSquareByCoordinatesByRank.FindPieceSquareValues x y pieceSquareValue
 	-> CoordinatesByRankByLogicalColour x y
 	-> [pieceSquareValue]
-{-# SPECIALISE sumPieceSquareValueByLogicalColour :: Component.PieceSquareByCoordinatesByRank.FindPieceSquareValues T.X T.Y T.PieceSquareValue -> CoordinatesByRankByLogicalColour T.X T.Y -> [T.PieceSquareValue] #-}
+{-# SPECIALISE sumPieceSquareValueByLogicalColour :: Component.PieceSquareByCoordinatesByRank.FindPieceSquareValues T.X T.Y Type.Mass.PieceSquareValue -> CoordinatesByRankByLogicalColour T.X T.Y -> [Type.Mass.PieceSquareValue] #-}
 sumPieceSquareValueByLogicalColour findPieceSquareValues MkCoordinatesByRankByLogicalColour { deconstruct = byLogicalColour }	= map (
 	\(logicalColour, byRank) -> Data.List.foldl' (
 		\acc	-> Data.List.foldl' (+) acc . uncurry (findPieceSquareValues logicalColour)
