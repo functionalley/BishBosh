@@ -208,26 +208,26 @@ findNextOnymousQualifiedMovesForPosition requiredGame positionHashQualifiedMoveT
 	| cantConverge requiredGame positionHashQualifiedMoveTree	= []	-- The specified game has fewer pieces than any defined in the tree.
 	| otherwise							= slave (2 * Component.Piece.nPiecesPerSide) tree
 	where
+		(requiredPositionHash, requiredNPieces)	= (`Component.Zobrist.hash2D` zobrist) &&& State.Board.getNPieces . Model.Game.getBoard $ requiredGame 
+
 		slave nPieces Data.Tree.Node {
 			Data.Tree.rootLabel	= MkNodeLabel { getPositionHash = positionHash },
 			Data.Tree.subForest	= forest
-		}
-			| nPieces < State.Board.getNPieces (
-				Model.Game.getBoard requiredGame
-			)		= []	-- There are fewer pieces remaining in the tree than required. CAVEAT: breaking this check into nPieces/side isn't cost-effective.
-			| otherwise	= (
-				if positionHash == Component.Zobrist.hash2D requiredGame zobrist
-					then (
-						map onymiseQualifiedMove forest ++	-- The Zobrist-hash/position matches, so one can select any move from the forest.
-					) -- Section.
-					else id
-			) $ concatMap (
-				\node@Data.Tree.Node {
-					Data.Tree.rootLabel	= MkNodeLabel { getMaybeQualifiedMoveWithOnymousResult = Just (qualifiedMove, _) }
-				} -> slave (
-					Attribute.MoveType.nPiecesMutator (Component.QualifiedMove.getMoveType qualifiedMove) nPieces
-				) node -- Recurse to see if deeper matches exist.
-			) forest
+		} = (
+			if positionHash == requiredPositionHash
+				then (
+					map onymiseQualifiedMove forest ++	-- The position matches, so one can select any move from the forest.
+				) -- Section.
+				else id
+		 ) $ concatMap (
+			\node@Data.Tree.Node {
+				Data.Tree.rootLabel	= MkNodeLabel { getMaybeQualifiedMoveWithOnymousResult = Just (qualifiedMove, _) }
+			} -> if Attribute.MoveType.isCapture $ Component.QualifiedMove.getMoveType qualifiedMove
+				then if nPieces == requiredNPieces
+					then []	-- Terminate the recursion; no further pieces can be lost if a match is to occur.
+					else slave (pred nPieces) node	-- Recurse.
+				else slave nPieces node	-- Recurse.
+		 ) forest
 
 -- | Finds any single /move/s which can join the current /position/ with a member of the forest.
 findNextJoiningOnymousQualifiedMovesFromPosition :: (
