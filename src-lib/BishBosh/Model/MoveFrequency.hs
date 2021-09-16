@@ -41,6 +41,7 @@ module BishBosh.Model.MoveFrequency(
 	sortByDescendingMoveFrequency
 ) where
 
+import			Control.Arrow((&&&))
 import			Data.Array.IArray((!), (//))
 import qualified	BishBosh.Attribute.LogicalColour	as Attribute.LogicalColour
 import qualified	BishBosh.Attribute.Rank			as Attribute.Rank
@@ -102,40 +103,28 @@ insertMoves
 	-> MoveFrequency move
 	-> [a]						-- ^ The data from each of which, /rank/ & /move/ can be extracted.
 	-> MoveFrequency move
-insertMoves logicalColour getRankAndMove MkMoveFrequency { deconstruct = instancesByMoveByRankByLogicalColour }	= MkMoveFrequency . \case
-	[]	-> instancesByMoveByRankByLogicalColour
+insertMoves logicalColour getRankAndMove MkMoveFrequency { deconstruct = instancesByMoveByRankByLogicalColour }	= MkMoveFrequency . (
+	instancesByMoveByRankByLogicalColour //
+ ) . return {-to List-monad-} . (,) logicalColour . (
+	instancesByMoveByRank //
+ ) . \case
 	[datum]	-> let
 		(rank, move)	= getRankAndMove datum
-		instancesByMove	= instancesByMoveByRank ! rank
-	 in instancesByMoveByRankByLogicalColour // [
+	 in [id &&& incrementMoveCount move . (instancesByMoveByRank !) $ rank]	-- Singleton.
+	l	-> [
 		(
-			logicalColour,
-			instancesByMoveByRank // [
-				(
-					rank,
-					Data.Map.Strict.insertWith (+) move 1 instancesByMove
-				) -- Pair.
-			] -- Singleton.
-		) -- Pair.
-	 ] -- Singleton.
-	l	-> instancesByMoveByRankByLogicalColour // [
-		(
-			logicalColour,
-			instancesByMoveByRank // [
-				(
-					rank,
-					foldr (
-						\(_, move) -> Data.Map.Strict.insertWith (+) move 1
-					) (
-						instancesByMoveByRank ! rank
-					) assocs
---				) | assocs@((rank, _) : _) <- Data.List.Extra.groupSortOn fst {-rank-} $ map getRankAndMove l	-- CAVEAT: wastes space.
-				) | assocs@((rank, _) : _) <- Data.List.Extra.groupSortBy (Data.Ord.comparing fst {-rank-}) $ map getRankAndMove l
-			] -- List-comprehension.
-		) -- Pair.
-	 ] -- Singleton.
+			rank,
+			foldr (
+				incrementMoveCount . snd {-move-}
+			) (
+				instancesByMoveByRank ! rank
+			) assocs
+--		) | assocs@((rank, _) : _) <- Data.List.Extra.groupSortOn fst {-rank-} $ map getRankAndMove l	-- CAVEAT: wastes space.
+		) | assocs@((rank, _) : _) <- Data.List.Extra.groupSortBy (Data.Ord.comparing fst {-rank-}) $ map getRankAndMove l
+	 ] -- List-comprehension.
 	where
 		instancesByMoveByRank	= instancesByMoveByRankByLogicalColour ! logicalColour
+		incrementMoveCount	= flip (Data.Map.Strict.insertWith (+)) 1
 
 {- |
 	* Sorts an arbitrary list on the recorded frequency of the /rank/ & /move/ accessible from each list-item.

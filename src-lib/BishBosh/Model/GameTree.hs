@@ -67,9 +67,8 @@ import qualified	BishBosh.Model.MoveFrequency			as Model.MoveFrequency
 import qualified	BishBosh.Notation.MoveNotation			as Notation.MoveNotation
 import qualified	BishBosh.Property.Arboreal			as Property.Arboreal
 import qualified	BishBosh.Property.Empty				as Property.Empty
-import qualified	BishBosh.Property.FixedMembership		as Property.FixedMembership
 import qualified	BishBosh.Property.Null				as Property.Null
-import qualified	BishBosh.State.TurnsByLogicalColour		as State.TurnsByLogicalColour
+import qualified	BishBosh.Property.Opposable			as Property.Opposable
 import qualified	BishBosh.Type.Count				as Type.Count
 import qualified	BishBosh.Type.Mass				as Type.Mass
 import qualified	BishBosh.Types					as T
@@ -230,7 +229,7 @@ type Transformation x y	= GameTree x y -> GameTree x y
 {- |
 	* Independently sorts the forest of moves at each node of the tree, without regard to runtime-data.
 
-	* Depending on preferences, the list of moves available to each game is sorted by; either those which capture a valuable piece using a cheap piece, or those which win extended battles at a specific location.
+	* Depending on preferences, the list of moves available from each position is sorted by; either those which capture a valuable piece using a cheap piece, or those which win extended battles at a specific location.
 
 	* The above sort-algorithms are stable & can therefore be applied independently.
 -}
@@ -258,7 +257,9 @@ sortGameTree maybeCaptureMoveSortAlgorithm evaluateRank standardOpeningMoveFrequ
  ) bareGameTree
 
 {- |
-	* Count the instances of each /move/ in the specified tree, including any pre-applied to the apex game.
+	* Count the instances of each /move/ in the specified tree.
+
+	* CAVEAT: assumes that root game hasn't any pre-applied moves; which might occur in a test-case.
 
 	* CAVEAT: ambiguity remains regarding the /move-type/ (especially any piece taken).
 
@@ -267,19 +268,11 @@ sortGameTree maybeCaptureMoveSortAlgorithm evaluateRank standardOpeningMoveFrequ
 	but then early moves would appear popular rather than just the consequence of limited choice.
 -}
 toMoveFrequency :: (Ord x, Ord y) => GameTree x y -> MoveFrequency x y
-toMoveFrequency MkGameTree {
-	deconstruct	= bareGameTree@Data.Tree.Node { Data.Tree.rootLabel = rootGame }
-} = slave (
-	Data.List.foldl' (
-		\moveFrequency logicalColour -> Model.MoveFrequency.insertMoves logicalColour (
-			Component.Turn.getRank &&& Component.QualifiedMove.getMove . Component.Turn.getQualifiedMove
-		) moveFrequency . State.TurnsByLogicalColour.dereference logicalColour $ Model.Game.getTurnsByLogicalColour rootGame
-	) Property.Empty.empty {-MoveFrequency-} Property.FixedMembership.members
- ) bareGameTree where
-	slave moveFrequency Data.Tree.Node {
-		Data.Tree.rootLabel	= game,
-		Data.Tree.subForest	= forest
-	} = Data.List.foldl' slave {-recurse-} (
-		Model.MoveFrequency.insertMoves (Model.Game.getNextLogicalColour game) getRankAndMove moveFrequency forest
+toMoveFrequency MkGameTree { deconstruct = bareGameTree } = slave maxBound {-logicalColour-} Property.Empty.empty {-MoveFrequency-} bareGameTree where
+	slave _ moveFrequency Data.Tree.Node { Data.Tree.subForest = [] }			= moveFrequency
+	slave logicalColour moveFrequency Data.Tree.Node { Data.Tree.subForest = forest }	= Data.List.foldl' (
+		slave {-recurse-} $ Property.Opposable.getOpposite logicalColour
+	 ) (
+		Model.MoveFrequency.insertMoves logicalColour getRankAndMove moveFrequency forest
 	 ) forest
 

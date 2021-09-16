@@ -105,4 +105,4 @@ New Module				| Purpose
 ### BishBosh:
 	* Created a new directory **Rule/** to which **Model.[DrawReason, GameTerminationReason, Result]** were relocated.
 
-	* Refactored function **BishBosh.ContextualNotation.PositionHashQualifiedMoveTree.findNextOnymousQualifiedMovesForPosition**.
+	* Refactored functions **BishBosh.ContextualNotation.PositionHashQualifiedMoveTree.findNextOnymousQualifiedMovesForPosition**, **BishBosh.Model.MoveFrequency.insertMoves** & **BishBosh.Model.GameTree.toMoveFrequency**.
