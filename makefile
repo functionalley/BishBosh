@@ -13,18 +13,26 @@
 # You should have received a copy of the GNU General Public License
 # along with BishBosh.  If not, see <http://www.gnu.org/licenses/>.
 
-.PHONY: hlint test randomTest prof cabalCheck sdist findOmissions xboard duel haddock graphmod
+.PHONY: cabalCheck duel findOmissions graphmod haddock hlint prof randomTest sdist test xboard
 
 PACKAGE_NAME	= bishbosh
 SHELL		= /bin/bash
 GHC_OPTIONS	= --ghc-options='-j'
 BIN_DIR		= $$HOME/.local/bin/
 
-# Build hlint.
+# Build 'graphmod'.
+$(BIN_DIR)/graphmod:
+	@stack install graphmod $(GHC_OPTIONS)
+
+# Display the module-dependency graph.
+graphmod: $(BIN_DIR)/graphmod
+	@$@ --graph-dim='40,24' -i 'src-lib' -i 'src-exe' Main | tred | dot -Tsvg | display
+
+# Build 'hlint'.
 $(BIN_DIR)/hlint:
 	@stack install hlint $(GHC_OPTIONS)
 
-# Check for lint.
+# Groom sourcecode.
 hlint: $(BIN_DIR)/hlint
 	@$@ -j --no-exit-code\
 		--cpp-define 'USE_PARALLEL'\
@@ -49,7 +57,7 @@ hlint: $(BIN_DIR)/hlint
 
 # Serially compile with various CPP-flags & run the test-suites.
 test:
-	@for FLAG in -threaded -polyparse -newtypewrappers -hxtrelaxng narrownumbers unboxedarrays; do\
+	@for FLAG in -polyparse newtypewrappers -hxtrelaxng narrownumbers unboxedarrays -threaded; do\
 		echo $${FLAG};\
 		stack '$@' --flag="$(PACKAGE_NAME):$${FLAG}" $(GHC_OPTIONS) || break;\
 	done
@@ -64,18 +72,6 @@ randomTest:
 prof:
 	@stack install --library-profiling --executable-profiling $(GHC_OPTIONS)
 	@$(PACKAGE_NAME) -i 'config/Raw/$(PACKAGE_NAME)_$@.xml' +RTS -p -N2 -RTS
-
-# Check the cabal-file.
-cabalCheck:
-	@cabal check
-
-# Package for upload to Hackage.
-sdist:
-	@cabal '$@'
-
-# Find source-files missing from the distribution.
-findOmissions: sdist
-	@diff <(find src-* -type f -name '*.hs' | sed 's!^\./!!' | sort) <(tar -ztf dist*/sdist/$(PACKAGE_NAME)-*.tar.gz | grep '\.hs$$' | grep -v 'Setup.hs' | sed 's!^$(PACKAGE_NAME)-[0-9.]*/!!' | sort)
 
 # Install this product.
 $(BIN_DIR)/$(PACKAGE_NAME) $(BIN_DIR)/duel:
@@ -93,7 +89,15 @@ duel: $(BIN_DIR)/duel
 haddock:
 	@stack '$@' --no-$@-deps $(GHC_OPTIONS)
 
-# Show module-dependency graph.
-graphmod:
-	@$@ --graph-dim='40,24' -i 'src-exe' -i 'src-lib' Main | tred | dot -Tsvg | display	# CAVEAT: doesn't include 'Duel'.
+# Package for upload to Hackage.
+sdist:
+	@cabal '$@'
+
+# Check the cabal-file.
+cabalCheck:
+	@cabal check
+
+# Find source-files missing from the distribution.
+findOmissions: sdist
+	@diff <(find src-* -type f -name '*.hs' | sed 's!^\./!!' | sort) <(tar -ztf dist*/sdist/$(PACKAGE_NAME)-*.tar.gz | grep '\.hs$$' | grep -v 'Setup.hs' | sed 's!^$(PACKAGE_NAME)-[0-9.]*/!!' | sort)
 
