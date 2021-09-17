@@ -85,11 +85,11 @@ flag narrownumbers
     Manual:		True
     Default:		False
 
--- Whether, to wrap common types in 'newtype' for increased type-safety. CAVEAT: there's a small performance-penalty.
+-- Whether, to wrap common types in 'newtype' for increased type-safety. CAVEAT: there's a ~10% performance-penalty.
 flag newtypewrappers
     Description:	Wrap common types in newtype for increased type-safety.
     Manual:		True
-    Default:		True
+    Default:		False
 
 -- Concurrency is used to implement Pondering, & parallelism is used when searching through archived games.
 flag threaded
