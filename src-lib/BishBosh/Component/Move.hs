@@ -86,10 +86,10 @@ instance (Control.DeepSeq.NFData x, Control.DeepSeq.NFData y) => Control.DeepSeq
 	} = Control.DeepSeq.rnf (source, destination)
 
 instance (Show x, Show y) => Show (Move x y) where
-	showsPrec _ MkMove {
+	showsPrec precedence MkMove {
 		getSource	= source,
 		getDestination	= destination
-	} = shows (source, destination)
+	} = showsPrec precedence (source, destination)
 
 instance (
 	Enum	x,
@@ -99,7 +99,7 @@ instance (
 	Read	x,
 	Read	y
  ) => Read (Move x y) where
-	readsPrec _	= map (Control.Arrow.first $ uncurry mkMove) . reads
+	readsPrec precedence	= map (Control.Arrow.first $ uncurry mkMove) . readsPrec precedence
 
 instance Property.Opposable.Opposable (Move x y) where
 	getOpposite (MkMove source destination)	= MkMove {

@@ -62,7 +62,7 @@ instance (
 	Show	positionHash,
 	Show	weightedMean
  ) => Show (SearchState x y positionHash criterionValue weightedMean) where
-	showsPrec _ _	= showString "SearchState {...}"
+	show _	= "SearchState {...}"
 
 -- | Constructor.
 mkSearchState

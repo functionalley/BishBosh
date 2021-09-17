@@ -1,4 +1,3 @@
-{-# LANGUAGE LambdaCase #-}
 {-
 	Copyright (C) 2018 Dr. Alistair Ward
 
@@ -105,17 +104,16 @@ instance Data.Array.IArray.Ix Rank where
 	index (lower, upper)		= Control.Exception.assert (lower == minBound && upper == maxBound) . fromEnum
 
 instance Show Rank where
-	showsPrec _	= showChar . \case
-		Pawn	-> 'p'
-		Rook	-> 'r'
-		Knight	-> 'n'
-		Bishop	-> 'b'
-		Queen	-> 'q'
-		King	-> 'k'
+	show Pawn	= "p"
+	show Rook	= "r"
+	show Knight	= "n"
+	show Bishop	= "b"
+	show Queen	= "q"
+	show King	= "k"
 
 instance Read Rank where
-	readsPrec _ (c : s)
-		| Data.Char.isSpace c	= reads s	-- Consume.
+	readsPrec precedence (c : s)
+		| Data.Char.isSpace c	= readsPrec precedence s	-- Consume.
 		| otherwise		= map (flip (,) s) $ case Data.Char.toLower c of
 			'p'	-> [Pawn]
 			'r'	-> [Rook]

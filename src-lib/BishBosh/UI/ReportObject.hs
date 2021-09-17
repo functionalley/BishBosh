@@ -1,4 +1,3 @@
-{-# LANGUAGE LambdaCase #-}
 {-
 	Copyright (C) 2021 Dr. Alistair Ward
 
@@ -101,16 +100,15 @@ instance Control.DeepSeq.NFData ReportObject where
 	rnf _	= ()
 
 instance Show ReportObject where
-	showsPrec _	= showString . \case
-		AvailableMoves		-> availableMovesTag
-		Board			-> boardTag
-		EPD			-> epdTag
-		FEN			-> fenTag
-		Game			-> gameTag
-		MaxPositionInstances	-> maxPositionInstancesTag
-		Moves			-> movesTag
-		PGN			-> pgnTag
-		ReversiblePlyCount	-> reversiblePlyCountTag
+	show AvailableMoves		= availableMovesTag
+	show Board			= boardTag
+	show EPD			= epdTag
+	show FEN			= fenTag
+	show Game			= gameTag
+	show MaxPositionInstances	= maxPositionInstancesTag
+	show Moves			= movesTag
+	show PGN			= pgnTag
+	show ReversiblePlyCount		= reversiblePlyCountTag
 
 instance Read ReportObject where
 	readsPrec _ s	= case Control.Arrow.first Data.List.Extra.lower `map` lex s of

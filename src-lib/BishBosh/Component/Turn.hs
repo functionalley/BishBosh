@@ -81,11 +81,11 @@ instance (Control.DeepSeq.NFData x, Control.DeepSeq.NFData y) => Control.DeepSeq
 	} = Control.DeepSeq.rnf (qualifiedMove, rank, isRepeatableMove)
 
 instance (Show x, Show y) => Show (Turn x y) where
-	showsPrec _ MkTurn {
+	showsPrec precedence MkTurn {
 		getQualifiedMove	= qualifiedMove,
 		getRank			= rank
 --		getIsRepeatableMove	= isRepeatableMove
-	} = shows (
+	} = showsPrec precedence (
 		qualifiedMove,
 		rank
 --		isRepeatableMove	-- Derived.
@@ -99,7 +99,7 @@ instance (
 	Read	x,
 	Read	y
  ) => Read (Turn x y) where
-	readsPrec _	= map (Control.Arrow.first $ uncurry mkTurn) . reads
+	readsPrec precedence	= map (Control.Arrow.first $ uncurry mkTurn) . readsPrec precedence
 
 instance Enum y => Property.Reflectable.ReflectableOnX (Turn x y) where
 	reflectOnX turn@MkTurn { getQualifiedMove = qualifiedMove } = turn { getQualifiedMove = Property.Reflectable.reflectOnX qualifiedMove }

@@ -122,7 +122,7 @@ instance (
 	rnf MkCoordinates { getX = x, getY = y }	= Control.DeepSeq.rnf (x, y)
 
 instance (Show x, Show y) => Show (Coordinates x y) where
-	showsPrec _ MkCoordinates { getX = x, getY = y }	= shows (x, y)
+	showsPrec precedence MkCoordinates { getX = x, getY = y }	= showsPrec precedence (x, y)
 
 instance (
 	Enum	x,
@@ -132,9 +132,9 @@ instance (
 	Read	x,
 	Read	y
  ) => Read (Coordinates x y) where
-	readsPrec _ s	= [
+	readsPrec precedence s	= [
 		(coordinates, remainder) |
-			((x, y), remainder)	<- reads s,
+			((x, y), remainder)	<- readsPrec precedence s,
 			coordinates		<- Data.Maybe.maybeToList $ mkMaybeCoordinates x y
 	 ] -- List-comprehension.
 

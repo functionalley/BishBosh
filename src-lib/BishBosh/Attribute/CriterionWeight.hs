@@ -58,7 +58,7 @@ newtype CriterionWeight criterionWeight	= MkCriterionWeight {
 } deriving (Eq, Ord)
 
 instance Show criterionWeight => Show (CriterionWeight criterionWeight) where
-	showsPrec _ (MkCriterionWeight criterionWeight)	= shows criterionWeight
+	showsPrec precedence (MkCriterionWeight criterionWeight)	= showsPrec precedence criterionWeight
 
 instance Num criterionWeight => Bounded (CriterionWeight criterionWeight) where
 	minBound	= MkCriterionWeight 0

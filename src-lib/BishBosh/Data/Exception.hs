@@ -87,10 +87,10 @@ data Exception	= MkException {
 instance Control.Exception.Exception Exception
 
 instance Show Exception where
-	showsPrec _ MkException {
+	showsPrec precedence MkException {
 		getType		= eitherBadDataOrBadRequest,
 		getDetails	= details
-	} = (shows ||| shows) eitherBadDataOrBadRequest . showString "; " . showString details
+	} = (showsPrec precedence ||| showsPrec precedence) eitherBadDataOrBadRequest . showString "; " . showString details
 
 -- | Constructor.
 mkDuplicateData :: String -> Exception

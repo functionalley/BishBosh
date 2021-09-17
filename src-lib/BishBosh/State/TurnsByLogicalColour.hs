@@ -70,10 +70,10 @@ instance Eq turn => Eq (TurnsByLogicalColour turn) where
 	MkTurnsByLogicalColour { getTurnsByLogicalColour = aL } == MkTurnsByLogicalColour { getTurnsByLogicalColour = aR }	= aL == aR
 
 instance (Read turn, Show turn) => Read (TurnsByLogicalColour turn) where
-	readsPrec _ s	= Control.Arrow.first fromAssocs `map` reads s
+	readsPrec precedence s	= Control.Arrow.first fromAssocs `map` readsPrec precedence s
 
 instance Show turn => Show (TurnsByLogicalColour turn) where
-	showsPrec _ MkTurnsByLogicalColour { getTurnsByLogicalColour = byLogicalColour }	= shows $ Data.Array.IArray.assocs byLogicalColour
+	showsPrec precedence MkTurnsByLogicalColour { getTurnsByLogicalColour = byLogicalColour }	= showsPrec precedence $ Data.Array.IArray.assocs byLogicalColour
 
 instance Control.DeepSeq.NFData turn => Control.DeepSeq.NFData (TurnsByLogicalColour turn) where
 	rnf MkTurnsByLogicalColour { getTurnsByLogicalColour = byLogicalColour }	= Control.DeepSeq.rnf byLogicalColour

@@ -58,7 +58,7 @@ type Base	= Int
 newtype NDecimalDigits	= MkNDecimalDigits Base deriving (Control.DeepSeq.NFData, Enum, Eq, HXT.XmlPickler, Integral, Num, Ord, Real)
 
 instance Show NDecimalDigits where
-	showsPrec i (MkNDecimalDigits n)	= showsPrec i n
+	showsPrec precedence (MkNDecimalDigits n)	= showsPrec precedence n
 #else
 type NDecimalDigits	= Base
 #endif
@@ -75,7 +75,7 @@ type NDirections	= Base
 newtype NGames	= MkNGames Base deriving (Control.DeepSeq.NFData, Enum, Eq, HXT.XmlPickler, Integral, Num, Ord, Real)
 
 instance Show NGames where
-	showsPrec i (MkNGames n)	= showsPrec i n
+	showsPrec precedence (MkNGames n)	= showsPrec precedence n
 #else
 type NGames	= Base
 #endif
@@ -85,7 +85,7 @@ type NGames	= Base
 newtype NLogicalColours	= MkNLogicalColours Base deriving (Enum, Eq, Integral, Num, Ord, Real)
 
 instance Show NLogicalColours where
-	showsPrec i (MkNLogicalColours n)	= showsPrec i n
+	showsPrec precedence (MkNLogicalColours n)	= showsPrec precedence n
 #else
 type NLogicalColours	= Base
 #endif
@@ -95,7 +95,7 @@ type NLogicalColours	= Base
 newtype NMoves	= MkNMoves Base deriving (Control.DeepSeq.NFData, Enum, Eq, HXT.XmlPickler, Integral, Num, Ord, Real)
 
 instance Show NMoves where
-	showsPrec i (MkNMoves n)	= showsPrec i n
+	showsPrec precedence (MkNMoves n)	= showsPrec precedence n
 #else
 type NMoves	= Base
 #endif
@@ -105,7 +105,7 @@ type NMoves	= Base
 newtype NPieces	= MkNPieces Base deriving (Control.DeepSeq.NFData, Data.Array.IArray.Ix, Enum, Eq, Integral, Num, Ord, Real)
 
 instance Show NPieces where
-	showsPrec i (MkNPieces n)	= showsPrec i n
+	showsPrec precedence (MkNPieces n)	= showsPrec precedence n
 #else
 type NPieces	= Base
 #endif
@@ -121,7 +121,7 @@ type NPieces	= Base
 newtype NPlies	= MkNPlies Base deriving (Control.DeepSeq.NFData, Enum, Eq, HXT.XmlPickler, Integral, Num, Ord, Read, Real)
 
 instance Show NPlies where
-	showsPrec i (MkNPlies n)	= showsPrec i n
+	showsPrec precedence (MkNPlies n)	= showsPrec precedence n
 #else
 type NPlies	= Base
 #endif
@@ -131,7 +131,7 @@ type NPlies	= Base
 newtype NPositions	= MkNPositions Base deriving (Control.DeepSeq.NFData, Enum, Eq, Integral, Num, Ord, Real)
 
 instance Show NPositions where
-	showsPrec i (MkNPositions n)	= showsPrec i n
+	showsPrec precedence (MkNPositions n)	= showsPrec precedence n
 #else
 type NPositions	= Base
 #endif
@@ -148,7 +148,7 @@ type NRanks	= Base
 newtype NSeconds	= MkNSeconds Base deriving (Enum, Eq, Integral, Num, Ord, Real)
 
 instance Show NSeconds where
-	showsPrec i (MkNSeconds n)	= showsPrec i n
+	showsPrec precedence (MkNSeconds n)	= showsPrec precedence n
 #else
 type NSeconds		= Base
 #endif

@@ -1,4 +1,3 @@
-{-# LANGUAGE LambdaCase #-}
 {-
 	Copyright (C) 2018 Dr. Alistair Ward
 
@@ -59,9 +58,8 @@ instance Control.DeepSeq.NFData PrintObject where
 	rnf _	= ()
 
 instance Show PrintObject where
-	showsPrec _	= showString . \case
-		Configuration	-> configurationTag
-		Help		-> helpTag
+	show Configuration	= configurationTag
+	show Help		= helpTag
 
 instance Read PrintObject where
 	readsPrec _ s	= case Control.Arrow.first Data.List.Extra.lower `map` lex s of

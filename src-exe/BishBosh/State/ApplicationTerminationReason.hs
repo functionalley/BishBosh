@@ -40,8 +40,8 @@ data ApplicationTerminationReason
 	| MaximumPlies	-- ^ The configured maximum number of /turn/s has been reached.
 
 instance Show ApplicationTerminationReason where
-	showsPrec _ ByRequest		= showString "by request"
-	showsPrec _ MaximumPlies	= showString "because the configured maximum number of plies has been reached"
+	show ByRequest		= "by request"
+	show MaximumPlies	= "because the configured maximum number of plies has been reached"
 
 instance Control.DeepSeq.NFData ApplicationTerminationReason where
 	rnf _	= ()

@@ -48,10 +48,10 @@ data QualifiedMove x y	= MkQualifiedMove {
 } deriving Eq
 
 instance (Show x, Show y) => Show (QualifiedMove x y) where
-	showsPrec _ MkQualifiedMove {
+	showsPrec precedence MkQualifiedMove {
 		getMove		= move,
 		getMoveType	= moveType
-	} = shows (move, moveType)
+	} = showsPrec precedence (move, moveType)
 
 instance (
 	Enum	x,
@@ -61,7 +61,7 @@ instance (
 	Read	x,
 	Read	y
  ) => Read (QualifiedMove x y) where
-	readsPrec _	= map (Control.Arrow.first $ uncurry MkQualifiedMove) . reads
+	readsPrec precedence	= map (Control.Arrow.first $ uncurry MkQualifiedMove) . readsPrec precedence
 
 instance (Control.DeepSeq.NFData x, Control.DeepSeq.NFData y) => Control.DeepSeq.NFData (QualifiedMove x y) where
 	rnf MkQualifiedMove {

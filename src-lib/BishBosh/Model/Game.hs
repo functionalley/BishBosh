@@ -269,11 +269,11 @@ instance (
 	Show	x,
 	Show	y
  ) => Show (Game x y) where
-	showsPrec _ MkGame {
+	showsPrec precedence MkGame {
 		getBoard			= board,
 		getTurnsByLogicalColour		= turnsByLogicalColour,
 		getMaybeTerminationReason	= maybeTerminationReason
-	} = shows (
+	} = showsPrec precedence (
 		board,
 		turnsByLogicalColour,
 		maybeTerminationReason
@@ -290,7 +290,7 @@ instance (
 	Show	y
  ) => Read (Game x y) where
 	{-# SPECIALISE instance Read (Game T.X T.Y) #-}
-	readsPrec _	= map (
+	readsPrec precedence	= map (
 		Control.Arrow.first $ \(
 			board,
 			turnsByLogicalColour,
@@ -305,7 +305,7 @@ instance (
 				getMaybeTerminationReason	= maybeTerminationReason
 			}
 		in game
-	 ) . reads
+	 ) . readsPrec precedence
 
 instance (
 	Enum	x,

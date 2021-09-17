@@ -136,7 +136,7 @@ newtype CastleableRooksByLogicalColour x	= MkCastleableRooksByLogicalColour {
 } deriving (Eq, Ord)
 
 instance Show x => Show (CastleableRooksByLogicalColour x) where
-	showsPrec _ MkCastleableRooksByLogicalColour { getAssocs = assocs }	= shows assocs
+	showsPrec precedence MkCastleableRooksByLogicalColour { getAssocs = assocs }	= showsPrec precedence assocs
 
 instance (
 	Enum	x,
@@ -144,7 +144,7 @@ instance (
 	Read	x,
 	Show	x
  ) => Read (CastleableRooksByLogicalColour x) where
-	readsPrec _ s	= Control.Arrow.first fromAssocs `map` reads s
+	readsPrec precedence s	= Control.Arrow.first fromAssocs `map` readsPrec precedence s
 
 instance Control.DeepSeq.NFData x => Control.DeepSeq.NFData (CastleableRooksByLogicalColour x) where
 	rnf MkCastleableRooksByLogicalColour { getAssocs = assocs }	= Control.DeepSeq.rnf assocs
