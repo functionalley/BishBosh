@@ -41,8 +41,8 @@ import qualified	BishBosh.Property.Empty		as Property.Empty
 import qualified	BishBosh.Search.DynamicMoveData	as Search.DynamicMoveData
 import qualified	BishBosh.Search.EphemeralData	as Search.EphemeralData
 import qualified	BishBosh.Search.KillerMoves	as Search.KillerMoves
-import qualified	BishBosh.Types			as T
 import qualified	BishBosh.Type.Count		as Type.Count
+import qualified	BishBosh.Types			as T
 import qualified	Test.QuickCheck
 
 -- | Defines a concrete type for testing.

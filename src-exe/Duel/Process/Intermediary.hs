@@ -40,7 +40,6 @@ module Duel.Process.Intermediary (
 	initialise
 ) where
 
-import			BishBosh.Data.Float()
 import			Control.Arrow((&&&), (|||))
 import			Control.Category((>>>))
 import qualified	BishBosh.Attribute.LogicalColour	as Attribute.LogicalColour

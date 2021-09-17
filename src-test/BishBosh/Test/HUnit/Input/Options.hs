@@ -27,7 +27,6 @@ module BishBosh.Test.HUnit.Input.Options(
 	testCases
 ) where
 
-import			BishBosh.Data.Float()	-- HXT.XmlPickler.
 --import		BishBosh.Data.Ratio()	-- Required if either criterionWeight or criterionValue is Rational.
 import			Control.Category((>>>))
 import qualified	BishBosh.Data.Exception	as Data.Exception

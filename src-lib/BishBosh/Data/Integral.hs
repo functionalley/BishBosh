@@ -20,7 +20,7 @@
 {- |
  [@AUTHOR@]	Dr. Alistair Ward
 
- [@DESCRIPTION@]	Arbitrary operations for integral types.
+ [@DESCRIPTION@]	Arbitrary operations for numeric types.
 -}
 
 module BishBosh.Data.Integral(
@@ -29,31 +29,7 @@ module BishBosh.Data.Integral(
 ) where
 
 import qualified	Data.Char
-import qualified	Data.Int
 import qualified	Data.List
-import qualified	Data.Word
-import qualified	Text.XML.HXT.Arrow.Pickle	as HXT
-
-instance HXT.XmlPickler Data.Int.Int8 where
-	xpickle	= HXT.xpPrim
-
-instance HXT.XmlPickler Data.Int.Int16 where
-	xpickle	= HXT.xpPrim
-
-instance HXT.XmlPickler Data.Int.Int32 where
-	xpickle	= HXT.xpPrim
-
-instance HXT.XmlPickler Data.Word.Word8 where
-	xpickle	= HXT.xpPrim
-
-instance HXT.XmlPickler Data.Word.Word16 where
-	xpickle	= HXT.xpPrim
-
-instance HXT.XmlPickler Data.Word.Word32 where
-	xpickle	= HXT.xpPrim
-
-instance HXT.XmlPickler Data.Word.Word where
-	xpickle	= HXT.xpPrim
 
 {- |
 	* N.B. much faster than the instance of 'Read' for the integral type. TODO: compare with 'Numeric.readDec'.

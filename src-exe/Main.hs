@@ -29,7 +29,6 @@
 
 module Main(main) where
 
-import			BishBosh.Data.Float()
 --import		BishBosh.Data.Ratio()	-- Required if either criterionWeight or criterionValue is Rational.
 import			Control.Arrow((&&&), (***), (|||))
 import			Control.Category((>>>))
@@ -81,10 +80,6 @@ import qualified	Text.XML.HXT.Core					as HXT
 import qualified	ToolShed.Data.List
 import qualified	ToolShed.System.File
 import			System.FilePath((</>), (<.>))
-
-#ifdef USE_NARROW_NUMBERS
-import			BishBosh.Data.Integral()	-- HXT.XmlPickler.
-#endif
 
 #ifdef USE_HXTRELAXNG
 import qualified	Text.XML.HXT.RelaxNG

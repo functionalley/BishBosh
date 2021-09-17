@@ -1,4 +1,5 @@
 {-# LANGUAGE CPP #-}
+{-# OPTIONS_GHC -fno-warn-orphans #-}
 {-
 	Copyright (C) 2021 Dr. Alistair Ward
 
@@ -37,12 +38,20 @@ module BishBosh.Type.Mass(
 	PieceSquareValue
 ) where
 
+import qualified	Text.XML.HXT.Arrow.Pickle	as HXT
+
 -- | The preferred type by which to weight criteria.
 type CriterionWeight	=
 #ifdef USE_NARROW_NUMBERS
 	Float
+
+instance HXT.XmlPickler Float where
+	xpickle	= HXT.xpPrim
 #else
 	Double	-- N.B.: 'Rational' is a more accurate, but slower alternative.
+
+instance HXT.XmlPickler Double where
+	xpickle	= HXT.xpPrim
 #endif
 
 -- | The preferred type by which to value criteria.

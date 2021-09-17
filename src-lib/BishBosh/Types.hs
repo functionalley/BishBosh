@@ -1,4 +1,5 @@
 {-# LANGUAGE CPP #-}
+{-# OPTIONS_GHC -fno-warn-orphans #-}
 {-
 	Copyright (C) 2018 Dr. Alistair Ward
 
@@ -30,35 +31,37 @@
 module BishBosh.Types(
 -- * Types
 -- ** Type-synonyms
-	X,
-	Y,
+--	Base,
 	Distance,
-	PositionHash
+	PositionHash,
+	X,
+	Y
 ) where
 
 import qualified	Data.Word
 
 #ifdef USE_NARROW_NUMBERS
 import qualified	Data.Int
+import qualified	Text.XML.HXT.Arrow.Pickle	as HXT
 #endif
 
 -- | The preferred type by which to represent the abscissa. CAVEAT: while conceptually unsigned, various unguarded calls to 'pred' prevent this.
-type X	=
+type Base	=
 #ifdef USE_NARROW_NUMBERS
 	Data.Int.Int8
+
+instance HXT.XmlPickler Data.Int.Int8 where
+	xpickle	= HXT.xpPrim
 #else
 	Int
 #endif
-
--- | The preferred type by which to represent the ordinate.
-type Y	= X	-- N.B.: it can be independent of 'X'.
 
 {- |
 	* The preferred type by which to represent the signed distance of a move.
 
 	* N.B.: since /distance/ is used to represent only the horizontal or vertical component of a move, rather than a diagonal length, it can be represented by an integral value.
 -}
-type Distance	= X	-- N.B.: conceptually independent of both 'X' & 'Y' which could be unsigned.
+type Distance	= Base	-- N.B.: conceptually independent of both 'X' & 'Y' which could be unsigned.
 
 -- | The type of the hash used to uniquely represent a /position/.
 type PositionHash	=
@@ -68,3 +71,8 @@ type PositionHash	=
 	Data.Word.Word
 #endif
 
+-- | The distance along the abscissa.
+type X	= Base
+
+-- | The distance along the ordinate.
+type Y	= Base	-- N.B.: it can be independent of 'X'.

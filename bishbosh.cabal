@@ -149,7 +149,6 @@ Library
         BishBosh.Data.Either
         BishBosh.Data.Enum
         BishBosh.Data.Exception
-        BishBosh.Data.Float
         BishBosh.Data.Foldable
         BishBosh.Data.Integral
         BishBosh.Data.List
