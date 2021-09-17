@@ -39,13 +39,13 @@ import qualified	BishBosh.Cartesian.Ordinate		as Cartesian.Ordinate
 import qualified	BishBosh.Cartesian.Vector		as Cartesian.Vector
 import qualified	BishBosh.Component.Move			as Component.Move
 import qualified	BishBosh.Notation.PureCoordinate	as Notation.PureCoordinate
-import qualified	BishBosh.Types				as T
+import qualified	BishBosh.Type.Length			as Type.Length
 import qualified	Data.Char
 import qualified	Test.QuickCheck
 import qualified	ToolShed.Test.ReversibleIO
 
 -- | Defines a concrete type for testing.
-type PureCoordinate	= Notation.PureCoordinate.PureCoordinate T.X T.Y
+type PureCoordinate	= Notation.PureCoordinate.PureCoordinate Type.Length.X Type.Length.Y
 
 instance (
 	Enum	x,

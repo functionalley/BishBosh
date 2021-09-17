@@ -35,7 +35,7 @@ import qualified	BishBosh.Model.Game			as Model.Game
 import qualified	BishBosh.Model.GameTree			as Model.GameTree
 import qualified	BishBosh.Property.Arboreal		as Property.Arboreal
 import qualified	BishBosh.Test.QuickCheck.Model.Game	as Test.QuickCheck.Model.Game
-import qualified	BishBosh.Types				as T
+import qualified	BishBosh.Type.Length			as Type.Length
 import qualified	Data.Default
 import qualified	Data.Maybe
 import qualified	Test.QuickCheck
@@ -47,7 +47,7 @@ instance (Enum x, Enum y, Ord x, Ord y, Show x, Show y) => Test.QuickCheck.Arbit
 		fmap (Property.Arboreal.prune depth . Model.GameTree.fromGame) Test.QuickCheck.arbitrary
 
 -- | Define a concrete type for testing.
-type GameTree	= Model.GameTree.GameTree T.X T.Y
+type GameTree	= Model.GameTree.GameTree Type.Length.X Type.Length.Y
 
 -- | The constant test-results for this data-type.
 results :: IO [Test.QuickCheck.Result]

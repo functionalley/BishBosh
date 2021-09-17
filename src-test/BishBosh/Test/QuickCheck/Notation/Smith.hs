@@ -34,12 +34,12 @@ module BishBosh.Test.QuickCheck.Notation.Smith(
 import			BishBosh.Test.QuickCheck.Component.QualifiedMove()
 import qualified	BishBosh.Component.Piece	as Component.Piece
 import qualified	BishBosh.Notation.Smith		as Notation.Smith
-import qualified	BishBosh.Types			as T
+import qualified	BishBosh.Type.Length		as Type.Length
 import qualified	Test.QuickCheck
 import qualified	ToolShed.Test.ReversibleIO
 
 -- | Defines a concrete type for testing.
-type Smith	= Notation.Smith.Smith T.X T.Y
+type Smith	= Notation.Smith.Smith Type.Length.X Type.Length.Y
 
 instance (
 	Enum	x,

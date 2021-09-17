@@ -51,7 +51,7 @@ import qualified	BishBosh.Component.Move			as Component.Move
 import qualified	BishBosh.Data.Enum			as Data.Enum
 import qualified	BishBosh.Data.Exception			as Data.Exception
 import qualified	BishBosh.Property.FixedMembership	as Property.FixedMembership
-import qualified	BishBosh.Types				as T
+import qualified	BishBosh.Type.Length			as Type.Length
 import qualified	Control.Exception
 
 -- | Defines a castling-move.
@@ -121,7 +121,7 @@ getCastlingMoves :: (
 getCastlingMoves	= defineCastlingMoves
 
 -- | A specialisation of 'getCastlingMoves'.
-getCastlingMovesInt :: Attribute.LogicalColour.LogicalColour -> [CastlingMove T.X T.Y]
+getCastlingMovesInt :: Attribute.LogicalColour.LogicalColour -> [CastlingMove Type.Length.X Type.Length.Y]
 getCastlingMovesInt	= (castlingMovesByLogicalColour !)
 
 -- | Break-down the two castling-moves for the specified /logical colour/ into a long & a short castling-move.
@@ -131,7 +131,7 @@ getLongAndShortMoves :: (
 	Eq	y,
 	Ord	x
  ) => Attribute.LogicalColour.LogicalColour -> (CastlingMove x y, CastlingMove x y)
-{-# SPECIALISE getLongAndShortMoves :: Attribute.LogicalColour.LogicalColour -> (CastlingMove T.X T.Y, CastlingMove T.X T.Y) #-}
+{-# SPECIALISE getLongAndShortMoves :: Attribute.LogicalColour.LogicalColour -> (CastlingMove Type.Length.X Type.Length.Y, CastlingMove Type.Length.X Type.Length.Y) #-}
 getLongAndShortMoves logicalColour
 	| [longCastlingMove, shortCastlingMove] <- getCastlingMoves logicalColour	= (longCastlingMove, shortCastlingMove)
 	| otherwise									= Control.Exception.throw $ Data.Exception.mkIncompatibleData "BishBosh.Component.CastlingMove.getLongAndShortMoves:\tunexpected list-length."

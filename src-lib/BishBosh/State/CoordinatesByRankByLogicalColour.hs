@@ -75,8 +75,8 @@ import qualified	BishBosh.State.MaybePieceByCoordinates			as State.MaybePieceByC
 import qualified	BishBosh.StateProperty.Censor				as StateProperty.Censor
 import qualified	BishBosh.StateProperty.Seeker				as StateProperty.Seeker
 import qualified	BishBosh.Type.Count					as Type.Count
+import qualified	BishBosh.Type.Length					as Type.Length
 import qualified	BishBosh.Type.Mass					as Type.Mass
-import qualified	BishBosh.Types						as T
 import qualified	Control.Arrow
 import qualified	Control.DeepSeq
 import qualified	Control.Exception
@@ -155,7 +155,7 @@ instance (
 	Ord	x,
 	Ord	y
  ) => StateProperty.Seeker.Seeker CoordinatesByRankByLogicalColour x y {-CAVEAT: MultiParamTypeClasses-} where
-	{-# SPECIALISE instance StateProperty.Seeker.Seeker CoordinatesByRankByLogicalColour T.X T.Y #-}
+	{-# SPECIALISE instance StateProperty.Seeker.Seeker CoordinatesByRankByLogicalColour Type.Length.X Type.Length.Y #-}
 	findProximateKnights logicalColour destination MkCoordinatesByRankByLogicalColour { deconstruct = byLogicalColour }	= filter (
 		\source -> source /= destination {-guard against attempting to constructing a null vector-} && Cartesian.Vector.isKnightsMove (
 			Cartesian.Vector.measureDistance source destination	:: Cartesian.Vector.VectorInt
@@ -290,7 +290,7 @@ sumPieceSquareValueByLogicalColour
 	=> Component.PieceSquareByCoordinatesByRank.FindPieceSquareValues x y pieceSquareValue
 	-> CoordinatesByRankByLogicalColour x y
 	-> [pieceSquareValue]
-{-# SPECIALISE sumPieceSquareValueByLogicalColour :: Component.PieceSquareByCoordinatesByRank.FindPieceSquareValues T.X T.Y Type.Mass.PieceSquareValue -> CoordinatesByRankByLogicalColour T.X T.Y -> [Type.Mass.PieceSquareValue] #-}
+{-# SPECIALISE sumPieceSquareValueByLogicalColour :: Component.PieceSquareByCoordinatesByRank.FindPieceSquareValues Type.Length.X Type.Length.Y Type.Mass.PieceSquareValue -> CoordinatesByRankByLogicalColour Type.Length.X Type.Length.Y -> [Type.Mass.PieceSquareValue] #-}
 sumPieceSquareValueByLogicalColour findPieceSquareValues MkCoordinatesByRankByLogicalColour { deconstruct = byLogicalColour }	= map (
 	\(logicalColour, byRank) -> Data.List.foldl' (
 		\acc	-> Data.List.foldl' (+) acc . uncurry (findPieceSquareValues logicalColour)

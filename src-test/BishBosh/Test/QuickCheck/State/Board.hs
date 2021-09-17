@@ -52,7 +52,7 @@ import qualified	BishBosh.State.MaybePieceByCoordinates			as State.MaybePieceByC
 import qualified	BishBosh.StateProperty.Mutator				as StateProperty.Mutator
 import qualified	BishBosh.StateProperty.Seeker				as StateProperty.Seeker
 import qualified	BishBosh.Test.QuickCheck.Cartesian.Coordinates		as Test.QuickCheck.Cartesian.Coordinates
-import qualified	BishBosh.Types						as T
+import qualified	BishBosh.Type.Length					as Type.Length
 import qualified	Control.Monad
 import qualified	Data.Foldable
 import qualified	Data.List
@@ -64,7 +64,7 @@ import qualified	Test.QuickCheck
 import qualified	ToolShed.Test.ReversibleIO
 
 -- | Defines a concrete type for testing.
-type Board	= State.Board.Board T.X T.Y
+type Board	= State.Board.Board Type.Length.X Type.Length.Y
 
 instance (
 	Enum	x,

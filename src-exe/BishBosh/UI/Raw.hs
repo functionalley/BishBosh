@@ -67,6 +67,7 @@ import qualified	BishBosh.Text.ShowList						as Text.ShowList
 import qualified	BishBosh.Text.ShowPrefix					as Text.ShowPrefix
 import qualified	BishBosh.Time.StopWatch						as Time.StopWatch
 import qualified	BishBosh.Type.Count						as Type.Count
+import qualified	BishBosh.Type.Length						as Type.Length
 import qualified	BishBosh.Type.Mass						as Type.Mass
 import qualified	BishBosh.Types							as T
 import qualified	BishBosh.UI.Command						as UI.Command
@@ -148,11 +149,11 @@ readMove :: forall column criterionValue criterionWeight pieceSquareValue positi
 	Show			row,
 	System.Random.RandomGen	randomGen
  )
-	=> ContextualNotation.PositionHashQualifiedMoveTree.PositionHashQualifiedMoveTree T.X T.Y T.PositionHash
+	=> ContextualNotation.PositionHashQualifiedMoveTree.PositionHashQualifiedMoveTree Type.Length.X Type.Length.Y T.PositionHash
 	-> randomGen
 	-> Time.StopWatch.StopWatch
-	-> State.PlayState.PlayState column Type.Mass.CriterionValue Type.Mass.CriterionWeight Type.Mass.PieceSquareValue T.PositionHash Type.Mass.RankValue row Type.Mass.WeightedMean T.X T.Y
-	-> IO (State.PlayState.PlayState column Type.Mass.CriterionValue Type.Mass.CriterionWeight Type.Mass.PieceSquareValue T.PositionHash Type.Mass.RankValue row Type.Mass.WeightedMean T.X T.Y)
+	-> State.PlayState.PlayState column Type.Mass.CriterionValue Type.Mass.CriterionWeight Type.Mass.PieceSquareValue T.PositionHash Type.Mass.RankValue row Type.Mass.WeightedMean Type.Length.X Type.Length.Y
+	-> IO (State.PlayState.PlayState column Type.Mass.CriterionValue Type.Mass.CriterionWeight Type.Mass.PieceSquareValue T.PositionHash Type.Mass.RankValue row Type.Mass.WeightedMean Type.Length.X Type.Length.Y)
  #-}
 readMove positionHashQualifiedMoveTree randomGen runningWatch playState	= let
 	(game, options)			= State.PlayState.getGame &&& State.PlayState.getOptions $ playState
@@ -245,7 +246,7 @@ readMove positionHashQualifiedMoveTree randomGen runningWatch playState	= let
 			 ) (
 				\(filePath, _) -> Control.Exception.catch (
 					do
-						System.IO.withFile filePath System.IO.WriteMode (`System.IO.hPrint` (Data.Default.def :: Model.Game.Game T.X T.Y))
+						System.IO.withFile filePath System.IO.WriteMode (`System.IO.hPrint` (Data.Default.def :: Model.Game.Game Type.Length.X Type.Length.Y))
 
 						Control.Monad.when (verbosity == maxBound) . System.IO.hPutStrLn System.IO.stderr . Text.ShowColouredPrefix.showsPrefixInfo . showString "the initial game-state has been saved in " $ shows filePath "."
 				) $ \e -> System.IO.hPutStrLn System.IO.stderr . Text.ShowColouredPrefix.showsPrefixError $ show (e :: Control.Exception.SomeException)
@@ -443,10 +444,10 @@ takeTurns :: forall column criterionValue criterionWeight pieceSquareValue posit
 	Show			row,
 	System.Random.RandomGen	randomGen
  )
-	=> ContextualNotation.PositionHashQualifiedMoveTree.PositionHashQualifiedMoveTree T.X T.Y T.PositionHash
+	=> ContextualNotation.PositionHashQualifiedMoveTree.PositionHashQualifiedMoveTree Type.Length.X Type.Length.Y T.PositionHash
 	-> randomGen
-	-> State.PlayState.PlayState column Type.Mass.CriterionValue Type.Mass.CriterionWeight Type.Mass.PieceSquareValue T.PositionHash Type.Mass.RankValue row Type.Mass.WeightedMean T.X T.Y
-	-> IO (State.PlayState.PlayState column Type.Mass.CriterionValue Type.Mass.CriterionWeight Type.Mass.PieceSquareValue T.PositionHash Type.Mass.RankValue row Type.Mass.WeightedMean T.X T.Y)
+	-> State.PlayState.PlayState column Type.Mass.CriterionValue Type.Mass.CriterionWeight Type.Mass.PieceSquareValue T.PositionHash Type.Mass.RankValue row Type.Mass.WeightedMean Type.Length.X Type.Length.Y
+	-> IO (State.PlayState.PlayState column Type.Mass.CriterionValue Type.Mass.CriterionWeight Type.Mass.PieceSquareValue T.PositionHash Type.Mass.RankValue row Type.Mass.WeightedMean Type.Length.X Type.Length.Y)
  #-}
 takeTurns positionHashQualifiedMoveTree randomGen playState	= let
 	options	= State.PlayState.getOptions playState

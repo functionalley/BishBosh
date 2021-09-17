@@ -38,7 +38,7 @@ import qualified	BishBosh.Model.Game				as Model.Game
 import qualified	BishBosh.Model.GameTree				as Model.GameTree
 import qualified	BishBosh.Property.Null				as Property.Null
 import qualified	BishBosh.State.Board				as State.Board
-import qualified	BishBosh.Types					as T
+import qualified	BishBosh.Type.Length				as Type.Length
 import qualified	Data.Foldable
 import qualified	Data.Tree
 import qualified	Test.QuickCheck
@@ -56,7 +56,7 @@ instance (
 	arbitrary	= fmap ContextualNotation.QualifiedMoveForest.fromPGNDatabase Test.QuickCheck.arbitrary
 
 -- | Defines a concrete type for testing.
-type QualifiedMoveForest	= ContextualNotation.QualifiedMoveForest.QualifiedMoveForest T.X T.Y
+type QualifiedMoveForest	= ContextualNotation.QualifiedMoveForest.QualifiedMoveForest Type.Length.X Type.Length.Y
 
 -- | The constant test-results for this data-type.
 results :: IO [Test.QuickCheck.Result]

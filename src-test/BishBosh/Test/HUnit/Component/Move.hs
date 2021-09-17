@@ -35,12 +35,12 @@ import qualified	BishBosh.Cartesian.Coordinates		as Cartesian.Coordinates
 import qualified	BishBosh.Component.Move			as Component.Move
 import qualified	BishBosh.Component.QualifiedMove	as Component.QualifiedMove
 import qualified	BishBosh.Notation.Smith			as Notation.Smith
-import qualified	BishBosh.Types				as T
+import qualified	BishBosh.Type.Length			as Type.Length
 import qualified	Test.HUnit
 import			Test.HUnit((~?))
 
 -- | Defines a concrete type for testing.
-type Move	= Component.Move.Move T.X T.Y
+type Move	= Component.Move.Move Type.Length.X Type.Length.Y
 
 -- | Check the sanity of the implementation, by validating a list of static test-cases.
 testCases :: Test.HUnit.Test

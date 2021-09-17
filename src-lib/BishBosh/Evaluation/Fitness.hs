@@ -70,8 +70,8 @@ import qualified	BishBosh.Rule.GameTerminationReason			as Rule.GameTerminationRe
 import qualified	BishBosh.State.Board					as State.Board
 import qualified	BishBosh.State.CastleableRooksByLogicalColour		as State.CastleableRooksByLogicalColour
 import qualified	BishBosh.Type.Count					as Type.Count
+import qualified	BishBosh.Type.Length					as Type.Length
 import qualified	BishBosh.Type.Mass					as Type.Mass
-import qualified	BishBosh.Types						as T
 import qualified	Control.Monad.Reader
 import qualified	Data.Array.IArray
 import qualified	Data.List
@@ -110,7 +110,7 @@ measurePieceSquareValue :: (
 	=> Component.PieceSquareByCoordinatesByRank.PieceSquareByCoordinatesByRank x y pieceSquareValue
 	-> Model.Game.Game x y
 	-> pieceSquareValue
-{-# SPECIALISE measurePieceSquareValue :: Component.PieceSquareByCoordinatesByRank.PieceSquareByCoordinatesByRank T.X T.Y Type.Mass.PieceSquareValue -> Model.Game.Game T.X T.Y -> Type.Mass.PieceSquareValue #-}
+{-# SPECIALISE measurePieceSquareValue :: Component.PieceSquareByCoordinatesByRank.PieceSquareByCoordinatesByRank Type.Length.X Type.Length.Y Type.Mass.PieceSquareValue -> Model.Game.Game Type.Length.X Type.Length.Y -> Type.Mass.PieceSquareValue #-}
 measurePieceSquareValue pieceSquareByCoordinatesByRank game
 	| Attribute.LogicalColour.isBlack $ Model.Game.getNextLogicalColour game	= difference
 	| otherwise									= negate difference	-- Represent the piece-square value from Black's perspective.
@@ -139,7 +139,7 @@ measurePieceSquareValueIncrementally :: (
 	-> Component.PieceSquareByCoordinatesByRank.PieceSquareByCoordinatesByRank x y pieceSquareValue
 	-> Model.Game.Game x y
 	-> pieceSquareValue
-{-# SPECIALISE measurePieceSquareValueIncrementally :: Type.Mass.PieceSquareValue -> Component.PieceSquareByCoordinatesByRank.PieceSquareByCoordinatesByRank T.X T.Y Type.Mass.PieceSquareValue -> Model.Game.Game T.X T.Y -> Type.Mass.PieceSquareValue #-}
+{-# SPECIALISE measurePieceSquareValueIncrementally :: Type.Mass.PieceSquareValue -> Component.PieceSquareByCoordinatesByRank.PieceSquareByCoordinatesByRank Type.Length.X Type.Length.Y Type.Mass.PieceSquareValue -> Model.Game.Game Type.Length.X Type.Length.Y -> Type.Mass.PieceSquareValue #-}
 measurePieceSquareValueIncrementally previousPieceSquareValue pieceSquareByCoordinatesByRank game
 	| Attribute.MoveType.isQuiet $ Component.QualifiedMove.getMoveType qualifiedMove	= let
 		findPieceSquareValues coordinatesList	= Component.PieceSquareByCoordinatesByRank.findPieceSquareValues (
@@ -168,7 +168,7 @@ measureValueOfMaterial :: (
 	=> Attribute.RankValues.RankValues rankValue
 	-> Model.Game.Game x y
 	-> Attribute.CriterionValue.CriterionValue criterionValue
--- {-# SPECIALISE measureValueOfMaterial :: Attribute.RankValues.RankValues Type.Mass.RankValue -> Model.Game.Game T.X T.Y -> Attribute.CriterionValue.CriterionValue Type.Mass.CriterionValue #-}
+-- {-# SPECIALISE measureValueOfMaterial :: Attribute.RankValues.RankValues Type.Mass.RankValue -> Model.Game.Game Type.Length.X Type.Length.Y -> Attribute.CriterionValue.CriterionValue Type.Mass.CriterionValue #-}
 measureValueOfMaterial rankValues game	= Attribute.CriterionValue.mkCriterionValue . (
 	/ fromIntegral Component.Piece.nPiecesPerSide	-- Normalise.
  ) . realToFrac . (
@@ -211,7 +211,7 @@ measureValueOfMobility :: (
 	Show		x,
 	Show		y
  ) => Model.Game.Game x y -> Attribute.CriterionValue.CriterionValue criterionValue
-{-# SPECIALISE measureValueOfMobility :: Model.Game.Game T.X T.Y -> Attribute.CriterionValue.CriterionValue Type.Mass.CriterionValue #-}
+{-# SPECIALISE measureValueOfMobility :: Model.Game.Game Type.Length.X Type.Length.Y -> Attribute.CriterionValue.CriterionValue Type.Mass.CriterionValue #-}
 measureValueOfMobility game	= Attribute.CriterionValue.mkCriterionValue . uncurry (-) . (
 	measureConstriction &&& measureConstriction . Property.Opposable.getOpposite {-recent mover-}
  ) $ Model.Game.getNextLogicalColour game where
@@ -222,7 +222,7 @@ measureValueOfCastlingPotential :: (
 	Fractional	criterionValue,
 	Ord		criterionValue
  ) => Model.Game.Game x y -> Attribute.CriterionValue.CriterionValue criterionValue
--- {-# SPECIALISE measureValueOfCastlingPotential :: Model.Game.Game T.X T.Y -> Attribute.CriterionValue.CriterionValue Type.Mass.CriterionValue #-}
+-- {-# SPECIALISE measureValueOfCastlingPotential :: Model.Game.Game Type.Length.X Type.Length.Y -> Attribute.CriterionValue.CriterionValue Type.Mass.CriterionValue #-}
 measureValueOfCastlingPotential game	= Attribute.CriterionValue.mkCriterionValue . uncurry (-) . (
 	castlingPotential . Property.Opposable.getOpposite {-recent mover-} &&& castlingPotential
  ) $ Model.Game.getNextLogicalColour game where
@@ -243,7 +243,7 @@ measureValueOfDoubledPawns :: (
 	Fractional	criterionValue,
 	Ord		criterionValue
  ) => Model.Game.Game x y -> Attribute.CriterionValue.CriterionValue criterionValue
--- {-# SPECIALISE measureValueOfDoubledPawns :: Model.Game.Game T.X T.Y -> Attribute.CriterionValue.CriterionValue Type.Mass.CriterionValue #-}
+-- {-# SPECIALISE measureValueOfDoubledPawns :: Model.Game.Game Type.Length.X Type.Length.Y -> Attribute.CriterionValue.CriterionValue Type.Mass.CriterionValue #-}
 measureValueOfDoubledPawns game	= Attribute.CriterionValue.mkCriterionValue . (
 	/ 6	-- Normalise to [-1 .. 1]; the optimal scenario is all files containing one Pawn; the worst scenario is two files each containing four Pawns, all but one per file of which are counted as doubled.
  ) . fromIntegral . uncurry (-) . (
@@ -264,7 +264,7 @@ measureValueOfIsolatedPawns :: (
 	Ord		criterionValue,
 	Ord		x
  ) => Model.Game.Game x y -> Attribute.CriterionValue.CriterionValue criterionValue
-{-# SPECIALISE measureValueOfIsolatedPawns :: Model.Game.Game T.X T.Y -> Attribute.CriterionValue.CriterionValue Type.Mass.CriterionValue #-}
+{-# SPECIALISE measureValueOfIsolatedPawns :: Model.Game.Game Type.Length.X Type.Length.Y -> Attribute.CriterionValue.CriterionValue Type.Mass.CriterionValue #-}
 measureValueOfIsolatedPawns game	= Attribute.CriterionValue.mkCriterionValue . (
 	/ fromIntegral Cartesian.Abscissa.xLength	-- Normalise to [-1 .. 1]; the optimal scenario is eight files each containing one Pawn & the worst scenario is all Pawns isolated (e.g. 4 alternate files of 2, 2 separate files or 4, ...).
  ) . fromIntegral . uncurry (-) . (
@@ -286,7 +286,7 @@ measureValueOfPassedPawns :: forall x y criterionValue. (
 	Fractional	criterionValue,
 	Ord		criterionValue
  ) => Model.Game.Game x y -> Attribute.CriterionValue.CriterionValue criterionValue
-{-# SPECIALISE measureValueOfPassedPawns :: Model.Game.Game T.X T.Y -> Attribute.CriterionValue.CriterionValue Type.Mass.CriterionValue #-}
+{-# SPECIALISE measureValueOfPassedPawns :: Model.Game.Game Type.Length.X Type.Length.Y -> Attribute.CriterionValue.CriterionValue Type.Mass.CriterionValue #-}
 measureValueOfPassedPawns game	= Attribute.CriterionValue.mkCriterionValue . (
 	/ fromIntegral Cartesian.Abscissa.xLength	-- Normalise to [-1 .. 1].
  ) . uncurry (-) . (
@@ -333,7 +333,7 @@ measureValueOfDefence :: (
 	Fractional	criterionValue,
 	Ord		criterionValue
  ) => Model.Game.Game x y -> Attribute.CriterionValue.CriterionValue criterionValue
--- {-# SPECIALISE measureValueOfDefence :: Model.Game.Game T.X T.Y -> Attribute.CriterionValue.CriterionValue Type.Mass.CriterionValue #-}
+-- {-# SPECIALISE measureValueOfDefence :: Model.Game.Game Type.Length.X Type.Length.Y -> Attribute.CriterionValue.CriterionValue Type.Mass.CriterionValue #-}
 measureValueOfDefence game	= Attribute.CriterionValue.mkCriterionValue . (
 	/ fromIntegral maximumDefended	-- Normalise.
  ) . fromIntegral . uncurry (-) . (
@@ -379,7 +379,7 @@ evaluateFitness :: (
 	-> Input.EvaluationOptions.Reader criterionWeight pieceSquareValue rankValue x y (
 		Attribute.WeightedMeanAndCriterionValues.WeightedMeanAndCriterionValues weightedMean criterionValue
 	)
-{-# SPECIALISE evaluateFitness :: Maybe Type.Mass.PieceSquareValue -> Model.Game.Game T.X T.Y -> Input.EvaluationOptions.Reader Type.Mass.CriterionWeight Type.Mass.PieceSquareValue Type.Mass.RankValue T.X T.Y (Attribute.WeightedMeanAndCriterionValues.WeightedMeanAndCriterionValues Type.Mass.WeightedMean Type.Mass.CriterionValue) #-}
+{-# SPECIALISE evaluateFitness :: Maybe Type.Mass.PieceSquareValue -> Model.Game.Game Type.Length.X Type.Length.Y -> Input.EvaluationOptions.Reader Type.Mass.CriterionWeight Type.Mass.PieceSquareValue Type.Mass.RankValue Type.Length.X Type.Length.Y (Attribute.WeightedMeanAndCriterionValues.WeightedMeanAndCriterionValues Type.Mass.WeightedMean Type.Mass.CriterionValue) #-}
 evaluateFitness maybePieceSquareValue game
 	| Just gameTerminationReason <- Model.Game.getMaybeTerminationReason game	= return {-to Reader-monad-} $ Attribute.WeightedMeanAndCriterionValues.mkWeightedMeanAndCriterionValues (
 		if Rule.GameTerminationReason.isCheckMate gameTerminationReason

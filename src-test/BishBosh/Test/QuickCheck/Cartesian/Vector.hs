@@ -36,7 +36,7 @@ import qualified	BishBosh.Cartesian.Vector			as Cartesian.Vector
 import qualified	BishBosh.Property.Opposable			as Property.Opposable
 import qualified	BishBosh.Property.Orientated			as Property.Orientated
 import qualified	BishBosh.Test.QuickCheck.Cartesian.Coordinates	as Test.QuickCheck.Cartesian.Coordinates
-import qualified	BishBosh.Types					as T
+import qualified	BishBosh.Type.Length				as Type.Length
 import qualified	Test.QuickCheck
 import			Test.QuickCheck((==>))
 
@@ -64,18 +64,18 @@ results	= sequence [
 		f vector	= not (Property.Orientated.isStraight vector) ==> Test.QuickCheck.label "Vector.prop_straight" . not . uncurry (||) $ (Property.Orientated.isDiagonal &&& Property.Orientated.isParallel) vector
 	in Test.QuickCheck.quickCheckWithResult Test.QuickCheck.stdArgs { Test.QuickCheck.maxSuccess = 64 } f,
 	let
-		f :: (T.Distance, T.Distance) -> Test.QuickCheck.Cartesian.Coordinates.Coordinates -> Test.QuickCheck.Property
+		f :: (Type.Length.Distance, Type.Length.Distance) -> Test.QuickCheck.Cartesian.Coordinates.Coordinates -> Test.QuickCheck.Property
 		f (distanceX, distanceY) coordinates	= Test.QuickCheck.label "Vector.prop_maybeTranslate" $ Cartesian.Coordinates.maybeTranslate (deltaX *** deltaY) coordinates == (
 			Cartesian.Coordinates.maybeTranslateX deltaX coordinates >>= Cartesian.Coordinates.maybeTranslateY deltaY
 		 ) where
-			deltaX	:: T.X -> T.X
+			deltaX	:: Type.Length.X -> Type.Length.X
 			deltaX = (
 				+ fromIntegral (
 					(distanceX `mod` Cartesian.Abscissa.xLength) - (Cartesian.Abscissa.xLength `div` 2)
 				)
 			 )
 
-			deltaY	:: T.Y -> T.Y
+			deltaY	:: Type.Length.Y -> Type.Length.Y
 			deltaY	= (
 				+ fromIntegral (
 					(distanceY `mod` Cartesian.Ordinate.yLength) - (Cartesian.Ordinate.yLength `div` 2)

@@ -71,7 +71,7 @@ import qualified	BishBosh.Cartesian.Coordinates	as Cartesian.Coordinates
 import qualified	BishBosh.Cartesian.Ordinate	as Cartesian.Ordinate
 import qualified	BishBosh.Component.Move		as Component.Move
 import qualified	BishBosh.Data.Exception		as Data.Exception
-import qualified	BishBosh.Types			as T
+import qualified	BishBosh.Type.Length		as Type.Length
 import qualified	Control.Arrow
 import qualified	Control.Exception
 import qualified	Data.Char
@@ -128,14 +128,14 @@ regexSyntax	= showString "([a-h][1-8]){2}[" $ showString (
 #ifdef USE_POLYPARSE
 -- | Parse an /x/-coordinate.
 abscissaParser :: Enum x => Text.Poly.TextParser x
-{-# SPECIALISE abscissaParser :: Text.Poly.TextParser T.X #-}
+{-# SPECIALISE abscissaParser :: Text.Poly.TextParser Type.Length.X #-}
 abscissaParser	= (
 	toEnum . (+ xOriginOffset) . Data.Char.ord
  ) `fmap` Poly.satisfyMsg inXRange "Abscissa"
 
 -- | Parse a /y/-coordinate.
 ordinateParser :: Enum y => Text.Poly.TextParser y
-{-# SPECIALISE ordinateParser :: Text.Poly.TextParser T.Y #-}
+{-# SPECIALISE ordinateParser :: Text.Poly.TextParser Type.Length.Y #-}
 ordinateParser	= (
 	toEnum . (+ yOriginOffset) . Data.Char.ord
  ) `fmap` Poly.satisfyMsg inYRange "Ordinate"
@@ -147,7 +147,7 @@ coordinatesParser :: (
 	Ord	x,
 	Ord	y
  ) => Text.Poly.TextParser (Cartesian.Coordinates.Coordinates x y)
-{-# SPECIALISE coordinatesParser :: Text.Poly.TextParser (Cartesian.Coordinates.Coordinates T.X T.Y) #-}
+{-# SPECIALISE coordinatesParser :: Text.Poly.TextParser (Cartesian.Coordinates.Coordinates Type.Length.X Type.Length.Y) #-}
 coordinatesParser	= do
 	x	<- abscissaParser
 	y	<- ordinateParser
@@ -156,12 +156,12 @@ coordinatesParser	= do
 #else /* Parsec */
 -- | Parse an /x/-coordinate.
 abscissaParser :: Enum x => Parsec.Parser x
-{-# SPECIALISE abscissaParser :: Parsec.Parser T.X #-}
+{-# SPECIALISE abscissaParser :: Parsec.Parser Type.Length.X #-}
 abscissaParser	= toEnum . (+ xOriginOffset) . Data.Char.ord <$> Parsec.satisfy inXRange <?> "Abscissa"
 
 -- | Parse a /y/-coordinate.
 ordinateParser :: Enum y => Parsec.Parser y
-{-# SPECIALISE ordinateParser :: Parsec.Parser T.X #-}
+{-# SPECIALISE ordinateParser :: Parsec.Parser Type.Length.X #-}
 ordinateParser	= toEnum . (+ yOriginOffset) . Data.Char.ord <$> Parsec.satisfy inYRange <?> "Ordinate"
 
 -- | Parse a pair of /coordinates/.
@@ -171,7 +171,7 @@ coordinatesParser :: (
 	Ord	x,
 	Ord	y
  ) => Parsec.Parser (Cartesian.Coordinates.Coordinates x y)
-{-# SPECIALISE coordinatesParser :: Parsec.Parser (Cartesian.Coordinates.Coordinates T.X T.Y) #-}
+{-# SPECIALISE coordinatesParser :: Parsec.Parser (Cartesian.Coordinates.Coordinates Type.Length.X Type.Length.Y) #-}
 coordinatesParser	= Cartesian.Coordinates.mkCoordinates <$> abscissaParser <*> ordinateParser
 #endif
 

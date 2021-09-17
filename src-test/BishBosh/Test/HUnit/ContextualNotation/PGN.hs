@@ -32,7 +32,7 @@ module BishBosh.Test.HUnit.ContextualNotation.PGN(
 ) where
 
 import qualified	BishBosh.ContextualNotation.PGN		as ContextualNotation.PGN
-import qualified	BishBosh.Types				as T
+import qualified	BishBosh.Type.Length			as Type.Length
 import qualified	Test.HUnit
 import			Test.HUnit((~?))
 
@@ -56,7 +56,7 @@ import qualified	Control.Exception
 #endif
 
 -- | Test-subject.
-type PGN	= ContextualNotation.PGN.PGN T.X T.Y
+type PGN	= ContextualNotation.PGN.PGN Type.Length.X Type.Length.Y
 
 -- | Check the sanity of the implementation, by validating a list of static test-cases.
 testCases :: Test.HUnit.Test

@@ -66,7 +66,7 @@ import qualified	BishBosh.Rule.Result			as Rule.Result
 import qualified	BishBosh.State.Board			as State.Board
 import qualified	BishBosh.Text.ShowList			as Text.ShowList
 import qualified	BishBosh.Type.Count			as Type.Count
-import qualified	BishBosh.Types				as T
+import qualified	BishBosh.Type.Length			as Type.Length
 import qualified	Control.Arrow
 import qualified	Data.Default
 import qualified	Data.List
@@ -194,7 +194,7 @@ fromPGNDatabase	= (`mergePGNDatabase` Property.Empty.empty {-QualifiedMoveForest
 findMinimumPieces :: QualifiedMoveForest x y -> Type.Count.NPieces
 findMinimumPieces	= slave (
 	State.Board.getNPieces (
-		Data.Default.def	:: State.Board.Board T.X T.Y	-- CAVEAT: this assumes the game to which the moves in the forest refer.
+		Data.Default.def	:: State.Board.Board Type.Length.X Type.Length.Y	-- CAVEAT: this assumes the game to which the moves in the forest refer.
 	)
  ) . deconstruct where
 	slave nPieces []	= nPieces
@@ -238,7 +238,7 @@ toGameTree :: (
 	Show	x,
 	Show	y
  ) => QualifiedMoveForest x y -> Model.GameTree.GameTree x y
-{-# SPECIALISE toGameTree :: QualifiedMoveForest T.X T.Y -> Model.GameTree.GameTree T.X T.Y #-}
+{-# SPECIALISE toGameTree :: QualifiedMoveForest Type.Length.X Type.Length.Y -> Model.GameTree.GameTree Type.Length.X Type.Length.Y #-}
 toGameTree MkQualifiedMoveForest { deconstruct = qualifiedMoveForest }	= Model.GameTree.fromBareGameTree Data.Tree.Node {
 	Data.Tree.rootLabel	= initialGame,
 	Data.Tree.subForest	= map (slave initialGame) qualifiedMoveForest

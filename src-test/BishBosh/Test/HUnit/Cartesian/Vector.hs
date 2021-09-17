@@ -32,13 +32,13 @@ module BishBosh.Test.HUnit.Cartesian.Vector(
 import			Control.Arrow((&&&))
 import qualified	BishBosh.Cartesian.Vector		as Cartesian.Vector
 import qualified	BishBosh.Property.FixedMembership	as Property.FixedMembership
-import qualified	BishBosh.Types				as T
+import qualified	BishBosh.Type.Length			as Type.Length
 import qualified	Data.Maybe
 import qualified	Test.HUnit
 import			Test.HUnit((~?))
 
 -- | Sum the absolute value of /x/ & /y/ distances.
-measureLength :: Cartesian.Vector.VectorInt -> T.Distance
+measureLength :: Cartesian.Vector.VectorInt -> Type.Length.Distance
 measureLength	= uncurry (+) . (abs . Cartesian.Vector.getXDistance &&& abs . Cartesian.Vector.getYDistance)
 
 -- | Check the sanity of the implementation, by validating a list of static test-cases.

@@ -65,8 +65,8 @@ import qualified	BishBosh.Notation.MoveNotation				as Notation.MoveNotation
 import qualified	BishBosh.Property.Null					as Property.Null
 import qualified	BishBosh.Text.ShowList					as Text.ShowList
 import qualified	BishBosh.Type.Count					as Type.Count
+import qualified	BishBosh.Type.Length					as Type.Length
 import qualified	BishBosh.Type.Mass					as Type.Mass
-import qualified	BishBosh.Types						as T
 import qualified	Control.DeepSeq
 import qualified	Control.Exception
 import qualified	Data.Maybe
@@ -125,7 +125,7 @@ fromGame :: (
 	=> Maybe pieceSquareValue	-- ^ The value for the specified game.
 	-> Model.Game.Game x y		-- ^ The current state of the /game/.
 	-> Input.EvaluationOptions.Reader criterionWeight pieceSquareValue rankValue x y (QuantifiedGame x y criterionValue weightedMean)
-{-# SPECIALISE fromGame :: Maybe Type.Mass.PieceSquareValue -> Model.Game.Game T.X T.Y -> Input.EvaluationOptions.Reader Type.Mass.CriterionWeight Type.Mass.PieceSquareValue Type.Mass.RankValue T.X T.Y (QuantifiedGame T.X T.Y Type.Mass.CriterionValue Type.Mass.WeightedMean) #-}
+{-# SPECIALISE fromGame :: Maybe Type.Mass.PieceSquareValue -> Model.Game.Game Type.Length.X Type.Length.Y -> Input.EvaluationOptions.Reader Type.Mass.CriterionWeight Type.Mass.PieceSquareValue Type.Mass.RankValue Type.Length.X Type.Length.Y (QuantifiedGame Type.Length.X Type.Length.Y Type.Mass.CriterionValue Type.Mass.WeightedMean) #-}
 fromGame maybePieceSquareValue game	= MkQuantifiedGame game `fmap` Evaluation.Fitness.evaluateFitness maybePieceSquareValue game
 
 -- | Retrieve the /turn/ used to generate the selected /game/.

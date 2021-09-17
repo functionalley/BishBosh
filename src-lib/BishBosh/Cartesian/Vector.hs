@@ -63,7 +63,7 @@ import qualified	BishBosh.Cartesian.Ordinate		as Cartesian.Ordinate
 import qualified	BishBosh.Data.Enum			as Data.Enum
 import qualified	BishBosh.Property.Opposable		as Property.Opposable
 import qualified	BishBosh.Property.Orientated		as Property.Orientated
-import qualified	BishBosh.Types				as T
+import qualified	BishBosh.Type.Length			as Type.Length
 import qualified	Control.DeepSeq
 import qualified	Control.Exception
 
@@ -116,7 +116,7 @@ isStraight :: (Eq distance, Num distance) => Vector distance -> Bool
 isStraight vector	= isParallel vector || isDiagonal vector
 
 -- | A suitable concrete type.
-type VectorInt	= Vector T.Distance
+type VectorInt	= Vector Type.Length.Distance
 
 instance Control.DeepSeq.NFData	distance => Control.DeepSeq.NFData (Vector distance) where
 	rnf MkVector { getXDistance = xDistance, getYDistance = yDistance }	= Control.DeepSeq.rnf (xDistance, yDistance)
@@ -230,7 +230,7 @@ maybeTranslate :: (
 	=> Cartesian.Coordinates.Coordinates x y
 	-> Vector distance
 	-> Maybe (Cartesian.Coordinates.Coordinates x y)
-{-# SPECIALISE maybeTranslate :: Cartesian.Coordinates.Coordinates T.X T.Y -> Vector T.Distance -> Maybe (Cartesian.Coordinates.Coordinates T.X T.Y) #-}
+{-# SPECIALISE maybeTranslate :: Cartesian.Coordinates.Coordinates Type.Length.X Type.Length.Y -> Vector Type.Length.Distance -> Maybe (Cartesian.Coordinates.Coordinates Type.Length.X Type.Length.Y) #-}
 maybeTranslate coordinates (MkVector xDistance yDistance)	= Cartesian.Coordinates.maybeTranslate (
 	Data.Enum.translate (+ fromIntegral xDistance) *** Data.Enum.translate (+ fromIntegral yDistance)
  ) coordinates

@@ -55,7 +55,7 @@ import qualified	BishBosh.State.MaybePieceByCoordinates		as State.MaybePieceByCo
 import qualified	BishBosh.StateProperty.Seeker			as StateProperty.Seeker
 import qualified	BishBosh.State.TurnsByLogicalColour		as State.TurnsByLogicalColour
 import qualified	BishBosh.Type.Count				as Type.Count
-import qualified	BishBosh.Types					as T
+import qualified	BishBosh.Type.Length				as Type.Length
 import qualified	Data.Array.IArray
 import qualified	Data.Default
 import qualified	Data.Foldable
@@ -71,7 +71,7 @@ import qualified	ToolShed.Test.ReversibleIO
 import			Test.QuickCheck((==>))
 
 -- | Defines a concrete type for testing.
-type Game	= Model.Game.Game T.X T.Y
+type Game	= Model.Game.Game Type.Length.X Type.Length.Y
 
 instance (
 	Enum	x,

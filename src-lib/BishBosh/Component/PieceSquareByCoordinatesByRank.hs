@@ -57,8 +57,8 @@ import qualified	BishBosh.Property.FixedMembership	as Property.FixedMembership
 import qualified	BishBosh.Property.Reflectable		as Property.Reflectable
 import qualified	BishBosh.Text.ShowList			as Text.ShowList
 import qualified	BishBosh.Type.Count			as Type.Count
+import qualified	BishBosh.Type.Length			as Type.Length
 import qualified	BishBosh.Type.Mass			as Type.Mass
-import qualified	BishBosh.Types				as T
 import qualified	Control.DeepSeq
 import qualified	Data.Array.IArray
 import qualified	Data.List
@@ -122,8 +122,8 @@ findPieceSquareValue :: (
 	:: Type.Count.NPieces
 	-> Attribute.LogicalColour.LogicalColour
 	-> Attribute.Rank.Rank
-	-> Cartesian.Coordinates.Coordinates T.X T.Y
-	-> PieceSquareByCoordinatesByRank T.X T.Y Type.Mass.PieceSquareValue
+	-> Cartesian.Coordinates.Coordinates Type.Length.X Type.Length.Y
+	-> PieceSquareByCoordinatesByRank Type.Length.X Type.Length.Y Type.Mass.PieceSquareValue
 	-> Type.Mass.PieceSquareValue
  #-}
 findPieceSquareValue nPieces logicalColour rank coordinates MkPieceSquareByCoordinatesByRank { deconstruct = byRank }	= (
@@ -160,8 +160,8 @@ findPieceSquareValues :: (
 	:: Type.Count.NPieces
 	-> Attribute.LogicalColour.LogicalColour
 	-> Attribute.Rank.Rank
-	-> [Cartesian.Coordinates.Coordinates T.X T.Y]
-	-> PieceSquareByCoordinatesByRank T.X T.Y Type.Mass.PieceSquareValue
+	-> [Cartesian.Coordinates.Coordinates Type.Length.X Type.Length.Y]
+	-> PieceSquareByCoordinatesByRank Type.Length.X Type.Length.Y Type.Mass.PieceSquareValue
 	-> [Type.Mass.PieceSquareValue]
  #-}
 findPieceSquareValues nPieces logicalColour rank coordinatesList MkPieceSquareByCoordinatesByRank { deconstruct = byRank }	= (
@@ -223,7 +223,7 @@ formatForGNUPlot pieceSquareValueFormatter columnDelimiter selector MkPieceSquar
 			else id
 	) . showS
  ) id . zip (
-	Property.FixedMembership.members	:: [Cartesian.Coordinates.Coordinates T.X T.Y]
+	Property.FixedMembership.members	:: [Cartesian.Coordinates.Coordinates Type.Length.X Type.Length.Y]
  ) . Data.List.transpose . map (
 	Data.Array.IArray.elems ||| map selector {-select one pieceSquareValue from interpolated values-} . Data.Array.IArray.elems {-ByCoordinates-}
  ) $ Data.Array.IArray.elems {-ByRank-} byRank where

@@ -53,6 +53,7 @@ import qualified	BishBosh.Search.SearchState				as Search.SearchState
 import qualified	BishBosh.State.TurnsByLogicalColour			as State.TurnsByLogicalColour
 import qualified	BishBosh.Text.ShowList					as Text.ShowList
 import qualified	BishBosh.Type.Count					as Type.Count
+import qualified	BishBosh.Type.Length					as Type.Length
 import qualified	BishBosh.Type.Mass					as Type.Mass
 import qualified	BishBosh.Types						as T
 import qualified	Control.DeepSeq
@@ -125,7 +126,7 @@ search :: (
 	=> Type.Count.NPlies	-- ^ How deep down the tree to search.
 	-> Search.SearchState.SearchState x y positionHash criterionValue weightedMean
 	-> Input.SearchOptions.Reader (Result x y positionHash criterionValue weightedMean)
-{-# SPECIALISE search :: Type.Count.NPlies -> Search.SearchState.SearchState T.X T.Y T.PositionHash Type.Mass.CriterionValue Type.Mass.WeightedMean -> Input.SearchOptions.Reader (Result T.X T.Y T.PositionHash Type.Mass.CriterionValue Type.Mass.WeightedMean) #-}
+{-# SPECIALISE search :: Type.Count.NPlies -> Search.SearchState.SearchState Type.Length.X Type.Length.Y T.PositionHash Type.Mass.CriterionValue Type.Mass.WeightedMean -> Input.SearchOptions.Reader (Result Type.Length.X Type.Length.Y T.PositionHash Type.Mass.CriterionValue Type.Mass.WeightedMean) #-}
 search 0 _	= Control.Exception.throw . Data.Exception.mkOutOfBounds . showString "BishBosh.Search.Search.search:\t" . shows Input.SearchOptions.searchDepthTag . showString " must be at least " $ shows Input.SearchOptions.minimumSearchDepth "."
 search searchDepth searchState
 	| Just terminationReason <- Model.Game.getMaybeTerminationReason game	= Control.Exception.throw . Data.Exception.mkInvalidDatum . showString "BishBosh.Search.Search.search:\tthe game has already terminated; " $ shows terminationReason "."

@@ -50,7 +50,7 @@ import qualified	BishBosh.Property.ForsythEdwards		as Property.ForsythEdwards
 import qualified	BishBosh.Rule.GameTerminationReason		as Rule.GameTerminationReason
 import qualified	BishBosh.Test.HUnit.Cartesian.Coordinates	as Test.HUnit.Cartesian.Coordinates
 import qualified	BishBosh.Text.ShowList				as Text.ShowList
-import qualified	BishBosh.Types					as T
+import qualified	BishBosh.Type.Length				as Type.Length
 import qualified	Control.Exception
 import qualified	Data.Default
 import qualified	Data.Maybe
@@ -58,7 +58,7 @@ import qualified	Test.HUnit
 import			Test.HUnit((~?), (~:), (~?=))
 
 -- | Defines a concrete type for testing.
-type Game	= Model.Game.Game T.X T.Y
+type Game	= Model.Game.Game Type.Length.X Type.Length.Y
 
 -- | Apply moves specified in Smith-notation, to the default opening board.
 applyMoves :: [String] -> Either (String, String) Game

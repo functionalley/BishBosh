@@ -71,6 +71,7 @@ import qualified	BishBosh.Notation.MoveNotation				as Notation.MoveNotation
 import qualified	BishBosh.Search.SearchState				as Search.SearchState
 import qualified	BishBosh.State.ApplicationTerminationReason		as State.ApplicationTerminationReason
 import qualified	BishBosh.State.TurnsByLogicalColour			as State.TurnsByLogicalColour
+import qualified	BishBosh.Type.Length					as Type.Length
 import qualified	BishBosh.Type.Mass					as Type.Mass
 import qualified	BishBosh.Types						as T
 import qualified	Control.Exception
@@ -129,11 +130,11 @@ initialise :: (
 	-> Model.Game.Game x y
 	-> PlayState column criterionValue criterionWeight pieceSquareValue positionHash rankValue row weightedMean x y
 {-# SPECIALISE initialise
-	:: Input.Options.Options column Type.Mass.CriterionWeight Type.Mass.PieceSquareValue Type.Mass.RankValue row T.X T.Y
-	-> Component.Zobrist.Zobrist T.X T.Y T.PositionHash
-	-> Model.GameTree.MoveFrequency T.X T.Y
-	-> Model.Game.Game T.X T.Y
-	-> PlayState column Type.Mass.CriterionValue Type.Mass.CriterionWeight Type.Mass.PieceSquareValue T.PositionHash Type.Mass.RankValue row Type.Mass.WeightedMean T.X T.Y
+	:: Input.Options.Options column Type.Mass.CriterionWeight Type.Mass.PieceSquareValue Type.Mass.RankValue row Type.Length.X Type.Length.Y
+	-> Component.Zobrist.Zobrist Type.Length.X Type.Length.Y T.PositionHash
+	-> Model.GameTree.MoveFrequency Type.Length.X Type.Length.Y
+	-> Model.Game.Game Type.Length.X Type.Length.Y
+	-> PlayState column Type.Mass.CriterionValue Type.Mass.CriterionWeight Type.Mass.PieceSquareValue T.PositionHash Type.Mass.RankValue row Type.Mass.WeightedMean Type.Length.X Type.Length.Y
  #-}
 initialise options zobrist moveFrequency game	= MkPlayState {
 	getCriterionValues			= [],

@@ -39,12 +39,12 @@ import qualified	BishBosh.Cartesian.Ordinate	as Cartesian.Ordinate
 import qualified	BishBosh.Cartesian.Vector	as Cartesian.Vector
 import qualified	BishBosh.Component.Move		as Component.Move
 import qualified	BishBosh.Notation.ICCFNumeric	as Notation.ICCFNumeric
-import qualified	BishBosh.Types			as T
+import qualified	BishBosh.Type.Length		as Type.Length
 import qualified	Test.QuickCheck
 import qualified	ToolShed.Test.ReversibleIO
 
 -- | Defines a concrete type for testing.
-type ICCFNumeric	= Notation.ICCFNumeric.ICCFNumeric T.X T.Y
+type ICCFNumeric	= Notation.ICCFNumeric.ICCFNumeric Type.Length.X Type.Length.Y
 
 instance (
 	Enum	x,

@@ -85,7 +85,7 @@ import qualified	BishBosh.Rule.Result				as Rule.Result
 import qualified	BishBosh.State.TurnsByLogicalColour		as State.TurnsByLogicalColour
 import qualified	BishBosh.Text.ShowList				as Text.ShowList
 import qualified	BishBosh.Type.Count				as Type.Count
-import qualified	BishBosh.Types					as T
+import qualified	BishBosh.Type.Length				as Type.Length
 import qualified	Control.Applicative
 import qualified	Control.Arrow
 import qualified	Control.DeepSeq
@@ -215,7 +215,7 @@ instance (
 	Show	x,
 	Show	y
  ) => Show (PGN x y) where
-	{-# SPECIALISE instance Show (PGN T.X T.Y) #-}
+	{-# SPECIALISE instance Show (PGN Type.Length.X Type.Length.Y) #-}
 	showsPrec _ MkPGN {
 		getMaybeEventName		= maybeEventName,
 		getMaybeSiteName		= maybeSiteName,
@@ -372,7 +372,7 @@ showsMoveText :: (
 	Show	x,
 	Show	y
  ) => Model.Game.Game x y -> ShowS
-{-# SPECIALISE showsMoveText :: Model.Game.Game T.X T.Y -> ShowS #-}
+{-# SPECIALISE showsMoveText :: Model.Game.Game Type.Length.X Type.Length.Y -> ShowS #-}
 showsMoveText game	= foldr (.) (
 	Data.Maybe.maybe (
 		showsBlockComment "Game unfinished" . showChar ' ' . showChar inProgressFlag
@@ -416,7 +416,7 @@ showsGame :: (
 	Show	x,
 	Show	y
  ) => Model.Game.Game x y -> IO ShowS
-{-# SPECIALISE showsGame :: Model.Game.Game T.X T.Y -> IO ShowS #-}
+{-# SPECIALISE showsGame :: Model.Game.Game Type.Length.X Type.Length.Y -> IO ShowS #-}
 showsGame game	= do
 	utcTime	<- Data.Time.Clock.getCurrentTime
 
@@ -507,7 +507,7 @@ moveTextParser :: (
 	=> IsStrictlySequential
 	-> ContextualNotation.StandardAlgebraic.ValidateMoves
 	-> Text.Poly.TextParser (Model.Game.Game x y)
-{-# SPECIALISE moveTextParser :: IsStrictlySequential -> ContextualNotation.StandardAlgebraic.ValidateMoves -> Text.Poly.TextParser (Model.Game.Game T.X T.Y) #-}
+{-# SPECIALISE moveTextParser :: IsStrictlySequential -> ContextualNotation.StandardAlgebraic.ValidateMoves -> Text.Poly.TextParser (Model.Game.Game Type.Length.X Type.Length.Y) #-}
 moveTextParser isStrictlySequential validateMoves	= let
 	elementSequenceParser :: (
 		Enum	x,
@@ -554,7 +554,7 @@ moveTextParser isStrictlySequential validateMoves	= let
 	=> IsStrictlySequential
 	-> ContextualNotation.StandardAlgebraic.ValidateMoves
 	-> Parsec.Parser (Model.Game.Game x y)
-{-# SPECIALISE moveTextParser :: IsStrictlySequential -> ContextualNotation.StandardAlgebraic.ValidateMoves -> Parsec.Parser (Model.Game.Game T.X T.Y) #-}
+{-# SPECIALISE moveTextParser :: IsStrictlySequential -> ContextualNotation.StandardAlgebraic.ValidateMoves -> Parsec.Parser (Model.Game.Game Type.Length.X Type.Length.Y) #-}
 moveTextParser isStrictlySequential validateMoves	= let
 	elementSequenceParser :: (
 		Enum	x,
@@ -616,7 +616,7 @@ parser :: (
 	-> [Tag]	-- ^ Identify fields used to form a unique composite game-identifier.
 #ifdef USE_POLYPARSE
 	-> Text.Poly.TextParser (PGN x y)
-{-# SPECIALISE parser :: IsStrictlySequential -> ContextualNotation.StandardAlgebraic.ValidateMoves -> [Tag] -> Text.Poly.TextParser (PGN T.X T.Y) #-}
+{-# SPECIALISE parser :: IsStrictlySequential -> ContextualNotation.StandardAlgebraic.ValidateMoves -> [Tag] -> Text.Poly.TextParser (PGN Type.Length.X Type.Length.Y) #-}
 parser isStrictlySequential validateMoves identificationTags	= do
 	tagPairs	<- Control.Applicative.many $ tagPairParser <* Control.Applicative.many ContextualNotation.PGNComment.parser
 	moveText	<- moveTextParser' <* Control.Applicative.many ContextualNotation.PGNComment.parser
@@ -644,7 +644,7 @@ parser isStrictlySequential validateMoves identificationTags	= do
 		 )
 #else /* Parsec */
 	-> Parsec.Parser (PGN x y)
-{-# SPECIALISE parser :: IsStrictlySequential -> ContextualNotation.StandardAlgebraic.ValidateMoves -> [Tag] -> Parsec.Parser (PGN T.X T.Y) #-}
+{-# SPECIALISE parser :: IsStrictlySequential -> ContextualNotation.StandardAlgebraic.ValidateMoves -> [Tag] -> Parsec.Parser (PGN Type.Length.X Type.Length.Y) #-}
 parser isStrictlySequential validateMoves identificationTags	= mkPGN' identificationTags <$> (
 	removeUnknownTagValues <$> Control.Applicative.many (
 		tagPairParser <* Control.Applicative.many ContextualNotation.PGNComment.parser

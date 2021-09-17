@@ -39,8 +39,9 @@ import qualified	BishBosh.Data.Exception		as Data.Exception
 import qualified	BishBosh.Model.GameTree		as Model.GameTree
 import qualified	BishBosh.Property.Arboreal	as Property.Arboreal
 import qualified	BishBosh.Text.ShowList		as Text.ShowList
-import qualified	BishBosh.Types			as T
 import qualified	BishBosh.Type.Count		as Type.Count
+import qualified	BishBosh.Type.Length		as Type.Length
+import qualified	BishBosh.Types			as T
 import qualified	Control.Exception
 import qualified	Data.Array.IArray
 import qualified	Data.Bits
@@ -62,7 +63,7 @@ instance (
 	Data.Bits.FiniteBits	positionHash,
 	System.Random.Random	positionHash
  ) => Data.Default.Default (PositionHashTree positionHash) where
-	def	= mkPositionHashTree Data.Default.def (Data.Default.def :: Model.GameTree.GameTree T.X T.Y)
+	def	= mkPositionHashTree Data.Default.def (Data.Default.def :: Model.GameTree.GameTree Type.Length.X Type.Length.Y)
 
 -- | Hash the specified 'game-tree/.
 mkPositionHashTree :: (

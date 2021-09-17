@@ -47,7 +47,7 @@ import qualified	BishBosh.Component.Turn				as Component.Turn
 import qualified	BishBosh.Property.FixedMembership		as Property.FixedMembership
 import qualified	BishBosh.Property.Reflectable			as Property.Reflectable
 import qualified	BishBosh.Test.QuickCheck.Attribute.RankValues	as Test.QuickCheck.Attribute.RankValues
-import qualified	BishBosh.Types					as T
+import qualified	BishBosh.Type.Length				as Type.Length
 import qualified	Control.Arrow
 import qualified	Data.List
 import qualified	Data.Maybe
@@ -56,7 +56,7 @@ import qualified	ToolShed.Data.List
 import qualified	ToolShed.Test.ReversibleIO
 
 -- | Defines a concrete type for testing.
-type Turn	= Component.Turn.Turn T.X T.Y
+type Turn	= Component.Turn.Turn Type.Length.X Type.Length.Y
 
 instance (
 	Enum	x,

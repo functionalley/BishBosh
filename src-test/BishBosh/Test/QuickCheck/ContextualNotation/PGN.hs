@@ -42,7 +42,7 @@ import qualified	BishBosh.ContextualNotation.PGNComment		as ContextualNotation.P
 import qualified	BishBosh.ContextualNotation.StandardAlgebraic	as ContextualNotation.StandardAlgebraic
 import qualified	BishBosh.Model.Game				as Model.Game
 import qualified	BishBosh.Test.QuickCheck.Model.Game		as Test.QuickCheck.Model.Game
-import qualified	BishBosh.Types					as T
+import qualified	BishBosh.Type.Length				as Type.Length
 import qualified	Data.Word
 import qualified	Test.QuickCheck
 
@@ -74,7 +74,7 @@ arbitraryECOCode	= do
 	return {-to Gen-monad-} [c, i, j]
 
 -- | Defines a concrete type for testing.
-type PGN	= ContextualNotation.PGN.PGN T.X T.Y
+type PGN	= ContextualNotation.PGN.PGN Type.Length.X Type.Length.Y
 
 instance (
 	Enum	x,

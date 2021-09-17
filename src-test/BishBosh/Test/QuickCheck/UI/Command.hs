@@ -33,12 +33,12 @@ module BishBosh.Test.QuickCheck.UI.Command (
 
 import			BishBosh.Test.QuickCheck.UI.PrintObject()
 import			BishBosh.Test.QuickCheck.UI.SetObject()
-import qualified	BishBosh.Types		as T
+import qualified	BishBosh.Type.Length	as Type.Length
 import qualified	BishBosh.UI.Command	as UI.Command
 import qualified	Test.QuickCheck
 
 -- | Define a concrete type for testing.
-type Command	= UI.Command.Command T.X T.Y
+type Command	= UI.Command.Command Type.Length.X Type.Length.Y
 
 instance Test.QuickCheck.Arbitrary (UI.Command.Command x y) where
 	arbitrary	= Test.QuickCheck.oneof [

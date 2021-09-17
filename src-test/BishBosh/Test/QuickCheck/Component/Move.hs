@@ -38,13 +38,13 @@ import qualified	BishBosh.Component.Move		as Component.Move
 import qualified	BishBosh.Property.Opposable	as Property.Opposable
 import qualified	BishBosh.Property.Orientated	as Property.Orientated
 import qualified	BishBosh.Property.Reflectable	as Property.Reflectable
-import qualified	BishBosh.Types			as T
+import qualified	BishBosh.Type.Length		as Type.Length
 import qualified	Test.QuickCheck
 import qualified	ToolShed.Test.ReversibleIO
 import			Test.QuickCheck((==>))
 
 -- | Defines a concrete type for testing.
-type Move	= Component.Move.Move T.X T.Y
+type Move	= Component.Move.Move Type.Length.X Type.Length.Y
 
 instance (
 	Enum	x,

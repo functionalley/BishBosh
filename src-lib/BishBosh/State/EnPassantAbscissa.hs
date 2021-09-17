@@ -43,7 +43,7 @@ import qualified	BishBosh.Component.Zobrist		as Component.Zobrist
 import qualified	BishBosh.Property.FixedMembership	as Property.FixedMembership
 import qualified	BishBosh.Property.Opposable		as Property.Opposable
 import qualified	BishBosh.State.MaybePieceByCoordinates	as State.MaybePieceByCoordinates
-import qualified	BishBosh.Types				as T
+import qualified	BishBosh.Type.Length			as Type.Length
 import qualified	Control.DeepSeq
 import qualified	Data.Array.IArray
 import qualified	Data.Maybe
@@ -70,7 +70,7 @@ mkMaybeEnPassantAbscissa :: (
 	-> State.MaybePieceByCoordinates.MaybePieceByCoordinates x y
 	-> Component.Turn.Turn x y			-- ^ The last /turn/ taken.
 	-> Maybe (EnPassantAbscissa x)
-{-# SPECIALISE mkMaybeEnPassantAbscissa :: Attribute.LogicalColour.LogicalColour -> State.MaybePieceByCoordinates.MaybePieceByCoordinates T.X T.Y -> Component.Turn.Turn T.X T.Y -> Maybe (EnPassantAbscissa T.X) #-}
+{-# SPECIALISE mkMaybeEnPassantAbscissa :: Attribute.LogicalColour.LogicalColour -> State.MaybePieceByCoordinates.MaybePieceByCoordinates Type.Length.X Type.Length.Y -> Component.Turn.Turn Type.Length.X Type.Length.Y -> Maybe (EnPassantAbscissa Type.Length.X) #-}
 mkMaybeEnPassantAbscissa nextLogicalColour maybePieceByCoordinates lastTurn
 	| Component.Turn.isPawnDoubleAdvance (Property.Opposable.getOpposite nextLogicalColour) lastTurn
 	, let lastMoveDestination	= Component.Move.getDestination . Component.QualifiedMove.getMove $ Component.Turn.getQualifiedMove lastTurn

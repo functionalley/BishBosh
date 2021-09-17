@@ -43,6 +43,7 @@ import qualified	BishBosh.Property.Reflectable					as Property.Reflectable
 import qualified	BishBosh.Test.HUnit.Component.Move				as Test.HUnit.Component.Move
 import qualified	BishBosh.Test.HUnit.Model.Game					as Test.HUnit.Model.Game
 import qualified	BishBosh.Text.ShowList						as Text.ShowList
+import qualified	BishBosh.Type.Length						as Type.Length
 import qualified	BishBosh.Types							as T
 import qualified	Control.Exception
 import qualified	Data.Default
@@ -92,7 +93,7 @@ testCases	= Test.HUnit.test [
 		ContextualNotation.PositionHashQualifiedMoveTree.findNextOnymousQualifiedMoves tryToMatchSwitches (
 			mkGame s
 		) . ContextualNotation.PositionHashQualifiedMoveTree.fromQualifiedMoveForest False {-incrementalEvaluation-} (
-			Data.Default.def	:: Component.Zobrist.Zobrist T.X T.Y T.PositionHash
+			Data.Default.def	:: Component.Zobrist.Zobrist Type.Length.X Type.Length.Y T.PositionHash
 		) $ ContextualNotation.QualifiedMoveForest.fromPGNDatabase [
 			ContextualNotation.PGN.mkPGN' [] [
 				(ContextualNotation.PGN.dateTag, "2018.01.01")

@@ -52,7 +52,7 @@ import qualified	BishBosh.Property.Reflectable			as Property.Reflectable
 import qualified	BishBosh.State.CastleableRooksByLogicalColour	as State.CastleableRooksByLogicalColour
 import qualified	BishBosh.State.EnPassantAbscissa		as State.EnPassantAbscissa
 import qualified	BishBosh.State.MaybePieceByCoordinates		as State.MaybePieceByCoordinates
-import qualified	BishBosh.Types					as T
+import qualified	BishBosh.Type.Length				as Type.Length
 import qualified	Control.DeepSeq
 import qualified	Data.Array.IArray
 import qualified	Data.Maybe
@@ -71,7 +71,7 @@ instance (
 	Ord	x,
 	Ord	y
  ) => Ord (Position x y) where
-	{-# SPECIALISE instance Ord (Position T.X T.Y) #-}
+	{-# SPECIALISE instance Ord (Position Type.Length.X Type.Length.Y) #-}
 	position@MkPosition {
 		getNextLogicalColour		= nextLogicalColour,
 		getMaybePieceByCoordinates	= maybePieceByCoordinates
@@ -143,7 +143,7 @@ mkPosition :: (
 	-> State.CastleableRooksByLogicalColour.CastleableRooksByLogicalColour x
 	-> Maybe (Component.Turn.Turn x y)		-- ^ The last /turn/ made.
 	-> Position x y
-{-# SPECIALISE mkPosition :: Attribute.LogicalColour.LogicalColour -> State.MaybePieceByCoordinates.MaybePieceByCoordinates T.X T.Y -> State.CastleableRooksByLogicalColour.CastleableRooksByLogicalColour T.X -> Maybe (Component.Turn.Turn T.X T.Y) -> Position T.X T.Y #-}
+{-# SPECIALISE mkPosition :: Attribute.LogicalColour.LogicalColour -> State.MaybePieceByCoordinates.MaybePieceByCoordinates Type.Length.X Type.Length.Y -> State.CastleableRooksByLogicalColour.CastleableRooksByLogicalColour Type.Length.X -> Maybe (Component.Turn.Turn Type.Length.X Type.Length.Y) -> Position Type.Length.X Type.Length.Y #-}
 mkPosition nextLogicalColour maybePieceByCoordinates castleableRooksByLogicalColour maybeLastTurn	= MkPosition {
 	getNextLogicalColour			= nextLogicalColour,
 	getMaybePieceByCoordinates		= maybePieceByCoordinates,	-- N.B.: one could have used 'State.CoordinatesByRankByLogicalColour.CoordinatesByRankByLogicalColour', except that the coordinates have an undefined order.

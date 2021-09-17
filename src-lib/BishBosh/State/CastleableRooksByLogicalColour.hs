@@ -76,7 +76,7 @@ import qualified	BishBosh.Property.Reflectable			as Property.Reflectable
 import qualified	BishBosh.State.Board				as State.Board
 import qualified	BishBosh.State.CoordinatesByRankByLogicalColour	as State.CoordinatesByRankByLogicalColour
 import qualified	BishBosh.State.TurnsByLogicalColour		as State.TurnsByLogicalColour
-import qualified	BishBosh.Types					as T
+import qualified	BishBosh.Type.Length				as Type.Length
 import qualified	Control.Arrow
 import qualified	Control.DeepSeq
 import qualified	Control.Exception
@@ -372,7 +372,7 @@ takeTurn :: (
 	=> Attribute.LogicalColour.LogicalColour	-- ^ Defines the side who took the specified turn.
 	-> Component.Turn.Turn x y
 	-> Transformation x
-{-# SPECIALISE takeTurn :: Attribute.LogicalColour.LogicalColour -> Component.Turn.Turn T.X T.Y -> Transformation T.X #-}
+{-# SPECIALISE takeTurn :: Attribute.LogicalColour.LogicalColour -> Component.Turn.Turn Type.Length.X Type.Length.Y -> Transformation Type.Length.X #-}
 takeTurn logicalColour turn MkCastleableRooksByLogicalColour { getAssocs = assocs }	= MkCastleableRooksByLogicalColour $ (
 	case lookup logicalColour assocs of
 		Just []	-> id	-- This is a terminal state.

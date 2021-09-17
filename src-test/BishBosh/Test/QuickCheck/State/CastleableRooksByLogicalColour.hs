@@ -41,7 +41,7 @@ import qualified	BishBosh.Property.ForsythEdwards		as Property.ForsythEdwards
 import qualified	BishBosh.Property.Reflectable			as Property.Reflectable
 import qualified	BishBosh.State.CastleableRooksByLogicalColour	as State.CastleableRooksByLogicalColour
 import qualified	BishBosh.Test.QuickCheck.Cartesian.Coordinates	as Test.QuickCheck.Cartesian.Coordinates
-import qualified	BishBosh.Types					as T
+import qualified	BishBosh.Type.Length				as Type.Length
 import qualified	Data.List
 import qualified	Data.List.Extra
 import qualified	Test.QuickCheck
@@ -62,7 +62,7 @@ instance (
 	 ] -- List-comprehension.
 
 -- | Defines a concrete type for testing.
-type CastleableRooksByLogicalColour	= State.CastleableRooksByLogicalColour.CastleableRooksByLogicalColour T.X
+type CastleableRooksByLogicalColour	= State.CastleableRooksByLogicalColour.CastleableRooksByLogicalColour Type.Length.X
 
 -- | The constant test-results for this data-type.
 results :: IO [Test.QuickCheck.Result]

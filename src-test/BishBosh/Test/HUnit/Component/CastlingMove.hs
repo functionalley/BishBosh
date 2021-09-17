@@ -34,13 +34,13 @@ import qualified	BishBosh.Component.CastlingMove		as Component.CastlingMove
 import qualified	BishBosh.Component.Move			as Component.Move
 import qualified	BishBosh.Property.FixedMembership	as Property.FixedMembership
 import qualified	BishBosh.Test.HUnit.Component.Move	as Test.HUnit.Component.Move
-import qualified	BishBosh.Types				as T
+import qualified	BishBosh.Type.Length			as Type.Length
 import qualified	Data.List
 import qualified	Test.HUnit
 import			Test.HUnit((~?))
 
 -- | Give the constant a concrete type.
-kingsMoveLength :: T.X
+kingsMoveLength :: Type.Length.X
 kingsMoveLength	= Component.CastlingMove.kingsMoveLength
 
 -- | Check the sanity of the implementation, by validating a list of static test-cases.

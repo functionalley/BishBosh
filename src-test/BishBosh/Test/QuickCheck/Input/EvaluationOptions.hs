@@ -46,8 +46,8 @@ import qualified	BishBosh.State.Board					as State.Board
 import qualified	BishBosh.State.CoordinatesByRankByLogicalColour		as State.CoordinatesByRankByLogicalColour
 import qualified	BishBosh.State.MaybePieceByCoordinates			as State.MaybePieceByCoordinates
 import qualified	BishBosh.Test.QuickCheck.State.Board			as Test.QuickCheck.State.Board
+import qualified	BishBosh.Type.Length					as Type.Length
 import qualified	BishBosh.Type.Mass					as Type.Mass
-import qualified	BishBosh.Types						as T
 import qualified	Data.Array.IArray
 import qualified	Data.List
 import qualified	Data.Map
@@ -56,7 +56,7 @@ import qualified	Test.QuickCheck
 import			Test.QuickCheck((==>))
 
 -- | Defines a concrete type for testing.
-type EvaluationOptions	= Input.EvaluationOptions.EvaluationOptions Type.Mass.CriterionWeight Type.Mass.PieceSquareValue Type.Mass.RankValue T.X T.Y
+type EvaluationOptions	= Input.EvaluationOptions.EvaluationOptions Type.Mass.CriterionWeight Type.Mass.PieceSquareValue Type.Mass.RankValue Type.Length.X Type.Length.Y
 
 instance (
 	Enum				x,
@@ -102,7 +102,7 @@ results	= sequence [
 			sumPieceSquareValueByLogicalColour	= State.Board.sumPieceSquareValueByLogicalColour $ Data.Maybe.fromJust maybePieceSquareByCoordinatesByRank
 	in Test.QuickCheck.quickCheckWithResult Test.QuickCheck.stdArgs { Test.QuickCheck.maxSuccess = 32 } f,
 	let
-		f :: Input.EvaluationOptions.EvaluationOptions Type.Mass.CriterionWeight Rational {-precision is required-} Type.Mass.RankValue T.X T.Y -> Test.QuickCheck.State.Board.Board -> Test.QuickCheck.Property
+		f :: Input.EvaluationOptions.EvaluationOptions Type.Mass.CriterionWeight Rational {-precision is required-} Type.Mass.RankValue Type.Length.X Type.Length.Y -> Test.QuickCheck.State.Board.Board -> Test.QuickCheck.Property
 		f evaluationOptions board	= Data.Maybe.isJust maybePieceSquareByCoordinatesByRank ==> Test.QuickCheck.label "EvaluationOptions.prop_sumPieceSquareValueByLogicalColour" . uncurry (==) $ (
 			State.CoordinatesByRankByLogicalColour.sumPieceSquareValueByLogicalColour (
 				\logicalColour rank coordinatesList	-> Component.PieceSquareByCoordinatesByRank.findPieceSquareValues nPieces logicalColour rank coordinatesList pieceSquareByCoordinatesByRank

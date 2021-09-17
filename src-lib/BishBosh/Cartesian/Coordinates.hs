@@ -92,7 +92,7 @@ import qualified	BishBosh.Property.Opposable			as Property.Opposable
 import qualified	BishBosh.Property.Reflectable			as Property.Reflectable
 import qualified	BishBosh.Property.Rotatable			as Property.Rotatable
 import qualified	BishBosh.Text.ShowList				as Text.ShowList
-import qualified	BishBosh.Types					as T
+import qualified	BishBosh.Type.Length				as Type.Length
 import qualified	Control.DeepSeq
 import qualified	Control.Exception
 import qualified	Data.Array.IArray
@@ -139,7 +139,7 @@ instance (
 	 ] -- List-comprehension.
 
 instance (Ord x, Ord y) => Ord (Coordinates x y) where
-	{-# SPECIALISE instance Ord (Coordinates T.X T.Y) #-}
+	{-# SPECIALISE instance Ord (Coordinates Type.Length.X Type.Length.Y) #-}
 	MkCoordinates { getX = x, getY = y } `compare` MkCoordinates { getX = x', getY = y' }	= (y, x) `compare` (y', x')	-- N.B.: x is less significant than y, as required by the implementation of 'Data.Array.IArray.Ix.inRange'.
 
 instance (Enum x, Enum y) => Bounded (Coordinates x y) where
@@ -158,7 +158,7 @@ instance (
 	Ord	x,
 	Ord	y
  ) => Data.Array.IArray.Ix (Coordinates x y) where
-	{-# SPECIALISE instance Data.Array.IArray.Ix (Coordinates T.X T.Y) #-}
+	{-# SPECIALISE instance Data.Array.IArray.Ix (Coordinates Type.Length.X Type.Length.Y) #-}
 	range (lower, upper)			= Control.Exception.assert (lower == minBound && upper == maxBound) Property.FixedMembership.members
 	inRange (lower, upper) coordinates	= Control.Exception.assert (coordinates >= lower && coordinates <= upper) True
 	index (lower, upper)			= Control.Exception.assert (lower == minBound && upper == maxBound) . toIx
@@ -193,7 +193,7 @@ nSquares :: Int
 nSquares	= fromIntegral $ Cartesian.Abscissa.xLength * Cartesian.Ordinate.yLength
 
 instance (Enum x, Enum y) => Property.FixedMembership.FixedMembership (Coordinates x y) where
-	{-# SPECIALISE instance Property.FixedMembership.FixedMembership (Coordinates T.X T.Y) #-}
+	{-# SPECIALISE instance Property.FixedMembership.FixedMembership (Coordinates Type.Length.X Type.Length.Y) #-}
 	members	= [
 		MkCoordinates {
 			getX	= x,
@@ -244,7 +244,7 @@ mkMaybeCoordinates x y
 
 -- | Convert to an array-index.
 toIx :: (Enum x, Enum y) => Coordinates x y -> Int
-{-# SPECIALISE toIx :: Coordinates T.X T.Y -> Int #-}
+{-# SPECIALISE toIx :: Coordinates Type.Length.X Type.Length.Y -> Int #-}
 toIx MkCoordinates {
 	getX	= x,
 	getY	= y
@@ -426,7 +426,7 @@ extrapolate
 extrapolate	= extrapolate'
 
 -- | A specialisation of 'extrapolate'.
-extrapolateInt :: Attribute.Direction.Direction -> Coordinates T.X T.Y -> [Coordinates T.X T.Y]
+extrapolateInt :: Attribute.Direction.Direction -> Coordinates Type.Length.X Type.Length.Y -> [Coordinates Type.Length.X Type.Length.Y]
 extrapolateInt direction coordinates	= extrapolationsByDirectionByCoordinates ! coordinates ! direction
 
 -- | The constant lists of /coordinates/, extrapolated from every /coordinate/ in the /board/, in every /direction/.
@@ -440,7 +440,7 @@ extrapolationsByDirectionByCoordinates :: (
 	Ord			x,
 	Ord			y
  ) => ArrayByCoordinates x y (Attribute.Direction.ArrayByDirection [Coordinates x y])
-{-# SPECIALISE extrapolationsByDirectionByCoordinates :: ArrayByCoordinates T.X T.Y (Attribute.Direction.ArrayByDirection [Coordinates T.X T.Y]) #-}	-- To promote memoisation.
+{-# SPECIALISE extrapolationsByDirectionByCoordinates :: ArrayByCoordinates Type.Length.X Type.Length.Y (Attribute.Direction.ArrayByDirection [Coordinates Type.Length.X Type.Length.Y]) #-}	-- To promote memoisation.
 extrapolationsByDirectionByCoordinates	= listArrayByCoordinates
 #ifdef USE_PARALLEL
 	. Control.Parallel.Strategies.withStrategy (Control.Parallel.Strategies.parList Control.Parallel.Strategies.rdeepseq)
@@ -460,7 +460,7 @@ interpolationsByDestinationBySource :: (
 	Ord			x,
 	Ord			y
  ) => ArrayByCoordinates x y (Data.Map.Map (Coordinates x y) [Coordinates x y])
-{-# SPECIALISE interpolationsByDestinationBySource :: ArrayByCoordinates T.X T.Y (Data.Map.Map (Coordinates T.X T.Y) [Coordinates T.X T.Y]) #-}	-- To promote memoisation.
+{-# SPECIALISE interpolationsByDestinationBySource :: ArrayByCoordinates Type.Length.X Type.Length.Y (Data.Map.Map (Coordinates Type.Length.X Type.Length.Y) [Coordinates Type.Length.X Type.Length.Y]) #-}	-- To promote memoisation.
 interpolationsByDestinationBySource	= Data.Array.IArray.amap (
 	Data.Map.fromList . map (
 		last {-destination-} &&& id {-interpolation-}
@@ -496,7 +496,7 @@ interpolate source@MkCoordinates {
 	| otherwise		= Control.Exception.assert (
 		x == x' || y == y' || (
 			let
-				distanceX, distanceY :: T.Distance
+				distanceX, distanceY :: Type.Length.Distance
 				(distanceX, distanceY)	= measureDistance source destination
 			in abs distanceX == abs distanceY
 		) -- Check that the move is straight.
@@ -509,7 +509,7 @@ interpolate source@MkCoordinates {
 			EQ	-> repeat fromAfter
 
 -- | A specialisation of 'interpolate'.
-interpolateInt :: Coordinates T.X T.Y -> Coordinates T.X T.Y -> [Coordinates T.X T.Y]
+interpolateInt :: Coordinates Type.Length.X Type.Length.Y -> Coordinates Type.Length.X Type.Length.Y -> [Coordinates Type.Length.X Type.Length.Y]
 interpolateInt coordinatesSource coordinatesDestination	= interpolationsByDestinationBySource ! coordinatesSource Data.Map.! coordinatesDestination
 
 -- | The type of a function which changes one set of /coordinates/ to another.
@@ -540,7 +540,7 @@ rotate direction coordinates@MkCoordinates {
 	} -- -90 degrees, i.e. clockwise.
 	_		-> Control.Exception.throw . Data.Exception.mkRequestFailure . showString "BishBosh.Cartesian.Coordinates.rotate:\tunable to rotate to direction" . Text.ShowList.showsAssociation $ shows direction "."
 	where
-		xDistance, xDistance', yDistance, yDistance'	:: T.Distance
+		xDistance, xDistance', yDistance, yDistance'	:: Type.Length.Distance
 		xDistance	= fromIntegral $ Cartesian.Abscissa.toIx x
 		yDistance	= fromIntegral $ Cartesian.Ordinate.toIx y
 		xDistance'	= pred Cartesian.Abscissa.xLength - xDistance
@@ -576,7 +576,7 @@ getLogicalColourOfSquare coordinates
 	| even $ uncurry (+) distance	= Attribute.LogicalColourOfSquare.black
 	| otherwise			= Attribute.LogicalColourOfSquare.white
 	where
-		distance :: (T.Distance, T.Distance)
+		distance :: (Type.Length.Distance, Type.Length.Distance)
 		distance	= measureDistance minBound coordinates
 
 -- | Whether the specified squares have the same /logical colour/.

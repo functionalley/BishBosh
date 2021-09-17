@@ -48,8 +48,8 @@ import qualified	BishBosh.Cartesian.Vector		as Cartesian.Vector
 import qualified	BishBosh.Property.Opposable		as Property.Opposable
 import qualified	BishBosh.Property.Orientated		as Property.Orientated
 import qualified	BishBosh.Property.Reflectable		as Property.Reflectable
-import qualified	BishBosh.Types				as T
 import qualified	BishBosh.Type.Count			as Type.Count
+import qualified	BishBosh.Type.Length			as Type.Length
 import qualified	Control.Arrow
 import qualified	Control.DeepSeq
 import qualified	Control.Exception
@@ -74,7 +74,7 @@ data Move x y	= MkMove {
 } deriving Eq
 
 instance (Ord x, Ord y) => Ord (Move x y) where
-	{-# SPECIALISE instance Ord (Move T.X T.Y) #-}
+	{-# SPECIALISE instance Ord (Move Type.Length.X Type.Length.Y) #-}
 	move@MkMove { getSource = source } `compare` move'@MkMove { getSource = source' }	= case source `compare` source' of
 		EQ		-> Data.Ord.comparing getDestination move move'
 		ordering	-> ordering
@@ -148,7 +148,7 @@ measureDistance :: (
 	Num	distance,
 	Ord	distance
  ) => Move x y -> Cartesian.Vector.Vector distance
-{-# SPECIALISE measureDistance :: Move T.X T.Y -> Cartesian.Vector.VectorInt #-}
+{-# SPECIALISE measureDistance :: Move Type.Length.X Type.Length.Y -> Cartesian.Vector.VectorInt #-}
 measureDistance	MkMove {
 	getSource	= source,
 	getDestination	= destination
@@ -161,7 +161,7 @@ interpolate :: (
 	Ord	x,
 	Ord	y
  ) => Move x y -> [Cartesian.Coordinates.Coordinates x y]
-{-# SPECIALISE interpolate :: Move T.X T.Y -> [Cartesian.Coordinates.Coordinates T.X T.Y] #-}
+{-# SPECIALISE interpolate :: Move Type.Length.X Type.Length.Y -> [Cartesian.Coordinates.Coordinates Type.Length.X Type.Length.Y] #-}
 interpolate move@MkMove {
 	getSource	= source,
 	getDestination	= destination

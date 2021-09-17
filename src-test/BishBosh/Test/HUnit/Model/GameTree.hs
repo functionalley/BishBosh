@@ -38,8 +38,8 @@ import qualified	BishBosh.Notation.MoveNotation			as Notation.MoveNotation
 import qualified	BishBosh.Property.Empty				as Property.Empty
 import qualified	BishBosh.Property.FixedMembership		as Property.FixedMembership
 import qualified	BishBosh.Property.ForsythEdwards		as Property.ForsythEdwards
+import qualified	BishBosh.Type.Length				as Type.Length
 import qualified	BishBosh.Type.Mass				as Type.Mass
-import qualified	BishBosh.Types					as T
 import qualified	Data.Default
 import qualified	Data.Maybe
 import qualified	Data.Tree
@@ -58,12 +58,12 @@ testCases	= Test.HUnit.test [
 		) 0 [1 .. searchDepth]
 	) [1 .. 4],
 	"'BishBosh.Model.GameTree.sortGameTree/MVVLVA' failed" ~: map (
-		\turn -> Notation.MoveNotation.showNotation Data.Default.def (turn :: Component.Turn.Turn T.X T.Y)
+		\turn -> Notation.MoveNotation.showNotation Data.Default.def (turn :: Component.Turn.Turn Type.Length.X Type.Length.Y)
 	) (
 		sortAvailableMoves (Just Attribute.CaptureMoveSortAlgorithm.MVVLVA) testString
 	) ~?= ["c4d5p","e4d5p","c3d5p","d1d5p","a1b1","c1b2","c1a3","c1d2","c1e3","c1f4","c1g5","c1h6","d1d2","d1d3","d1d4","d1e2","e1d2","e1e2","e1f1","g1e2","g1h3","a2a3","a2a4","g2g3","g2g4","h2h3","h2h4","b3b4","c3b1","c3b5","c3a4","c3e2","f3e2","f3g4","f3h5","c4c5","e4e5"],
 	"'BishBosh.Model.GameTree.sortGameTree/SEE' failed" ~: map (
-		\turn -> Notation.MoveNotation.showNotation Data.Default.def (turn :: Component.Turn.Turn T.X T.Y)
+		\turn -> Notation.MoveNotation.showNotation Data.Default.def (turn :: Component.Turn.Turn Type.Length.X Type.Length.Y)
 	) (
 		sortAvailableMoves (Just Attribute.CaptureMoveSortAlgorithm.SEE) testString
 	) ~?= ["c4d5p","e4d5p","a1b1","c1b2","c1a3","c1d2","c1e3","c1f4","c1g5","c1h6","d1d2","d1d3","d1d4","d1d5p","d1e2","e1d2","e1e2","e1f1","g1e2","g1h3","a2a3","a2a4","g2g3","g2g4","h2h3","h2h4","b3b4","c3b1","c3b5","c3a4","c3e2","c3d5p","f3e2","f3g4","f3h5","c4c5","e4e5"]

@@ -31,6 +31,7 @@ module BishBosh.Test.HUnit.Component.Zobrist(
 ) where
 
 import qualified	BishBosh.Component.Zobrist	as Component.Zobrist
+import qualified	BishBosh.Type.Length		as Type.Length
 import qualified	BishBosh.Types			as T
 import qualified	Data.Default
 import qualified	Data.Foldable
@@ -38,7 +39,7 @@ import qualified	Test.HUnit
 import			Test.HUnit((~:), (~?=))
 
 -- | Defines a concrete type for testing.
-type Zobrist	= Component.Zobrist.Zobrist T.X T.Y T.PositionHash
+type Zobrist	= Component.Zobrist.Zobrist Type.Length.X Type.Length.Y T.PositionHash
 
 -- | Check the sanity of the implementation, by validating a list of static test-cases.
 testCases :: Test.HUnit.Test

@@ -39,12 +39,12 @@ import qualified	BishBosh.Component.Turn			as Component.Turn
 import qualified	BishBosh.Model.Game			as Model.Game
 import qualified	BishBosh.State.TurnsByLogicalColour	as State.TurnsByLogicalColour
 import qualified	BishBosh.Test.QuickCheck.Model.Game	as Test.QuickCheck.Model.Game
-import qualified	BishBosh.Types				as T
+import qualified	BishBosh.Type.Length			as Type.Length
 import qualified	Test.QuickCheck
 import qualified	ToolShed.Test.ReversibleIO
 
 -- | Define a concrete type for testing.
-type TurnsByLogicalColour	= State.TurnsByLogicalColour.TurnsByLogicalColour (Component.Turn.Turn T.X T.Y)
+type TurnsByLogicalColour	= State.TurnsByLogicalColour.TurnsByLogicalColour (Component.Turn.Turn Type.Length.X Type.Length.Y)
 
 instance (
 	Show				a,

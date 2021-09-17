@@ -42,11 +42,11 @@ import qualified	BishBosh.Search.DynamicMoveData	as Search.DynamicMoveData
 import qualified	BishBosh.Search.EphemeralData	as Search.EphemeralData
 import qualified	BishBosh.Search.KillerMoves	as Search.KillerMoves
 import qualified	BishBosh.Type.Count		as Type.Count
-import qualified	BishBosh.Types			as T
+import qualified	BishBosh.Type.Length		as Type.Length
 import qualified	Test.QuickCheck
 
 -- | Defines a concrete type for testing.
-type KillerMoveKey	= Search.DynamicMoveData.KillerMoveKey T.X T.Y
+type KillerMoveKey	= Search.DynamicMoveData.KillerMoveKey Type.Length.X Type.Length.Y
 
 instance (
 	Enum				x,

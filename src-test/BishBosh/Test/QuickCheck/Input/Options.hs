@@ -37,18 +37,18 @@ import			BishBosh.Test.QuickCheck.Input.EvaluationOptions()
 import			BishBosh.Test.QuickCheck.Input.IOOptions()
 import			BishBosh.Test.QuickCheck.Input.SearchOptions()
 import qualified	BishBosh.Input.Options	as Input.Options
+import qualified	BishBosh.Type.Length	as Type.Length
 import qualified	BishBosh.Type.Mass	as Type.Mass
-import qualified	BishBosh.Types		as T
 import qualified	Test.QuickCheck
 
 -- | Defines a concrete type for testing.
-type Row	= T.Y
+type Row	= Type.Length.Y
 
 -- | Defines a concrete type for testing.
-type Column	= T.X
+type Column	= Type.Length.X
 
 -- | Defines a concrete type for testing.
-type Options	= Input.Options.Options Column Type.Mass.CriterionWeight Type.Mass.PieceSquareValue Type.Mass.RankValue Row T.X T.Y
+type Options	= Input.Options.Options Column Type.Mass.CriterionWeight Type.Mass.PieceSquareValue Type.Mass.RankValue Row Type.Length.X Type.Length.Y
 
 instance (
 	Enum				pieceSquareValue,

@@ -47,7 +47,7 @@ import qualified	BishBosh.State.CoordinatesByRankByLogicalColour		as State.Coord
 import qualified	BishBosh.State.MaybePieceByCoordinates			as State.MaybePieceByCoordinates
 import qualified	BishBosh.StateProperty.Mutator				as StateProperty.Mutator
 import qualified	BishBosh.Test.HUnit.Cartesian.Coordinates		as Test.HUnit.Cartesian.Coordinates
-import qualified	BishBosh.Types						as T
+import qualified	BishBosh.Type.Length					as Type.Length
 import qualified	Control.Arrow
 import qualified	Data.Array.IArray
 import qualified	Data.Default
@@ -59,7 +59,7 @@ import qualified	ToolShed.Data.Foldable
 import			Test.HUnit((~:), (~?=), (~?))
 
 -- | Defines a concrete type for testing.
-type Board	= State.Board.Board T.X T.Y
+type Board	= State.Board.Board Type.Length.X Type.Length.Y
 
 -- | Check the sanity of the implementation, by validating a list of static test-cases.
 testCases :: Test.HUnit.Test

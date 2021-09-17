@@ -38,6 +38,7 @@ import qualified	BishBosh.Evaluation.PositionHashQuantifiedGameTree	as Evaluatio
 import qualified	BishBosh.Input.EvaluationOptions			as Input.EvaluationOptions
 import qualified	BishBosh.Property.Empty					as Property.Empty
 import qualified	BishBosh.Search.SearchState				as Search.SearchState
+import qualified	BishBosh.Type.Length					as Type.Length
 import qualified	BishBosh.Type.Mass					as Type.Mass
 import qualified	BishBosh.Types						as T
 import qualified	Data.Array.IArray
@@ -50,7 +51,7 @@ import qualified	Control.DeepSeq
 #endif
 
 -- | A suitable concrete type for testing.
-type SearchState	= Search.SearchState.SearchState T.X T.Y T.PositionHash Type.Mass.CriterionValue Type.Mass.WeightedMean
+type SearchState	= Search.SearchState.SearchState Type.Length.X Type.Length.Y T.PositionHash Type.Mass.CriterionValue Type.Mass.WeightedMean
 
 instance forall x y positionHash criterionValue weightedMean. (
 #ifdef USE_PARALLEL

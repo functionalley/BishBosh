@@ -75,7 +75,7 @@ import qualified	BishBosh.Rule.GameTerminationReason	as Rule.GameTerminationReas
 import qualified	BishBosh.State.Board			as State.Board
 import qualified	BishBosh.State.MaybePieceByCoordinates	as State.MaybePieceByCoordinates
 import qualified	BishBosh.Text.ShowList			as Text.ShowList
-import qualified	BishBosh.Types				as T
+import qualified	BishBosh.Type.Length			as Type.Length
 import qualified	Control.Applicative
 import qualified	Control.Exception
 import qualified	Control.Monad
@@ -161,7 +161,7 @@ showsTurn :: (
 	-> Component.Turn.Turn x y
 	-> Model.Game.Game x y	-- ^ The /game/ prior to application of the specified /turn/.
 	-> ShowS
-{-# SPECIALISE showsTurn :: ExplicitEnPassant -> Component.Turn.Turn T.X T.Y -> Model.Game.Game T.X T.Y -> ShowS #-}
+{-# SPECIALISE showsTurn :: ExplicitEnPassant -> Component.Turn.Turn Type.Length.X Type.Length.Y -> Model.Game.Game Type.Length.X Type.Length.Y -> ShowS #-}
 showsTurn explicitEnPassant turn game
 	| Just sourceRank <- fmap Component.Piece.getRank . State.MaybePieceByCoordinates.dereference source $ State.Board.getMaybePieceByCoordinates board	= (
 		if sourceRank == Attribute.Rank.Pawn
@@ -237,7 +237,7 @@ showTurn :: (
 	-> Component.Turn.Turn x y
 	-> Model.Game.Game x y	-- ^ The /game/ prior to application of the specified /turn/.
 	-> String
-{-# SPECIALISE showTurn :: ExplicitEnPassant -> Component.Turn.Turn T.X T.Y -> Model.Game.Game T.X T.Y -> String #-}
+{-# SPECIALISE showTurn :: ExplicitEnPassant -> Component.Turn.Turn Type.Length.X Type.Length.Y -> Model.Game.Game Type.Length.X Type.Length.Y -> String #-}
 showTurn explicitEnPassant turn game	= showsTurn explicitEnPassant turn game ""
 
 -- | A convenience-function, which generates the /turn/ required to call 'showsTurn'.
@@ -253,7 +253,7 @@ showsMove :: (
 	-> Component.QualifiedMove.QualifiedMove x y
 	-> Model.Game.Game x y
 	-> ShowS
-{-# SPECIALISE showsMove :: ExplicitEnPassant -> Component.QualifiedMove.QualifiedMove T.X T.Y -> Model.Game.Game T.X T.Y -> ShowS #-}
+{-# SPECIALISE showsMove :: ExplicitEnPassant -> Component.QualifiedMove.QualifiedMove Type.Length.X Type.Length.Y -> Model.Game.Game Type.Length.X Type.Length.Y -> ShowS #-}
 showsMove explicitEnPassant qualifiedMove game	= showsTurn explicitEnPassant (
 	Data.Maybe.fromMaybe (
 		Control.Exception.throw $ Data.Exception.mkResultUndefined "BishBosh.ContextualNotation.StandardAlgebraic.showsMove:\tModel.Game.maybeLastTurn failed."
@@ -273,7 +273,7 @@ showMove :: (
 	-> Component.QualifiedMove.QualifiedMove x y
 	-> Model.Game.Game x y
 	-> String
-{-# SPECIALISE showMove :: ExplicitEnPassant -> Component.QualifiedMove.QualifiedMove T.X T.Y -> Model.Game.Game T.X T.Y -> String #-}
+{-# SPECIALISE showMove :: ExplicitEnPassant -> Component.QualifiedMove.QualifiedMove Type.Length.X Type.Length.Y -> Model.Game.Game Type.Length.X Type.Length.Y -> String #-}
 showMove explicitEnPassant qualifiedMove game	= showsMove explicitEnPassant qualifiedMove game ""
 
 -- | Applies the specified /move/ to the specified /game/.
@@ -285,7 +285,7 @@ movePiece :: (
 	Show	x,
 	Show	y
  ) => StandardAlgebraic x y -> Model.Game.Transformation x y
-{-# SPECIALISE movePiece :: StandardAlgebraic T.X T.Y -> Model.Game.Transformation T.X T.Y #-}
+{-# SPECIALISE movePiece :: StandardAlgebraic Type.Length.X Type.Length.Y -> Model.Game.Transformation Type.Length.X Type.Length.Y #-}
 movePiece MkStandardAlgebraic { getQualifiedMove = qualifiedMove }	= Model.Game.applyQualifiedMove qualifiedMove
 
 #ifdef USE_POLYPARSE
@@ -332,7 +332,7 @@ parser :: (
 	-> Model.Game.Game x y
 #ifdef USE_POLYPARSE
 	-> Text.Poly.TextParser (StandardAlgebraic x y)
-{-# SPECIALISE parser :: ExplicitEnPassant -> ValidateMoves -> Model.Game.Game T.X T.Y -> Text.Poly.TextParser (StandardAlgebraic T.X T.Y) #-}
+{-# SPECIALISE parser :: ExplicitEnPassant -> ValidateMoves -> Model.Game.Game Type.Length.X Type.Length.Y -> Text.Poly.TextParser (StandardAlgebraic Type.Length.X Type.Length.Y) #-}
 parser explicitEnPassant validateMoves game	= let
 	nextLogicalColour			= Model.Game.getNextLogicalColour game
 	(longCastlingMove, shortCastlingMove)	= Component.CastlingMove.getLongAndShortMoves nextLogicalColour
@@ -483,7 +483,7 @@ parser explicitEnPassant validateMoves game	= let
 		else return {-to Parser-monad-} qualifiedMove
 #else /* Parsec */
 	-> Parsec.Parser (StandardAlgebraic x y)
-{-# SPECIALISE parser :: ExplicitEnPassant -> ValidateMoves -> Model.Game.Game T.X T.Y -> Parsec.Parser (StandardAlgebraic T.X T.Y) #-}
+{-# SPECIALISE parser :: ExplicitEnPassant -> ValidateMoves -> Model.Game.Game Type.Length.X Type.Length.Y -> Parsec.Parser (StandardAlgebraic Type.Length.X Type.Length.Y) #-}
 parser explicitEnPassant validateMoves game	= let
 	nextLogicalColour			= Model.Game.getNextLogicalColour game
 	(longCastlingMove, shortCastlingMove)	= Component.CastlingMove.getLongAndShortMoves nextLogicalColour

@@ -52,7 +52,7 @@ module BishBosh.Cartesian.Abscissa(
 ) where
 
 import qualified	BishBosh.Data.Enum	as Data.Enum
-import qualified	BishBosh.Types		as T
+import qualified	BishBosh.Type.Length	as Type.Length
 import qualified	Control.Exception
 import qualified	Data.Array.IArray
 
@@ -61,7 +61,7 @@ xOrigin :: Int
 xOrigin	= 0
 
 -- | The constant length of the /x/-axis.
-xLength :: T.Distance
+xLength :: Type.Length.Distance
 xLength	= 8
 
 -- | The constant lower bound of abscissae.

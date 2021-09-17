@@ -91,8 +91,8 @@ import qualified	BishBosh.StateProperty.Censor				as StateProperty.Censor
 import qualified	BishBosh.StateProperty.Mutator				as StateProperty.Mutator
 import qualified	BishBosh.StateProperty.Seeker				as StateProperty.Seeker
 import qualified	BishBosh.Text.ShowList					as Text.ShowList
+import qualified	BishBosh.Type.Length					as Type.Length
 import qualified	BishBosh.Type.Mass					as Type.Mass
-import qualified	BishBosh.Types						as T
 import qualified	Control.Arrow
 import qualified	Control.DeepSeq
 import qualified	Control.Exception
@@ -321,7 +321,7 @@ instance (
 	Ord	x,
 	Ord	y
  ) => StateProperty.Seeker.Seeker MaybePieceByCoordinates x y {-CAVEAT: MultiParamTypeClasses-} where
-	{-# SPECIALISE instance StateProperty.Seeker.Seeker MaybePieceByCoordinates T.X T.Y #-}
+	{-# SPECIALISE instance StateProperty.Seeker.Seeker MaybePieceByCoordinates Type.Length.X Type.Length.Y #-}
 	findProximateKnights logicalColour destination MkMaybePieceByCoordinates { deconstruct = byCoordinates }	= filter (
 		(== Just knight) . (byCoordinates !)
 	 ) $ Component.Piece.findAttackDestinations destination knight where
@@ -339,7 +339,7 @@ instance (
 	Ord	x,
 	Ord	y
  ) => StateProperty.Mutator.Mutator MaybePieceByCoordinates x y {-CAVEAT: MultiParamTypeClasses-} where
-	{-# SPECIALISE instance StateProperty.Mutator.Mutator MaybePieceByCoordinates T.X T.Y #-}
+	{-# SPECIALISE instance StateProperty.Mutator.Mutator MaybePieceByCoordinates Type.Length.X Type.Length.Y #-}
 	defineCoordinates maybePiece coordinates MkMaybePieceByCoordinates { deconstruct = byCoordinates }	= Control.Exception.assert (
 		Data.Maybe.isJust maybePiece || Data.Maybe.isJust (byCoordinates ! coordinates)
 	 ) . MkMaybePieceByCoordinates $ byCoordinates // [(coordinates, maybePiece)]
@@ -370,7 +370,7 @@ inferMoveType :: (
 	-> Maybe Attribute.Rank.Rank	-- ^ The /rank/ to which a @Pawn@ should be promoted; defaulting to @Queen@.
 	-> MaybePieceByCoordinates x y
 	-> Attribute.MoveType.MoveType
-{-# SPECIALISE inferMoveType :: Component.Move.Move T.X T.Y -> Maybe Attribute.Rank.Rank -> MaybePieceByCoordinates T.X T.Y -> Attribute.MoveType.MoveType #-}
+{-# SPECIALISE inferMoveType :: Component.Move.Move Type.Length.X Type.Length.Y -> Maybe Attribute.Rank.Rank -> MaybePieceByCoordinates Type.Length.X Type.Length.Y -> Attribute.MoveType.MoveType #-}
 inferMoveType move maybePromotionRank maybePieceByCoordinates@MkMaybePieceByCoordinates { deconstruct = byCoordinates }
 	| Just sourcePiece <- byCoordinates ! Component.Move.getSource move	= Data.Maybe.maybe (
 		if isEnPassantMove move maybePieceByCoordinates
@@ -412,7 +412,7 @@ listDestinationsFor :: (
 	-> Component.Piece.Piece						-- ^ The /piece/ at the specified source.
 	-> MaybePieceByCoordinates x y
 	-> [(Cartesian.Coordinates.Coordinates x y, Maybe Attribute.Rank.Rank)]	-- ^ The destination & the rank of any piece taken.
-{-# SPECIALISE listDestinationsFor :: Cartesian.Coordinates.Coordinates T.X T.Y -> Component.Piece.Piece -> MaybePieceByCoordinates T.X T.Y -> [(Cartesian.Coordinates.Coordinates T.X T.Y, Maybe Attribute.Rank.Rank)] #-}
+{-# SPECIALISE listDestinationsFor :: Cartesian.Coordinates.Coordinates Type.Length.X Type.Length.Y -> Component.Piece.Piece -> MaybePieceByCoordinates Type.Length.X Type.Length.Y -> [(Cartesian.Coordinates.Coordinates Type.Length.X Type.Length.Y, Maybe Attribute.Rank.Rank)] #-}
 listDestinationsFor source piece maybePieceByCoordinates@MkMaybePieceByCoordinates { deconstruct = byCoordinates }	= Control.Exception.assert (
 	byCoordinates ! source == Just piece
  ) $ if Component.Piece.getRank piece `elem` Attribute.Rank.fixedAttackRange
@@ -552,7 +552,7 @@ findBlockingPiece :: (
 	-> Cartesian.Coordinates.Coordinates x y	-- ^ The starting point.
 	-> MaybePieceByCoordinates x y
 	-> Maybe (Component.Piece.LocatedPiece x y)
-{-# SPECIALISE findBlockingPiece :: Attribute.Direction.Direction -> Cartesian.Coordinates.Coordinates T.X T.Y -> MaybePieceByCoordinates T.X T.Y -> Maybe (Component.Piece.LocatedPiece T.X T.Y) #-}
+{-# SPECIALISE findBlockingPiece :: Attribute.Direction.Direction -> Cartesian.Coordinates.Coordinates Type.Length.X Type.Length.Y -> MaybePieceByCoordinates Type.Length.X Type.Length.Y -> Maybe (Component.Piece.LocatedPiece Type.Length.X Type.Length.Y) #-}
 {- CAVEAT: too slow.
 findBlockingPiece direction source MkMaybePieceByCoordinates { deconstruct = byCoordinates }	= Data.Maybe.listToMaybe . Data.Maybe.mapMaybe (
 	uncurry fmap . ((,) &&& (byCoordinates !))
@@ -592,7 +592,7 @@ findAttackerInDirection :: (
 	-> Cartesian.Coordinates.Coordinates x y				-- ^ The defender's square.
 	-> MaybePieceByCoordinates x y
 	-> Maybe (Cartesian.Coordinates.Coordinates x y, Attribute.Rank.Rank)	-- ^ Any opposing /piece/ which can attack the specified square from the specified /direction/.
-{-# SPECIALISE findAttackerInDirection :: Attribute.LogicalColour.LogicalColour -> Attribute.Direction.Direction -> Cartesian.Coordinates.Coordinates T.X T.Y -> MaybePieceByCoordinates T.X T.Y -> Maybe (Cartesian.Coordinates.Coordinates T.X T.Y, Attribute.Rank.Rank) #-}
+{-# SPECIALISE findAttackerInDirection :: Attribute.LogicalColour.LogicalColour -> Attribute.Direction.Direction -> Cartesian.Coordinates.Coordinates Type.Length.X Type.Length.Y -> MaybePieceByCoordinates Type.Length.X Type.Length.Y -> Maybe (Cartesian.Coordinates.Coordinates Type.Length.X Type.Length.Y, Attribute.Rank.Rank) #-}
 findAttackerInDirection destinationLogicalColour direction destination	= (=<<) (
 	\(source, sourcePiece) -> if Component.Piece.getLogicalColour sourcePiece /= destinationLogicalColour && Component.Piece.canAttackAlong source destination sourcePiece
 		then Just (source, Component.Piece.getRank sourcePiece)
@@ -643,7 +643,7 @@ isClear :: (
 	-> MaybePieceByCoordinates x y
 	-> Bool
 {-# INLINABLE isClear #-}	-- N.B.: required to ensure specialisation of 'Cartesian.Coordinates.interpolate'.
-{-# SPECIALISE isClear :: Cartesian.Coordinates.Coordinates T.X T.Y -> Cartesian.Coordinates.Coordinates T.X T.Y -> MaybePieceByCoordinates T.X T.Y -> Bool #-}
+{-# SPECIALISE isClear :: Cartesian.Coordinates.Coordinates Type.Length.X Type.Length.Y -> Cartesian.Coordinates.Coordinates Type.Length.X Type.Length.Y -> MaybePieceByCoordinates Type.Length.X Type.Length.Y -> Bool #-}
 isClear source destination maybePieceByCoordinates	= Control.Exception.assert (
 	source /= destination && Property.Orientated.isStraight (Component.Move.mkMove source destination)
  ) . all (`isVacant` maybePieceByCoordinates) . init {-discard the destination-} $ Cartesian.Coordinates.interpolate source destination
@@ -659,7 +659,7 @@ isObstructed :: (
 	-> Cartesian.Coordinates.Coordinates x y	-- ^ Destination.
 	-> MaybePieceByCoordinates x y
 	-> Bool
-{-# SPECIALISE isObstructed :: Cartesian.Coordinates.Coordinates T.X T.Y -> Cartesian.Coordinates.Coordinates T.X T.Y -> MaybePieceByCoordinates T.X T.Y -> Bool #-}
+{-# SPECIALISE isObstructed :: Cartesian.Coordinates.Coordinates Type.Length.X Type.Length.Y -> Cartesian.Coordinates.Coordinates Type.Length.X Type.Length.Y -> MaybePieceByCoordinates Type.Length.X Type.Length.Y -> Bool #-}
 isObstructed source destination	= not . isClear source destination
 
 {- |
@@ -677,7 +677,7 @@ isEnPassantMove :: (
 	=> Component.Move.Move x y
 	-> MaybePieceByCoordinates x y
 	-> Bool
-{-# SPECIALISE isEnPassantMove :: Component.Move.Move T.X T.Y -> MaybePieceByCoordinates T.X T.Y -> Bool #-}
+{-# SPECIALISE isEnPassantMove :: Component.Move.Move Type.Length.X Type.Length.Y -> MaybePieceByCoordinates Type.Length.X Type.Length.Y -> Bool #-}
 isEnPassantMove move maybePieceByCoordinates@MkMaybePieceByCoordinates { deconstruct = byCoordinates }
 	| Just piece	<- byCoordinates ! source
 	, let logicalColour	= Component.Piece.getLogicalColour piece
@@ -704,7 +704,7 @@ movePiece :: (
 	-> Component.Piece.Piece				-- ^ The (possibly promoted) piece to place at the destination.
 	-> Maybe (Cartesian.Coordinates.Coordinates x y)	-- ^ Destination of any En-passant @Pawn@.
 	-> Transformation x y
-{-# SPECIALISE movePiece :: Component.Move.Move T.X T.Y -> Component.Piece.Piece -> Maybe (Cartesian.Coordinates.Coordinates T.X T.Y) -> Transformation T.X T.Y #-}
+{-# SPECIALISE movePiece :: Component.Move.Move Type.Length.X Type.Length.Y -> Component.Piece.Piece -> Maybe (Cartesian.Coordinates.Coordinates Type.Length.X Type.Length.Y) -> Transformation Type.Length.X Type.Length.Y #-}
 movePiece move destinationPiece maybeEnPassantDestination MkMaybePieceByCoordinates { deconstruct = byCoordinates }	= MkMaybePieceByCoordinates $ byCoordinates // Data.Maybe.maybe id (
 	(:) . flip (,) Nothing	-- Take the Pawn en-passant.
  ) maybeEnPassantDestination [
@@ -728,7 +728,7 @@ sumPieceSquareValueByLogicalColour :: (
 	=> Component.PieceSquareByCoordinatesByRank.FindPieceSquareValue x y pieceSquareValue
 	-> MaybePieceByCoordinates x y
 	-> [pieceSquareValue]
-{-# SPECIALISE sumPieceSquareValueByLogicalColour :: Component.PieceSquareByCoordinatesByRank.FindPieceSquareValue T.X T.Y Type.Mass.PieceSquareValue -> MaybePieceByCoordinates T.X T.Y -> [Type.Mass.PieceSquareValue] #-}
+{-# SPECIALISE sumPieceSquareValueByLogicalColour :: Component.PieceSquareByCoordinatesByRank.FindPieceSquareValue Type.Length.X Type.Length.Y Type.Mass.PieceSquareValue -> MaybePieceByCoordinates Type.Length.X Type.Length.Y -> [Type.Mass.PieceSquareValue] #-}
 sumPieceSquareValueByLogicalColour findPieceSquareValue	= (
 	\(b, w) -> [b, w]
  ) . Data.List.foldl' (

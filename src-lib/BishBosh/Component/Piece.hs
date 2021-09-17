@@ -91,8 +91,8 @@ import qualified	BishBosh.Property.ExtendedPositionDescription	as Property.Exten
 import qualified	BishBosh.Property.FixedMembership		as Property.FixedMembership
 import qualified	BishBosh.Property.ForsythEdwards		as Property.ForsythEdwards
 import qualified	BishBosh.Property.Opposable			as Property.Opposable
-import qualified	BishBosh.Types					as T
 import qualified	BishBosh.Type.Count				as Type.Count
+import qualified	BishBosh.Type.Length				as Type.Length
 import qualified	Control.DeepSeq
 import qualified	Control.Exception
 import qualified	Data.Array.IArray
@@ -284,7 +284,7 @@ attackDestinationsByCoordinatesByRankByLogicalColour :: (
 	Ord			x,
 	Ord			y
  ) => AttackDestinationsByCoordinatesByRankByLogicalColour x y
-{-# SPECIALISE attackDestinationsByCoordinatesByRankByLogicalColour :: AttackDestinationsByCoordinatesByRankByLogicalColour T.X T.Y #-}	-- To promote memoisation.
+{-# SPECIALISE attackDestinationsByCoordinatesByRankByLogicalColour :: AttackDestinationsByCoordinatesByRankByLogicalColour Type.Length.X Type.Length.Y #-}	-- To promote memoisation.
 attackDestinationsByCoordinatesByRankByLogicalColour	= mkByRankByLogicalColour Attribute.Rank.fixedAttackRange $ \logicalColour rank -> Cartesian.Coordinates.listArrayByCoordinates $ map (
 	`findAttackDestinations'` mkPiece logicalColour rank
  ) Property.FixedMembership.members
@@ -323,7 +323,7 @@ findAttackDestinations :: (
 findAttackDestinations	= findAttackDestinations'
 
 -- | A specialisation of 'findAttackDestinations', more efficiently implemented by calling 'attackDestinationsByCoordinatesByRankByLogicalColour'.
-findAttackDestinationsInt :: Cartesian.Coordinates.Coordinates T.X T.Y -> Piece -> [Cartesian.Coordinates.Coordinates T.X T.Y]
+findAttackDestinationsInt :: Cartesian.Coordinates.Coordinates Type.Length.X Type.Length.Y -> Piece -> [Cartesian.Coordinates.Coordinates Type.Length.X Type.Length.Y]
 findAttackDestinationsInt coordinates MkPiece {
 	getLogicalColour	= logicalColour,
 	getRank			= rank
@@ -370,7 +370,7 @@ canAttackAlong
 	-> Cartesian.Coordinates.Coordinates x y	-- ^ Destination (victim's location).
 	-> Piece					-- ^ Attacker.
 	-> Bool
-{-# SPECIALISE canAttackAlong :: Cartesian.Coordinates.Coordinates T.X T.Y -> Cartesian.Coordinates.Coordinates T.X T.Y -> Piece -> Bool #-}
+{-# SPECIALISE canAttackAlong :: Cartesian.Coordinates.Coordinates Type.Length.X Type.Length.Y -> Cartesian.Coordinates.Coordinates Type.Length.X Type.Length.Y -> Piece -> Bool #-}
 canAttackAlong source destination piece	= (
 	case getRank piece of
 		Attribute.Rank.Pawn	-> Cartesian.Vector.isPawnAttack $ getLogicalColour piece
@@ -397,7 +397,7 @@ canMoveBetween :: (
 	-> Cartesian.Coordinates.Coordinates x y	-- ^ Destination.
 	-> Piece
 	-> Bool
-{-# SPECIALISE canMoveBetween :: Cartesian.Coordinates.Coordinates T.X T.Y -> Cartesian.Coordinates.Coordinates T.X T.Y -> Piece -> Bool #-}
+{-# SPECIALISE canMoveBetween :: Cartesian.Coordinates.Coordinates Type.Length.X Type.Length.Y -> Cartesian.Coordinates.Coordinates Type.Length.X Type.Length.Y -> Piece -> Bool #-}
 canMoveBetween source destination piece	= (
 	case getRank piece of
 		Attribute.Rank.Pawn	-> \distance -> let

@@ -36,12 +36,12 @@ import			BishBosh.Test.QuickCheck.Component.Move()
 import			Control.Arrow((&&&))
 import qualified	BishBosh.Component.QualifiedMove	as Component.QualifiedMove
 import qualified	BishBosh.Property.Reflectable		as Property.Reflectable
-import qualified	BishBosh.Types				as T
+import qualified	BishBosh.Type.Length			as Type.Length
 import qualified	Test.QuickCheck
 import qualified	ToolShed.Test.ReversibleIO
 
 -- | Defines a concrete type for testing.
-type QualifiedMove	= Component.QualifiedMove.QualifiedMove T.X T.Y
+type QualifiedMove	= Component.QualifiedMove.QualifiedMove Type.Length.X Type.Length.Y
 
 instance (
 	Enum	x,

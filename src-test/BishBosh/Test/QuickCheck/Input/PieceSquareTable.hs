@@ -37,14 +37,14 @@ import qualified	BishBosh.Attribute.Rank			as Attribute.Rank
 import qualified	BishBosh.Cartesian.Coordinates		as Cartesian.Coordinates
 import qualified	BishBosh.Input.PieceSquareTable		as Input.PieceSquareTable
 import qualified	BishBosh.Property.FixedMembership	as Property.FixedMembership
+import qualified	BishBosh.Type.Length			as Type.Length
 import qualified	BishBosh.Type.Mass			as Type.Mass
-import qualified	BishBosh.Types				as T
 import qualified	Data.List
 import qualified	Test.QuickCheck
 import			Test.QuickCheck((==>))
 
 -- | Defines a concrete type for testing.
-type PieceSquareTable	= Input.PieceSquareTable.PieceSquareTable T.X T.Y Type.Mass.PieceSquareValue
+type PieceSquareTable	= Input.PieceSquareTable.PieceSquareTable Type.Length.X Type.Length.Y Type.Mass.PieceSquareValue
 
 instance (
 	Enum		x,

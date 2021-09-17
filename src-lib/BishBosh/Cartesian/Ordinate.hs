@@ -58,7 +58,7 @@ import qualified	BishBosh.Attribute.LogicalColour	as Attribute.LogicalColour
 import qualified	BishBosh.Cartesian.Abscissa		as Cartesian.Abscissa
 import qualified	BishBosh.Data.Enum			as Data.Enum
 import qualified	BishBosh.Property.Opposable		as Property.Opposable
-import qualified	BishBosh.Types				as T
+import qualified	BishBosh.Type.Length			as Type.Length
 import qualified	Control.Exception
 import qualified	Data.Array.IArray
 
@@ -67,7 +67,7 @@ yOrigin :: Int
 yOrigin	= Cartesian.Abscissa.xOrigin	-- N.B. it doesn't need to be the same.
 
 -- | The constant length of the /y/-axis.
-yLength :: T.Distance
+yLength :: Type.Length.Distance
 yLength	= Cartesian.Abscissa.xLength	-- Because the board is square.
 
 -- | The constant lower bound of ordinates.

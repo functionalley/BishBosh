@@ -58,6 +58,7 @@ import qualified	BishBosh.Text.ShowColouredPrefix			as Text.ShowColouredPrefix
 import qualified	BishBosh.Text.ShowList					as Text.ShowList
 import qualified	BishBosh.Text.ShowPrefix				as Text.ShowPrefix
 import qualified	BishBosh.Type.Count					as Type.Count
+import qualified	BishBosh.Type.Length					as Type.Length
 import qualified	BishBosh.Type.Mass					as Type.Mass
 import qualified	BishBosh.Types						as T
 import qualified	Control.Exception
@@ -94,9 +95,9 @@ import qualified	BishBosh.Concurrent.SignalHandlers	as Concurrent.SignalHandlers
 #endif
 
 -- Define concrete types to resolve the underlying polymorphic functions.
-type Row	= T.Y
-type Column	= T.X		-- N.B. there's no requirement to be the same type as Row.
-type Options	= Input.Options.Options Column Type.Mass.CriterionWeight Type.Mass.PieceSquareValue Type.Mass.RankValue Row T.X T.Y
+type Row	= Type.Length.Y
+type Column	= Type.Length.X		-- N.B. there's no requirement to be the same type as Row.
+type Options	= Input.Options.Options Column Type.Mass.CriterionWeight Type.Mass.PieceSquareValue Type.Mass.RankValue Row Type.Length.X Type.Length.Y
 
 writeXMLToFile
 	:: HXT.XmlPickler pickleable
@@ -447,7 +448,7 @@ main	= do
 								 ) Property.Empty.empty {-QualifiedMoveForest-} (Input.IOOptions.getPGNOptionsList ioOptions)
 
 								let
-									maybeApplicationTerminationReason	= State.PlayState.getMaybeApplicationTerminationReason (playState :: State.PlayState.PlayState Column Type.Mass.CriterionValue Type.Mass.CriterionWeight Type.Mass.PieceSquareValue T.PositionHash Type.Mass.RankValue Row Type.Mass.WeightedMean T.X T.Y)
+									maybeApplicationTerminationReason	= State.PlayState.getMaybeApplicationTerminationReason (playState :: State.PlayState.PlayState Column Type.Mass.CriterionValue Type.Mass.CriterionWeight Type.Mass.PieceSquareValue T.PositionHash Type.Mass.RankValue Row Type.Mass.WeightedMean Type.Length.X Type.Length.Y)
 								 in Control.Monad.when (
 									verbosity /= minBound && Data.Maybe.isJust maybeApplicationTerminationReason
 								 ) . System.IO.hPutStrLn System.IO.stderr . showsInfoPrefix . showString "application terminated " $ shows (Data.Maybe.fromJust maybeApplicationTerminationReason) "."

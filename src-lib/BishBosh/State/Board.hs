@@ -90,8 +90,8 @@ import qualified	BishBosh.StateProperty.Censor				as StateProperty.Censor
 import qualified	BishBosh.StateProperty.Mutator				as StateProperty.Mutator
 import qualified	BishBosh.StateProperty.Seeker				as StateProperty.Seeker
 import qualified	BishBosh.Type.Count					as Type.Count
+import qualified	BishBosh.Type.Length					as Type.Length
 import qualified	BishBosh.Type.Mass					as Type.Mass
-import qualified	BishBosh.Types						as T
 import qualified	Control.Arrow
 import qualified	Control.DeepSeq
 import qualified	Control.Exception
@@ -163,7 +163,7 @@ instance (
 	Ord	x,
 	Ord	y
  ) => Read (Board x y) where
-	{-# SPECIALISE instance Read (Board T.X T.Y) #-}
+	{-# SPECIALISE instance Read (Board Type.Length.X Type.Length.Y) #-}
 	readsPrec _	= Property.ForsythEdwards.readsFEN
 
 instance (
@@ -180,7 +180,7 @@ instance (
 	Ord	x,
 	Ord	y
  ) => Property.ExtendedPositionDescription.ReadsEPD (Board x y) where
-	{-# SPECIALISE instance Property.ExtendedPositionDescription.ReadsEPD (Board T.X T.Y) #-}
+	{-# SPECIALISE instance Property.ExtendedPositionDescription.ReadsEPD (Board Type.Length.X Type.Length.Y) #-}
 	readsEPD	= map (Control.Arrow.first fromMaybePieceByCoordinates) . Property.ExtendedPositionDescription.readsEPD
 
 instance (
@@ -197,7 +197,7 @@ instance (
 	Ord	x,
 	Ord	y
  ) => Property.ForsythEdwards.ReadsFEN (Board x y) where
-	{-# SPECIALISE instance Property.ForsythEdwards.ReadsFEN (Board T.X T.Y) #-}
+	{-# SPECIALISE instance Property.ForsythEdwards.ReadsFEN (Board Type.Length.X Type.Length.Y) #-}
 	readsFEN	= Property.ExtendedPositionDescription.readsEPD
 
 instance (
@@ -213,7 +213,7 @@ instance (
 	Ord	x,
 	Ord	y
  ) => Data.Default.Default (Board x y) where
-	{-# SPECIALISE instance Data.Default.Default (Board T.X T.Y) #-}
+	{-# SPECIALISE instance Data.Default.Default (Board Type.Length.X Type.Length.Y) #-}
 	def	= fromMaybePieceByCoordinates Data.Default.def {-MaybePieceByCoordinates-}
 
 instance (
@@ -222,7 +222,7 @@ instance (
 	Ord	x,
 	Ord	y
  ) => Property.Reflectable.ReflectableOnX (Board x y) where
-	{-# SPECIALISE instance Property.Reflectable.ReflectableOnX (Board T.X T.Y) #-}
+	{-# SPECIALISE instance Property.Reflectable.ReflectableOnX (Board Type.Length.X Type.Length.Y) #-}
 	reflectOnX MkBoard { getMaybePieceByCoordinates = maybePieceByCoordinates }	= fromMaybePieceByCoordinates $ Property.Reflectable.reflectOnX maybePieceByCoordinates
 
 instance (
@@ -231,7 +231,7 @@ instance (
 	Ord	x,
 	Ord	y
  ) => Property.Reflectable.ReflectableOnY (Board x y) where
-	{-# SPECIALISE instance Property.Reflectable.ReflectableOnY (Board T.X T.Y) #-}
+	{-# SPECIALISE instance Property.Reflectable.ReflectableOnY (Board Type.Length.X Type.Length.Y) #-}
 	reflectOnY MkBoard { getMaybePieceByCoordinates = maybePieceByCoordinates }	= fromMaybePieceByCoordinates $ Property.Reflectable.reflectOnY maybePieceByCoordinates
 
 instance (
@@ -240,7 +240,7 @@ instance (
 	Ord	x,
 	Ord	y
  ) => Property.Empty.Empty (Board x y) where
-	{-# SPECIALISE empty :: Board T.X T.Y #-}
+	{-# SPECIALISE empty :: Board Type.Length.X Type.Length.Y #-}
 	empty	= fromMaybePieceByCoordinates Property.Empty.empty {-MaybePieceByCoordinates-}
 
 instance (Enum x, Enum y, Ord x, Ord y) => Component.Zobrist.Hashable2D Board x y {-CAVEAT: FlexibleInstances, MultiParamTypeClasses-} where
@@ -252,7 +252,7 @@ instance (
 	Ord	x,
 	Ord	y
  ) => StateProperty.Seeker.Seeker Board x y {-CAVEAT: MultiParamTypeClasses-} where
-	{-# SPECIALISE instance StateProperty.Seeker.Seeker Board T.X T.Y #-}
+	{-# SPECIALISE instance StateProperty.Seeker.Seeker Board Type.Length.X Type.Length.Y #-}
 	findProximateKnights logicalColour coordinates MkBoard { getCoordinatesByRankByLogicalColour = coordinatesByRankByLogicalColour }	= StateProperty.Seeker.findProximateKnights logicalColour coordinates coordinatesByRankByLogicalColour -- Forward the request.
 	findPieces predicate MkBoard { getCoordinatesByRankByLogicalColour = coordinatesByRankByLogicalColour }					= StateProperty.Seeker.findPieces predicate coordinatesByRankByLogicalColour	-- Forward the request.
 
@@ -262,7 +262,7 @@ instance (
 	Ord	x,
 	Ord	y
  ) => StateProperty.Mutator.Mutator Board x y {-CAVEAT: MultiParamTypeClasses-} where
-	{-# SPECIALISE instance StateProperty.Mutator.Mutator Board T.X T.Y #-}
+	{-# SPECIALISE instance StateProperty.Mutator.Mutator Board Type.Length.X Type.Length.Y #-}
 	defineCoordinates maybePiece coordinates MkBoard { getMaybePieceByCoordinates = maybePieceByCoordinates }	= fromMaybePieceByCoordinates $ StateProperty.Mutator.defineCoordinates maybePiece coordinates maybePieceByCoordinates
 
 -- | Constructor.
@@ -272,7 +272,7 @@ fromMaybePieceByCoordinates :: (
 	Ord	x,
 	Ord	y
  ) => State.MaybePieceByCoordinates.MaybePieceByCoordinates x y -> Board x y
-{-# SPECIALISE fromMaybePieceByCoordinates :: State.MaybePieceByCoordinates.MaybePieceByCoordinates T.X T.Y -> Board T.X T.Y #-}
+{-# SPECIALISE fromMaybePieceByCoordinates :: State.MaybePieceByCoordinates.MaybePieceByCoordinates Type.Length.X Type.Length.Y -> Board Type.Length.X Type.Length.Y #-}
 fromMaybePieceByCoordinates maybePieceByCoordinates	= board where
 	board@MkBoard { getCoordinatesByRankByLogicalColour = coordinatesByRankByLogicalColour }	= MkBoard {
 		getMaybePieceByCoordinates			= maybePieceByCoordinates,
@@ -302,7 +302,7 @@ movePiece :: (
 	=> Component.Move.Move x y		-- ^ N.B.: illegal moves are acceptable.
 	-> Maybe Attribute.MoveType.MoveType	-- ^ N.B.: this may not be available to the caller, for example during the illegal moves required for rollback.
 	-> Transformation x y
-{-# SPECIALISE movePiece :: Component.Move.Move T.X T.Y -> Maybe Attribute.MoveType.MoveType -> Transformation T.X T.Y #-}
+{-# SPECIALISE movePiece :: Component.Move.Move Type.Length.X Type.Length.Y -> Maybe Attribute.MoveType.MoveType -> Transformation Type.Length.X Type.Length.Y #-}
 movePiece move maybeMoveType board@MkBoard {
 	getMaybePieceByCoordinates			= maybePieceByCoordinates,
 	getCoordinatesByRankByLogicalColour		= coordinatesByRankByLogicalColour,
@@ -499,8 +499,8 @@ sumPieceSquareValueByLogicalColour :: (
 #endif
 		pieceSquareValue
 {-# SPECIALISE sumPieceSquareValueByLogicalColour
-	:: Component.PieceSquareByCoordinatesByRank.PieceSquareByCoordinatesByRank T.X T.Y Type.Mass.PieceSquareValue
-	-> Board T.X T.Y
+	:: Component.PieceSquareByCoordinatesByRank.PieceSquareByCoordinatesByRank Type.Length.X Type.Length.Y Type.Mass.PieceSquareValue
+	-> Board Type.Length.X Type.Length.Y
 	->
 #ifdef USE_UNBOXED_ARRAYS
 	Attribute.LogicalColour.UArrayByLogicalColour
@@ -537,7 +537,7 @@ findAttackersOf :: (
 	-> Cartesian.Coordinates.Coordinates x y				-- ^ The defender's location.
 	-> Board x y
 	-> [(Cartesian.Coordinates.Coordinates x y, Attribute.Rank.Rank)]	-- ^ The locations from which the specified square can be attacked by the opposite /logical colour/.
-{-# SPECIALISE findAttackersOf :: Attribute.LogicalColour.LogicalColour -> Cartesian.Coordinates.Coordinates T.X T.Y -> Board T.X T.Y -> [(Cartesian.Coordinates.Coordinates T.X T.Y, Attribute.Rank.Rank)] #-}
+{-# SPECIALISE findAttackersOf :: Attribute.LogicalColour.LogicalColour -> Cartesian.Coordinates.Coordinates Type.Length.X Type.Length.Y -> Board Type.Length.X Type.Length.Y -> [(Cartesian.Coordinates.Coordinates Type.Length.X Type.Length.Y, Attribute.Rank.Rank)] #-}
 findAttackersOf destinationLogicalColour destination board@MkBoard { getMaybePieceByCoordinates	= maybePieceByCoordinates }	= [
 	(coordinates, Attribute.Rank.Knight) |
 		coordinates	<- StateProperty.Seeker.findProximateKnights (Property.Opposable.getOpposite destinationLogicalColour) destination board
@@ -562,7 +562,7 @@ findAttacksBy :: (
 	-> Cartesian.Coordinates.Coordinates x y	-- ^ The defender's location.
 	-> Board x y
 	-> [Cartesian.Coordinates.Coordinates x y]	-- ^ The sources from which the specified attacker could strike.
-{-# SPECIALISE findAttacksBy :: Component.Piece.Piece -> Cartesian.Coordinates.Coordinates T.X T.Y -> Board T.X T.Y -> [Cartesian.Coordinates.Coordinates T.X T.Y] #-}
+{-# SPECIALISE findAttacksBy :: Component.Piece.Piece -> Cartesian.Coordinates.Coordinates Type.Length.X Type.Length.Y -> Board Type.Length.X Type.Length.Y -> [Cartesian.Coordinates.Coordinates Type.Length.X Type.Length.Y] #-}
 findAttacksBy piece destination board
 	| rank == Attribute.Rank.Knight	= StateProperty.Seeker.findProximateKnights logicalColour destination board
 	| otherwise			= filter (
@@ -587,7 +587,7 @@ isKingChecked :: (
 	=> Attribute.LogicalColour.LogicalColour	-- ^ The /logical colour/ of the @King@ in question.
 	-> Board x y
 	-> Bool
-{-# SPECIALISE isKingChecked :: Attribute.LogicalColour.LogicalColour -> Board T.X T.Y -> Bool #-}
+{-# SPECIALISE isKingChecked :: Attribute.LogicalColour.LogicalColour -> Board Type.Length.X Type.Length.Y -> Bool #-}
 isKingChecked logicalColour board@MkBoard { getCoordinatesByRankByLogicalColour = coordinatesByRankByLogicalColour }	= not . null $ findAttackersOf logicalColour (State.CoordinatesByRankByLogicalColour.getKingsCoordinates logicalColour coordinatesByRankByLogicalColour) board
 
 {- |
@@ -607,7 +607,7 @@ exposesKing :: (
 	-> Component.Move.Move x y			-- ^ The /move/.
 	-> Board x y					-- ^ The original /board/, i.e. prior to the /move/.
 	-> Bool
-{-# SPECIALISE exposesKing :: Attribute.LogicalColour.LogicalColour -> Component.Move.Move T.X T.Y -> Board T.X T.Y -> Bool #-}
+{-# SPECIALISE exposesKing :: Attribute.LogicalColour.LogicalColour -> Component.Move.Move Type.Length.X Type.Length.Y -> Board Type.Length.X Type.Length.Y -> Bool #-}
 exposesKing logicalColour move board@MkBoard { getCoordinatesByRankByLogicalColour = coordinatesByRankByLogicalColour }
 	| source == kingsCoordinates	= not . null $ findAttackersOf logicalColour (Component.Move.getDestination move) board	-- CAVEAT: expensive, since all directions from the King may have to be explored.
 	| Just directionFromKing	<- Cartesian.Vector.toMaybeDirection (
@@ -634,7 +634,7 @@ countDefendersByCoordinatesByLogicalColour :: (
 	Ord	x,
 	Ord	y
  ) => Board x y -> NDefendersByCoordinatesByLogicalColour x y
-{-# SPECIALISE countDefendersByCoordinatesByLogicalColour :: Board T.X T.Y -> NDefendersByCoordinatesByLogicalColour T.X T.Y #-}
+{-# SPECIALISE countDefendersByCoordinatesByLogicalColour :: Board Type.Length.X Type.Length.Y -> NDefendersByCoordinatesByLogicalColour Type.Length.X Type.Length.Y #-}
 countDefendersByCoordinatesByLogicalColour board@MkBoard { getCoordinatesByRankByLogicalColour = coordinatesByRankByLogicalColour }	= Attribute.LogicalColour.listArrayByLogicalColour [
 	Data.Map.Strict.fromList [
 		(

@@ -70,8 +70,8 @@ import qualified	BishBosh.Property.Empty				as Property.Empty
 import qualified	BishBosh.Property.Null				as Property.Null
 import qualified	BishBosh.Property.Opposable			as Property.Opposable
 import qualified	BishBosh.Type.Count				as Type.Count
+import qualified	BishBosh.Type.Length				as Type.Length
 import qualified	BishBosh.Type.Mass				as Type.Mass
-import qualified	BishBosh.Types					as T
 import qualified	Control.Exception
 import qualified	Data.Default
 import qualified	Data.Foldable
@@ -157,7 +157,7 @@ instance (
 	Show	x,
 	Show	y
  ) => Data.Default.Default (GameTree x y) where
-	{-# SPECIALISE instance Data.Default.Default (GameTree T.X T.Y) #-}
+	{-# SPECIALISE instance Data.Default.Default (GameTree Type.Length.X Type.Length.Y) #-}
 	def	= fromGame Data.Default.def
 
 instance Property.Arboreal.Prunable (GameTree x y) where
@@ -188,7 +188,7 @@ fromGame :: (
 	Show	x,
 	Show	y
  ) => Model.Game.Game x y -> GameTree x y
-{-# SPECIALISE fromGame :: Model.Game.Game T.X T.Y -> GameTree T.X T.Y #-}
+{-# SPECIALISE fromGame :: Model.Game.Game Type.Length.X Type.Length.Y -> GameTree Type.Length.X Type.Length.Y #-}
 fromGame	= MkGameTree . Data.Tree.unfoldTree (
 	\game -> (
 		game,
@@ -206,11 +206,11 @@ fromGame	= MkGameTree . Data.Tree.unfoldTree (
 	* N.B.: some of the /game-state/s may have identical positions, reached by different sequences of /move/s.
 -}
 countGames :: Property.Arboreal.Depth -> Type.Count.NGames
-countGames depth	= Data.RoseTree.countTerminalNodes . deconstruct $ Property.Arboreal.prune depth (Data.Default.def :: GameTree T.X T.Y)
+countGames depth	= Data.RoseTree.countTerminalNodes . deconstruct $ Property.Arboreal.prune depth (Data.Default.def :: GameTree Type.Length.X Type.Length.Y)
 
 -- | Counts the number of possible positions in chess, down to the specified depth. N.B.: some of these may be transpositions.
 countPositions :: Property.Arboreal.Depth -> Type.Count.NPositions
-countPositions depth	= fromIntegral . pred {-the apex is constructed without moving-} . Data.Foldable.length . deconstruct $ Property.Arboreal.prune depth (Data.Default.def :: GameTree T.X T.Y)
+countPositions depth	= fromIntegral . pred {-the apex is constructed without moving-} . Data.Foldable.length . deconstruct $ Property.Arboreal.prune depth (Data.Default.def :: GameTree Type.Length.X Type.Length.Y)
 
 -- | Trace the route down the tree which matches the specified list of turns.
 traceRoute
@@ -243,7 +243,7 @@ sortGameTree :: (
 	-> Attribute.Rank.EvaluateRank rankValue
 	-> MoveFrequency x y
 	-> Transformation x y
-{-# SPECIALISE sortGameTree :: Maybe Attribute.CaptureMoveSortAlgorithm.CaptureMoveSortAlgorithm -> Attribute.Rank.EvaluateRank Type.Mass.RankValue -> MoveFrequency T.X T.Y -> Transformation T.X T.Y #-}
+{-# SPECIALISE sortGameTree :: Maybe Attribute.CaptureMoveSortAlgorithm.CaptureMoveSortAlgorithm -> Attribute.Rank.EvaluateRank Type.Mass.RankValue -> MoveFrequency Type.Length.X Type.Length.Y -> Transformation Type.Length.X Type.Length.Y #-}
 sortGameTree maybeCaptureMoveSortAlgorithm evaluateRank standardOpeningMoveFrequency MkGameTree { deconstruct = bareGameTree }	= MkGameTree $ Data.RoseTree.mapForest (
 	\game -> Data.Maybe.maybe id (
 		\case

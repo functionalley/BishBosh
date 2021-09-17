@@ -42,7 +42,7 @@ import qualified	BishBosh.Property.FixedMembership	as Property.FixedMembership
 import qualified	BishBosh.Property.Orientated		as Property.Orientated
 import qualified	BishBosh.Property.Reflectable		as Property.Reflectable
 import qualified	BishBosh.Property.Rotatable		as Property.Rotatable
-import qualified	BishBosh.Types				as T
+import qualified	BishBosh.Type.Length			as Type.Length
 import qualified	Data.Array.IArray
 import qualified	Data.List
 import qualified	Data.List.Extra
@@ -52,7 +52,7 @@ import qualified	ToolShed.Test.ReversibleIO
 import			Test.QuickCheck((==>))
 
 -- | Defines a concrete type for testing.
-type Coordinates	= Cartesian.Coordinates.Coordinates T.X T.Y
+type Coordinates	= Cartesian.Coordinates.Coordinates Type.Length.X Type.Length.Y
 
 instance (Enum x, Enum y) => Test.QuickCheck.Arbitrary (Cartesian.Coordinates.Coordinates x y) where
 --	{-# SPECIALISE instance Test.QuickCheck.Arbitrary Coordinates #-}
