@@ -42,8 +42,8 @@ import qualified	BishBosh.Model.GameTree						as Model.GameTree
 import qualified	BishBosh.Property.Null						as Property.Null
 import qualified	BishBosh.Test.QuickCheck.Component.Zobrist			as Test.QuickCheck.Component.Zobrist
 import qualified	BishBosh.Test.QuickCheck.ContextualNotation.QualifiedMoveForest	as Test.QuickCheck.ContextualNotation.QualifiedMoveForest
+import qualified	BishBosh.Type.Crypto						as Type.Crypto
 import qualified	BishBosh.Type.Length						as Type.Length
-import qualified	BishBosh.Types							as T
 import qualified	Data.Array.IArray
 import qualified	Data.Bits
 import qualified	Data.List
@@ -54,7 +54,7 @@ import qualified	Test.QuickCheck
 import			Test.QuickCheck((==>))
 
 -- | Defines a concrete type for testing.
-type PositionHashQualifiedMoveTree	= ContextualNotation.PositionHashQualifiedMoveTree.PositionHashQualifiedMoveTree Type.Length.X Type.Length.Y T.PositionHash
+type PositionHashQualifiedMoveTree	= ContextualNotation.PositionHashQualifiedMoveTree.PositionHashQualifiedMoveTree Type.Length.X Type.Length.Y Type.Crypto.PositionHash
 
 instance (
 	Data.Array.IArray.Ix	x,

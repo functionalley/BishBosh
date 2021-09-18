@@ -64,9 +64,9 @@ import qualified	BishBosh.Search.TranspositionValue			as Search.TranspositionVal
 import qualified	BishBosh.State.InstancesByPosition			as State.InstancesByPosition
 import qualified	BishBosh.State.TurnsByLogicalColour			as State.TurnsByLogicalColour
 import qualified	BishBosh.Type.Count					as Type.Count
+import qualified	BishBosh.Type.Crypto					as Type.Crypto
 import qualified	BishBosh.Type.Length					as Type.Length
 import qualified	BishBosh.Type.Mass					as Type.Mass
-import qualified	BishBosh.Types						as T
 import qualified	Control.Exception
 import qualified	Control.Monad.Reader
 import qualified	Data.Default
@@ -190,7 +190,7 @@ negaMax :: (
 	=> Type.Count.NPlies	-- ^ The depth to which the tree should be searched; i.e. the number of plies to look-ahead.
 	-> Search.SearchState.SearchState x y positionHash criterionValue weightedMean
 	-> Input.SearchOptions.Reader (Result x y positionHash criterionValue weightedMean)
-{-# SPECIALISE negaMax :: Type.Count.NPlies -> Search.SearchState.SearchState Type.Length.X Type.Length.Y T.PositionHash Type.Mass.CriterionValue Type.Mass.WeightedMean -> Input.SearchOptions.Reader (Result Type.Length.X Type.Length.Y T.PositionHash Type.Mass.CriterionValue Type.Mass.WeightedMean) #-}
+{-# SPECIALISE negaMax :: Type.Count.NPlies -> Search.SearchState.SearchState Type.Length.X Type.Length.Y Type.Crypto.PositionHash Type.Mass.CriterionValue Type.Mass.WeightedMean -> Input.SearchOptions.Reader (Result Type.Length.X Type.Length.Y Type.Crypto.PositionHash Type.Mass.CriterionValue Type.Mass.WeightedMean) #-}
 negaMax initialSearchDepth initialSearchState	= do
 	maybeMinimumTranspositionSearchDepth	<- Control.Monad.Reader.asks Input.SearchOptions.maybeMinimumTranspositionSearchDepth
 	recordKillerMoves			<- Control.Monad.Reader.asks Input.SearchOptions.recordKillerMoves

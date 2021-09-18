@@ -224,9 +224,9 @@ Library
         BishBosh.Time.GameClock
         BishBosh.Time.StopWatch
         BishBosh.Type.Count
+        BishBosh.Type.Crypto
         BishBosh.Type.Length
         BishBosh.Type.Mass
-        BishBosh.Types
         BishBosh.UI.Command
         BishBosh.UI.PrintObject
         BishBosh.UI.ReportObject

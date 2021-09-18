@@ -27,7 +27,7 @@
 	* CAVEAT: use of narrow numeric types, results in marginally slower performance without any reduction in space-requirements.
 -}
 
-module BishBosh.Types(
+module BishBosh.Type.Crypto(
 -- * Types
 -- ** Type-synonyms
 	PositionHash,

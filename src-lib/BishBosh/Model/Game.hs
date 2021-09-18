@@ -129,8 +129,8 @@ import qualified	BishBosh.StateProperty.Seeker			as StateProperty.Seeker
 import qualified	BishBosh.State.TurnsByLogicalColour		as State.TurnsByLogicalColour
 import qualified	BishBosh.Text.ShowList				as Text.ShowList
 import qualified	BishBosh.Type.Count				as Type.Count
+import qualified	BishBosh.Type.Crypto				as Type.Crypto
 import qualified	BishBosh.Type.Length				as Type.Length
-import qualified	BishBosh.Types					as T
 import qualified	Control.Arrow
 import qualified	Control.DeepSeq
 import qualified	Control.Exception
@@ -1553,7 +1553,7 @@ updateIncrementalPositionHash :: (
 	-> Game x y		-- ^ The current game.
 	-> Component.Zobrist.Zobrist x y positionHash
 	-> positionHash
-{-# SPECIALISE updateIncrementalPositionHash :: Game Type.Length.X Type.Length.Y -> T.PositionHash -> Game Type.Length.X Type.Length.Y -> Component.Zobrist.Zobrist Type.Length.X Type.Length.Y T.PositionHash -> T.PositionHash #-}
+{-# SPECIALISE updateIncrementalPositionHash :: Game Type.Length.X Type.Length.Y -> Type.Crypto.PositionHash -> Game Type.Length.X Type.Length.Y -> Component.Zobrist.Zobrist Type.Length.X Type.Length.Y Type.Crypto.PositionHash -> Type.Crypto.PositionHash #-}
 updateIncrementalPositionHash game positionHash game' zobrist	= Component.Zobrist.combine positionHash . (++) randomsFromMoveType . (
 	let
 		(castleableRooksByLogicalColour, castleableRooksByLogicalColour')	= ($ game) &&& ($ game') $ getCastleableRooksByLogicalColour

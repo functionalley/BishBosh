@@ -58,8 +58,8 @@ import qualified	BishBosh.Property.Reflectable			as Property.Reflectable
 import qualified	BishBosh.Rule.Result				as Rule.Result
 import qualified	BishBosh.State.Board				as State.Board
 import qualified	BishBosh.Type.Count				as Type.Count
+import qualified	BishBosh.Type.Crypto				as Type.Crypto
 import qualified	BishBosh.Type.Length				as Type.Length
-import qualified	BishBosh.Types					as T
 import qualified	Control.Arrow
 import qualified	Control.Exception
 import qualified	Data.Array.IArray
@@ -108,7 +108,7 @@ fromQualifiedMoveForest :: (
 	-> Component.Zobrist.Zobrist x y positionHash
 	-> ContextualNotation.QualifiedMoveForest.QualifiedMoveForest x y
 	-> PositionHashQualifiedMoveTree x y positionHash
-{-# SPECIALISE fromQualifiedMoveForest :: Bool -> Component.Zobrist.Zobrist Type.Length.X Type.Length.Y T.PositionHash -> ContextualNotation.QualifiedMoveForest.QualifiedMoveForest Type.Length.X Type.Length.Y -> PositionHashQualifiedMoveTree Type.Length.X Type.Length.Y T.PositionHash #-}
+{-# SPECIALISE fromQualifiedMoveForest :: Bool -> Component.Zobrist.Zobrist Type.Length.X Type.Length.Y Type.Crypto.PositionHash -> ContextualNotation.QualifiedMoveForest.QualifiedMoveForest Type.Length.X Type.Length.Y -> PositionHashQualifiedMoveTree Type.Length.X Type.Length.Y Type.Crypto.PositionHash #-}
 fromQualifiedMoveForest incrementalEvaluation zobrist qualifiedMoveForest	= MkPositionHashQualifiedMoveTree {
 	getZobrist		= zobrist,
 	getTree			= let
@@ -201,7 +201,7 @@ findNextOnymousQualifiedMovesForPosition :: (
 	Enum			y,
 	Ord			y
  ) => FindMatch x y positionHash
-{-# SPECIALISE findNextOnymousQualifiedMovesForPosition :: FindMatch Type.Length.X Type.Length.Y T.PositionHash #-}
+{-# SPECIALISE findNextOnymousQualifiedMovesForPosition :: FindMatch Type.Length.X Type.Length.Y Type.Crypto.PositionHash #-}
 findNextOnymousQualifiedMovesForPosition requiredGame positionHashQualifiedMoveTree@MkPositionHashQualifiedMoveTree {
 	getZobrist	= zobrist,
 	getTree		= tree
@@ -244,7 +244,7 @@ findNextJoiningOnymousQualifiedMovesFromPosition :: (
 	Show			x,
 	Show			y
  ) => FindMatch x y positionHash
-{-# SPECIALISE findNextJoiningOnymousQualifiedMovesFromPosition :: FindMatch Type.Length.X Type.Length.Y T.PositionHash #-}
+{-# SPECIALISE findNextJoiningOnymousQualifiedMovesFromPosition :: FindMatch Type.Length.X Type.Length.Y Type.Crypto.PositionHash #-}
 findNextJoiningOnymousQualifiedMovesFromPosition game positionHashQualifiedMoveTree	= [
 	(
 		preMatchQualifiedMove,
@@ -291,7 +291,7 @@ findNextOnymousQualifiedMoves :: (
  )
 	=> (Bool, Bool, Bool)	-- ^ MatchSwitches.
 	-> FindMatch x y positionHash
-{-# SPECIALISE findNextOnymousQualifiedMoves :: (Bool, Bool, Bool) -> FindMatch Type.Length.X Type.Length.Y T.PositionHash #-}
+{-# SPECIALISE findNextOnymousQualifiedMoves :: (Bool, Bool, Bool) -> FindMatch Type.Length.X Type.Length.Y Type.Crypto.PositionHash #-}
 findNextOnymousQualifiedMoves (tryToMatchMoves, tryToMatchViaJoiningMove, tryToMatchColourFlippedPosition) game positionHashQualifiedMoveTree
 	| cantConverge game positionHashQualifiedMoveTree	= []	-- The specified game is smaller than any defined in the tree.
 	| otherwise						= Data.Maybe.fromMaybe [] . Data.List.find (
@@ -339,7 +339,7 @@ maybeRandomlySelectOnymousQualifiedMove :: (
 	=> randomGen
 	-> (Bool, Bool, Bool)
 	-> Model.Game.Game Type.Length.X Type.Length.Y
-	-> PositionHashQualifiedMoveTree Type.Length.X Type.Length.Y T.PositionHash
+	-> PositionHashQualifiedMoveTree Type.Length.X Type.Length.Y Type.Crypto.PositionHash
 	-> Maybe (Component.QualifiedMove.QualifiedMove Type.Length.X Type.Length.Y, [ContextualNotation.QualifiedMoveForest.Name])
  #-}
 maybeRandomlySelectOnymousQualifiedMove randomGen matchSwitches game positionHashQualifiedMoveTree	= case findNextOnymousQualifiedMoves matchSwitches game positionHashQualifiedMoveTree of

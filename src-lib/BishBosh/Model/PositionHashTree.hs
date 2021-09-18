@@ -40,8 +40,8 @@ import qualified	BishBosh.Model.GameTree		as Model.GameTree
 import qualified	BishBosh.Property.Arboreal	as Property.Arboreal
 import qualified	BishBosh.Text.ShowList		as Text.ShowList
 import qualified	BishBosh.Type.Count		as Type.Count
+import qualified	BishBosh.Type.Crypto		as Type.Crypto
 import qualified	BishBosh.Type.Length		as Type.Length
-import qualified	BishBosh.Types			as T
 import qualified	Control.Exception
 import qualified	Data.Array.IArray
 import qualified	Data.Bits
@@ -84,7 +84,7 @@ countDistinctPositions
 	=> Property.Arboreal.Depth
 	-> PositionHashTree positionHash
 	-> Type.Count.NPositions
-{-# SPECIALISE countDistinctPositions :: Property.Arboreal.Depth -> PositionHashTree T.PositionHash -> Type.Count.NPositions #-}
+{-# SPECIALISE countDistinctPositions :: Property.Arboreal.Depth -> PositionHashTree Type.Crypto.PositionHash -> Type.Count.NPositions #-}
 countDistinctPositions depth MkPositionHashTree { deconstruct = barePositionHashTree }
 	| depth < 0	= Control.Exception.throw . Data.Exception.mkOutOfBounds . showString "BishBosh.Component.PositionHashTree.countDistinctPositions:\tdepth" . Text.ShowList.showsAssociation $ shows depth "must be positive"
 	| otherwise	= fromIntegral . Data.Set.size $ slave depth barePositionHashTree

@@ -39,9 +39,9 @@ import qualified	BishBosh.State.Position					as State.Position
 import qualified	BishBosh.Test.QuickCheck.Component.Zobrist		as Test.QuickCheck.Component.Zobrist
 import qualified	BishBosh.Test.QuickCheck.Input.EvaluationOptions	as Test.QuickCheck.Input.EvaluationOptions
 import qualified	BishBosh.Test.QuickCheck.Model.Game			as Test.QuickCheck.Model.Game
+import qualified	BishBosh.Type.Crypto					as Type.Crypto
 import qualified	BishBosh.Type.Length					as Type.Length
 import qualified	BishBosh.Type.Mass					as Type.Mass
-import qualified	BishBosh.Types						as T
 import qualified	Data.List.Extra
 import qualified	Data.Ord
 import qualified	Data.Tree
@@ -62,7 +62,7 @@ results	= sequence [
 		f evaluationOptions searchOptions zobrist game	= Test.QuickCheck.label "PositionHashQuantifiedGameTree.prop_mkPositionHashQuantifiedGameTree" $ prune (
 			Evaluation.PositionHashQuantifiedGameTree.mkPositionHashQuantifiedGameTree evaluationOptions {
 				Input.EvaluationOptions.getIncrementalEvaluation	= False
-			} searchOptions zobrist Property.Empty.empty {-MoveFrequency-} game	:: Evaluation.PositionHashQuantifiedGameTree.PositionHashQuantifiedGameTree Type.Length.X Type.Length.Y T.PositionHash Type.Mass.CriterionValue Type.Mass.WeightedMean
+			} searchOptions zobrist Property.Empty.empty {-MoveFrequency-} game	:: Evaluation.PositionHashQuantifiedGameTree.PositionHashQuantifiedGameTree Type.Length.X Type.Length.Y Type.Crypto.PositionHash Type.Mass.CriterionValue Type.Mass.WeightedMean
 		 ) == prune (
 			Evaluation.PositionHashQuantifiedGameTree.mkPositionHashQuantifiedGameTree evaluationOptions {
 				Input.EvaluationOptions.getIncrementalEvaluation	= True	-- CAVEAT: unrealistic given rounding-errors in incremental calculation of pieceSquareValue.
@@ -80,7 +80,7 @@ results	= sequence [
 			-> Test.QuickCheck.Property
 		f evaluationOptions searchOptions zobrist game	= not (null matches) ==> Test.QuickCheck.label "PositionHashQuantifiedGameTree.prop_hashCollisions" $ all (
 			Data.List.Extra.allSame . map (
-				Model.Game.mkPosition . Evaluation.QuantifiedGame.getGame . Evaluation.PositionHashQuantifiedGameTree.getQuantifiedGame	:: Evaluation.PositionHashQuantifiedGameTree.NodeLabel Type.Length.X Type.Length.Y T.PositionHash Type.Mass.CriterionValue Type.Mass.WeightedMean -> State.Position.Position Type.Length.X Type.Length.Y
+				Model.Game.mkPosition . Evaluation.QuantifiedGame.getGame . Evaluation.PositionHashQuantifiedGameTree.getQuantifiedGame	:: Evaluation.PositionHashQuantifiedGameTree.NodeLabel Type.Length.X Type.Length.Y Type.Crypto.PositionHash Type.Mass.CriterionValue Type.Mass.WeightedMean -> State.Position.Position Type.Length.X Type.Length.Y
 			)
 		 ) matches where
 			matches	= filter (
@@ -99,7 +99,7 @@ results	= sequence [
 		f evaluationOptions searchOptions zobrist	= Test.QuickCheck.label "PositionHashQuantifiedGameTree.prop_fitness" . all (
 			(<= 1) . abs
 		 ) . take 10000 . map (
-			Evaluation.QuantifiedGame.getFitness . Evaluation.PositionHashQuantifiedGameTree.getQuantifiedGame	:: Evaluation.PositionHashQuantifiedGameTree.NodeLabel Type.Length.X Type.Length.Y T.PositionHash Type.Mass.CriterionValue Type.Mass.WeightedMean -> Type.Mass.WeightedMean
+			Evaluation.QuantifiedGame.getFitness . Evaluation.PositionHashQuantifiedGameTree.getQuantifiedGame	:: Evaluation.PositionHashQuantifiedGameTree.NodeLabel Type.Length.X Type.Length.Y Type.Crypto.PositionHash Type.Mass.CriterionValue Type.Mass.WeightedMean -> Type.Mass.WeightedMean
 		 ) . Data.Tree.flatten . Evaluation.PositionHashQuantifiedGameTree.deconstruct . Evaluation.PositionHashQuantifiedGameTree.mkPositionHashQuantifiedGameTree evaluationOptions searchOptions zobrist Property.Empty.empty {-MoveFrequency-}
 	in Test.QuickCheck.quickCheckWithResult Test.QuickCheck.stdArgs { Test.QuickCheck.maxSuccess = 32 } f
  ]

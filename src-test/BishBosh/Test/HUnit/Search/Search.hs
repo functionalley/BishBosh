@@ -42,9 +42,9 @@ import qualified	BishBosh.Property.Empty					as Property.Empty
 import qualified	BishBosh.Property.ExtendedPositionDescription		as Property.ExtendedPositionDescription
 import qualified	BishBosh.Search.Search					as Search.Search
 import qualified	BishBosh.Search.SearchState				as Search.SearchState
+import qualified	BishBosh.Type.Crypto					as Type.Crypto
 import qualified	BishBosh.Type.Length					as Type.Length
 import qualified	BishBosh.Type.Mass					as Type.Mass
-import qualified	BishBosh.Types						as T
 import qualified	Control.Exception
 import qualified	Control.Monad.Reader
 import qualified	Data.Default
@@ -86,7 +86,7 @@ testCases	= Test.HUnit.test $ map (
 					Search.Search.search searchDepth $ Search.SearchState.initialise (
 						Evaluation.PositionHashQuantifiedGameTree.mkPositionHashQuantifiedGameTree (
 							evaluationOptions	:: Input.EvaluationOptions.EvaluationOptions Type.Mass.CriterionWeight Type.Mass.PieceSquareValue Type.Mass.RankValue Type.Length.X Type.Length.Y
-						) searchOptions Data.Default.def {-Zobrist-} Property.Empty.empty {-MoveFrequency-} game :: Evaluation.PositionHashQuantifiedGameTree.PositionHashQuantifiedGameTree Type.Length.X Type.Length.Y T.PositionHash Type.Mass.CriterionValue Type.Mass.WeightedMean
+						) searchOptions Data.Default.def {-Zobrist-} Property.Empty.empty {-MoveFrequency-} game :: Evaluation.PositionHashQuantifiedGameTree.PositionHashQuantifiedGameTree Type.Length.X Type.Length.Y Type.Crypto.PositionHash Type.Mass.CriterionValue Type.Mass.WeightedMean
 					 )
 				 ) searchOptions of
 					quantifiedGame : _	-> Evaluation.QuantifiedGame.getLastTurn quantifiedGame

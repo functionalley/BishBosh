@@ -35,8 +35,8 @@ import			Control.Arrow((&&&))
 import qualified	BishBosh.Component.Zobrist		as Component.Zobrist
 import qualified	BishBosh.Model.Game			as Model.Game
 import qualified	BishBosh.Test.QuickCheck.Model.Game	as Test.QuickCheck.Model.Game
+import qualified	BishBosh.Type.Crypto			as Type.Crypto
 import qualified	BishBosh.Type.Length			as Type.Length
-import qualified	BishBosh.Types				as T
 import qualified	Data.Array.IArray
 import qualified	Data.Bits
 import qualified	Data.List
@@ -44,7 +44,7 @@ import qualified	System.Random
 import qualified	Test.QuickCheck
 
 -- | Defines a concrete type for testing.
-type Zobrist	= Component.Zobrist.Zobrist Type.Length.X Type.Length.Y T.PositionHash
+type Zobrist	= Component.Zobrist.Zobrist Type.Length.X Type.Length.Y Type.Crypto.PositionHash
 
 instance (
 	Data.Array.IArray.Ix	x,
@@ -59,7 +59,7 @@ instance (
 --	{-# SPECIALISE instance Test.QuickCheck.Arbitrary Zobrist #-}
 	arbitrary	= Component.Zobrist.mkZobrist <$> fmap (
 		fmap (
-			`mod` 3	-- CAVEAT: this value is limited by the width of 'T.PositionHash'.
+			`mod` 3	-- CAVEAT: this value is limited by the width of 'Crypto.PositionHash'.
 		)
 	 ) Test.QuickCheck.arbitrary <*> fmap System.Random.mkStdGen Test.QuickCheck.arbitrary
 

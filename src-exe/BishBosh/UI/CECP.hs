@@ -84,9 +84,9 @@ import qualified	BishBosh.Text.ShowList						as Text.ShowList
 import qualified	BishBosh.Text.ShowPrefix					as Text.ShowPrefix
 import qualified	BishBosh.Time.StopWatch						as Time.StopWatch
 import qualified	BishBosh.Type.Count						as Type.Count
+import qualified	BishBosh.Type.Crypto						as Type.Crypto
 import qualified	BishBosh.Type.Length						as Type.Length
 import qualified	BishBosh.Type.Mass						as Type.Mass
-import qualified	BishBosh.Types							as T
 import qualified	BishBosh.UI.Command						as UI.Command
 import qualified	BishBosh.UI.PrintObject						as UI.PrintObject
 import qualified	BishBosh.UI.ReportObject					as UI.ReportObject
@@ -245,11 +245,11 @@ readMove :: forall column criterionValue criterionWeight pieceSquareValue positi
 	Show			row,
 	System.Random.RandomGen	randomGen
  )
-	=> ContextualNotation.PositionHashQualifiedMoveTree.PositionHashQualifiedMoveTree Type.Length.X Type.Length.Y T.PositionHash
+	=> ContextualNotation.PositionHashQualifiedMoveTree.PositionHashQualifiedMoveTree Type.Length.X Type.Length.Y Type.Crypto.PositionHash
 	-> randomGen
 	-> Time.StopWatch.StopWatch
-	-> State.PlayState.PlayState column Type.Mass.CriterionValue Type.Mass.CriterionWeight Type.Mass.PieceSquareValue T.PositionHash Type.Mass.RankValue row Type.Mass.WeightedMean Type.Length.X Type.Length.Y
-	-> IO (State.PlayState.PlayState column Type.Mass.CriterionValue Type.Mass.CriterionWeight Type.Mass.PieceSquareValue T.PositionHash Type.Mass.RankValue row Type.Mass.WeightedMean Type.Length.X Type.Length.Y)
+	-> State.PlayState.PlayState column Type.Mass.CriterionValue Type.Mass.CriterionWeight Type.Mass.PieceSquareValue Type.Crypto.PositionHash Type.Mass.RankValue row Type.Mass.WeightedMean Type.Length.X Type.Length.Y
+	-> IO (State.PlayState.PlayState column Type.Mass.CriterionValue Type.Mass.CriterionWeight Type.Mass.PieceSquareValue Type.Crypto.PositionHash Type.Mass.RankValue row Type.Mass.WeightedMean Type.Length.X Type.Length.Y)
  #-}
 readMove positionHashQualifiedMoveTree randomGen	= slave where
 	slave runningWatch playState	= let
@@ -1113,10 +1113,10 @@ takeTurns :: forall column criterionValue criterionWeight pieceSquareValue posit
 	Show			row,
 	System.Random.RandomGen	randomGen
  )
-	=> ContextualNotation.PositionHashQualifiedMoveTree.PositionHashQualifiedMoveTree Type.Length.X Type.Length.Y T.PositionHash
+	=> ContextualNotation.PositionHashQualifiedMoveTree.PositionHashQualifiedMoveTree Type.Length.X Type.Length.Y Type.Crypto.PositionHash
 	-> randomGen
-	-> State.PlayState.PlayState column Type.Mass.CriterionValue Type.Mass.CriterionWeight Type.Mass.PieceSquareValue T.PositionHash Type.Mass.RankValue row Type.Mass.WeightedMean Type.Length.X Type.Length.Y
-	-> IO (State.PlayState.PlayState column Type.Mass.CriterionValue Type.Mass.CriterionWeight Type.Mass.PieceSquareValue T.PositionHash Type.Mass.RankValue row Type.Mass.WeightedMean Type.Length.X Type.Length.Y)
+	-> State.PlayState.PlayState column Type.Mass.CriterionValue Type.Mass.CriterionWeight Type.Mass.PieceSquareValue Type.Crypto.PositionHash Type.Mass.RankValue row Type.Mass.WeightedMean Type.Length.X Type.Length.Y
+	-> IO (State.PlayState.PlayState column Type.Mass.CriterionValue Type.Mass.CriterionWeight Type.Mass.PieceSquareValue Type.Crypto.PositionHash Type.Mass.RankValue row Type.Mass.WeightedMean Type.Length.X Type.Length.Y)
  #-}
 takeTurns positionHashQualifiedMoveTree randomGen playState	= do
 	mVar	<- Control.Concurrent.newEmptyMVar

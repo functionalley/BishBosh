@@ -58,9 +58,9 @@ import qualified	BishBosh.Text.ShowColouredPrefix			as Text.ShowColouredPrefix
 import qualified	BishBosh.Text.ShowList					as Text.ShowList
 import qualified	BishBosh.Text.ShowPrefix				as Text.ShowPrefix
 import qualified	BishBosh.Type.Count					as Type.Count
+import qualified	BishBosh.Type.Crypto					as Type.Crypto
 import qualified	BishBosh.Type.Length					as Type.Length
 import qualified	BishBosh.Type.Mass					as Type.Mass
-import qualified	BishBosh.Types						as T
 import qualified	Control.Exception
 import qualified	Control.Monad
 import qualified	Data.Default
@@ -448,7 +448,7 @@ main	= do
 								 ) Property.Empty.empty {-QualifiedMoveForest-} (Input.IOOptions.getPGNOptionsList ioOptions)
 
 								let
-									maybeApplicationTerminationReason	= State.PlayState.getMaybeApplicationTerminationReason (playState :: State.PlayState.PlayState Column Type.Mass.CriterionValue Type.Mass.CriterionWeight Type.Mass.PieceSquareValue T.PositionHash Type.Mass.RankValue Row Type.Mass.WeightedMean Type.Length.X Type.Length.Y)
+									maybeApplicationTerminationReason	= State.PlayState.getMaybeApplicationTerminationReason (playState :: State.PlayState.PlayState Column Type.Mass.CriterionValue Type.Mass.CriterionWeight Type.Mass.PieceSquareValue Type.Crypto.PositionHash Type.Mass.RankValue Row Type.Mass.WeightedMean Type.Length.X Type.Length.Y)
 								 in Control.Monad.when (
 									verbosity /= minBound && Data.Maybe.isJust maybeApplicationTerminationReason
 								 ) . System.IO.hPutStrLn System.IO.stderr . showsInfoPrefix . showString "application terminated " $ shows (Data.Maybe.fromJust maybeApplicationTerminationReason) "."

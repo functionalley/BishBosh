@@ -81,9 +81,9 @@ import qualified	BishBosh.Model.GameTree					as Model.GameTree
 import qualified	BishBosh.Notation.MoveNotation				as Notation.MoveNotation
 import qualified	BishBosh.Property.Arboreal				as Property.Arboreal
 import qualified	BishBosh.Property.Null					as Property.Null
+import qualified	BishBosh.Type.Crypto					as Type.Crypto
 import qualified	BishBosh.Type.Length					as Type.Length
 import qualified	BishBosh.Type.Mass					as Type.Mass
-import qualified	BishBosh.Types						as T
 import qualified	Control.Arrow
 import qualified	Control.Monad.Reader
 import qualified	Data.Array.IArray
@@ -184,10 +184,10 @@ mkPositionHashQuantifiedGameTree :: (
 {-# SPECIALISE mkPositionHashQuantifiedGameTree
 	:: Input.EvaluationOptions.EvaluationOptions Type.Mass.CriterionWeight Type.Mass.PieceSquareValue Type.Mass.RankValue Type.Length.X Type.Length.Y
 	-> Input.SearchOptions.SearchOptions
-	-> Component.Zobrist.Zobrist Type.Length.X Type.Length.Y T.PositionHash
+	-> Component.Zobrist.Zobrist Type.Length.X Type.Length.Y Type.Crypto.PositionHash
 	-> Model.GameTree.MoveFrequency Type.Length.X Type.Length.Y
 	-> Model.Game.Game Type.Length.X Type.Length.Y
-	-> PositionHashQuantifiedGameTree Type.Length.X Type.Length.Y T.PositionHash Type.Mass.CriterionValue Type.Mass.WeightedMean
+	-> PositionHashQuantifiedGameTree Type.Length.X Type.Length.Y Type.Crypto.PositionHash Type.Mass.CriterionValue Type.Mass.WeightedMean
  #-}
 mkPositionHashQuantifiedGameTree evaluationOptions searchOptions zobrist moveFrequency seedGame	= MkPositionHashQuantifiedGameTree (
 	if Input.EvaluationOptions.getIncrementalEvaluation evaluationOptions
