@@ -20,17 +20,12 @@ SHELL		= /bin/bash
 GHC_OPTIONS	= --ghc-options='-j'
 BIN_DIR		= $$HOME/.local/bin/
 
-# Build 'graphmod'.
-$(BIN_DIR)/graphmod:
-	@stack install graphmod $(GHC_OPTIONS)
+$(BIN_DIR)/graphmod $(BIN_DIR)/hlint:
+	@[ -x $@ ] || stack install $(suffix @) $(GHC_OPTIONS)
 
 # Display the module-dependency graph.
 graphmod: $(BIN_DIR)/graphmod
 	@$@ --graph-dim='40,24' -i 'src-lib' -i 'src-exe' Main | tred | dot -Tsvg | display
-
-# Build 'hlint'.
-$(BIN_DIR)/hlint:
-	@stack install hlint $(GHC_OPTIONS)
 
 # Groom sourcecode.
 hlint: $(BIN_DIR)/hlint
@@ -83,7 +78,7 @@ xboard: $(BIN_DIR)/$(PACKAGE_NAME)
 
 # Start a battle.
 duel: $(BIN_DIR)/duel
-	@$@ --nGames=32 --verbosity='Verbose' -i 'config/Raw/bishbosh_$@_white.xml' -i 'config/Raw/bishbosh_$@_black.xml'
+	@$@ --nGames=32 --verbosity='Verbose' -i 'config/Raw/$(PACKAGE_NAME)_$@_white.xml' -i 'config/Raw/$(PACKAGE_NAME)_$@_black.xml'
 
 # Build the source-code documentation.
 haddock:
