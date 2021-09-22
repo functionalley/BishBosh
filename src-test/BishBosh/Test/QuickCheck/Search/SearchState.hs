@@ -1,4 +1,4 @@
-{-# LANGUAGE CPP, ScopedTypeVariables #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 {-
 	Copyright (C) 2018 Dr. Alistair Ward
@@ -46,42 +46,29 @@ import qualified	Data.Bits
 import qualified	System.Random
 import qualified	Test.QuickCheck
 
-#ifdef USE_PARALLEL
-import qualified	Control.DeepSeq
-#endif
-
 -- | A suitable concrete type for testing.
-type SearchState	= Search.SearchState.SearchState Type.Length.X Type.Length.Y Type.Crypto.PositionHash Type.Mass.CriterionValue Type.Mass.WeightedMean
+type SearchState	= Search.SearchState.SearchState Type.Length.X Type.Length.Y Type.Crypto.PositionHash
 
-instance forall x y positionHash criterionValue weightedMean. (
-#ifdef USE_PARALLEL
-	Control.DeepSeq.NFData		criterionValue,
-#endif
+instance forall x y positionHash. (
 	Data.Array.IArray.Ix		x,
 	Data.Bits.FiniteBits		positionHash,
-	Fractional			criterionValue,
-	Fractional			weightedMean,
 	Integral			x,
 	Integral			y,
 	Num				positionHash,
-	Real				criterionValue,
-	Real				weightedMean,
 	Show				positionHash,
 	Show				x,
 	Show				y,
 	System.Random.Random		positionHash,
-	Test.QuickCheck.Arbitrary	criterionValue,
-	Test.QuickCheck.Arbitrary	weightedMean,
 	Test.QuickCheck.Arbitrary	x,
 	Test.QuickCheck.Arbitrary	y
- ) => Test.QuickCheck.Arbitrary (Search.SearchState.SearchState x y positionHash criterionValue weightedMean) where
+ ) => Test.QuickCheck.Arbitrary (Search.SearchState.SearchState x y positionHash) where
 	{-# SPECIALISE instance Test.QuickCheck.Arbitrary SearchState #-}
 	arbitrary	= do
 		evaluationOptions	<- Test.QuickCheck.arbitrary
 
 		Search.SearchState.initialise <$> (
 			Evaluation.PositionHashQuantifiedGameTree.mkPositionHashQuantifiedGameTree (
-				evaluationOptions	:: Input.EvaluationOptions.EvaluationOptions Type.Mass.CriterionWeight Type.Mass.PieceSquareValue Type.Mass.RankValue x y
+				evaluationOptions	:: Input.EvaluationOptions.EvaluationOptions Type.Mass.PieceSquareValue Type.Mass.RankValue x y
 			) <$> Test.QuickCheck.arbitrary {-SearchOptions-} <*> Test.QuickCheck.arbitrary {-Zobrist-} <*> return {-to Gen-monad-} Property.Empty.empty {-MoveFrequency-} <*> Test.QuickCheck.arbitrary {-Game-}
 		 )
 

@@ -1,4 +1,3 @@
-{-# LANGUAGE CPP #-}
 {-
 	Copyright (C) 2018 Dr. Alistair Ward
 
@@ -23,7 +22,7 @@
  [@DESCRIPTION@]	Defines the weight associated with each criterion.
 -}
 
-module BishBosh.Input.CriteriaWeights(
+module BishBosh.Metric.CriteriaWeights(
 -- * Types
 -- ** Type-synonyms
 --	Transformation,
@@ -53,60 +52,60 @@ module BishBosh.Input.CriteriaWeights(
 -- * Functions
 	calculateWeightedMean,
 	normalise,
-	perturbWeights,
+--	perturbWeights,
 -- ** Constructor
 	mkCriteriaWeights
 ) where
 
-import qualified	BishBosh.Attribute.CriterionValue			as Attribute.CriterionValue
-import qualified	BishBosh.Attribute.CriterionWeight			as Attribute.CriterionWeight
-import qualified	BishBosh.Attribute.WeightedMeanAndCriterionValues	as Attribute.WeightedMeanAndCriterionValues
-import qualified	BishBosh.Data.Exception					as Data.Exception
-import qualified	BishBosh.Property.ShowFloat				as Property.ShowFloat
-import qualified	BishBosh.Text.ShowList					as Text.ShowList
-import qualified	BishBosh.Type.Mass					as Type.Mass
+import qualified	BishBosh.Data.Exception				as Data.Exception
+import qualified	BishBosh.Metric.CriterionValue			as Metric.CriterionValue
+import qualified	BishBosh.Metric.CriterionWeight			as Metric.CriterionWeight
+import qualified	BishBosh.Metric.WeightedMeanAndCriterionValues	as Metric.WeightedMeanAndCriterionValues
+import qualified	BishBosh.Property.ShowFloat			as Property.ShowFloat
+import qualified	BishBosh.Text.ShowList				as Text.ShowList
+import qualified	BishBosh.Type.Mass				as Type.Mass
 import qualified	Control.Arrow
 import qualified	Control.DeepSeq
 import qualified	Control.Exception
 import qualified	Data.Default
 import qualified	System.Random
-import qualified	Text.XML.HXT.Arrow.Pickle				as HXT
+import qualified	Text.XML.HXT.Arrow.Pickle			as HXT
 
 -- | Used to qualify the XML.
 tag :: String
-tag					= "criteriaWeights"
+tag				= "criteriaWeights"
 
 -- | Used to qualify the XML.
 weightOfMaterialTag :: String
-weightOfMaterialTag			= "material"
+weightOfMaterialTag		= "material"
 
 -- | Used to qualify the XML.
 weightOfMobilityTag :: String
-weightOfMobilityTag			= "mobility"
+weightOfMobilityTag		= "mobility"
 
 -- | Used to qualify the XML.
 weightOfPieceSquareValueTag :: String
-weightOfPieceSquareValueTag		= "pieceSquareValue"
+weightOfPieceSquareValueTag	= "pieceSquareValue"
 
 -- | Used to qualify the XML.
 weightOfCastlingPotentialTag :: String
-weightOfCastlingPotentialTag		= "castlingPotential"
+weightOfCastlingPotentialTag	= "castlingPotential"
 
 -- | Used to qualify the XML.
 weightOfDefenceTag :: String
-weightOfDefenceTag			= "defence"
+weightOfDefenceTag		= "defence"
 
 -- | Used to qualify the XML.
 weightOfDoubledPawnsTag :: String
-weightOfDoubledPawnsTag			= "doubledPawns"
+weightOfDoubledPawnsTag		= "doubledPawns"
 
 -- | Used to qualify the XML.
 weightOfIsolatedPawnsTag :: String
-weightOfIsolatedPawnsTag		= "isolatedPawns"
+weightOfIsolatedPawnsTag	= "isolatedPawns"
 
 -- | Used to qualify the XML.
 weightOfPassedPawnsTag :: String
-weightOfPassedPawnsTag			= "passedPawns"
+weightOfPassedPawnsTag		= "passedPawns"
 
 {- |
 	* The weight of various criteria used to select a /move/ from alternatives, at a specific point in the game.
@@ -114,36 +113,35 @@ weightOfPassedPawnsTag			= "passedPawns"
 	* CAVEAT: these weights determine the effective value of /isolated/ or /doubled/ @Pawn@s,
 	& this value shouldn't be less than their weighted normalised /rank-value/, otherwise sacrifice would be beneficial.
 -}
-data CriteriaWeights criterionWeight	= MkCriteriaWeights {
-	getWeightOfMaterial		:: Attribute.CriterionWeight.CriterionWeight criterionWeight,	-- ^ The arithmetic difference between the total /rank-value/ of the /piece/s currently in play on either side; <https://www.chessprogramming.org/Material>.
-	getWeightOfMobility		:: Attribute.CriterionWeight.CriterionWeight criterionWeight,	-- ^ The arithmetic difference between the reciprocal of the number of destinations available to the /piece/s of either side. N.B. this weight can be derived from 'getWeightOfMaterial' since losing a @Queen@ is less significant than reducing mobility to zero; <https://www.chessprogramming.org/Mobility>.
-	getWeightOfPieceSquareValue	:: Attribute.CriterionWeight.CriterionWeight criterionWeight,	-- ^ The arithmetic difference in the values of the squares occupied by the pieces of either side.
-	getWeightOfCastlingPotential	:: Attribute.CriterionWeight.CriterionWeight criterionWeight,	-- ^ Whether each player has been permanently prevented from /Castling/.
-	getWeightOfDefence		:: Attribute.CriterionWeight.CriterionWeight criterionWeight,	-- ^ The arithmetic difference between the number of /piece/s defending each of one's own, compared with the opponent.
-	getWeightOfDoubledPawns		:: Attribute.CriterionWeight.CriterionWeight criterionWeight,	-- ^ The arithmetic difference between the total number of /doubled/ @Pawn@s on either side; <https://www.chessprogramming.org/Doubled_Pawn>.
-	getWeightOfIsolatedPawns	:: Attribute.CriterionWeight.CriterionWeight criterionWeight,	-- ^ The arithmetic difference between the total number of /isolated/ @Pawn@s on either side; <https://www.chessprogramming.org/Isolated_Pawn>.
-	getWeightOfPassedPawns		:: Attribute.CriterionWeight.CriterionWeight criterionWeight	-- ^ The arithmetic difference between the total number of /passed/ @Pawn@s on either side; <https://www.chessprogramming.org/Passed_Pawn>.
+data CriteriaWeights	= MkCriteriaWeights {
+	getWeightOfMaterial		:: Metric.CriterionWeight.CriterionWeight,	-- ^ The arithmetic difference between the total /rank-value/ of the /piece/s currently in play on either side; <https://www.chessprogramming.org/Material>.
+	getWeightOfMobility		:: Metric.CriterionWeight.CriterionWeight,	-- ^ The arithmetic difference between the reciprocal of the number of destinations available to the /piece/s of either side. N.B. this weight can be derived from 'getWeightOfMaterial' since losing a @Queen@ is less significant than reducing mobility to zero; <https://www.chessprogramming.org/Mobility>.
+	getWeightOfPieceSquareValue	:: Metric.CriterionWeight.CriterionWeight,	-- ^ The arithmetic difference in the values of the squares occupied by the pieces of either side.
+	getWeightOfCastlingPotential	:: Metric.CriterionWeight.CriterionWeight,	-- ^ Whether each player has been permanently prevented from /Castling/.
+	getWeightOfDefence		:: Metric.CriterionWeight.CriterionWeight,	-- ^ The arithmetic difference between the number of /piece/s defending each of one's own, compared with the opponent.
+	getWeightOfDoubledPawns		:: Metric.CriterionWeight.CriterionWeight,	-- ^ The arithmetic difference between the total number of /doubled/ @Pawn@s on either side; <https://www.chessprogramming.org/Doubled_Pawn>.
+	getWeightOfIsolatedPawns	:: Metric.CriterionWeight.CriterionWeight,	-- ^ The arithmetic difference between the total number of /isolated/ @Pawn@s on either side; <https://www.chessprogramming.org/Isolated_Pawn>.
+	getWeightOfPassedPawns		:: Metric.CriterionWeight.CriterionWeight	-- ^ The arithmetic difference between the total number of /passed/ @Pawn@s on either side; <https://www.chessprogramming.org/Passed_Pawn>.
 } deriving (Eq, Show)
 
 -- | Smart-constructor.
 mkCriteriaWeights
-	:: (Eq criterionWeight, Num criterionWeight)
-	=> Attribute.CriterionWeight.CriterionWeight criterionWeight	-- ^ /material/.
-	-> Attribute.CriterionWeight.CriterionWeight criterionWeight	-- ^ /mobility/.
-	-> Attribute.CriterionWeight.CriterionWeight criterionWeight	-- ^ /pieceSquareValue/.
-	-> Attribute.CriterionWeight.CriterionWeight criterionWeight	-- ^ /castlingPotential/.
-	-> Attribute.CriterionWeight.CriterionWeight criterionWeight	-- ^ /defence/.
-	-> Attribute.CriterionWeight.CriterionWeight criterionWeight	-- ^ /doubledPawns/.
-	-> Attribute.CriterionWeight.CriterionWeight criterionWeight	-- ^ /isolatedPawns/.
-	-> Attribute.CriterionWeight.CriterionWeight criterionWeight	-- ^ /passedPawns/.
-	-> CriteriaWeights criterionWeight
+	:: Metric.CriterionWeight.CriterionWeight	-- ^ /material/.
+	-> Metric.CriterionWeight.CriterionWeight	-- ^ /mobility/.
+	-> Metric.CriterionWeight.CriterionWeight	-- ^ /pieceSquareValue/.
+	-> Metric.CriterionWeight.CriterionWeight	-- ^ /castlingPotential/.
+	-> Metric.CriterionWeight.CriterionWeight	-- ^ /defence/.
+	-> Metric.CriterionWeight.CriterionWeight	-- ^ /doubledPawns/.
+	-> Metric.CriterionWeight.CriterionWeight	-- ^ /isolatedPawns/.
+	-> Metric.CriterionWeight.CriterionWeight	-- ^ /passedPawns/.
+	-> CriteriaWeights
 mkCriteriaWeights a b c d e f g h
-	| criteriaWeights == minBound	= Control.Exception.throw $ Data.Exception.mkInvalidDatum "BishBosh.Input.CriteriaWeights.mkCriteriaWeights:\tall weights are zero."
+	| criteriaWeights == minBound	= Control.Exception.throw $ Data.Exception.mkInvalidDatum "BishBosh.Metric.CriteriaWeights.mkCriteriaWeights:\tall weights are zero."
 	| otherwise			= criteriaWeights
 	where
 		criteriaWeights	= MkCriteriaWeights a b c d e f g h
 
-instance Real criterionWeight => Property.ShowFloat.ShowFloat (CriteriaWeights criterionWeight) where
+instance Property.ShowFloat.ShowFloat CriteriaWeights where
 	showsFloat fromDouble MkCriteriaWeights {
 		getWeightOfMaterial		= weightOfMaterial,
 		getWeightOfMobility		= weightOfMobility,
@@ -154,7 +152,7 @@ instance Real criterionWeight => Property.ShowFloat.ShowFloat (CriteriaWeights c
 		getWeightOfIsolatedPawns	= weightOfIsolatedPawns,
 		getWeightOfPassedPawns		= weightOfPassedPawns
 	} = Text.ShowList.showsAssociationList' $ map (
-		Control.Arrow.second $ fromDouble . realToFrac . Attribute.CriterionWeight.deconstruct
+		Control.Arrow.second $ fromDouble . realToFrac
 	 ) [
 		(
 			weightOfMaterialTag,		weightOfMaterial
@@ -175,7 +173,7 @@ instance Real criterionWeight => Property.ShowFloat.ShowFloat (CriteriaWeights c
 		)
 	 ]
 
-instance Num criterionWeight => Data.Default.Default (CriteriaWeights criterionWeight) where
+instance Data.Default.Default CriteriaWeights where
 	def = MkCriteriaWeights {
 		getWeightOfMaterial		= maxBound,
 		getWeightOfMobility		= Data.Default.def,
@@ -187,19 +185,14 @@ instance Num criterionWeight => Data.Default.Default (CriteriaWeights criterionW
 		getWeightOfPassedPawns		= Data.Default.def
 	}
 
-instance Control.DeepSeq.NFData criterionWeight => Control.DeepSeq.NFData (CriteriaWeights criterionWeight) where
+instance Control.DeepSeq.NFData CriteriaWeights where
 	rnf (MkCriteriaWeights a b c d e f g h)	= Control.DeepSeq.rnf [a, b, c, d, e, f, g, h]
 
-instance Num criterionWeight => Bounded (CriteriaWeights criterionWeight) where
+instance Bounded CriteriaWeights where
 	maxBound	= MkCriteriaWeights maxBound maxBound maxBound maxBound maxBound maxBound maxBound maxBound
 	minBound	= MkCriteriaWeights minBound minBound minBound minBound minBound minBound minBound minBound
 
-instance (
-	HXT.XmlPickler	criterionWeight,
-	Num		criterionWeight,
-	Ord		criterionWeight,
-	Show		criterionWeight
- ) => HXT.XmlPickler (CriteriaWeights criterionWeight) where
+instance HXT.XmlPickler CriteriaWeights where
 	xpickle	= HXT.xpDefault Data.Default.def . HXT.xpElem tag $ HXT.xpWrap (
 		\(a, b, c, d, e, f, g, h) -> mkCriteriaWeights a b c d e f g h,	-- Construct.
 		\MkCriteriaWeights {
@@ -249,36 +242,17 @@ instance (
 
 	* Also writes individual unweighted /criterion-value/s, to facilitate post-analysis; if the corresponding weight is zero, for efficiency evaluation of the criterion is avoided.
 -}
-calculateWeightedMean :: (
-#ifdef USE_PARALLEL
-	Control.DeepSeq.NFData	criterionValue,
-#endif
-	Fractional		weightedMean,
-	Real			criterionValue,
-	Real			criterionWeight
- )
-	=> CriteriaWeights criterionWeight
-	-> Attribute.CriterionValue.CriterionValue criterionValue						-- ^ /material/:	maximum if a player's /move/ equals the maximum total piece value (including /queened/ @Pawn@s), while their opponent has just a @King@.
-	-> Attribute.CriterionValue.CriterionValue criterionValue						-- ^ /mobility/:	maximum when the opponent is check-mated.
-	-> Attribute.CriterionValue.CriterionValue criterionValue						-- ^ /pieceSquareValue/:	maximum when this player occupies all the strategically important squares & the opponent none.
-	-> Attribute.CriterionValue.CriterionValue criterionValue						-- ^ /castlingPotential/:	maximum when this player either has /castled/ or can, but the opponent has been permanently prevented.
-	-> Attribute.CriterionValue.CriterionValue criterionValue						-- ^ /defence/:	maximum when this player's /piece/s are fully utilised in defence, but none of the opponent's are.
-	-> Attribute.CriterionValue.CriterionValue criterionValue						-- ^ /doubledPawns/:	maximum when this player hasn't any /doubled/ @Pawn@s & the opponent has two files of four @Pawn@s.
-	-> Attribute.CriterionValue.CriterionValue criterionValue						-- ^ /isolatedPawns/:	maximum when this player hasn't any /isolated/ @Pawn@s & all the opponent's @Pawn@s are /isolated/.
-	-> Attribute.CriterionValue.CriterionValue criterionValue						-- ^ /passedPawns/:	maximum when this player has 8 /passed/ @Pawn@s & the opponent has none.
-	-> Attribute.WeightedMeanAndCriterionValues.WeightedMeanAndCriterionValues weightedMean criterionValue	-- ^ The individual /criteria/ values, & their /weighted mean/.
-{-# SPECIALISE calculateWeightedMean
-	:: CriteriaWeights Type.Mass.CriterionWeight
-	-> Attribute.CriterionValue.CriterionValue Type.Mass.CriterionValue
-	-> Attribute.CriterionValue.CriterionValue Type.Mass.CriterionValue
-	-> Attribute.CriterionValue.CriterionValue Type.Mass.CriterionValue
-	-> Attribute.CriterionValue.CriterionValue Type.Mass.CriterionValue
-	-> Attribute.CriterionValue.CriterionValue Type.Mass.CriterionValue
-	-> Attribute.CriterionValue.CriterionValue Type.Mass.CriterionValue
-	-> Attribute.CriterionValue.CriterionValue Type.Mass.CriterionValue
-	-> Attribute.CriterionValue.CriterionValue Type.Mass.CriterionValue
-	-> Attribute.WeightedMeanAndCriterionValues.WeightedMeanAndCriterionValues Type.Mass.WeightedMean Type.Mass.CriterionValue
- #-}
+calculateWeightedMean
+	:: CriteriaWeights
+	-> Metric.CriterionValue.CriterionValue					-- ^ /material/:	maximum if a player's /move/ equals the maximum total piece value (including /queened/ @Pawn@s), while their opponent has just a @King@.
+	-> Metric.CriterionValue.CriterionValue					-- ^ /mobility/:	maximum when the opponent is check-mated.
+	-> Metric.CriterionValue.CriterionValue					-- ^ /pieceSquareValue/:	maximum when this player occupies all the strategically important squares & the opponent none.
+	-> Metric.CriterionValue.CriterionValue					-- ^ /castlingPotential/:	maximum when this player either has /castled/ or can, but the opponent has been permanently prevented.
+	-> Metric.CriterionValue.CriterionValue					-- ^ /defence/:	maximum when this player's /piece/s are fully utilised in defence, but none of the opponent's are.
+	-> Metric.CriterionValue.CriterionValue					-- ^ /doubledPawns/:	maximum when this player hasn't any /doubled/ @Pawn@s & the opponent has two files of four @Pawn@s.
+	-> Metric.CriterionValue.CriterionValue					-- ^ /isolatedPawns/:	maximum when this player hasn't any /isolated/ @Pawn@s & all the opponent's @Pawn@s are /isolated/.
+	-> Metric.CriterionValue.CriterionValue					-- ^ /passedPawns/:	maximum when this player has 8 /passed/ @Pawn@s & the opponent has none.
+	-> Metric.WeightedMeanAndCriterionValues.WeightedMeanAndCriterionValues	-- ^ The individual /criteria/ values, & their /weighted mean/.
 calculateWeightedMean MkCriteriaWeights {
 	getWeightOfMaterial		= weightOfMaterial,
 	getWeightOfMobility		= weightOfMobility,
@@ -288,7 +262,7 @@ calculateWeightedMean MkCriteriaWeights {
 	getWeightOfDoubledPawns		= weightOfDoubledPawns,
 	getWeightOfIsolatedPawns	= weightOfIsolatedPawns,
 	getWeightOfPassedPawns		= weightOfPassedPawns
-} material mobility pieceSquareValue castlingPotential defence doubledPawns isolatedPawns passedPawns	= Attribute.CriterionValue.calculateWeightedMean [
+} material mobility pieceSquareValue castlingPotential defence doubledPawns isolatedPawns passedPawns	= Metric.WeightedMeanAndCriterionValues.calculateWeightedMean [
 	(
 		material,		weightOfMaterial
 	), (
@@ -309,14 +283,10 @@ calculateWeightedMean MkCriteriaWeights {
  ]
 
 -- | The type of a function which mutates 'CriteriaWeights'.
-type Transformation criterionWeight	= CriteriaWeights criterionWeight -> CriteriaWeights criterionWeight
+type Transformation	= CriteriaWeights -> CriteriaWeights
 
 -- | Adjust the mean weight, so that the maximum weight is @1@.
-normalise :: (
-	Fractional	criterionWeight,
-	Ord		criterionWeight,
-	Show		criterionWeight
- ) => Transformation criterionWeight
+normalise :: Transformation
 normalise criteriaWeights@MkCriteriaWeights {
 	getWeightOfMaterial		= weightOfMaterial,
 	getWeightOfMobility		= weightOfMobility,
@@ -338,35 +308,29 @@ normalise criteriaWeights@MkCriteriaWeights {
 	getWeightOfIsolatedPawns	= normaliseCriterionWeight weightOfIsolatedPawns,
 	getWeightOfPassedPawns		= normaliseCriterionWeight weightOfPassedPawns
  } where
-	normaliseCriterionWeight	= Attribute.CriterionWeight.mkCriterionWeight . (
-		/ Attribute.CriterionWeight.deconstruct (
-			maximum [
-				weightOfMaterial,
-				weightOfMobility,
-				weightOfPieceSquareValue,
-				weightOfCastlingPotential,
-				weightOfDefence,
-				weightOfDoubledPawns,
-				weightOfIsolatedPawns,
-				weightOfPassedPawns
-			]
-		)
-	 ) . Attribute.CriterionWeight.deconstruct
+	normaliseCriterionWeight	= (
+		/ maximum [
+			weightOfMaterial,
+			weightOfMobility,
+			weightOfPieceSquareValue,
+			weightOfCastlingPotential,
+			weightOfDefence,
+			weightOfDoubledPawns,
+			weightOfIsolatedPawns,
+			weightOfPassedPawns
+		]
+	 )
 
 {- |
 	* Independently perturbs each /criterion-weight/ by a random value, of configurable magnitude.
 
 	* Under this transformation, /criterion-weight/s of @0@, will remain unchanged, thus irrelevant criteria remain irrelevant.
 -}
-perturbWeights :: (
-	Fractional		criterionWeight,
-	Real			criterionWeight,
-	Show			criterionWeight,
-	System.Random.RandomGen	randomGen
- )
+perturbWeights
+	:: System.Random.RandomGen randomGen
 	=> randomGen
-	-> criterionWeight	-- ^ Change-magnitude.
-	-> Transformation criterionWeight
+	-> Type.Mass.CriterionWeight	-- ^ Change-magnitude.
+	-> Transformation
 perturbWeights _ 0 criteriaWeights	= criteriaWeights
 perturbWeights randomGen changeMagnitude MkCriteriaWeights {
 	getWeightOfMaterial		= weightOfMaterial,
@@ -388,14 +352,14 @@ perturbWeights randomGen changeMagnitude MkCriteriaWeights {
 	getWeightOfPassedPawns		= reduceBy h weightOfPassedPawns
 } where
 	(a : b : c : d : e : f : g : h : _)	= System.Random.randomRs (1 :: Double, succ $ realToFrac changeMagnitude) randomGen
-	reduceBy randomValue			= Attribute.CriterionWeight.mkCriterionWeight . (/ realToFrac randomValue) . Attribute.CriterionWeight.deconstruct	-- N.B. this always reduces the weight, leaving 'normalise' to correct this.
+	reduceBy randomValue			= (/ realToFrac randomValue)	-- N.B. this always reduces the weight, leaving 'normalise' to correct this.
 
 -- | A constant list of named accessors & mutators.
 onymousOperators :: [
 	(
-		String,												-- Tag.
-		CriteriaWeights criterionWeight -> Attribute.CriterionWeight.CriterionWeight criterionWeight,	-- Accessor.
-		Attribute.CriterionWeight.CriterionWeight criterionWeight -> Transformation criterionWeight	-- Mutator.
+		String,								-- Tag.
+		CriteriaWeights -> Metric.CriterionWeight.CriterionWeight,	-- Accessor.
+		Metric.CriterionWeight.CriterionWeight -> Transformation	-- Mutator.
 	) -- Triple.
  ]
 onymousOperators	= [

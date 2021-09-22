@@ -46,33 +46,23 @@ import qualified	BishBosh.Search.EphemeralData				as Search.EphemeralData
 import qualified	Control.Exception
 
 -- | The data which is both received & returned by 'Search.Search.search', so that it is transported through the entire game.
-data SearchState x y positionHash criterionValue weightedMean	= MkSearchState {
-	getPositionHashQuantifiedGameTree	:: Evaluation.PositionHashQuantifiedGameTree.PositionHashQuantifiedGameTree x y positionHash criterionValue weightedMean,
+data SearchState x y positionHash	= MkSearchState {
+	getPositionHashQuantifiedGameTree	:: Evaluation.PositionHashQuantifiedGameTree.PositionHashQuantifiedGameTree x y positionHash,
 	getDynamicMoveData			:: Search.DynamicMoveData.DynamicMoveData x y positionHash
 }
 
-instance (
-	Enum	x,
-	Enum	y,
-	Ord	x,
-	Ord	y,
-	Show	x,
-	Show	y,
-	Show	criterionValue,
-	Show	positionHash,
-	Show	weightedMean
- ) => Show (SearchState x y positionHash criterionValue weightedMean) where
+instance Show (SearchState x y positionHash) where
 	show _	= "SearchState {...}"
 
 -- | Constructor.
 mkSearchState
-	:: Evaluation.PositionHashQuantifiedGameTree.PositionHashQuantifiedGameTree x y positionHash criterionValue weightedMean
+	:: Evaluation.PositionHashQuantifiedGameTree.PositionHashQuantifiedGameTree x y positionHash
 	-> Search.DynamicMoveData.DynamicMoveData x y positionHash
-	-> SearchState x y positionHash criterionValue weightedMean
+	-> SearchState x y positionHash
 mkSearchState	= MkSearchState
 
 -- | Smart constructor.
-initialise :: Evaluation.PositionHashQuantifiedGameTree.PositionHashQuantifiedGameTree x y positionHash criterionValue weightedMean -> SearchState x y positionHash criterionValue weightedMean
+initialise :: Evaluation.PositionHashQuantifiedGameTree.PositionHashQuantifiedGameTree x y positionHash -> SearchState x y positionHash
 initialise positionHashQuantifiedGameTree
 	| Model.Game.isTerminated game	= Control.Exception.throw $ Data.Exception.mkResultUndefined "BishBosh.Search.SearchState.initialise:\tcan't search for a move from a terminated game."
 	| otherwise			= MkSearchState {
@@ -82,7 +72,7 @@ initialise positionHashQuantifiedGameTree
 	where
 		game	= Evaluation.QuantifiedGame.getGame $ Evaluation.PositionHashQuantifiedGameTree.getRootQuantifiedGame positionHashQuantifiedGameTree
 
-instance Search.EphemeralData.MaybeEphemeralData (SearchState x y positionHash criterionValue weightedMean) where
+instance Search.EphemeralData.MaybeEphemeralData (SearchState x y positionHash) where
 	maybeEuthanise nPlies maybeRetireKillerMovesAfter maybeRetireTranspositionsAfter searchState@MkSearchState { getDynamicMoveData = dynamicMoveData }	= searchState {
 		getDynamicMoveData	= Search.EphemeralData.maybeEuthanise nPlies maybeRetireKillerMovesAfter maybeRetireTranspositionsAfter dynamicMoveData	-- Forward the request.
 	}

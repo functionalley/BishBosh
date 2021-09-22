@@ -54,19 +54,19 @@ module BishBosh.Evaluation.QuantifiedGame(
  ) where
 
 import			Control.Arrow((&&&))
-import qualified	BishBosh.Attribute.WeightedMeanAndCriterionValues	as Attribute.WeightedMeanAndCriterionValues
-import qualified	BishBosh.Component.Move					as Component.Move
-import qualified	BishBosh.Component.Turn					as Component.Turn
-import qualified	BishBosh.Data.Exception					as Data.Exception
-import qualified	BishBosh.Evaluation.Fitness				as Evaluation.Fitness
-import qualified	BishBosh.Input.EvaluationOptions			as Input.EvaluationOptions
-import qualified	BishBosh.Model.Game					as Model.Game
-import qualified	BishBosh.Notation.MoveNotation				as Notation.MoveNotation
-import qualified	BishBosh.Property.Null					as Property.Null
-import qualified	BishBosh.Text.ShowList					as Text.ShowList
-import qualified	BishBosh.Type.Count					as Type.Count
-import qualified	BishBosh.Type.Length					as Type.Length
-import qualified	BishBosh.Type.Mass					as Type.Mass
+import qualified	BishBosh.Component.Move				as Component.Move
+import qualified	BishBosh.Component.Turn				as Component.Turn
+import qualified	BishBosh.Data.Exception				as Data.Exception
+import qualified	BishBosh.Evaluation.Fitness			as Evaluation.Fitness
+import qualified	BishBosh.Input.EvaluationOptions		as Input.EvaluationOptions
+import qualified	BishBosh.Metric.WeightedMeanAndCriterionValues	as Metric.WeightedMeanAndCriterionValues
+import qualified	BishBosh.Model.Game				as Model.Game
+import qualified	BishBosh.Notation.MoveNotation			as Notation.MoveNotation
+import qualified	BishBosh.Property.Null				as Property.Null
+import qualified	BishBosh.Text.ShowList				as Text.ShowList
+import qualified	BishBosh.Type.Count				as Type.Count
+import qualified	BishBosh.Type.Length				as Type.Length
+import qualified	BishBosh.Type.Mass				as Type.Mass
 import qualified	Control.DeepSeq
 import qualified	Control.Exception
 import qualified	Data.Maybe
@@ -77,46 +77,39 @@ import qualified	Data.Array.Unboxed
 #endif
 
 -- | The selected /game/ & the criteria against which it was quantified.
-data QuantifiedGame x y criterionValue weightedMean	= MkQuantifiedGame {
+data QuantifiedGame x y	= MkQuantifiedGame {
 	getGame					:: Model.Game.Game x y,	-- ^ The /game/ resulting from a sequence of /turn/s.
-	getWeightedMeanAndCriterionValues	:: Attribute.WeightedMeanAndCriterionValues.WeightedMeanAndCriterionValues weightedMean criterionValue
+	getWeightedMeanAndCriterionValues	:: Metric.WeightedMeanAndCriterionValues.WeightedMeanAndCriterionValues
 } deriving (Eq, Show)
 
-instance Control.DeepSeq.NFData weightedMean => Control.DeepSeq.NFData (QuantifiedGame x y criterionValue weightedMean) where
+instance Control.DeepSeq.NFData (QuantifiedGame x y) where
 	rnf MkQuantifiedGame { getWeightedMeanAndCriterionValues = weightedMeanAndCriterionValues }	= Control.DeepSeq.rnf weightedMeanAndCriterionValues	-- The other field is a prerequisite.
 
-instance (Enum x, Enum y, Real criterionValue, Real weightedMean) => Notation.MoveNotation.ShowNotationFloat (QuantifiedGame x y criterionValue weightedMean) where
+instance (Enum x, Enum y) => Notation.MoveNotation.ShowNotationFloat (QuantifiedGame x y) where
 	showsNotationFloat moveNotation showsDouble quantifiedGame	= Text.ShowList.showsAssociationList Text.ShowList.showsSeparator $ map ($ quantifiedGame) [
 		(,) Component.Move.tag . Notation.MoveNotation.showsNotation moveNotation . getLastTurn,
-		(,) Attribute.WeightedMeanAndCriterionValues.weightedMeanTag . showsDouble . realToFrac . getFitness,
-		(,) Attribute.WeightedMeanAndCriterionValues.criterionValuesTag . Text.ShowList.showsFormattedList' (showsDouble . realToFrac) . Attribute.WeightedMeanAndCriterionValues.getCriterionValues . getWeightedMeanAndCriterionValues
+		(,) Metric.WeightedMeanAndCriterionValues.weightedMeanTag . showsDouble . realToFrac . getFitness,
+		(,) Metric.WeightedMeanAndCriterionValues.criterionValuesTag . Text.ShowList.showsFormattedList' (showsDouble . realToFrac) . Metric.WeightedMeanAndCriterionValues.getCriterionValues . getWeightedMeanAndCriterionValues
 	 ]
 
-instance Property.Null.Null (QuantifiedGame x y criterionValue weightedMean) where
+instance Property.Null.Null (QuantifiedGame x y) where
 	isNull MkQuantifiedGame { getGame = game }	= Property.Null.isNull game
 
 -- | Accessor.
-getFitness :: QuantifiedGame x y criterionValue weightedMean -> weightedMean
-getFitness MkQuantifiedGame { getWeightedMeanAndCriterionValues = weightedMeanAndCriterionValues }	= Attribute.WeightedMeanAndCriterionValues.getWeightedMean weightedMeanAndCriterionValues
+getFitness :: QuantifiedGame x y -> Type.Mass.WeightedMean
+getFitness MkQuantifiedGame { getWeightedMeanAndCriterionValues = weightedMeanAndCriterionValues }	= Metric.WeightedMeanAndCriterionValues.getWeightedMean weightedMeanAndCriterionValues
 
--- | Like 'fromGame' except that the caller determines the piece-square value.
+-- | Constructor.
 fromGame :: (
-#ifdef USE_PARALLEL
-	Control.DeepSeq.NFData					criterionValue,
-#endif
 #ifdef USE_UNBOXED_ARRAYS
 	Data.Array.Unboxed.IArray Data.Array.Unboxed.UArray	pieceSquareValue,	-- Requires 'FlexibleContexts'. The unboxed representation of the array-element must be defined (& therefore must be of fixed size).
 #endif
 	Enum							x,
 	Enum							y,
-	Fractional						criterionValue,
 	Fractional						pieceSquareValue,
 	Fractional						rankValue,
-	Fractional						weightedMean,
 	Ord							x,
 	Ord							y,
-	Real							criterionValue,
-	Real							criterionWeight,
 	Real							pieceSquareValue,
 	Real							rankValue,
 	Show							x,
@@ -124,12 +117,12 @@ fromGame :: (
  )
 	=> Maybe pieceSquareValue	-- ^ The value for the specified game.
 	-> Model.Game.Game x y		-- ^ The current state of the /game/.
-	-> Input.EvaluationOptions.Reader criterionWeight pieceSquareValue rankValue x y (QuantifiedGame x y criterionValue weightedMean)
-{-# SPECIALISE fromGame :: Maybe Type.Mass.PieceSquareValue -> Model.Game.Game Type.Length.X Type.Length.Y -> Input.EvaluationOptions.Reader Type.Mass.CriterionWeight Type.Mass.PieceSquareValue Type.Mass.RankValue Type.Length.X Type.Length.Y (QuantifiedGame Type.Length.X Type.Length.Y Type.Mass.CriterionValue Type.Mass.WeightedMean) #-}
+	-> Input.EvaluationOptions.Reader pieceSquareValue rankValue x y (QuantifiedGame x y)
+{-# SPECIALISE fromGame :: Maybe Type.Mass.PieceSquareValue -> Model.Game.Game Type.Length.X Type.Length.Y -> Input.EvaluationOptions.Reader Type.Mass.PieceSquareValue Type.Mass.RankValue Type.Length.X Type.Length.Y (QuantifiedGame Type.Length.X Type.Length.Y) #-}
 fromGame maybePieceSquareValue game	= MkQuantifiedGame game `fmap` Evaluation.Fitness.evaluateFitness maybePieceSquareValue game
 
 -- | Retrieve the /turn/ used to generate the selected /game/.
-getLastTurn :: QuantifiedGame x y criterionValue weightedMean -> Component.Turn.Turn x y
+getLastTurn :: QuantifiedGame x y -> Component.Turn.Turn x y
 getLastTurn MkQuantifiedGame { getGame = game }	= Data.Maybe.fromMaybe (
 	Control.Exception.throw $ Data.Exception.mkResultUndefined "BishBosh.Evaluation.QuantifiedGame.getLastTurn:\tzero turns have been made."
  ) $ Model.Game.maybeLastTurn game
@@ -137,20 +130,16 @@ getLastTurn MkQuantifiedGame { getGame = game }	= Data.Maybe.fromMaybe (
 -- | Drop the specified number of plies from the start of the chronological sequence, leaving the most recent.
 getLatestTurns
 	:: Type.Count.NPlies	-- ^ The number of plies to drop from the start of the chronological sequence.
-	-> QuantifiedGame x y criterionValue weightedMean
+	-> QuantifiedGame x y
 	-> [Component.Turn.Turn x y]
 getLatestTurns nPlies MkQuantifiedGame { getGame = game }	= fromIntegral nPlies `drop` Model.Game.listTurnsChronologically game
 
 -- | Represent the /fitness/ of the /game/ resulting from a future /move/ by the opponent, from the perspective of the current player.
-negateFitness :: Num weightedMean => QuantifiedGame x y criterionValue weightedMean -> QuantifiedGame x y criterionValue weightedMean
-negateFitness quantifiedGame@MkQuantifiedGame { getWeightedMeanAndCriterionValues = weightedMeanAndCriterionValues }	= quantifiedGame { getWeightedMeanAndCriterionValues = Attribute.WeightedMeanAndCriterionValues.negateWeightedMean weightedMeanAndCriterionValues }
+negateFitness :: QuantifiedGame x y -> QuantifiedGame x y
+negateFitness quantifiedGame@MkQuantifiedGame { getWeightedMeanAndCriterionValues = weightedMeanAndCriterionValues }	= quantifiedGame { getWeightedMeanAndCriterionValues = Metric.WeightedMeanAndCriterionValues.negateWeightedMean weightedMeanAndCriterionValues }
 
 -- | Compares fitness.
-compareFitness
-	:: Ord weightedMean
-	=> QuantifiedGame x y criterionValue weightedMean
-	-> QuantifiedGame x y criterionValue weightedMean
-	-> Ordering
+compareFitness :: QuantifiedGame x y -> QuantifiedGame x y -> Ordering
 compareFitness	= Data.Ord.comparing getFitness
 
 {- |
@@ -158,12 +147,12 @@ compareFitness	= Data.Ord.comparing getFitness
 
 	* N.B.: 'Nothing' is interpreted as unbounded.
 -}
-type OpenInterval x y criterionValue weightedMean	= (Maybe (QuantifiedGame x y criterionValue weightedMean), Maybe (QuantifiedGame x y criterionValue weightedMean))
+type OpenInterval x y	= (Maybe (QuantifiedGame x y), Maybe (QuantifiedGame x y))
 
 -- | Constant.
-unboundedInterval :: OpenInterval x y criterionValue weightedMean
+unboundedInterval :: OpenInterval x y
 unboundedInterval	= (Nothing, Nothing)
 
 -- | Reflect the interval about zero.
-negateInterval :: Num weightedMean => OpenInterval x y criterionValue weightedMean -> OpenInterval x y criterionValue weightedMean
+negateInterval :: OpenInterval x y -> OpenInterval x y
 negateInterval (maybeAlpha, maybeBeta)	= ($ maybeBeta) &&& ($ maybeAlpha) $ fmap negateFitness

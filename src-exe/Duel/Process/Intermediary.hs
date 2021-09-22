@@ -161,7 +161,7 @@ type IOHandles	= (System.IO.Handle, System.IO.Handle)
 play
 	:: Property.Switchable.Switchable gameClock
 	=> Input.Verbosity.Verbosity
-	-> Type.Count.NSeconds				-- ^ Read-timout.
+	-> Type.Count.NSeconds	-- ^ Read-timout.
 	-> IOHandles
 	-> IOHandles
 	-> gameClock
@@ -306,7 +306,7 @@ initialise options
 							] configFilePath
 							>>> HXT.arr (
 								 \inputOptions -> Input.SearchOptions.identifyAutomatedPlayers . Input.Options.getSearchOptions &&& Input.UIOptions.getMoveNotation . Input.IOOptions.getUIOptions . Input.Options.getIOOptions $ (
-									inputOptions	:: Input.Options.Options Type.Length.X Type.Mass.CriterionWeight Type.Mass.PieceSquareValue Type.Mass.RankValue Type.Length.Y Type.Length.X Type.Length.Y	-- Arbitrary concrete type.
+									inputOptions	:: Input.Options.Options Type.Length.X Type.Mass.PieceSquareValue Type.Mass.RankValue Type.Length.Y Type.Length.X Type.Length.Y	-- Arbitrary concrete type.
 								 )
 							) -- Lift function into an arrow.
 

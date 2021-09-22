@@ -1,3 +1,4 @@
+{-# LANGUAGE CPP #-}
 {-
 	Copyright (C) 2018 Dr. Alistair Ward
 
@@ -22,7 +23,7 @@
  [@DESCRIPTION@]	The unweighted values of each criterion used to assess the fitness of a position, & the resulting weighted mean.
 -}
 
-module BishBosh.Attribute.WeightedMeanAndCriterionValues(
+module BishBosh.Metric.WeightedMeanAndCriterionValues(
 -- * Types
 -- ** Data-types
 	WeightedMeanAndCriterionValues(
@@ -35,13 +36,23 @@ module BishBosh.Attribute.WeightedMeanAndCriterionValues(
 	weightedMeanTag,
 -- * Functions
 	negateWeightedMean,
+	calculateWeightedMean,
 -- ** Constructor
 	mkWeightedMeanAndCriterionValues
 ) where
 
+import			Control.Arrow((&&&))
+import qualified	BishBosh.Metric.CriterionValue	as Metric.CriterionValue
+import qualified	BishBosh.Metric.CriterionWeight	as Metric.CriterionWeight
 import qualified	BishBosh.Property.ShowFloat	as Property.ShowFloat
 import qualified	BishBosh.Text.ShowList		as Text.ShowList
+import qualified	BishBosh.Type.Mass		as Type.Mass
 import qualified	Control.DeepSeq
+import qualified	Factory.Math.Statistics
+
+#ifdef USE_PARALLEL
+import qualified	Control.Parallel.Strategies
+#endif
 
 -- | Qualifies output.
 criterionValuesTag :: String
@@ -52,15 +63,15 @@ weightedMeanTag :: String
 weightedMeanTag		= "weighted-mean"
 
 -- | A /weighted mean/ & the individual unweighted criterion-values from which it was composed.
-data WeightedMeanAndCriterionValues weightedMean criterionValue	= MkWeightedMeanAndCriterionValues {
-	getWeightedMean		:: weightedMean,	-- ^ The weighted mean of a list of criterion-values.
-	getCriterionValues	:: [criterionValue]	-- ^ The unweighted 'Attribute.CriterionValue.CriterionValue's from which the weighted mean was composed.
+data WeightedMeanAndCriterionValues	= MkWeightedMeanAndCriterionValues {
+	getWeightedMean		:: Type.Mass.WeightedMean,			-- ^ The weighted mean of a list of criterion-values.
+	getCriterionValues	:: [Metric.CriterionValue.CriterionValue]	-- ^ The unweighted /CriterionValue/s from which the weighted mean was composed.
 } deriving (Eq, Show)
 
-instance Control.DeepSeq.NFData weightedMean => Control.DeepSeq.NFData (WeightedMeanAndCriterionValues weightedMean criterionValue) where
+instance Control.DeepSeq.NFData WeightedMeanAndCriterionValues where
 	rnf MkWeightedMeanAndCriterionValues { getWeightedMean = weightedMean }	= Control.DeepSeq.rnf weightedMean	-- The other field is a prerequisite.
 
-instance (Real criterionValue, Real weightedMean) => Property.ShowFloat.ShowFloat (WeightedMeanAndCriterionValues weightedMean criterionValue) where
+instance Property.ShowFloat.ShowFloat WeightedMeanAndCriterionValues where
 	showsFloat fromDouble MkWeightedMeanAndCriterionValues {
 		getWeightedMean		= weightedMean,
 		getCriterionValues	= criterionValues
@@ -70,7 +81,10 @@ instance (Real criterionValue, Real weightedMean) => Property.ShowFloat.ShowFloa
 	 ]
 
 -- | Constructor.
-mkWeightedMeanAndCriterionValues :: weightedMean -> [criterionValue] -> WeightedMeanAndCriterionValues weightedMean criterionValue
+mkWeightedMeanAndCriterionValues
+	:: Type.Mass.WeightedMean
+	-> [Metric.CriterionValue.CriterionValue]
+	-> WeightedMeanAndCriterionValues
 mkWeightedMeanAndCriterionValues	= MkWeightedMeanAndCriterionValues
 
 {- |
@@ -78,6 +92,30 @@ mkWeightedMeanAndCriterionValues	= MkWeightedMeanAndCriterionValues
 
 	* This can be used to assess the fitness of a position from the perspective of one's opponent.
 -}
-negateWeightedMean :: Num weightedMean => WeightedMeanAndCriterionValues weightedMean criterionValue -> WeightedMeanAndCriterionValues weightedMean criterionValue
+negateWeightedMean :: WeightedMeanAndCriterionValues -> WeightedMeanAndCriterionValues
 negateWeightedMean weightedMeanAndCriterionValues@MkWeightedMeanAndCriterionValues { getWeightedMean = weightedMean }	= weightedMeanAndCriterionValues { getWeightedMean = negate weightedMean }
+
+{- |
+	* Calculates the /weighted mean/ of the specified /criterion-value/s using the corresponding /criterion-weight/s.
+
+	* Also writes individual unweighted /criterionValue/s, to facilitate post-analysis;
+	if the corresponding weight is @0@, evaluation of the criterion is avoided, for efficiency.
+
+	* CAVEAT: if all weights are @0@, then the result is indeterminate.
+-}
+calculateWeightedMean :: [(Metric.CriterionValue.CriterionValue, Metric.CriterionWeight.CriterionWeight)] -> WeightedMeanAndCriterionValues
+{-# INLINABLE calculateWeightedMean #-}
+calculateWeightedMean	= uncurry mkWeightedMeanAndCriterionValues . (
+	Factory.Math.Statistics.getWeightedMean &&& map (realToFrac . fst)
+ )
+#ifdef USE_PARALLEL
+	. Control.Parallel.Strategies.withStrategy (
+		Control.Parallel.Strategies.parList $ Control.Parallel.Strategies.evalTuple2 Control.Parallel.Strategies.rdeepseq Control.Parallel.Strategies.r0
+	)
+#endif
+	. map (
+		\(criterionValue, criterionWeight) -> (realToFrac criterionValue, realToFrac criterionWeight) :: (Type.Mass.CriterionValue, Type.Mass.CriterionWeight)
+	) . filter (
+		(/= 0) . snd {-criterion-weight-}	-- Avoid unnecessaily evaluating criterion-values.
+	)
 

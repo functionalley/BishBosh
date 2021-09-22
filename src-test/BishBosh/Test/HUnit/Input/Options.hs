@@ -27,7 +27,7 @@ module BishBosh.Test.HUnit.Input.Options(
 	testCases
 ) where
 
---import		BishBosh.Data.Ratio()	-- Required if either criterionWeight or criterionValue is Rational.
+--import		BishBosh.Data.Ratio()	-- Required if either Type.Mass.CriterionWeight or Type.Mass.CriterionValue is Rational.
 import			Control.Category((>>>))
 import qualified	BishBosh.Data.Exception	as Data.Exception
 import qualified	BishBosh.Input.Options	as Input.Options
@@ -85,7 +85,7 @@ testCases	= Test.HUnit.test [
 				(== Just (head optionsList)) (
 					(HXT.unpickleDoc HXT.xpickle . HXT.pickleDoc HXT.xpickle) =<< Data.Maybe.listToMaybe (
 						optionsList :: [
-							Input.Options.Options Type.Length.Y {-column-} Type.Mass.CriterionWeight Type.Mass.PieceSquareValue Type.Mass.RankValue Type.Length.X {-row-} Type.Length.X Type.Length.Y
+							Input.Options.Options Type.Length.Y {-column-} Type.Mass.PieceSquareValue Type.Mass.RankValue Type.Length.X {-row-} Type.Length.X Type.Length.Y
 						]
 					)
 				 ) @? "Input.Options.pickler failed."

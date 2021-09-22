@@ -34,13 +34,13 @@ module BishBosh.Test.QuickCheck.Input.EvaluationOptions(
 import			BishBosh.Data.Bool()
 import			BishBosh.Test.QuickCheck.Attribute.Rank()
 import			BishBosh.Test.QuickCheck.Attribute.RankValues()
-import			BishBosh.Test.QuickCheck.Input.CriteriaWeights()
 import			BishBosh.Test.QuickCheck.Input.PieceSquareTable()
+import			BishBosh.Test.QuickCheck.Metric.CriteriaWeights()
 import			Control.Arrow((&&&))
 import qualified	BishBosh.Component.PieceSquareByCoordinatesByRank	as Component.PieceSquareByCoordinatesByRank
-import qualified	BishBosh.Input.CriteriaWeights				as Input.CriteriaWeights
 import qualified	BishBosh.Input.EvaluationOptions			as Input.EvaluationOptions
 import qualified	BishBosh.Input.PieceSquareTable				as Input.PieceSquareTable
+import qualified	BishBosh.Metric.CriteriaWeights				as Metric.CriteriaWeights
 import qualified	BishBosh.Property.Reflectable				as Property.Reflectable
 import qualified	BishBosh.State.Board					as State.Board
 import qualified	BishBosh.State.CoordinatesByRankByLogicalColour		as State.CoordinatesByRankByLogicalColour
@@ -56,29 +56,26 @@ import qualified	Test.QuickCheck
 import			Test.QuickCheck((==>))
 
 -- | Defines a concrete type for testing.
-type EvaluationOptions	= Input.EvaluationOptions.EvaluationOptions Type.Mass.CriterionWeight Type.Mass.PieceSquareValue Type.Mass.RankValue Type.Length.X Type.Length.Y
+type EvaluationOptions	= Input.EvaluationOptions.EvaluationOptions Type.Mass.PieceSquareValue Type.Mass.RankValue Type.Length.X Type.Length.Y
 
 instance (
 	Enum				x,
 	Enum				y,
-	Fractional			criterionWeight,
 	Fractional			pieceSquareValue,
 	Fractional			rankValue,
 	Ord				pieceSquareValue,
 	Ord				rankValue,
 	Ord				x,
 	Ord				y,
-	Real				criterionWeight,
-	Show				criterionWeight,
 	Show				pieceSquareValue,
 	Show				rankValue,
 	Test.QuickCheck.Arbitrary	rankValue
- ) => Test.QuickCheck.Arbitrary (Input.EvaluationOptions.EvaluationOptions criterionWeight pieceSquareValue rankValue x y) where
+ ) => Test.QuickCheck.Arbitrary (Input.EvaluationOptions.EvaluationOptions pieceSquareValue rankValue x y) where
 --	{-# SPECIALISE instance Test.QuickCheck.Arbitrary EvaluationOptions #-}
 	arbitrary	= do
 		criteriaWeights	<- Test.QuickCheck.arbitrary
 
-		Input.EvaluationOptions.mkEvaluationOptions <$> Test.QuickCheck.arbitrary {-RankValues-} <*> return {-to Gen-monad-} criteriaWeights <*> Test.QuickCheck.arbitrary {-incrementalEvaluation-} <*> if Input.CriteriaWeights.getWeightOfPieceSquareValue criteriaWeights == minBound
+		Input.EvaluationOptions.mkEvaluationOptions <$> Test.QuickCheck.arbitrary {-RankValues-} <*> return {-to Gen-monad-} criteriaWeights <*> Test.QuickCheck.arbitrary {-incrementalEvaluation-} <*> if Metric.CriteriaWeights.getWeightOfPieceSquareValue criteriaWeights == minBound
 			then return {-to Gen-monad-} Nothing
 			else do
 				(pieceSquareTable, pieceSquareTable', ranks)	<- Test.QuickCheck.arbitrary
@@ -102,7 +99,7 @@ results	= sequence [
 			sumPieceSquareValueByLogicalColour	= State.Board.sumPieceSquareValueByLogicalColour $ Data.Maybe.fromJust maybePieceSquareByCoordinatesByRank
 	in Test.QuickCheck.quickCheckWithResult Test.QuickCheck.stdArgs { Test.QuickCheck.maxSuccess = 32 } f,
 	let
-		f :: Input.EvaluationOptions.EvaluationOptions Type.Mass.CriterionWeight Rational {-precision is required-} Type.Mass.RankValue Type.Length.X Type.Length.Y -> Test.QuickCheck.State.Board.Board -> Test.QuickCheck.Property
+		f :: Input.EvaluationOptions.EvaluationOptions Rational {-precision is required-} Type.Mass.RankValue Type.Length.X Type.Length.Y -> Test.QuickCheck.State.Board.Board -> Test.QuickCheck.Property
 		f evaluationOptions board	= Data.Maybe.isJust maybePieceSquareByCoordinatesByRank ==> Test.QuickCheck.label "EvaluationOptions.prop_sumPieceSquareValueByLogicalColour" . uncurry (==) $ (
 			State.CoordinatesByRankByLogicalColour.sumPieceSquareValueByLogicalColour (
 				\logicalColour rank coordinatesList	-> Component.PieceSquareByCoordinatesByRank.findPieceSquareValues nPieces logicalColour rank coordinatesList pieceSquareByCoordinatesByRank

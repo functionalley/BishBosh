@@ -23,15 +23,11 @@
  [@DESCRIPTION@]	Implements 'Test.QuickCheck.Arbitrary'.
 -}
 
-module BishBosh.Test.QuickCheck.Attribute.CriterionWeight() where
+module BishBosh.Test.QuickCheck.Metric.CriterionWeight() where
 
-import qualified	BishBosh.Attribute.CriterionWeight	as Attribute.CriterionWeight
+import qualified	BishBosh.Metric.CriterionWeight	as Metric.CriterionWeight
 import qualified	Test.QuickCheck
 
-instance (
-	Fractional	criterionWeight,
-	Ord		criterionWeight,
-	Show		criterionWeight
- ) => Test.QuickCheck.Arbitrary (Attribute.CriterionWeight.CriterionWeight criterionWeight) where
-	arbitrary	= (Attribute.CriterionWeight.mkCriterionWeight . (/ 10) . fromInteger) `fmap` Test.QuickCheck.elements [0 .. 9]
+instance Test.QuickCheck.Arbitrary Metric.CriterionWeight.CriterionWeight where
+	arbitrary	= Test.QuickCheck.elements $ map fromRational [0, recip 10 .. 1]
 

@@ -66,7 +66,6 @@ import qualified	BishBosh.State.TurnsByLogicalColour			as State.TurnsByLogicalCo
 import qualified	BishBosh.Type.Count					as Type.Count
 import qualified	BishBosh.Type.Crypto					as Type.Crypto
 import qualified	BishBosh.Type.Length					as Type.Length
-import qualified	BishBosh.Type.Mass					as Type.Mass
 import qualified	Control.Exception
 import qualified	Control.Monad.Reader
 import qualified	Data.Default
@@ -74,9 +73,9 @@ import qualified	Data.Maybe
 import qualified	Data.Tree
 
 -- | The type returned by 'negaMax'.
-data Result x y positionHash criterionValue weightedMean	= MkResult {
+data Result x y positionHash	= MkResult {
 	getDynamicMoveData	:: Search.DynamicMoveData.DynamicMoveData x y positionHash,	-- ^ Killer moves & transpositions.
-	getQuantifiedGame	:: Evaluation.QuantifiedGame.QuantifiedGame x y criterionValue weightedMean,
+	getQuantifiedGame	:: Evaluation.QuantifiedGame.QuantifiedGame x y,
 	getNPositionsEvaluated	:: Type.Count.NPositions					-- ^ The total number of nodes analysed, before making the selection.
 }
 
@@ -87,7 +86,7 @@ data Result x y positionHash criterionValue weightedMean	= MkResult {
 -}
 extractSelectedTurns
 	:: Type.Count.NPlies
-	-> Result x y positionHash criterionValue weightedMean
+	-> Result x y positionHash
 	-> (Search.DynamicMoveData.DynamicMoveData x y positionHash, [Component.Turn.Turn x y], Type.Count.NPositions)
 extractSelectedTurns nPlies MkResult {
 	getDynamicMoveData	= dynamicMoveData,
@@ -128,13 +127,12 @@ findTranspositionTerminalQuantifiedGame :: (
 	Eq	y,
 	Enum	x,
 	Enum	y,
-	Real	weightedMean,
 	Show	x,
 	Show	y
  )
-	=> Evaluation.PositionHashQuantifiedGameTree.PositionHashQuantifiedGameTree x y positionHash criterionValue weightedMean
+	=> Evaluation.PositionHashQuantifiedGameTree.PositionHashQuantifiedGameTree x y positionHash
 	-> Search.TranspositionValue.TranspositionValue (Component.QualifiedMove.QualifiedMove x y)
-	-> Evaluation.QuantifiedGame.QuantifiedGame x y criterionValue weightedMean
+	-> Evaluation.QuantifiedGame.QuantifiedGame x y
 findTranspositionTerminalQuantifiedGame positionHashQuantifiedGameTree transpositionValue	= Data.Maybe.maybe (
 	Control.Exception.throw . Data.Exception.mkSearchFailure . showString "BishBosh.Search.AlphaBeta.findTranspositionTerminalQuantifiedGame:\tEvaluation.PositionHashQuantifiedGameTree.traceMatchingMoves failed; " . shows transpositionValue . showString ":\n" $ (
 		Notation.MoveNotation.showsNotationFloatToNDecimals Data.Default.def {-move-notation-} 3 {-decimal digits-} $ Property.Arboreal.prune (fromIntegral inferredSearchDepth) positionHashQuantifiedGameTree
@@ -155,7 +153,6 @@ updateTranspositions :: (
 	Enum	x,
 	Enum	y,
 	Ord	positionHash,
-	Real	weightedMean,
 	Show	x,
 	Show	y
  )
@@ -163,7 +160,7 @@ updateTranspositions :: (
 	-> Type.Count.NPlies
 	-> positionHash
 	-> [Component.Turn.Turn x y]
-	-> Evaluation.PositionHashQuantifiedGameTree.PositionHashQuantifiedGameTree x y positionHash criterionValue weightedMean
+	-> Evaluation.PositionHashQuantifiedGameTree.PositionHashQuantifiedGameTree x y positionHash
 	-> Search.DynamicMoveData.Transformation x y positionHash
 updateTranspositions isOptimal nPlies positionHash turns positionHashQuantifiedGameTree	= Search.DynamicMoveData.updateTranspositions . Search.Transpositions.insert (
 	Evaluation.QuantifiedGame.getFitness . findTranspositionTerminalQuantifiedGame positionHashQuantifiedGameTree
@@ -179,18 +176,16 @@ updateTranspositions isOptimal nPlies positionHash turns positionHashQuantifiedG
 negaMax :: (
 	Enum	x,
 	Enum	y,
-	Eq	criterionValue,
 	Ord	positionHash,
 	Ord	x,
 	Ord	y,
-	Real	weightedMean,
 	Show	x,
 	Show	y
  )
 	=> Type.Count.NPlies	-- ^ The depth to which the tree should be searched; i.e. the number of plies to look-ahead.
-	-> Search.SearchState.SearchState x y positionHash criterionValue weightedMean
-	-> Input.SearchOptions.Reader (Result x y positionHash criterionValue weightedMean)
-{-# SPECIALISE negaMax :: Type.Count.NPlies -> Search.SearchState.SearchState Type.Length.X Type.Length.Y Type.Crypto.PositionHash Type.Mass.CriterionValue Type.Mass.WeightedMean -> Input.SearchOptions.Reader (Result Type.Length.X Type.Length.Y Type.Crypto.PositionHash Type.Mass.CriterionValue Type.Mass.WeightedMean) #-}
+	-> Search.SearchState.SearchState x y positionHash
+	-> Input.SearchOptions.Reader (Result x y positionHash)
+{-# SPECIALISE negaMax :: Type.Count.NPlies -> Search.SearchState.SearchState Type.Length.X Type.Length.Y Type.Crypto.PositionHash -> Input.SearchOptions.Reader (Result Type.Length.X Type.Length.Y Type.Crypto.PositionHash) #-}
 negaMax initialSearchDepth initialSearchState	= do
 	maybeMinimumTranspositionSearchDepth	<- Control.Monad.Reader.asks Input.SearchOptions.maybeMinimumTranspositionSearchDepth
 	recordKillerMoves			<- Control.Monad.Reader.asks Input.SearchOptions.recordKillerMoves
@@ -200,10 +195,10 @@ negaMax initialSearchDepth initialSearchState	= do
 		getNPlies	= State.TurnsByLogicalColour.getNPlies . Model.Game.getTurnsByLogicalColour	-- Abbreviate.
 {-
 		descend
-			:: Evaluation.QuantifiedGame.OpenInterval x y criterionValue weightedMean
+			:: Evaluation.QuantifiedGame.OpenInterval x y
 			-> Type.Count.NPlies
-			-> Search.SearchState.SearchState x y positionHash criterionValue weightedMean
-			-> Result x y positionHash criterionValue weightedMean
+			-> Search.SearchState.SearchState x y positionHash
+			-> Result x y positionHash
 -}
 		descend (maybeAlphaQuantifiedGame, maybeBetaQuantifiedGame) searchDepth searchState
 			| searchDepth == 0 || Model.Game.isTerminated game	= MkResult {
@@ -261,9 +256,9 @@ negaMax initialSearchDepth initialSearchState	= do
 {-
 				selectMax
 					:: Search.DynamicMoveData.DynamicMoveData x y positionHash
-					-> Maybe (Evaluation.QuantifiedGame.QuantifiedGame x y criterionValue weightedMean)
-					-> [Evaluation.PositionHashQuantifiedGameTree.BarePositionHashQuantifiedGameTree x y positionHash criterionValue weightedMean]
-					-> Result x y positionHash criterionValue weightedMean
+					-> Maybe (Evaluation.QuantifiedGame.QuantifiedGame x y)
+					-> [Evaluation.PositionHashQuantifiedGameTree.BarePositionHashQuantifiedGameTree x y positionHash]
+					-> Result x y positionHash
 -}
 				selectMax dynamicMoveData' maybeAlphaQuantifiedGame' (node : remainingNodes)
 					| trapRepeatedPositions
@@ -348,16 +343,16 @@ negaMax initialSearchDepth initialSearchState	= do
 	 ) $ descend Evaluation.QuantifiedGame.unboundedInterval initialSearchDepth initialSearchState
 
 -- | The type of a function which transforms the result.
-type Transformation x y positionHash criterionValue weightedMean	= Result x y positionHash criterionValue weightedMean -> Result x y positionHash criterionValue weightedMean
+type Transformation x y positionHash	= Result x y positionHash -> Result x y positionHash
 
 -- | Mutator.
-negateFitnessOfResult :: Num weightedMean => Transformation x y positionHash criterionValue weightedMean
+negateFitnessOfResult :: Transformation x y positionHash
 negateFitnessOfResult result@MkResult { getQuantifiedGame = quantifiedGame }	= result {
 	getQuantifiedGame	= Evaluation.QuantifiedGame.negateFitness quantifiedGame
 }
 
 -- | Mutator.
-addNPositionsToResult :: Type.Count.NPositions -> Transformation x y positionHash criterionValue weightedMean
+addNPositionsToResult :: Type.Count.NPositions -> Transformation x y positionHash
 addNPositionsToResult nPositions result@MkResult { getNPositionsEvaluated = nPositionsEvaluated }	= Control.Exception.assert (nPositions > 0) result {
 	getNPositionsEvaluated	= nPositions + nPositionsEvaluated
 }

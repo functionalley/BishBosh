@@ -209,7 +209,7 @@ findNextOnymousQualifiedMovesForPosition requiredGame positionHashQualifiedMoveT
 	| cantConverge requiredGame positionHashQualifiedMoveTree	= []	-- The specified game has fewer pieces than any defined in the tree.
 	| otherwise							= slave (2 * Component.Piece.nPiecesPerSide) tree
 	where
-		(requiredPositionHash, requiredNPieces)	= (`Component.Zobrist.hash2D` zobrist) &&& State.Board.getNPieces . Model.Game.getBoard $ requiredGame 
+		(requiredPositionHash, requiredNPieces)	= (`Component.Zobrist.hash2D` zobrist) &&& State.Board.getNPieces . Model.Game.getBoard $ requiredGame
 
 		slave nPieces Data.Tree.Node {
 			Data.Tree.rootLabel	= MkNodeLabel { getPositionHash = positionHash },

@@ -77,14 +77,9 @@ import qualified	Data.Array.Unboxed
 -- | Plays the game according to the specified configuration.
 play :: (
 	Control.DeepSeq.NFData					column,
-#ifdef USE_PARALLEL
-	Control.DeepSeq.NFData					criterionValue,
-#endif
-	Control.DeepSeq.NFData					criterionWeight,
 	Control.DeepSeq.NFData					pieceSquareValue,
 	Control.DeepSeq.NFData					rankValue,
 	Control.DeepSeq.NFData					row,
-	Control.DeepSeq.NFData					weightedMean,
 	Control.DeepSeq.NFData					x,
 	Control.DeepSeq.NFData					y,
 	Data.Array.IArray.Ix					x,
@@ -92,21 +87,16 @@ play :: (
 	Data.Array.Unboxed.IArray Data.Array.Unboxed.UArray	pieceSquareValue,	-- Requires 'FlexibleContexts'. The unboxed representation of the array-element must be defined (& therefore must be of fixed size).
 #endif
 	Data.Bits.FiniteBits					positionHash,
-	Fractional						criterionValue,
 	Fractional						pieceSquareValue,
 	Fractional						rankValue,
-	Fractional						weightedMean,
 	Integral						column,
 	Integral						x,
 	Integral						y,
 	Ord							positionHash,
 	Read							x,
 	Read							y,
-	Real							criterionValue,
-	Real							criterionWeight,
 	Real							pieceSquareValue,
 	Real							rankValue,
-	Real							weightedMean,
 	Show							column,
 	Show							pieceSquareValue,
 	Show							row,
@@ -116,9 +106,9 @@ play :: (
 	System.Random.RandomGen					randomGen
  )
 	=> randomGen
-	-> Input.Options.Options column criterionWeight pieceSquareValue rankValue row x y
+	-> Input.Options.Options column pieceSquareValue rankValue row x y
 	-> ContextualNotation.QualifiedMoveForest.QualifiedMoveForest x y	-- ^ Standard openings.
-	-> IO (State.PlayState.PlayState column criterionValue criterionWeight pieceSquareValue positionHash rankValue row weightedMean x y)
+	-> IO (State.PlayState.PlayState column pieceSquareValue positionHash rankValue row x y)
 {-# SPECIALISE play :: (
 	Control.DeepSeq.NFData	column,
 	Control.DeepSeq.NFData	row,
@@ -128,9 +118,9 @@ play :: (
 	System.Random.RandomGen	randomGen
  )
 	=> randomGen
-	-> Input.Options.Options column Type.Mass.CriterionWeight Type.Mass.PieceSquareValue Type.Mass.RankValue row Type.Length.X Type.Length.Y
+	-> Input.Options.Options column Type.Mass.PieceSquareValue Type.Mass.RankValue row Type.Length.X Type.Length.Y
 	-> ContextualNotation.QualifiedMoveForest.QualifiedMoveForest Type.Length.X Type.Length.Y
-	-> IO (State.PlayState.PlayState column Type.Mass.CriterionValue Type.Mass.CriterionWeight Type.Mass.PieceSquareValue Type.Crypto.PositionHash Type.Mass.RankValue row Type.Mass.WeightedMean Type.Length.X Type.Length.Y)
+	-> IO (State.PlayState.PlayState column Type.Mass.PieceSquareValue Type.Crypto.PositionHash Type.Mass.RankValue row Type.Length.X Type.Length.Y)
  #-}
 play randomGen options qualifiedMoveForest	= Data.Maybe.maybe (
 	return {-to IO-monad-} Data.Default.def {-game-}

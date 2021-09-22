@@ -43,10 +43,10 @@ import qualified	BishBosh.Test.QuickCheck.ContextualNotation.StandardAlgebraic		
 import qualified	BishBosh.Test.QuickCheck.Data.Foldable						as Test.QuickCheck.Data.Foldable
 import qualified	BishBosh.Test.QuickCheck.Data.Integral						as Test.QuickCheck.Data.Integral
 import qualified	BishBosh.Test.QuickCheck.Evaluation.PositionHashQuantifiedGameTree		as Test.QuickCheck.Evaluation.PositionHashQuantifiedGameTree
-import qualified	BishBosh.Test.QuickCheck.Input.CriteriaWeights					as Test.QuickCheck.Input.CriteriaWeights
 import qualified	BishBosh.Test.QuickCheck.Input.EvaluationOptions				as Test.QuickCheck.Input.EvaluationOptions
 import qualified	BishBosh.Test.QuickCheck.Input.Options						as Test.QuickCheck.Input.Options
 import qualified	BishBosh.Test.QuickCheck.Input.PieceSquareTable					as Test.QuickCheck.Input.PieceSquareTable
+import qualified	BishBosh.Test.QuickCheck.Metric.CriteriaWeights					as Test.QuickCheck.Metric.CriteriaWeights
 import qualified	BishBosh.Test.QuickCheck.Model.Game						as Test.QuickCheck.Model.Game
 import qualified	BishBosh.Test.QuickCheck.Model.GameTree						as Test.QuickCheck.Model.GameTree
 import qualified	BishBosh.Test.QuickCheck.Model.MoveFrequency					as Test.QuickCheck.Model.MoveFrequency
@@ -83,7 +83,6 @@ main	= mapM_ (
 	Test.QuickCheck.Attribute.Direction.results,
 	Test.QuickCheck.Attribute.Rank.results,
 	Test.QuickCheck.Attribute.MoveType.results,
-	Test.QuickCheck.Input.CriteriaWeights.results,
 	Test.QuickCheck.Input.EvaluationOptions.results,
 	Test.QuickCheck.Input.Options.results,
 	Test.QuickCheck.Input.PieceSquareTable.results,
@@ -113,6 +112,7 @@ main	= mapM_ (
 	Test.QuickCheck.ContextualNotation.PGNComment.results,
 	Test.QuickCheck.ContextualNotation.PGN.results,
 	Test.QuickCheck.ContextualNotation.QualifiedMoveForest.results,
+	Test.QuickCheck.Metric.CriteriaWeights.results,
 	Test.QuickCheck.Evaluation.PositionHashQuantifiedGameTree.results,
 	Test.QuickCheck.Search.KillerMoves.results,
 	Test.QuickCheck.UI.PrintObject.results,

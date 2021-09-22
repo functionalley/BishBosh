@@ -30,13 +30,12 @@ module BishBosh.Test.HUnit.Search.Search (
 ) where
 
 import qualified	BishBosh.Attribute.CaptureMoveSortAlgorithm		as Attribute.CaptureMoveSortAlgorithm
-import qualified	BishBosh.Attribute.CriterionWeight			as Attribute.CriterionWeight
 import qualified	BishBosh.Data.Exception					as Data.Exception
 import qualified	BishBosh.Evaluation.PositionHashQuantifiedGameTree	as Evaluation.PositionHashQuantifiedGameTree
 import qualified	BishBosh.Evaluation.QuantifiedGame			as Evaluation.QuantifiedGame
-import qualified	BishBosh.Input.CriteriaWeights				as Input.CriteriaWeights
 import qualified	BishBosh.Input.EvaluationOptions			as Input.EvaluationOptions
 import qualified	BishBosh.Input.SearchOptions				as Input.SearchOptions
+import qualified	BishBosh.Metric.CriteriaWeights				as Metric.CriteriaWeights
 import qualified	BishBosh.Notation.MoveNotation				as Notation.MoveNotation
 import qualified	BishBosh.Property.Empty					as Property.Empty
 import qualified	BishBosh.Property.ExtendedPositionDescription		as Property.ExtendedPositionDescription
@@ -55,18 +54,15 @@ import			Test.HUnit((~?))
 -- | Constant.
 evaluationOptions :: (
 	Fractional	pieceSquareValue,
-	Fractional	criterionWeight,
 	Fractional	rankValue,
 	Integral	x,
 	Integral	y,
-	Ord		criterionWeight,
 	Ord		rankValue,
-	Show		criterionWeight,
 	Show		rankValue
- ) => Input.EvaluationOptions.EvaluationOptions criterionWeight pieceSquareValue rankValue x y
+ ) => Input.EvaluationOptions.EvaluationOptions pieceSquareValue rankValue x y
 evaluationOptions	= Input.EvaluationOptions.mkEvaluationOptions Data.Default.def {-rankValues-} Data.Default.def {
-	Input.CriteriaWeights.getWeightOfMobility		= Attribute.CriterionWeight.mkCriterionWeight $ 24 / 1000,
-	Input.CriteriaWeights.getWeightOfCastlingPotential	= Attribute.CriterionWeight.mkCriterionWeight $ 5 / 1000
+	Metric.CriteriaWeights.getWeightOfMobility		= 24 / 1000,
+	Metric.CriteriaWeights.getWeightOfCastlingPotential	= 5 / 1000
 } False {-IncrementalEvaluation-} Nothing {-Maybe PieceSquareTable-}
 
 -- | Constant.
@@ -85,8 +81,8 @@ testCases	= Test.HUnit.test $ map (
 				turnString	= Notation.MoveNotation.showNotation Data.Default.def {-Smith-} $ case Search.Search.getQuantifiedGames $ Control.Monad.Reader.runReader (
 					Search.Search.search searchDepth $ Search.SearchState.initialise (
 						Evaluation.PositionHashQuantifiedGameTree.mkPositionHashQuantifiedGameTree (
-							evaluationOptions	:: Input.EvaluationOptions.EvaluationOptions Type.Mass.CriterionWeight Type.Mass.PieceSquareValue Type.Mass.RankValue Type.Length.X Type.Length.Y
-						) searchOptions Data.Default.def {-Zobrist-} Property.Empty.empty {-MoveFrequency-} game :: Evaluation.PositionHashQuantifiedGameTree.PositionHashQuantifiedGameTree Type.Length.X Type.Length.Y Type.Crypto.PositionHash Type.Mass.CriterionValue Type.Mass.WeightedMean
+							evaluationOptions	:: Input.EvaluationOptions.EvaluationOptions Type.Mass.PieceSquareValue Type.Mass.RankValue Type.Length.X Type.Length.Y
+						) searchOptions Data.Default.def {-Zobrist-} Property.Empty.empty {-MoveFrequency-} game :: Evaluation.PositionHashQuantifiedGameTree.PositionHashQuantifiedGameTree Type.Length.X Type.Length.Y Type.Crypto.PositionHash
 					 )
 				 ) searchOptions of
 					quantifiedGame : _	-> Evaluation.QuantifiedGame.getLastTurn quantifiedGame

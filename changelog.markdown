@@ -97,12 +97,17 @@ New Module				| Purpose
 **BishBosh.Property.Switchable**	| Exports a type-class, which both **BishBosh.Time.StopWatch** & **BishBosh.Time.GameClock** implement, to expose their functionality.
 **BishBosh.Property.SelfValidating**	| Exports a type-class, which both **BishBosh.Time.GameClock** & **Duel.Data.Options** implement, to validate themselves.
 **BishBosh.Types.Countable**		| Defines newtypes to enhance type-safety, replacing type-synonyms for **Int**. There is a performance-degradation, so this enhancement can be disabled using a new cabal-flag.
-**BishBosh.Types.Mass**			|
+**BishBosh.Types.Crypto**		| Self-documentation.
+**BishBosh.Types.Mass**			| Self-documentation.
 
 ### Duel:
-	* Added a command-line option **--verifyConfiguration**, to request that the mutual compatibility of the two configuration-files be verified before forwarding each to a forked instance of **bishbosh**.
+	* Added command-line option **--verifyConfiguration**, to request that the mutual compatibility of the two configuration-files be verified before forwarding each to a forked instance of **bishbosh**.
 
 ### BishBosh:
 	* Created a new directory **Rule/** to which **Model.[DrawReason, GameTerminationReason, Result]** were relocated.
-
 	* Refactored functions **BishBosh.ContextualNotation.PositionHashQualifiedMoveTree.findNextOnymousQualifiedMovesForPosition**, **BishBosh.Model.MoveFrequency.insertMoves** & **BishBosh.Model.GameTree.toMoveFrequency**.
+	* Evaluation-criteria:
+
+		** Moved **BishBosh.Attribute.{CriterionValue, CriterionWeight, WeightedMeanAndCriterionValues}**, **BishBosh.Input.CriteriaWeights** to a new directory **Metric/**
+		** Implemented classes [**Num**, **Fractional**, **Real**] for data-types **BishBosh.Metric.{CriterionValue.CriterionValue, CriterionWeight.CriterionWeight}**, nullifying the requirement for exports.
+		** Replaced the pointless polymorphic payloads in data-types **BishBosh.Metric.{CriterionValue.CriterionValue, CriterionWeight.CriterionWeight, WeightedMeanAndCriterionValues.WeightedMeanAndCriterionValues}** with concrete types.

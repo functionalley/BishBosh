@@ -44,6 +44,7 @@ module BishBosh.Search.TranspositionValue (
 
 import qualified	BishBosh.Data.Exception	as Data.Exception
 import qualified	BishBosh.Type.Count	as Type.Count
+import qualified	BishBosh.Type.Mass	as Type.Mass
 import qualified	Control.Exception
 import qualified	Data.Ord
 
@@ -81,7 +82,7 @@ inferSearchDepth	= fromIntegral . length . getQualifiedMoves
 
 	* CAVEAT: the fitness this function returns should be from the perspective of the player to make the first move.
 -}
-type FindFitness qualifiedMove weightedMean	= TranspositionValue qualifiedMove -> weightedMean
+type FindFitness qualifiedMove	= TranspositionValue qualifiedMove -> Type.Mass.WeightedMean
 
 {- |
 	* Whether a proposed value is better than the incumbent.
@@ -89,8 +90,7 @@ type FindFitness qualifiedMove weightedMean	= TranspositionValue qualifiedMove -
 	* CAVEAT: this is a narrower concept than addressed by 'Ord', which implies 'Eq'.
 -}
 isBetter
-	:: Ord weightedMean
-	=> FindFitness qualifiedMove weightedMean
+	:: FindFitness qualifiedMove
 	-> TranspositionValue qualifiedMove	-- ^ The proposed value.
 	-> TranspositionValue qualifiedMove	-- ^ The incumbent value.
 	-> Bool

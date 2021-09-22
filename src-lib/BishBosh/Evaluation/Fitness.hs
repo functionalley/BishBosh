@@ -49,11 +49,9 @@ module BishBosh.Evaluation.Fitness(
 import			Control.Applicative((<|>))
 import			Control.Arrow((&&&))
 import			Data.Array.IArray((!))
-import qualified	BishBosh.Attribute.CriterionValue			as Attribute.CriterionValue
 import qualified	BishBosh.Attribute.LogicalColour			as Attribute.LogicalColour
 import qualified	BishBosh.Attribute.MoveType				as Attribute.MoveType
 import qualified	BishBosh.Attribute.RankValues				as Attribute.RankValues
-import qualified	BishBosh.Attribute.WeightedMeanAndCriterionValues	as Attribute.WeightedMeanAndCriterionValues
 import qualified	BishBosh.Cartesian.Abscissa				as Cartesian.Abscissa
 import qualified	BishBosh.Cartesian.Coordinates				as Cartesian.Coordinates
 import qualified	BishBosh.Cartesian.Ordinate				as Cartesian.Ordinate
@@ -62,8 +60,10 @@ import qualified	BishBosh.Component.Piece				as Component.Piece
 import qualified	BishBosh.Component.PieceSquareByCoordinatesByRank	as Component.PieceSquareByCoordinatesByRank
 import qualified	BishBosh.Component.QualifiedMove			as Component.QualifiedMove
 import qualified	BishBosh.Component.Turn					as Component.Turn
-import qualified	BishBosh.Input.CriteriaWeights				as Input.CriteriaWeights
 import qualified	BishBosh.Input.EvaluationOptions			as Input.EvaluationOptions
+import qualified	BishBosh.Metric.CriteriaWeights				as Metric.CriteriaWeights
+import qualified	BishBosh.Metric.CriterionValue				as Metric.CriterionValue
+import qualified	BishBosh.Metric.WeightedMeanAndCriterionValues		as Metric.WeightedMeanAndCriterionValues
 import qualified	BishBosh.Model.Game					as Model.Game
 import qualified	BishBosh.Property.Opposable				as Property.Opposable
 import qualified	BishBosh.Rule.GameTerminationReason			as Rule.GameTerminationReason
@@ -78,23 +78,15 @@ import qualified	Data.List
 import qualified	Data.Map.Strict
 import qualified	Data.Maybe
 
-#ifdef USE_PARALLEL
-import qualified	Control.DeepSeq
-#endif
-
 #ifdef USE_UNBOXED_ARRAYS
 import qualified	Data.Array.Unboxed
 #endif
 
 -- | Construct a criterion-value from a piece-square value.
-mkPieceSquareCriterionValue :: (
-	Fractional	criterionValue,
-	Ord		criterionValue,
-	Real		pieceSquareValue
- ) => pieceSquareValue -> Attribute.CriterionValue.CriterionValue criterionValue
-mkPieceSquareCriterionValue	= Attribute.CriterionValue.mkCriterionValue . (
+mkPieceSquareCriterionValue :: Real pieceSquareValue => pieceSquareValue -> Metric.CriterionValue.CriterionValue
+mkPieceSquareCriterionValue	= fromRational . (
 	/ fromIntegral Component.Piece.nPiecesPerSide
- ) . realToFrac
+ ) . toRational
 
 -- | Measures the piece-square value from the perspective of the last player to move.
 measurePieceSquareValue :: (
@@ -160,18 +152,16 @@ measurePieceSquareValueIncrementally previousPieceSquareValue pieceSquareByCoord
 
 -- | Measure the arithmetic difference between the total /rank-value/ of the /piece/s currently held by either side; <https://www.chessprogramming.org/Material>.
 measureValueOfMaterial :: (
-	Fractional	criterionValue,
 	Fractional	rankValue,
-	Ord		criterionValue,
 	Real		rankValue
  )
 	=> Attribute.RankValues.RankValues rankValue
 	-> Model.Game.Game x y
-	-> Attribute.CriterionValue.CriterionValue criterionValue
--- {-# SPECIALISE measureValueOfMaterial :: Attribute.RankValues.RankValues Type.Mass.RankValue -> Model.Game.Game Type.Length.X Type.Length.Y -> Attribute.CriterionValue.CriterionValue Type.Mass.CriterionValue #-}
-measureValueOfMaterial rankValues game	= Attribute.CriterionValue.mkCriterionValue . (
+	-> Metric.CriterionValue.CriterionValue
+-- {-# SPECIALISE measureValueOfMaterial :: Attribute.RankValues.RankValues Type.Mass.RankValue -> Model.Game.Game Type.Length.X Type.Length.Y -> Metric.CriterionValue.CriterionValue #-}
+measureValueOfMaterial rankValues game	= fromRational . (
 	/ fromIntegral Component.Piece.nPiecesPerSide	-- Normalise.
- ) . realToFrac . (
+ ) . toRational {-from NPieces-} . (
 	if Attribute.LogicalColour.isBlack $ Model.Game.getNextLogicalColour game
 		then id		-- White just moved.
 		else negate	-- Black just moved.
@@ -202,28 +192,23 @@ measureValueOfMaterial rankValues game	= Attribute.CriterionValue.mkCriterionVal
 	This presents a paradox !
 -}
 measureValueOfMobility :: (
-	Enum		x,
-	Enum		y,
-	Fractional	criterionValue,
-	Ord		criterionValue,
-	Ord		x,
-	Ord		y,
-	Show		x,
-	Show		y
- ) => Model.Game.Game x y -> Attribute.CriterionValue.CriterionValue criterionValue
-{-# SPECIALISE measureValueOfMobility :: Model.Game.Game Type.Length.X Type.Length.Y -> Attribute.CriterionValue.CriterionValue Type.Mass.CriterionValue #-}
-measureValueOfMobility game	= Attribute.CriterionValue.mkCriterionValue . uncurry (-) . (
+	Enum	x,
+	Enum	y,
+	Ord	x,
+	Ord	y,
+	Show	x,
+	Show	y
+ ) => Model.Game.Game x y -> Metric.CriterionValue.CriterionValue
+{-# SPECIALISE measureValueOfMobility :: Model.Game.Game Type.Length.X Type.Length.Y -> Metric.CriterionValue.CriterionValue #-}
+measureValueOfMobility game	= fromRational . uncurry (-) . (
 	measureConstriction &&& measureConstriction . Property.Opposable.getOpposite {-recent mover-}
  ) $ Model.Game.getNextLogicalColour game where
-	measureConstriction logicalColour	= recip . fromIntegral . succ {-avoid divide-by-zero-} $ Model.Game.countPliesAvailableTo logicalColour game
+	measureConstriction logicalColour	= recip . fromIntegral {-NPlies-} . succ {-avoid divide-by-zero-} $ Model.Game.countPliesAvailableTo logicalColour game
 
 -- | Measure the arithmetic difference between the potential to /Castle/, on either side.
-measureValueOfCastlingPotential :: (
-	Fractional	criterionValue,
-	Ord		criterionValue
- ) => Model.Game.Game x y -> Attribute.CriterionValue.CriterionValue criterionValue
--- {-# SPECIALISE measureValueOfCastlingPotential :: Model.Game.Game Type.Length.X Type.Length.Y -> Attribute.CriterionValue.CriterionValue Type.Mass.CriterionValue #-}
-measureValueOfCastlingPotential game	= Attribute.CriterionValue.mkCriterionValue . uncurry (-) . (
+measureValueOfCastlingPotential :: Model.Game.Game x y -> Metric.CriterionValue.CriterionValue
+-- {-# SPECIALISE measureValueOfCastlingPotential :: Model.Game.Game Type.Length.X Type.Length.Y -> Metric.CriterionValue.CriterionValue #-}
+measureValueOfCastlingPotential game	= fromRational . uncurry (-) . (
 	castlingPotential . Property.Opposable.getOpposite {-recent mover-} &&& castlingPotential
  ) $ Model.Game.getNextLogicalColour game where
 	castlingPotential	= Data.Maybe.maybe 1 {-have Castled-} (
@@ -239,14 +224,11 @@ measureValueOfCastlingPotential game	= Attribute.CriterionValue.mkCriterionValue
 
 	* CAVEAT: this is a negative attribute, so the weighted normalised value shouldn't exceed the reduction due to 'measureValueOfMaterial' resulting from a @Pawn@-sacrifice.
 -}
-measureValueOfDoubledPawns :: (
-	Fractional	criterionValue,
-	Ord		criterionValue
- ) => Model.Game.Game x y -> Attribute.CriterionValue.CriterionValue criterionValue
--- {-# SPECIALISE measureValueOfDoubledPawns :: Model.Game.Game Type.Length.X Type.Length.Y -> Attribute.CriterionValue.CriterionValue Type.Mass.CriterionValue #-}
-measureValueOfDoubledPawns game	= Attribute.CriterionValue.mkCriterionValue . (
+measureValueOfDoubledPawns :: Model.Game.Game x y -> Metric.CriterionValue.CriterionValue
+-- {-# SPECIALISE measureValueOfDoubledPawns :: Model.Game.Game Type.Length.X Type.Length.Y -> Metric.CriterionValue.CriterionValue #-}
+measureValueOfDoubledPawns game	= fromRational . (
 	/ 6	-- Normalise to [-1 .. 1]; the optimal scenario is all files containing one Pawn; the worst scenario is two files each containing four Pawns, all but one per file of which are counted as doubled.
- ) . fromIntegral . uncurry (-) . (
+ ) . fromIntegral {-NPieces-} . uncurry (-) . (
 	countDoubledPawns &&& countDoubledPawns . Property.Opposable.getOpposite {-recent mover-}
  ) $ Model.Game.getNextLogicalColour game where
 	countDoubledPawns logicalColour	= uncurry (-) . (
@@ -258,16 +240,11 @@ measureValueOfDoubledPawns game	= Attribute.CriterionValue.mkCriterionValue . (
 
 	* CAVEAT: this is a negative attribute, so the weighted normalised value shouldn't exceed the reduction due to 'measureValueOfMaterial' resulting from a @Pawn@-sacrifice.
 -}
-measureValueOfIsolatedPawns :: (
-	Enum		x,
-	Fractional	criterionValue,
-	Ord		criterionValue,
-	Ord		x
- ) => Model.Game.Game x y -> Attribute.CriterionValue.CriterionValue criterionValue
-{-# SPECIALISE measureValueOfIsolatedPawns :: Model.Game.Game Type.Length.X Type.Length.Y -> Attribute.CriterionValue.CriterionValue Type.Mass.CriterionValue #-}
-measureValueOfIsolatedPawns game	= Attribute.CriterionValue.mkCriterionValue . (
-	/ fromIntegral Cartesian.Abscissa.xLength	-- Normalise to [-1 .. 1]; the optimal scenario is eight files each containing one Pawn & the worst scenario is all Pawns isolated (e.g. 4 alternate files of 2, 2 separate files or 4, ...).
- ) . fromIntegral . uncurry (-) . (
+measureValueOfIsolatedPawns :: (Enum x, Ord x) => Model.Game.Game x y -> Metric.CriterionValue.CriterionValue
+{-# SPECIALISE measureValueOfIsolatedPawns :: Model.Game.Game Type.Length.X Type.Length.Y -> Metric.CriterionValue.CriterionValue #-}
+measureValueOfIsolatedPawns game	= fromRational . (
+	/ fromIntegral {-Int-} Cartesian.Abscissa.xLength	-- Normalise to [-1 .. 1]; the optimal scenario is eight files each containing one Pawn & the worst scenario is all Pawns isolated (e.g. 4 alternate files of 2, 2 separate files or 4, ...).
+ ) . fromIntegral {-NPieces-} . uncurry (-) . (
 	countIsolatedPawns &&& countIsolatedPawns . Property.Opposable.getOpposite {-recent mover-}
  ) $ Model.Game.getNextLogicalColour game where
 	countIsolatedPawns :: Attribute.LogicalColour.LogicalColour -> Type.Count.NPieces
@@ -281,20 +258,15 @@ measureValueOfIsolatedPawns game	= Attribute.CriterionValue.mkCriterionValue . (
 		nPawnsByFile	= State.Board.getNPawnsByFileByLogicalColour (Model.Game.getBoard game) ! logicalColour
 
 -- | Measure the arithmetic difference between the number of /passed/ @Pawn@s on either side; <https://www.chessprogramming.org/Passed_Pawn>.
-measureValueOfPassedPawns :: forall x y criterionValue. (
-	Enum		y,
-	Fractional	criterionValue,
-	Ord		criterionValue
- ) => Model.Game.Game x y -> Attribute.CriterionValue.CriterionValue criterionValue
-{-# SPECIALISE measureValueOfPassedPawns :: Model.Game.Game Type.Length.X Type.Length.Y -> Attribute.CriterionValue.CriterionValue Type.Mass.CriterionValue #-}
-measureValueOfPassedPawns game	= Attribute.CriterionValue.mkCriterionValue . (
-	/ fromIntegral Cartesian.Abscissa.xLength	-- Normalise to [-1 .. 1].
+measureValueOfPassedPawns :: forall x y. Enum y => Model.Game.Game x y -> Metric.CriterionValue.CriterionValue
+{-# SPECIALISE measureValueOfPassedPawns :: Model.Game.Game Type.Length.X Type.Length.Y -> Metric.CriterionValue.CriterionValue #-}
+measureValueOfPassedPawns game	= fromRational . (
+	/ fromIntegral {-Int-} Cartesian.Abscissa.xLength	-- Normalise to [-1 .. 1].
  ) . uncurry (-) . (
 	valuePassedPawns . Property.Opposable.getOpposite {-recent mover-} &&& valuePassedPawns
  ) $ Model.Game.getNextLogicalColour game where
-	valuePassedPawns :: Attribute.LogicalColour.LogicalColour -> criterionValue
 	valuePassedPawns logicalColour	= Data.List.foldl' (
-		\acc -> (acc +) . recip {-value increases exponentially as distance to promotion decreases-} . fromIntegral . abs . subtract (
+		\acc -> (acc +) . recip {-value increases exponentially as distance to promotion decreases-} . fromIntegral {-Int-} . abs . subtract (
 			fromEnum (
 				Cartesian.Ordinate.lastRank logicalColour	:: y
 			)
@@ -329,14 +301,11 @@ maximumDefended	= 70
 
 	* CAVEAT: this criterion competes with /mobility/, since each defended /piece/ blocks the path of the defender.
 -}
-measureValueOfDefence :: (
-	Fractional	criterionValue,
-	Ord		criterionValue
- ) => Model.Game.Game x y -> Attribute.CriterionValue.CriterionValue criterionValue
--- {-# SPECIALISE measureValueOfDefence :: Model.Game.Game Type.Length.X Type.Length.Y -> Attribute.CriterionValue.CriterionValue Type.Mass.CriterionValue #-}
-measureValueOfDefence game	= Attribute.CriterionValue.mkCriterionValue . (
-	/ fromIntegral maximumDefended	-- Normalise.
- ) . fromIntegral . uncurry (-) . (
+measureValueOfDefence :: Model.Game.Game x y -> Metric.CriterionValue.CriterionValue
+-- {-# SPECIALISE measureValueOfDefence :: Model.Game.Game Type.Length.X Type.Length.Y -> Metric.CriterionValue.CriterionValue #-}
+measureValueOfDefence game	= fromRational . (
+	/ fromIntegral {-NPieces-} maximumDefended	-- Normalise.
+ ) . fromIntegral {-NPieces-} . uncurry (-) . (
 	(! Property.Opposable.getOpposite {-recent mover-} nextLogicalColour) &&& (! nextLogicalColour)
  ) . State.Board.summariseNDefendersByLogicalColour $ Model.Game.getBoard game where
 	nextLogicalColour	= Model.Game.getNextLogicalColour game
@@ -353,22 +322,15 @@ measureValueOfDefence game	= Attribute.CriterionValue.mkCriterionValue . (
 	* Many possible criteria aren't measured because they're, either currently or imminently, represented by those that are, typically by 'measureValueOfMaterial'.
 -}
 evaluateFitness :: (
-#ifdef USE_PARALLEL
-	Control.DeepSeq.NFData					criterionValue,
-#endif
 #ifdef USE_UNBOXED_ARRAYS
 	Data.Array.Unboxed.IArray Data.Array.Unboxed.UArray	pieceSquareValue,	-- Requires 'FlexibleContexts'. The unboxed representation of the array-element must be defined (& therefore must be of fixed size).
 #endif
 	Enum							x,
 	Enum							y,
-	Fractional						criterionValue,
 	Fractional						pieceSquareValue,
 	Fractional						rankValue,
-	Fractional						weightedMean,
 	Ord							x,
 	Ord							y,
-	Real							criterionValue,
-	Real							criterionWeight,
 	Real							pieceSquareValue,
 	Real							rankValue,
 	Show							x,
@@ -376,12 +338,10 @@ evaluateFitness :: (
  )
 	=> Maybe pieceSquareValue	-- ^ An optional value for the specified game.
 	-> Model.Game.Game x y
-	-> Input.EvaluationOptions.Reader criterionWeight pieceSquareValue rankValue x y (
-		Attribute.WeightedMeanAndCriterionValues.WeightedMeanAndCriterionValues weightedMean criterionValue
-	)
-{-# SPECIALISE evaluateFitness :: Maybe Type.Mass.PieceSquareValue -> Model.Game.Game Type.Length.X Type.Length.Y -> Input.EvaluationOptions.Reader Type.Mass.CriterionWeight Type.Mass.PieceSquareValue Type.Mass.RankValue Type.Length.X Type.Length.Y (Attribute.WeightedMeanAndCriterionValues.WeightedMeanAndCriterionValues Type.Mass.WeightedMean Type.Mass.CriterionValue) #-}
+	-> Input.EvaluationOptions.Reader pieceSquareValue rankValue x y Metric.WeightedMeanAndCriterionValues.WeightedMeanAndCriterionValues
+{-# SPECIALISE evaluateFitness :: Maybe Type.Mass.PieceSquareValue -> Model.Game.Game Type.Length.X Type.Length.Y -> Input.EvaluationOptions.Reader Type.Mass.PieceSquareValue Type.Mass.RankValue Type.Length.X Type.Length.Y Metric.WeightedMeanAndCriterionValues.WeightedMeanAndCriterionValues #-}
 evaluateFitness maybePieceSquareValue game
-	| Just gameTerminationReason <- Model.Game.getMaybeTerminationReason game	= return {-to Reader-monad-} $ Attribute.WeightedMeanAndCriterionValues.mkWeightedMeanAndCriterionValues (
+	| Just gameTerminationReason <- Model.Game.getMaybeTerminationReason game	= return {-to Reader-monad-} $ Metric.WeightedMeanAndCriterionValues.mkWeightedMeanAndCriterionValues (
 		if Rule.GameTerminationReason.isCheckMate gameTerminationReason
 			then 1	-- The last player to move, has won.
 			else 0	-- A draw.
@@ -391,12 +351,12 @@ evaluateFitness maybePieceSquareValue game
 		rankValues				<- Control.Monad.Reader.asks Input.EvaluationOptions.getRankValues
 		maybePieceSquareByCoordinatesByRank	<- Control.Monad.Reader.asks Input.EvaluationOptions.getMaybePieceSquareByCoordinatesByRank
 
-		return {-to Reader-monad-} $ Input.CriteriaWeights.calculateWeightedMean criteriaWeights (
+		return {-to Reader-monad-} $ Metric.CriteriaWeights.calculateWeightedMean criteriaWeights (
 			measureValueOfMaterial rankValues game
 		 ) (
 			measureValueOfMobility game
 		 ) (
-			Data.Maybe.maybe Attribute.CriterionValue.zero mkPieceSquareCriterionValue $ maybePieceSquareValue <|> fmap (
+			Data.Maybe.maybe 0 mkPieceSquareCriterionValue $ maybePieceSquareValue <|> fmap (
 				`measurePieceSquareValue` game
 			) maybePieceSquareByCoordinatesByRank
 		 ) (

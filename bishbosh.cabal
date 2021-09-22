@@ -117,8 +117,6 @@ Library
     Exposed-modules:
         BishBosh.Attribute.CaptureMoveSortAlgorithm
         BishBosh.Attribute.ColourScheme
-        BishBosh.Attribute.CriterionValue
-        BishBosh.Attribute.CriterionWeight
         BishBosh.Attribute.Direction
         BishBosh.Attribute.LogicalColour
         BishBosh.Attribute.LogicalColourOfSquare
@@ -126,7 +124,6 @@ Library
         BishBosh.Attribute.PhysicalColour
         BishBosh.Attribute.Rank
         BishBosh.Attribute.RankValues
-        BishBosh.Attribute.WeightedMeanAndCriterionValues
         BishBosh.Cartesian.Abscissa
         BishBosh.Cartesian.Coordinates
         BishBosh.Cartesian.Ordinate
@@ -162,7 +159,6 @@ Library
         BishBosh.Input.CECPFeatures
         BishBosh.Input.CECPOptions
         BishBosh.Input.CommandLineOption
-        BishBosh.Input.CriteriaWeights
         BishBosh.Input.EvaluationOptions
         BishBosh.Input.IOOptions
         BishBosh.Input.NativeUIOptions
@@ -173,6 +169,10 @@ Library
         BishBosh.Input.StandardOpeningOptions
         BishBosh.Input.UIOptions
         BishBosh.Input.Verbosity
+        BishBosh.Metric.CriteriaWeights
+        BishBosh.Metric.CriterionValue
+        BishBosh.Metric.CriterionWeight
+        BishBosh.Metric.WeightedMeanAndCriterionValues
         BishBosh.Model.Game
         BishBosh.Model.GameTree
         BishBosh.Model.MoveFrequency
@@ -456,7 +456,6 @@ Test-Suite quickcheck-tests
 
     Other-modules:
         BishBosh.Test.QuickCheck.Attribute.CaptureMoveSortAlgorithm
-        BishBosh.Test.QuickCheck.Attribute.CriterionWeight
         BishBosh.Test.QuickCheck.Attribute.Direction
         BishBosh.Test.QuickCheck.Attribute.LogicalColour
         BishBosh.Test.QuickCheck.Attribute.MoveType
@@ -479,7 +478,6 @@ Test-Suite quickcheck-tests
         BishBosh.Test.QuickCheck.Evaluation.PositionHashQuantifiedGameTree
         BishBosh.Test.QuickCheck.Input.CECPFeatures
         BishBosh.Test.QuickCheck.Input.CECPOptions
-        BishBosh.Test.QuickCheck.Input.CriteriaWeights
         BishBosh.Test.QuickCheck.Input.EvaluationOptions
         BishBosh.Test.QuickCheck.Input.IOOptions
         BishBosh.Test.QuickCheck.Input.NativeUIOptions
@@ -490,6 +488,8 @@ Test-Suite quickcheck-tests
         BishBosh.Test.QuickCheck.Input.StandardOpeningOptions
         BishBosh.Test.QuickCheck.Input.UIOptions
         BishBosh.Test.QuickCheck.Input.Verbosity
+        BishBosh.Test.QuickCheck.Metric.CriteriaWeights
+        BishBosh.Test.QuickCheck.Metric.CriterionWeight
         BishBosh.Test.QuickCheck.Model.Game
         BishBosh.Test.QuickCheck.Model.GameTree
         BishBosh.Test.QuickCheck.Model.MoveFrequency

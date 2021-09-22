@@ -75,8 +75,8 @@ type Transformation qualifiedMove positionHash	= Transpositions qualifiedMove po
 	* If a matching key already exists, it's replaced if the new value is considered to be better.
 -}
 insert
-	:: (Ord positionHash, Ord weightedMean)
-	=> Search.TranspositionValue.FindFitness qualifiedMove weightedMean
+	:: Ord positionHash
+	=> Search.TranspositionValue.FindFitness qualifiedMove
 	-> positionHash							-- ^ Represents the game from which the sequence of qualifiedMoves starts.
 	-> Search.TranspositionValue.TranspositionValue qualifiedMove	-- ^ The value to record.
 	-> Transformation qualifiedMove positionHash
