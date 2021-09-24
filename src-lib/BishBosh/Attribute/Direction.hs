@@ -221,7 +221,7 @@ range	= [sw, w, nw, s, n, se, e, ne]
 instance Property.FixedMembership.FixedMembership Direction where
 	members	= range
 
--- | Smart-constructor.
+-- | Smart constructor.
 mkDirection
 	:: Ordering	-- ^ The sense of the change in the /x/-coordinate.
 	-> Ordering	-- ^ The sense of the change in the /y/-coordinate.

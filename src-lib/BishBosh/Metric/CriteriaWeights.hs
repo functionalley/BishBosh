@@ -124,7 +124,7 @@ data CriteriaWeights	= MkCriteriaWeights {
 	getWeightOfPassedPawns		:: Metric.CriterionWeight.CriterionWeight	-- ^ The arithmetic difference between the total number of /passed/ @Pawn@s on either side; <https://www.chessprogramming.org/Passed_Pawn>.
 } deriving (Eq, Show)
 
--- | Smart-constructor.
+-- | Smart constructor.
 mkCriteriaWeights
 	:: Metric.CriterionWeight.CriterionWeight	-- ^ /material/.
 	-> Metric.CriterionWeight.CriterionWeight	-- ^ /mobility/.

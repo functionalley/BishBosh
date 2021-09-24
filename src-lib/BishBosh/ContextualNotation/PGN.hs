@@ -308,7 +308,7 @@ mkPGN maybeEventName maybeSiteName day maybeRoundName maybeWhitePlayerName maybe
 setGame :: Model.Game.Game x y -> PGN x y -> PGN x y
 setGame game pgn	= pgn { getGame = game }
 
--- | Smart-constructor.
+-- | Smart constructor.
 mkPGN'
 	:: [Tag]	-- ^ Identify fields used to form a unique composite game-identifier.
 	-> [TagPair]	-- ^ The data from which to extract the required values.

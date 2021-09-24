@@ -339,7 +339,7 @@ instance HXT.XmlPickler CECPFeatures where
 	 ) where
 		def	= Data.Default.def
 
--- | Smart-constructor.
+-- | Smart constructor.
 mkCECPFeatures :: [Feature] -> Bool -> CECPFeatures
 mkCECPFeatures features done
 	| Just (key, _)	<- Data.List.find (

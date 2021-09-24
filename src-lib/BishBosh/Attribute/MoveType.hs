@@ -170,7 +170,7 @@ instance Property.FixedMembership.FixedMembership MoveType where
 			maybePromotionRank	<- Nothing : map Just Attribute.Rank.promotionProspects
 	 ] -- List-comprehension.
 
--- | Smart-constructor for normal move-types.
+-- | Smart constructor for normal move-types.
 mkMaybeNormalMoveType
 	:: Maybe Attribute.Rank.Rank	-- ^ The /rank/ of any opposing /piece/ which was just taken.
 	-> Maybe Attribute.Rank.Rank	-- ^ The /rank/ to which a @Pawn@ was just promoted.
