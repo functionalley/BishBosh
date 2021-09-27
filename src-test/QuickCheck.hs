@@ -47,6 +47,7 @@ import qualified	BishBosh.Test.QuickCheck.Input.EvaluationOptions				as Test.Qui
 import qualified	BishBosh.Test.QuickCheck.Input.Options						as Test.QuickCheck.Input.Options
 import qualified	BishBosh.Test.QuickCheck.Input.PieceSquareTable					as Test.QuickCheck.Input.PieceSquareTable
 import qualified	BishBosh.Test.QuickCheck.Metric.CriteriaWeights					as Test.QuickCheck.Metric.CriteriaWeights
+import qualified	BishBosh.Test.QuickCheck.Metric.RankValue					as Test.QuickCheck.Metric.RankValue
 import qualified	BishBosh.Test.QuickCheck.Model.Game						as Test.QuickCheck.Model.Game
 import qualified	BishBosh.Test.QuickCheck.Model.GameTree						as Test.QuickCheck.Model.GameTree
 import qualified	BishBosh.Test.QuickCheck.Model.MoveFrequency					as Test.QuickCheck.Model.MoveFrequency
@@ -113,6 +114,7 @@ main	= mapM_ (
 	Test.QuickCheck.ContextualNotation.PGN.results,
 	Test.QuickCheck.ContextualNotation.QualifiedMoveForest.results,
 	Test.QuickCheck.Metric.CriteriaWeights.results,
+	Test.QuickCheck.Metric.RankValue.results,
 	Test.QuickCheck.Evaluation.PositionHashQuantifiedGameTree.results,
 	Test.QuickCheck.Search.KillerMoves.results,
 	Test.QuickCheck.UI.PrintObject.results,

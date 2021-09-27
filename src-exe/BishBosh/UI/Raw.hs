@@ -98,10 +98,9 @@ import qualified	Data.Array.Unboxed
 
 	* Since the user can also request roll-back to an earlier game before then requesting a new move, a new game is returned rather than just the requested move.
 -}
-readMove :: forall column pieceSquareValue positionHash randomGen rankValue row x y. (
+readMove :: forall column pieceSquareValue positionHash randomGen row x y. (
 	Control.DeepSeq.NFData					column,
 	Control.DeepSeq.NFData					pieceSquareValue,
-	Control.DeepSeq.NFData					rankValue,
 	Control.DeepSeq.NFData					row,
 	Control.DeepSeq.NFData					x,
 	Control.DeepSeq.NFData					y,
@@ -111,7 +110,6 @@ readMove :: forall column pieceSquareValue positionHash randomGen rankValue row 
 #endif
 	Data.Bits.Bits						positionHash,
 	Fractional						pieceSquareValue,
-	Fractional						rankValue,
 	Integral						column,
 	Integral						x,
 	Integral						y,
@@ -119,7 +117,6 @@ readMove :: forall column pieceSquareValue positionHash randomGen rankValue row 
 	Read							x,
 	Read							y,
 	Real							pieceSquareValue,
-	Real							rankValue,
 	Show							column,
 	Show							pieceSquareValue,
 	Show							row,
@@ -130,8 +127,8 @@ readMove :: forall column pieceSquareValue positionHash randomGen rankValue row 
 	=> ContextualNotation.PositionHashQualifiedMoveTree.PositionHashQualifiedMoveTree x y positionHash
 	-> randomGen
 	-> Time.StopWatch.StopWatch
-	-> State.PlayState.PlayState column pieceSquareValue positionHash rankValue row x y
-	-> IO (State.PlayState.PlayState column pieceSquareValue positionHash rankValue row x y)
+	-> State.PlayState.PlayState column pieceSquareValue positionHash row x y
+	-> IO (State.PlayState.PlayState column pieceSquareValue positionHash row x y)
 {-# SPECIALISE readMove :: (
 	Control.DeepSeq.NFData	column,
 	Control.DeepSeq.NFData	row,
@@ -143,8 +140,8 @@ readMove :: forall column pieceSquareValue positionHash randomGen rankValue row 
 	=> ContextualNotation.PositionHashQualifiedMoveTree.PositionHashQualifiedMoveTree Type.Length.X Type.Length.Y Type.Crypto.PositionHash
 	-> randomGen
 	-> Time.StopWatch.StopWatch
-	-> State.PlayState.PlayState column Type.Mass.PieceSquareValue Type.Crypto.PositionHash Type.Mass.RankValue row Type.Length.X Type.Length.Y
-	-> IO (State.PlayState.PlayState column Type.Mass.PieceSquareValue Type.Crypto.PositionHash Type.Mass.RankValue row Type.Length.X Type.Length.Y)
+	-> State.PlayState.PlayState column Type.Mass.PieceSquareValue Type.Crypto.PositionHash row Type.Length.X Type.Length.Y
+	-> IO (State.PlayState.PlayState column Type.Mass.PieceSquareValue Type.Crypto.PositionHash row Type.Length.X Type.Length.Y)
  #-}
 readMove positionHashQualifiedMoveTree randomGen runningWatch playState	= let
 	(game, options)			= State.PlayState.getGame &&& State.PlayState.getOptions $ playState
@@ -167,7 +164,7 @@ readMove positionHashQualifiedMoveTree randomGen runningWatch playState	= let
 			Notation.MoveNotation.getOrigin moveNotation
 		 ) . State.Board.getMaybePieceByCoordinates . Model.Game.getBoard
 
-		onCommand :: UI.Command.Command x y -> IO (State.PlayState.PlayState column pieceSquareValue positionHash rankValue row x y)
+		onCommand :: UI.Command.Command x y -> IO (State.PlayState.PlayState column pieceSquareValue positionHash row x y)
 		onCommand UI.Command.Hint	= do
 			Control.Monad.unless (Model.Game.isTerminated game) . Data.Maybe.maybe (
 				do
@@ -245,7 +242,7 @@ readMove positionHashQualifiedMoveTree randomGen runningWatch playState	= let
 
 			return {-to IO-monad-} $ State.PlayState.resetPositionHashQuantifiedGameTree playState
 		onCommand (UI.Command.RollBack maybeNPlies)	= let
-			rollBack :: Type.Count.NPlies -> IO (State.PlayState.PlayState column pieceSquareValue positionHash rankValue row x y)
+			rollBack :: Type.Count.NPlies -> IO (State.PlayState.PlayState column pieceSquareValue positionHash row x y)
 			rollBack nPlies
 				| (game', _) : _ <- drop (fromIntegral $ pred nPlies) $ Model.Game.rollBack game	= do
 					Control.Monad.when (verbosity == maxBound) . putStrLn $ show2D game'
@@ -313,7 +310,7 @@ readMove positionHashQualifiedMoveTree randomGen runningWatch playState	= let
 
 				return {-to IO-monad-} playState { State.PlayState.getOptions = Input.Options.swapSearchDepth options }
 
-		eventLoop :: IO (State.PlayState.PlayState column pieceSquareValue positionHash rankValue row x y)
+		eventLoop :: IO (State.PlayState.PlayState column pieceSquareValue positionHash row x y)
 		eventLoop	= getLine >>= \line -> case Data.List.Extra.trim line of
 			"?"	-> onCommand $ UI.Command.Print UI.PrintObject.Help
 			':' : s	-> (
@@ -384,10 +381,9 @@ readMove positionHashQualifiedMoveTree randomGen runningWatch playState	= let
  ) $ Input.UIOptions.getEitherNativeUIOrCECPOptions uiOptions
 
 -- | Plays the game.
-takeTurns :: forall column pieceSquareValue positionHash randomGen rankValue row x y. (
+takeTurns :: forall column pieceSquareValue positionHash randomGen row x y. (
 	Control.DeepSeq.NFData					column,
 	Control.DeepSeq.NFData					pieceSquareValue,
-	Control.DeepSeq.NFData					rankValue,
 	Control.DeepSeq.NFData					row,
 	Control.DeepSeq.NFData					x,
 	Control.DeepSeq.NFData					y,
@@ -397,7 +393,6 @@ takeTurns :: forall column pieceSquareValue positionHash randomGen rankValue row
 #endif
 	Data.Bits.Bits						positionHash,
 	Fractional						pieceSquareValue,
-	Fractional						rankValue,
 	Integral						column,
 	Integral						x,
 	Integral						y,
@@ -405,7 +400,6 @@ takeTurns :: forall column pieceSquareValue positionHash randomGen rankValue row
 	Read							x,
 	Read							y,
 	Real							pieceSquareValue,
-	Real							rankValue,
 	Show							column,
 	Show							pieceSquareValue,
 	Show							row,
@@ -415,8 +409,8 @@ takeTurns :: forall column pieceSquareValue positionHash randomGen rankValue row
  )
 	=> ContextualNotation.PositionHashQualifiedMoveTree.PositionHashQualifiedMoveTree x y positionHash
 	-> randomGen
-	-> State.PlayState.PlayState column pieceSquareValue positionHash rankValue row x y
-	-> IO (State.PlayState.PlayState column pieceSquareValue positionHash rankValue row x y)
+	-> State.PlayState.PlayState column pieceSquareValue positionHash row x y
+	-> IO (State.PlayState.PlayState column pieceSquareValue positionHash row x y)
 {-# SPECIALISE takeTurns :: (
 	Control.DeepSeq.NFData	column,
 	Control.DeepSeq.NFData	row,
@@ -427,8 +421,8 @@ takeTurns :: forall column pieceSquareValue positionHash randomGen rankValue row
  )
 	=> ContextualNotation.PositionHashQualifiedMoveTree.PositionHashQualifiedMoveTree Type.Length.X Type.Length.Y Type.Crypto.PositionHash
 	-> randomGen
-	-> State.PlayState.PlayState column Type.Mass.PieceSquareValue Type.Crypto.PositionHash Type.Mass.RankValue row Type.Length.X Type.Length.Y
-	-> IO (State.PlayState.PlayState column Type.Mass.PieceSquareValue Type.Crypto.PositionHash Type.Mass.RankValue row Type.Length.X Type.Length.Y)
+	-> State.PlayState.PlayState column Type.Mass.PieceSquareValue Type.Crypto.PositionHash row Type.Length.X Type.Length.Y
+	-> IO (State.PlayState.PlayState column Type.Mass.PieceSquareValue Type.Crypto.PositionHash row Type.Length.X Type.Length.Y)
  #-}
 takeTurns positionHashQualifiedMoveTree randomGen playState	= let
 	options	= State.PlayState.getOptions playState
@@ -456,8 +450,8 @@ takeTurns positionHashQualifiedMoveTree randomGen playState	= let
 				:: Maybe (Concurrent.Pondering.Pondering (Component.Move.Move x y))
 				-> Maybe Type.Count.NPlies
 				-> [randomGen]
-				-> State.PlayState.PlayState column pieceSquareValue positionHash rankValue row x y
-				-> IO (State.PlayState.PlayState column pieceSquareValue positionHash rankValue row x y)
+				-> State.PlayState.PlayState column pieceSquareValue positionHash row x y
+				-> IO (State.PlayState.PlayState column pieceSquareValue positionHash row x y)
 			slave maybePondering maybeMaximumPlies ~(randomGen' : randomGens) playState'	= let
 				(game', searchOptions')		= State.PlayState.getGame &&& Input.Options.getSearchOptions . State.PlayState.getOptions $ playState'	-- Deconstruct.
 			 in Data.Maybe.maybe (

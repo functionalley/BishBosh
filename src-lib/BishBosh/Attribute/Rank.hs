@@ -58,6 +58,7 @@ module BishBosh.Attribute.Rank(
 	arrayByRank
 ) where
 
+import qualified	BishBosh.Metric.RankValue		as Metric.RankValue
 import qualified	BishBosh.Property.FixedMembership	as Property.FixedMembership
 import qualified	BishBosh.Type.Count			as Type.Count
 import qualified	Control.DeepSeq
@@ -179,7 +180,7 @@ expendable :: [Rank]
 expendable	= Data.List.delete King range
 
 -- | The type of a function which returns a /rank/'s value.
-type EvaluateRank rankValue	= Rank -> rankValue
+type EvaluateRank	= Rank -> Metric.RankValue.RankValue
 
 {- |
 	* Given two alternative capture moves, this function compares the rank-value of the aggressors.
@@ -187,8 +188,7 @@ type EvaluateRank rankValue	= Rank -> rankValue
 	* N.B.: a @King@ is always considered most valuable, regardless of the evaluation-function supplied.
 -}
 compareByLVA
-	:: Ord rankValue
-	=> EvaluateRank rankValue
+	:: EvaluateRank
 	-> Rank
 	-> Rank
 	-> Ordering

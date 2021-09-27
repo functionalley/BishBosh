@@ -68,7 +68,7 @@ instance forall x y positionHash. (
 
 		Search.SearchState.initialise <$> (
 			Evaluation.PositionHashQuantifiedGameTree.mkPositionHashQuantifiedGameTree (
-				evaluationOptions	:: Input.EvaluationOptions.EvaluationOptions Type.Mass.PieceSquareValue Type.Mass.RankValue x y
+				evaluationOptions	:: Input.EvaluationOptions.EvaluationOptions Type.Mass.PieceSquareValue x y
 			) <$> Test.QuickCheck.arbitrary {-SearchOptions-} <*> Test.QuickCheck.arbitrary {-Zobrist-} <*> return {-to Gen-monad-} Property.Empty.empty {-MoveFrequency-} <*> Test.QuickCheck.arbitrary {-Game-}
 		 )
 

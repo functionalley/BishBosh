@@ -84,8 +84,7 @@ type BareGameTree x y	= Data.Tree.Tree (Model.Game.Game x y)
 
 -- | Forwards request to 'Component.Turn.compareByMVVLVA'.
 compareByMVVLVA
-	:: Ord rankValue
-	=> Attribute.Rank.EvaluateRank rankValue
+	:: Attribute.Rank.EvaluateRank
 	-> BareGameTree x y
 	-> BareGameTree x y
 	-> Ordering
@@ -107,18 +106,16 @@ getLastMove Data.Tree.Node { Data.Tree.rootLabel = game }	= Component.QualifiedM
 
 	* CAVEAT: assumes that the battle continues until either player concludes it's disadvantageous to continue, or fire-power has been exhausted.
 -}
-staticExchangeEvaluation :: (
-	Eq	x,
-	Eq	y,
-	Num	rankValue,
-	Ord	rankValue
- )
-	=> Attribute.Rank.EvaluateRank rankValue
+staticExchangeEvaluation
+	:: (Eq x, Eq y)
+	=> Attribute.Rank.EvaluateRank
 	-> BareGameTree x y
-	-> rankValue
+	-> Type.Mass.RankValue
 staticExchangeEvaluation evaluateRank node@Data.Tree.Node { Data.Tree.rootLabel = game }	= Data.Maybe.maybe 0 {-nothing taken-} (slave node) $ getMaybeImplicitlyTakenRank game where	-- Find the rank of any victim.
+	getMaybeImplicitlyTakenRank :: Model.Game.Game x y -> Maybe Attribute.Rank.Rank
 	getMaybeImplicitlyTakenRank game'	= Attribute.MoveType.getMaybeImplicitlyTakenRank . Component.QualifiedMove.getMoveType . Component.Turn.getQualifiedMove =<< Model.Game.maybeLastTurn game'
 
+--	slave :: BareGameTree x y -> Attribute.Rank.Rank -> Type.Mass.RankValue
 	slave node'@Data.Tree.Node { Data.Tree.subForest = forest' }	= max 0 {-this player shouldn't progress the battle-} . subtract (
 		case filter (
 			(
@@ -137,7 +134,7 @@ staticExchangeEvaluation evaluateRank node@Data.Tree.Node { Data.Tree.rootLabel 
 					) . Model.Game.maybeLastTurn
 				 ) forest'' -- Select the least valuable aggressor.
 			 in slave node'' . Data.Maybe.fromJust $ getMaybeImplicitlyTakenRank game''	-- Recurse.
-	 ) . evaluateRank {-of victim-}
+	 ) . realToFrac . evaluateRank {-of victim-}
 
 -- | Accessor.
 getRankAndMove :: Model.MoveFrequency.GetRankAndMove (BareGameTree x y) (Component.Move.Move x y)
@@ -233,17 +230,13 @@ type Transformation x y	= GameTree x y -> GameTree x y
 
 	* The above sort-algorithms are stable & can therefore be applied independently.
 -}
-sortGameTree :: (
-	Integral	x,
-	Integral	y,
-	Num		rankValue,
-	Ord		rankValue
- )
+sortGameTree
+	:: (Integral x, Integral y)
 	=> Maybe Attribute.CaptureMoveSortAlgorithm.CaptureMoveSortAlgorithm
-	-> Attribute.Rank.EvaluateRank rankValue
+	-> Attribute.Rank.EvaluateRank
 	-> MoveFrequency x y
 	-> Transformation x y
-{-# SPECIALISE sortGameTree :: Maybe Attribute.CaptureMoveSortAlgorithm.CaptureMoveSortAlgorithm -> Attribute.Rank.EvaluateRank Type.Mass.RankValue -> MoveFrequency Type.Length.X Type.Length.Y -> Transformation Type.Length.X Type.Length.Y #-}
+{-# SPECIALISE sortGameTree :: Maybe Attribute.CaptureMoveSortAlgorithm.CaptureMoveSortAlgorithm -> Attribute.Rank.EvaluateRank -> MoveFrequency Type.Length.X Type.Length.Y -> Transformation Type.Length.X Type.Length.Y #-}
 sortGameTree maybeCaptureMoveSortAlgorithm evaluateRank standardOpeningMoveFrequency MkGameTree { deconstruct = bareGameTree }	= MkGameTree $ Data.RoseTree.mapForest (
 	\game -> Data.Maybe.maybe id (
 		\case

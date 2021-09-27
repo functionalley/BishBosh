@@ -265,7 +265,7 @@ startProcess verbosity configFilePath	= do
 -- | Starts the process, performs the requested action, then clean-up.
 bracketProcess
 	:: Input.Verbosity.Verbosity
-	-> [System.FilePath.FilePath]	-- ^ The configuration-file paths for White & Black respectively.
+	-> [System.FilePath.FilePath]		-- ^ The configuration-file paths for White & Black respectively.
 	-> ([Process.Handles.Handles] -> IO ())	-- ^ Run the game.
 	-> IO ()
 bracketProcess verbosity inputConfigFilePaths	= Control.Exception.bracket (
@@ -306,7 +306,7 @@ initialise options
 							] configFilePath
 							>>> HXT.arr (
 								 \inputOptions -> Input.SearchOptions.identifyAutomatedPlayers . Input.Options.getSearchOptions &&& Input.UIOptions.getMoveNotation . Input.IOOptions.getUIOptions . Input.Options.getIOOptions $ (
-									inputOptions	:: Input.Options.Options Type.Length.X Type.Mass.PieceSquareValue Type.Mass.RankValue Type.Length.Y Type.Length.X Type.Length.Y	-- Arbitrary concrete type.
+									inputOptions	:: Input.Options.Options Type.Length.X Type.Mass.PieceSquareValue Type.Length.Y Type.Length.X Type.Length.Y	-- Arbitrary concrete type.
 								 )
 							) -- Lift function into an arrow.
 

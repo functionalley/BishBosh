@@ -22,9 +22,9 @@
 	These are the values (in the closed unit-interval rather than the traditional centi-pawns) of various ranks of piece.
 	N.B.: derived from https://www.chessprogramming.org/Point_Value_by_Regression_Analysis.
 -->
-<rankValues rank="p" value="0.093"/>	<!-- Pawn -->
-<rankValues rank="r" value="0.446"/>	<!-- Rook -->
-<rankValues rank="b" value="0.320"/>	<!-- Bishop -->
-<rankValues rank="n" value="0.267"/>	<!-- Knight -->
-<rankValues rank="q" value="1"/>	<!-- Queen -->
-<rankValues rank="k" value="0"/>	<!-- King -->
+<rankValues rank="p" rankValue="0.093"/>	<!-- Pawn -->
+<rankValues rank="r" rankValue="0.446"/>	<!-- Rook -->
+<rankValues rank="b" rankValue="0.320"/>	<!-- Bishop -->
+<rankValues rank="n" rankValue="0.267"/>	<!-- Knight -->
+<rankValues rank="q" rankValue="1"/>		<!-- Queen -->
+<rankValues rank="k" rankValue="0"/>		<!-- King -->

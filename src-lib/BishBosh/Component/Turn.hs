@@ -138,8 +138,7 @@ isPawnDoubleAdvance _ _	= False
 
 -- | Forwards the request to 'Attribute.Rank.compareByLVA'.
 compareByLVA
-	:: Ord rankValue
-	=> Attribute.Rank.EvaluateRank rankValue
+	:: Attribute.Rank.EvaluateRank
 	-> Turn x y
 	-> Turn x y
 	-> Ordering
@@ -155,8 +154,7 @@ compareByLVA evaluateRank MkTurn { getRank = rankL } MkTurn { getRank = rankR }	
 	* CAVEAT: no account is made for any defenders of the attacked piece, which might recoup transient gains.
 -}
 compareByMVVLVA
-	:: Ord rankValue
-	=> Attribute.Rank.EvaluateRank rankValue
+	:: Attribute.Rank.EvaluateRank
 	-> Turn x y
 	-> Turn x y
 	-> Ordering

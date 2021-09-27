@@ -78,7 +78,6 @@ import qualified	Data.Array.Unboxed
 play :: (
 	Control.DeepSeq.NFData					column,
 	Control.DeepSeq.NFData					pieceSquareValue,
-	Control.DeepSeq.NFData					rankValue,
 	Control.DeepSeq.NFData					row,
 	Control.DeepSeq.NFData					x,
 	Control.DeepSeq.NFData					y,
@@ -88,7 +87,6 @@ play :: (
 #endif
 	Data.Bits.FiniteBits					positionHash,
 	Fractional						pieceSquareValue,
-	Fractional						rankValue,
 	Integral						column,
 	Integral						x,
 	Integral						y,
@@ -96,7 +94,6 @@ play :: (
 	Read							x,
 	Read							y,
 	Real							pieceSquareValue,
-	Real							rankValue,
 	Show							column,
 	Show							pieceSquareValue,
 	Show							row,
@@ -106,9 +103,9 @@ play :: (
 	System.Random.RandomGen					randomGen
  )
 	=> randomGen
-	-> Input.Options.Options column pieceSquareValue rankValue row x y
+	-> Input.Options.Options column pieceSquareValue row x y
 	-> ContextualNotation.QualifiedMoveForest.QualifiedMoveForest x y	-- ^ Standard openings.
-	-> IO (State.PlayState.PlayState column pieceSquareValue positionHash rankValue row x y)
+	-> IO (State.PlayState.PlayState column pieceSquareValue positionHash row x y)
 {-# SPECIALISE play :: (
 	Control.DeepSeq.NFData	column,
 	Control.DeepSeq.NFData	row,
@@ -118,9 +115,9 @@ play :: (
 	System.Random.RandomGen	randomGen
  )
 	=> randomGen
-	-> Input.Options.Options column Type.Mass.PieceSquareValue Type.Mass.RankValue row Type.Length.X Type.Length.Y
+	-> Input.Options.Options column Type.Mass.PieceSquareValue row Type.Length.X Type.Length.Y
 	-> ContextualNotation.QualifiedMoveForest.QualifiedMoveForest Type.Length.X Type.Length.Y
-	-> IO (State.PlayState.PlayState column Type.Mass.PieceSquareValue Type.Crypto.PositionHash Type.Mass.RankValue row Type.Length.X Type.Length.Y)
+	-> IO (State.PlayState.PlayState column Type.Mass.PieceSquareValue Type.Crypto.PositionHash row Type.Length.X Type.Length.Y)
  #-}
 play randomGen options qualifiedMoveForest	= Data.Maybe.maybe (
 	return {-to IO-monad-} Data.Default.def {-game-}

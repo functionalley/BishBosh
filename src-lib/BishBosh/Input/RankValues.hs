@@ -26,10 +26,13 @@
 	* <https://en.wikipedia.org/wiki/Chess_piece_relative_value#Hans_Berliner.27s_system%20Chess-piece%20relative%20values>
 -}
 
-module BishBosh.Attribute.RankValues(
+module BishBosh.Input.RankValues(
 -- * Types
 -- ** Data-types
-	RankValues(),
+	RankValues(
+--		MkRankValues,
+--		deconstruct
+	),
 -- * Constants
 	tag,
 -- * Functions
@@ -44,10 +47,10 @@ import			Data.Array.IArray((!))
 import qualified	BishBosh.Attribute.Rank		as Attribute.Rank
 import qualified	BishBosh.Data.Exception		as Data.Exception
 import qualified	BishBosh.Data.Foldable		as Data.Foldable
-import qualified	BishBosh.Data.Num		as Data.Num
+import qualified	BishBosh.Metric.RankValue	as Metric.RankValue
 import qualified	BishBosh.Property.ShowFloat	as Property.ShowFloat
 import qualified	BishBosh.Text.ShowList		as Text.ShowList
-import qualified	Control.Arrow
+import qualified	BishBosh.Type.Mass		as Type.Mass
 import qualified	Control.DeepSeq
 import qualified	Control.Exception
 import qualified	Data.Array.IArray
@@ -66,68 +69,48 @@ tag	= "rankValues"
 
 	* CAVEAT: a @King@ can never be taken, but assigning the value /infinity/ creates problems, so typically it has the value @0@.
 -}
-newtype RankValues rankValue	= MkRankValues {
-	deconstruct	:: Attribute.Rank.ArrayByRank rankValue
+newtype RankValues	= MkRankValues {
+	deconstruct	:: Attribute.Rank.ArrayByRank Metric.RankValue.RankValue
 } deriving (Eq, Read, Show)
 
-instance Real rankValue => Property.ShowFloat.ShowFloat (RankValues rankValue) where
-	showsFloat fromDouble	= Text.ShowList.showsAssociationList' . map (show *** fromDouble . realToFrac) . Data.Array.IArray.assocs . deconstruct
+instance Property.ShowFloat.ShowFloat RankValues where
+	showsFloat fromDouble	= Text.ShowList.showsAssociationList' . map (show *** Property.ShowFloat.showsFloat fromDouble) . Data.Array.IArray.assocs . deconstruct
 
-instance (
-	Fractional	rankValue,
-	Ord		rankValue,
-	Show		rankValue
- ) => Data.Default.Default (RankValues rankValue) where
-	def = fromAssocs $ map (
-		Control.Arrow.second (/ 10)	-- Map into the closed unit-interval.
+instance Data.Default.Default RankValues where
+	def = MkRankValues . Attribute.Rank.listArrayByRank $ map (
+		fromRational . (/ 10)	-- Map into the closed unit-interval.
 	 ) [
-		(
-			Attribute.Rank.Pawn,	1
-		), (
-			Attribute.Rank.Rook,	5
-		), (
-			Attribute.Rank.Knight,	3
-		), (
-			Attribute.Rank.Bishop,	3
-		), (
-			Attribute.Rank.Queen,	9
-		), (
-			Attribute.Rank.King,	0	-- N.B.: move-selection is independent of this value (since it can't be taken), so it can be defined arbitrarily.
-		)
+		1,
+		5,
+		3,
+		3,
+		9,
+		0	-- N.B.: move-selection is independent of the King's value (since it can't be taken), so it can be defined arbitrarily.
 	 ]
 
-instance Control.DeepSeq.NFData rankValue => Control.DeepSeq.NFData (RankValues rankValue) where
+instance Control.DeepSeq.NFData RankValues where
 	rnf (MkRankValues byRank)	= Control.DeepSeq.rnf byRank
 
-instance (
-	Fractional	rankValue,
-	HXT.XmlPickler	rankValue,
-	Ord		rankValue,
-	Show		rankValue
- ) => HXT.XmlPickler (RankValues rankValue) where
+instance HXT.XmlPickler RankValues where
 	xpickle	= HXT.xpDefault Data.Default.def . HXT.xpWrap (
 		fromAssocs,				-- Construct from an association-list.
 		Data.Array.IArray.assocs . deconstruct	-- Deconstruct to an association-list.
-	 ) . HXT.xpList1 . HXT.xpElem tag $ HXT.xpickle {-rank-} `HXT.xpPair` HXT.xpAttr "value" HXT.xpickle
+	 ) . HXT.xpList1 . HXT.xpElem tag $ HXT.xpickle {-Rank-} `HXT.xpPair` HXT.xpickle {-RankValue-}
 
--- | Smart-constructor.
-fromAssocs :: (
-	Fractional	rankValue,
-	Ord		rankValue,
-	Show		rankValue
- ) => [(Attribute.Rank.Rank, rankValue)] -> RankValues rankValue
+-- | Smart constructor.
+fromAssocs :: [(Attribute.Rank.Rank, Metric.RankValue.RankValue)] -> RankValues
 fromAssocs assocs
-	| not $ null undefinedRanks	= Control.Exception.throw . Data.Exception.mkInsufficientData . showString "BishBosh.Attribute.RankValues.fromAssocs:\tranks" . Text.ShowList.showsAssociation $ shows undefinedRanks " are undefined."
-	| not $ null duplicateRanks	= Control.Exception.throw . Data.Exception.mkDuplicateData . showString "BishBosh.Attribute.RankValues.fromAssocs:\tranks must be distinct; " $ shows duplicateRanks "."
-	| not $ all (
-		Data.Num.inClosedUnitInterval . snd {-rank-value-}
-	) assocs			= Control.Exception.throw . Data.Exception.mkOutOfBounds . showString "BishBosh.Attribute.RankValues.fromAssocs:\tall values must be within the closed unit-interval, [0,1]; " $ shows assocs "."
+	| not $ null undefinedRanks	= Control.Exception.throw . Data.Exception.mkInsufficientData . showString "BishBosh.Input.RankValues.fromAssocs:\tranks" . Text.ShowList.showsAssociation $ shows undefinedRanks " are undefined."
+	| not $ null duplicateRanks	= Control.Exception.throw . Data.Exception.mkDuplicateData . showString "BishBosh.Input.RankValues.fromAssocs:\tranks must be distinct; " $ shows duplicateRanks "."
+	| all (
+		(== 0) . snd {-rank-value-}
+	) assocs			= Control.Exception.throw . Data.Exception.mkNullDatum . showString "BishBosh.Input.RankValues.fromAssocs:\tat least one rank should have a non-zero value; " $ shows assocs "."
 	| otherwise			= MkRankValues $ Attribute.Rank.arrayByRank assocs
 	where
 		(undefinedRanks, duplicateRanks)	= Attribute.Rank.findUndefinedRanks &&& Data.Foldable.findDuplicates $ map fst assocs
 
 -- | Query.
-findRankValue :: Attribute.Rank.Rank -> RankValues rankValue -> rankValue
+findRankValue :: Attribute.Rank.Rank -> RankValues -> Metric.RankValue.RankValue
 findRankValue rank (MkRankValues byRank)	= byRank ! rank
 
 {- |
@@ -135,8 +118,10 @@ findRankValue rank (MkRankValues byRank)	= byRank ! rank
 
 	* CAVEAT: assumes that zero pieces have been captured, all @Pawn@s have been queened, & that this is the most valuable /rank/ of /piece/.
 -}
-calculateMaximumTotalValue :: Num rankValue => RankValues rankValue -> rankValue
-calculateMaximumTotalValue (MkRankValues byRank)	= 9 {-accounting for all possible promotions-} * (byRank ! Attribute.Rank.Queen) + 2 * Data.List.foldl' (
-	\acc -> (+ acc) . (byRank !)
+calculateMaximumTotalValue :: RankValues -> Type.Mass.RankValue
+calculateMaximumTotalValue (MkRankValues byRank)	= 9 {-accounting for all possible promotions-} * realToFrac (
+	byRank ! Attribute.Rank.Queen
+ ) + 2 * Data.List.foldl' (
+	\acc -> (+ acc) . realToFrac . (byRank !)
  ) 0 Attribute.Rank.flank
 

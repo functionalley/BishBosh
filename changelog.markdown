@@ -4,43 +4,43 @@
 * First version of the package.
 
 ## 0.0.0.2
-Minor changes required to build on Windows.
+* Minor changes required to build on Windows.
 
 ## 0.0.0.3
-Added **Paths_bishbosh** to **Other-modules** section of cabal file.
+* Added **Paths_bishbosh** to **Other-modules** section of cabal file.
 
 ## 0.0.0.4
-Changed references to author's domain-name.
+* Changed references to author's domain-name.
 
 ## 0.0.0.5
-Added ability to specify the text-encoding used in a PGN-database file.
-Updated list of test-compilers.
+* Added ability to specify the text-encoding used in a PGN-database file.
+* Updated list of test-compilers.
 
 ## 0.0.0.6
-Fixed failure to persist game-state after requesting that the game be restarted.
-Fixed parsing of **TextEncoding** in **PGNOptions**.
-Replaced module **Distribution.Verbosity** with **BishBosh.Input.Verbosity**.
+* Fixed failure to persist game-state after requesting that the game be restarted.
+* Fixed parsing of **TextEncoding** in **PGNOptions**.
+* Replaced module **Distribution.Verbosity** with **BishBosh.Input.Verbosity**.
 
 ## 0.0.0.7
-Rewrote function **BishBosh.Data.RoseTree.countTerminalNodes** in accordance with the suggestions of David Feuer.
-Amended function **BishBosh.State.EnPassantAbscissa.mkMaybeEnPassantAbscissa** to guard against exposing one's King after En-passant capture.
+* Rewrote function **BishBosh.Data.RoseTree.countTerminalNodes** in accordance with the suggestions of David Feuer.
+* Amended function **BishBosh.State.EnPassantAbscissa.mkMaybeEnPassantAbscissa** to guard against exposing one's King after En-passant capture.
 
 ## 0.0.0.8
-Corrected the parsing of FEN when an Enpassant-destination defined on file **b** was erroneously interpreted as a bishop in the previous **CastleableRooks** field.
-Added parent class **BishBosh.Property.ExtendedPositionDescription.EPD** for **Property.ForsythEdwards.FEN**, for which the latter typically has a default implementation of both methods.
+* Corrected the parsing of FEN when an Enpassant-destination defined on file **b** was erroneously interpreted as a bishop in the previous **CastleableRooks** field.
+* Added parent class **BishBosh.Property.ExtendedPositionDescription.EPD** for **Property.ForsythEdwards.FEN**, for which the latter typically has a default implementation of both methods.
 
 ## 0.1.0.0
 ### Bug-fixes:
-	* Upgraded the transposition-table in module **Search.DynamicMoveData**, from merely recording moves (which doesn't include the rank to which a Pawn is promoted), to recording qualified-moves.
-	* In function **Search.AlphaBeta.negaMax.descend.selectMax**, amended bound function **isFitter** to prefer shorter move-sequences where fitness is equal, & corrected the scenario in which all nodes were skipped because they were repetitious, but without ever defining alpha.
+* Upgraded the transposition-table in module **Search.DynamicMoveData**, from merely recording moves (which doesn't include the rank to which a Pawn is promoted), to recording qualified-moves.
+* In function **Search.AlphaBeta.negaMax.descend.selectMax**, amended bound function **isFitter** to prefer shorter move-sequences where fitness is equal, & corrected the scenario in which all nodes were skipped because they were repetitious, but without ever defining alpha.
 
 ### Features:
-	* Added the configurable runtime ability to asynchronously decompress PGN-databases, & to set a maximum number of games to read.
-	* Added a configuration-option to normalise the values of specified piece-square tables into the closed unit-interval.
-	* Modularised the packaged config-files, by defining XML **External Entities** in the DTD.
-	* Added suggestions on failure to parse a user-command, & created a module **Text.AutoComplete** to contain common code.
-	* Added **makefile** to facilitate common tasks.
-	* Removed the configuration-option **preferMovesTowardsCentre** & its implementation in function **Cartesian.Coordinates.radiusSquared**, because of it's conceptually wobbly foundations.
+* Added the configurable runtime ability to asynchronously decompress PGN-databases, & to set a maximum number of games to read.
+* Added a configuration-option to normalise the values of specified piece-square tables into the closed unit-interval.
+* Modularised the packaged config-files, by defining XML **External Entities** in the DTD.
+* Added suggestions on failure to parse a user-command, & created a module **Text.AutoComplete** to contain common code.
+* Added **makefile** to facilitate common tasks.
+* Removed the configuration-option **preferMovesTowardsCentre** & its implementation in function **Cartesian.Coordinates.radiusSquared**, because of it's conceptually wobbly foundations.
 
 ### New Runtime Cmmands:
 -----------------------------------------
@@ -52,14 +52,14 @@ Command				| Purpose
 -----------------------------------------
 
 ### Command-line Options:
-	* Added a new module **Input.CategorisedCommandLineOptions** to improved the partitioning of command-line options into functional categories.
-	* Added a command-line option **--formatPieceSquareTableForGNUPlot** to print the piece-square tables in a format suitable for **GNUPlot**.
+* Added a new module **Input.CategorisedCommandLineOptions** to improved the partitioning of command-line options into functional categories.
+* Added a command-line option **--formatPieceSquareTableForGNUPlot** to print the piece-square tables in a format suitable for **GNUPlot**.
 
 ### Performance:
-	* Included a compilation-flag **unboxedarrays**, to request the use of unboxed arrays where (infrequently) possible.
-	* Changed data-type **Component.PieceSquareByCoordinatesByRank.EitherPieceSquareValueByNPiecesByCoordinates**, bringing type **Cartesian.Coordinates.ByCoordinates** inside **Either**, leading to significant space/time gains.
-	* Constructed each large constant data-structure in parallel. Bracketed all data-parallel operations with CPP-conditionals controlled by the compilation-flag **threaded**.
-	* Parallelised function **Attribute.CriterionValue.calculateWeightedMean**.
+* Included a compilation-flag **unboxedarrays**, to request the use of unboxed arrays where (infrequently) possible.
+* Changed data-type **Component.PieceSquareByCoordinatesByRank.EitherPieceSquareValueByNPiecesByCoordinates**, bringing type **Cartesian.Coordinates.ByCoordinates** inside **Either**, leading to significant space/time gains.
+* Constructed each large constant data-structure in parallel. Bracketed all data-parallel operations with CPP-conditionals controlled by the compilation-flag **threaded**.
+* Parallelised function **Attribute.CriterionValue.calculateWeightedMean**.
 
 ### New Modules:
 -----------------------------------------
@@ -77,37 +77,39 @@ Module				| Purpose
 -----------------------------------------
 
 ### Testing:
-	* Split **src-test/Main.hs** into **src-test/HUnit.hs** & **src-test/QuickCheck.hs**, each referenced independently from the cabal file.
-	* Added an executable **duel** (to coordinate a battle between two independently configured instances of **bishbosh**) & a corresponding section-1 man-page.
-	* Validated the list of ranks supplied to construct either **Attribute.RankValues.RankValues** or **Input.PieceSquareTable.PieceSquareTable**.
+* Split **src-test/Main.hs** into **src-test/HUnit.hs** & **src-test/QuickCheck.hs**, each referenced independently from the cabal file.
+* Added an executable **duel** (to coordinate a battle between two independently configured instances of **bishbosh**) & a corresponding section-1 man-page.
+* Validated the list of ranks supplied to construct either **Attribute.RankValues.RankValues** or **Input.PieceSquareTable.PieceSquareTable**.
 
 ### Refactoring:
-	* Flattened the nested array **Component.Zobrist.getRandomByCoordinatesByRankByLogicalColour**, by means of a composite index.
-	* Reimplemented function **Cartesian.Coordinates.getLogicalColourOfSquare**.
-	* Reimplemented function **Cartesian.Coordinates.interpolationsByDestinationBySource** in terms of function **Cartesian.Coordinates.extrapolationsByDirectionByCoordinates**.
-	* Used the **LambdaCase** language-extension.
+* Flattened the nested array **Component.Zobrist.getRandomByCoordinatesByRankByLogicalColour**, by means of a composite index.
+* Reimplemented function **Cartesian.Coordinates.getLogicalColourOfSquare**.
+* Reimplemented function **Cartesian.Coordinates.interpolationsByDestinationBySource** in terms of function **Cartesian.Coordinates.extrapolationsByDirectionByCoordinates**.
+* Used the **LambdaCase** language-extension.
 
 ## 0.1.1.0
 ### New Modules:
--------------------------------------------------
-New Module				| Purpose
-----------------------------------------| -------
-**Data.Time.StopWatch**			| Replaces module **BishBosh.Data.Time** to encapsulate interaction with module **Data.Time.Clock**.
-**BishBosh.Time.GameClock**		| Contains two **Data.Time.StopWatch** to enable module **Duel.Process.Intermediary** to measure the time used by each player.
-**BishBosh.Property.Switchable**	| Exports a type-class, which both **BishBosh.Time.StopWatch** & **BishBosh.Time.GameClock** implement, to expose their functionality.
-**BishBosh.Property.SelfValidating**	| Exports a type-class, which both **BishBosh.Time.GameClock** & **Duel.Data.Options** implement, to validate themselves.
-**BishBosh.Types.Countable**		| Defines newtypes to enhance type-safety, replacing type-synonyms for **Int**. There is a performance-degradation, so this enhancement can be disabled using a new cabal-flag.
-**BishBosh.Types.Crypto**		| Self-documentation.
-**BishBosh.Types.Mass**			| Self-documentation.
+---------------------------------------------------------
+New Module					| Purpose
+------------------------------------------------| -------
+**Data.Time.StopWatch**				| Replaces module **BishBosh.Data.Time** to encapsulate interaction with module **Data.Time.Clock**.
+**BishBosh.Time.GameClock**			| Contains two **Data.Time.StopWatch** to enable module **Duel.Process.Intermediary** to measure the time used by each player.
+**BishBosh.Property.Switchable**		| Exports a type-class, which both **BishBosh.Time.StopWatch** & **BishBosh.Time.GameClock** implement, to expose their functionality.
+**BishBosh.Property.SelfValidating**		| Exports a type-class, which both **BishBosh.Time.GameClock** & **Duel.Data.Options** implement, to validate themselves.
+**BishBosh.Types.Countable**			| Defines newtypes to enhance type-safety, replacing type-synonyms for **Int**. There is a performance-degradation, so this enhancement can be disabled using a new cabal-flag.
+**BishBosh.Types.Crypto**			| Self-documentation.
+**BishBosh.Types.Mass**				| Self-documentation.
+**BishBosh.Metric.RankValue**			| Replaced the polymorphic type-parameter **rankValue**, with a newtype including a smart-constructor to guard permissible bounds.
+**BishBosh.Test.QuickCheck.Metric.RankValue**	| Provides an instance of **Test.QuickCheck.Arbitrary**.
 
 ### Duel:
-	* Added command-line option **--verifyConfiguration**, to request that the mutual compatibility of the two configuration-files be verified before forwarding each to a forked instance of **bishbosh**.
+* Added command-line option **--verifyConfiguration**, to request that the mutual compatibility of the two configuration-files be verified before forwarding each to a forked instance of **bishbosh**.
 
 ### BishBosh:
-	* Created a new directory **Rule/** to which **Model.[DrawReason, GameTerminationReason, Result]** were relocated.
-	* Refactored functions **BishBosh.ContextualNotation.PositionHashQualifiedMoveTree.findNextOnymousQualifiedMovesForPosition**, **BishBosh.Model.MoveFrequency.insertMoves** & **BishBosh.Model.GameTree.toMoveFrequency**.
-	* Evaluation-criteria:
-
-		** Moved **BishBosh.Attribute.{CriterionValue, CriterionWeight, WeightedMeanAndCriterionValues}**, **BishBosh.Input.CriteriaWeights** to a new directory **Metric/**
-		** Implemented classes [**Num**, **Fractional**, **Real**] for data-types **BishBosh.Metric.{CriterionValue.CriterionValue, CriterionWeight.CriterionWeight}**, nullifying the requirement for exports.
-		** Replaced the pointless polymorphic payloads in data-types **BishBosh.Metric.{CriterionValue.CriterionValue, CriterionWeight.CriterionWeight, WeightedMeanAndCriterionValues.WeightedMeanAndCriterionValues}** with concrete types.
+* Created a new directory **Rule/** to which **Model.[DrawReason, GameTerminationReason, Result]** were relocated.
+* Refactored functions **BishBosh.ContextualNotation.PositionHashQualifiedMoveTree.findNextOnymousQualifiedMovesForPosition**, **BishBosh.Model.MoveFrequency.insertMoves** & **BishBosh.Model.GameTree.toMoveFrequency**.
+* Evaluation-criteria:
+	+ Moved **BishBosh.Attribute.{CriterionValue, CriterionWeight, WeightedMeanAndCriterionValues}**, **BishBosh.Input.CriteriaWeights** to a new directory **Metric/**
+	+ Implemented classes [**Num**, **Fractional**, **Real**] for data-types **BishBosh.Metric.{CriterionValue.CriterionValue, CriterionWeight.CriterionWeight}**, nullifying the requirement for exports.
+	+ Replaced the pointless polymorphic payloads in data-types **BishBosh.Metric.{CriterionValue.CriterionValue, CriterionWeight.CriterionWeight, WeightedMeanAndCriterionValues.WeightedMeanAndCriterionValues}** with concrete types.
+* Moved **BishBosh.Attribute.RankValues** to **BishBosh/Input/**.

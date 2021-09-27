@@ -48,27 +48,23 @@ type Row	= Type.Length.Y
 type Column	= Type.Length.X
 
 -- | Defines a concrete type for testing.
-type Options	= Input.Options.Options Column Type.Mass.PieceSquareValue Type.Mass.RankValue Row Type.Length.X Type.Length.Y
+type Options	= Input.Options.Options Column Type.Mass.PieceSquareValue Row Type.Length.X Type.Length.Y
 
 instance (
 	Enum				pieceSquareValue,
 	Fractional			pieceSquareValue,
-	Fractional			rankValue,
 	Integral			column,
 	Integral			row,
 	Ord				pieceSquareValue,
-	Ord				rankValue,
 	Enum				x,
 	Enum				y,
 	Ord				x,
 	Ord				y,
 	Show				column,
 	Show				pieceSquareValue,
-	Show				rankValue,
 	Show				row,
-	Test.QuickCheck.Arbitrary	pieceSquareValue,
-	Test.QuickCheck.Arbitrary	rankValue
- ) => Test.QuickCheck.Arbitrary (Input.Options.Options column pieceSquareValue rankValue row x y) where
+	Test.QuickCheck.Arbitrary	pieceSquareValue
+ ) => Test.QuickCheck.Arbitrary (Input.Options.Options column pieceSquareValue row x y) where
 --	{-# SPECIALISE instance Test.QuickCheck.Arbitrary Options #-}
 	arbitrary	= do
 		(maybeMaximumPlies, maybeRandomSeed, evaluationOptions, searchOptions, ioOptions)	<- Test.QuickCheck.arbitrary

@@ -89,12 +89,12 @@ import qualified	Data.Array.Unboxed
 #endif
 
 -- | The type threaded through the sequence of /game/s during play.
-data PlayState column pieceSquareValue positionHash rankValue row x y	= MkPlayState {
+data PlayState column pieceSquareValue positionHash row x y	= MkPlayState {
 	getCriterionValues			:: [[Metric.CriterionValue.CriterionValue]],					-- ^ The /criterion-value/s accumulated during the game.
 	getZobrist				:: Component.Zobrist.Zobrist x y positionHash,					-- ^ The constant hash-codes used construct position-hashes.
 	getMoveFrequency			:: Model.GameTree.MoveFrequency x y,						-- ^ The constant frequency of moves extracted from file.
 	getSearchState				:: Search.SearchState.SearchState x y positionHash,
-	getOptions				:: Input.Options.Options column pieceSquareValue rankValue row x y,		-- ^ The constant options by which the game is configured.
+	getOptions				:: Input.Options.Options column pieceSquareValue row x y,			-- ^ The constant options by which the game is configured.
 	getMaybeApplicationTerminationReason	:: Maybe State.ApplicationTerminationReason.ApplicationTerminationReason	-- ^ Whether the game has terminated.
 }
 
@@ -106,25 +106,23 @@ initialise :: (
 #endif
 	Data.Bits.Bits						positionHash,
 	Fractional						pieceSquareValue,
-	Fractional						rankValue,
 	Integral						x,
 	Integral						y,
 	Real							pieceSquareValue,
-	Real							rankValue,
 	Show							x,
 	Show							y
  )
-	=> Input.Options.Options column pieceSquareValue rankValue row x y
+	=> Input.Options.Options column pieceSquareValue row x y
 	-> Component.Zobrist.Zobrist x y positionHash
 	-> Model.GameTree.MoveFrequency x y
 	-> Model.Game.Game x y
-	-> PlayState column pieceSquareValue positionHash rankValue row x y
+	-> PlayState column pieceSquareValue positionHash row x y
 {-# SPECIALISE initialise
-	:: Input.Options.Options column Type.Mass.PieceSquareValue Type.Mass.RankValue row Type.Length.X Type.Length.Y
+	:: Input.Options.Options column Type.Mass.PieceSquareValue row Type.Length.X Type.Length.Y
 	-> Component.Zobrist.Zobrist Type.Length.X Type.Length.Y Type.Crypto.PositionHash
 	-> Model.GameTree.MoveFrequency Type.Length.X Type.Length.Y
 	-> Model.Game.Game Type.Length.X Type.Length.Y
-	-> PlayState column Type.Mass.PieceSquareValue Type.Crypto.PositionHash Type.Mass.RankValue row Type.Length.X Type.Length.Y
+	-> PlayState column Type.Mass.PieceSquareValue Type.Crypto.PositionHash row Type.Length.X Type.Length.Y
  #-}
 initialise options zobrist moveFrequency game	= MkPlayState {
 	getCriterionValues			= [],
@@ -138,14 +136,14 @@ initialise options zobrist moveFrequency game	= MkPlayState {
 }
 
 -- | Accessor.
-getGame :: PlayState column pieceSquareValue positionHash rankValue row x y -> Model.Game.Game x y
+getGame :: PlayState column pieceSquareValue positionHash row x y -> Model.Game.Game x y
 getGame MkPlayState { getSearchState = searchState }	= Evaluation.QuantifiedGame.getGame . Evaluation.PositionHashQuantifiedGameTree.getRootQuantifiedGame $ Search.SearchState.getPositionHashQuantifiedGameTree searchState
 
 -- | The type of a function used to transform a 'PlayState'.
-type Transformation column pieceSquareValue positionHash rankValue row x y	= PlayState column pieceSquareValue positionHash rankValue row x y -> PlayState column pieceSquareValue positionHash rankValue row x y
+type Transformation column pieceSquareValue positionHash row x y	= PlayState column pieceSquareValue positionHash row x y -> PlayState column pieceSquareValue positionHash row x y
 
 -- | Mutator.
-setPositionHashQuantifiedGameTree :: Evaluation.PositionHashQuantifiedGameTree.PositionHashQuantifiedGameTree x y positionHash -> Transformation column pieceSquareValue positionHash rankValue row x y
+setPositionHashQuantifiedGameTree :: Evaluation.PositionHashQuantifiedGameTree.PositionHashQuantifiedGameTree x y positionHash -> Transformation column pieceSquareValue positionHash row x y
 setPositionHashQuantifiedGameTree positionHashQuantifiedGameTree playState@MkPlayState { getSearchState = searchState }	= playState {
 	getSearchState	= searchState { Search.SearchState.getPositionHashQuantifiedGameTree = positionHashQuantifiedGameTree }
 }
@@ -158,14 +156,12 @@ reconstructPositionHashQuantifiedGameTree :: (
 #endif
 	Data.Bits.Bits						positionHash,
 	Fractional						pieceSquareValue,
-	Fractional						rankValue,
 	Integral						x,
 	Integral						y,
 	Real							pieceSquareValue,
-	Real							rankValue,
 	Show							x,
 	Show							y
- ) => Model.Game.Game x y -> Transformation column pieceSquareValue positionHash rankValue row x y
+ ) => Model.Game.Game x y -> Transformation column pieceSquareValue positionHash row x y
 reconstructPositionHashQuantifiedGameTree game playState@MkPlayState {
 	getZobrist		= zobrist,
 	getMoveFrequency	= moveFrequency,
@@ -184,14 +180,12 @@ resetPositionHashQuantifiedGameTree :: (
 #endif
 	Data.Bits.Bits						positionHash,
 	Fractional						pieceSquareValue,
-	Fractional						rankValue,
 	Integral						x,
 	Integral						y,
 	Real							pieceSquareValue,
-	Real							rankValue,
 	Show							x,
 	Show							y
- ) => Transformation column pieceSquareValue positionHash rankValue row x y
+ ) => Transformation column pieceSquareValue positionHash row x y
 resetPositionHashQuantifiedGameTree playState	= reconstructPositionHashQuantifiedGameTree Data.Default.def playState {
 	getCriterionValues			= [],
 	getMaybeApplicationTerminationReason	= Nothing
@@ -201,14 +195,14 @@ resetPositionHashQuantifiedGameTree playState	= reconstructPositionHashQuantifie
 updateWithAutomaticMove
 	:: [Metric.CriterionValue.CriterionValue]
 	-> Search.SearchState.SearchState x y positionHash
-	-> Transformation column pieceSquareValue positionHash rankValue row x y
+	-> Transformation column pieceSquareValue positionHash row x y
 updateWithAutomaticMove criterionValues searchState playState	= playState {
 	getCriterionValues	= criterionValues : getCriterionValues playState,
 	getSearchState		= searchState
 }
 
 -- | Mutator.
-updateWithManualMove :: (Eq x, Eq y) => Model.Game.Game x y -> Transformation column pieceSquareValue positionHash rankValue row x y
+updateWithManualMove :: (Eq x, Eq y) => Model.Game.Game x y -> Transformation column pieceSquareValue positionHash row x y
 updateWithManualMove game playState@MkPlayState { getSearchState = searchState }	= setPositionHashQuantifiedGameTree (
 	Data.Maybe.fromMaybe (
 		Control.Exception.throw $ Data.Exception.mkIncompatibleData "BishBosh.State.PlayState.updateWithManualMove:\tEvaluation.PositionHashQuantifiedGameTree.reduce failed."
@@ -228,7 +222,7 @@ calculateCriterionValueStatistics :: (
 	Floating	standardDeviation,
 	Fractional	mean
  )
-	=> PlayState column pieceSquareValue positionHash rankValue row x y
+	=> PlayState column pieceSquareValue positionHash row x y
 	-> [(mean, standardDeviation)]
 calculateCriterionValueStatistics MkPlayState { getCriterionValues = criterionValues }	= map (
 	(
@@ -239,7 +233,7 @@ calculateCriterionValueStatistics MkPlayState { getCriterionValues = criterionVa
  ) $ Data.List.transpose criterionValues
 
 -- | Resignation by the player who currently holds the choice of move.
-resign :: Transformation column pieceSquareValue positionHash rankValue row x y
+resign :: Transformation column pieceSquareValue positionHash row x y
 resign playState@MkPlayState { getSearchState = searchState }	= setPositionHashQuantifiedGameTree (
 	Evaluation.PositionHashQuantifiedGameTree.resign $ Search.SearchState.getPositionHashQuantifiedGameTree searchState
  ) playState
@@ -254,7 +248,7 @@ suggestCorrections :: (
 	Show	y
  )
 	=> String	-- ^ Move-string.
-	-> PlayState column pieceSquareValue positionHash rankValue row x y
+	-> PlayState column pieceSquareValue positionHash row x y
 	-> [String]	-- ^ Suggested corrections.
 suggestCorrections moveString playState@MkPlayState { getOptions = options }
 	| Model.Game.isTerminated game	= []
@@ -266,11 +260,11 @@ suggestCorrections moveString playState@MkPlayState { getOptions = options }
 
 -- | Whether the game in the first /play-state/ has more plies than that in the second.
 hasMorePlies
-	:: PlayState column pieceSquareValue positionHash rankValue row x y
-	-> PlayState column pieceSquareValue positionHash rankValue row x y
+	:: PlayState column pieceSquareValue positionHash row x y
+	-> PlayState column pieceSquareValue positionHash row x y
 	-> Bool
 hasMorePlies playState playState'	= Data.Ord.comparing (State.TurnsByLogicalColour.getNPlies . Model.Game.getTurnsByLogicalColour . getGame) playState playState' == GT
 
 -- | Whether the user has requested application-termination, or the configured maximum number of turns has been reached.
-hasApplicationTerminationBeenRequested :: PlayState column pieceSquareValue positionHash rankValue row x y -> Bool
+hasApplicationTerminationBeenRequested :: PlayState column pieceSquareValue positionHash row x y -> Bool
 hasApplicationTerminationBeenRequested MkPlayState { getMaybeApplicationTerminationReason = maybeApplicationTerminationReason }	= Data.Maybe.isJust maybeApplicationTerminationReason

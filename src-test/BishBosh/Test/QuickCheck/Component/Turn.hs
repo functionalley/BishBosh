@@ -36,18 +36,18 @@ import			BishBosh.Test.QuickCheck.Attribute.LogicalColour()
 import			BishBosh.Test.QuickCheck.Attribute.MoveType()
 import			BishBosh.Test.QuickCheck.Component.Move()
 import			BishBosh.Test.QuickCheck.Component.Piece()
+import			BishBosh.Test.QuickCheck.Input.RankValues()
 import			Control.Arrow((&&&))
-import qualified	BishBosh.Attribute.MoveType			as Attribute.MoveType
-import qualified	BishBosh.Attribute.Rank				as Attribute.Rank
-import qualified	BishBosh.Attribute.RankValues			as Attribute.RankValues
-import qualified	BishBosh.Component.CastlingMove			as Component.CastlingMove
-import qualified	BishBosh.Component.Piece			as Component.Piece
-import qualified	BishBosh.Component.QualifiedMove		as Component.QualifiedMove
-import qualified	BishBosh.Component.Turn				as Component.Turn
-import qualified	BishBosh.Property.FixedMembership		as Property.FixedMembership
-import qualified	BishBosh.Property.Reflectable			as Property.Reflectable
-import qualified	BishBosh.Test.QuickCheck.Attribute.RankValues	as Test.QuickCheck.Attribute.RankValues
-import qualified	BishBosh.Type.Length				as Type.Length
+import qualified	BishBosh.Attribute.MoveType		as Attribute.MoveType
+import qualified	BishBosh.Attribute.Rank			as Attribute.Rank
+import qualified	BishBosh.Component.CastlingMove		as Component.CastlingMove
+import qualified	BishBosh.Component.Piece		as Component.Piece
+import qualified	BishBosh.Component.QualifiedMove	as Component.QualifiedMove
+import qualified	BishBosh.Component.Turn			as Component.Turn
+import qualified	BishBosh.Input.RankValues		as Input.RankValues
+import qualified	BishBosh.Property.FixedMembership	as Property.FixedMembership
+import qualified	BishBosh.Property.Reflectable		as Property.Reflectable
+import qualified	BishBosh.Type.Length			as Type.Length
 import qualified	Control.Arrow
 import qualified	Data.List
 import qualified	Data.Maybe
@@ -78,8 +78,8 @@ instance (
 		return {-to Gen-monad-} . Component.Turn.mkTurn (Component.QualifiedMove.mkQualifiedMove move moveType) $ Component.Piece.getRank piece
 
 -- | Distinct rank-values designed for a predictable sort-order.
-rankValues :: Test.QuickCheck.Attribute.RankValues.RankValues
-rankValues	= Attribute.RankValues.fromAssocs . zip Property.FixedMembership.members $ map (/ 10) [1, 5, 3, 4, 9, 0]
+rankValues :: Input.RankValues.RankValues
+rankValues	= Input.RankValues.fromAssocs . zip Property.FixedMembership.members $ map (fromRational . (/ 10)) [1, 5, 3, 4, 9, 0]
 
 -- | The constant test-results for this data-type.
 results :: IO [Test.QuickCheck.Result]
@@ -103,10 +103,10 @@ results	= sequence [
 		f	= Test.QuickCheck.label "Turn.prop_reflectOnX" . uncurry (==) . (id &&& Property.Reflectable.reflectOnX . Property.Reflectable.reflectOnX)
 	in Test.QuickCheck.quickCheckWithResult Test.QuickCheck.stdArgs { Test.QuickCheck.maxSuccess = 64 } f,
 	let
-		f :: Test.QuickCheck.Attribute.RankValues.RankValues -> [Turn] -> Test.QuickCheck.Property
+		f :: Input.RankValues.RankValues -> [Turn] -> Test.QuickCheck.Property
 		f rankValues'	= Test.QuickCheck.label "Turn.prop_compareByMVVLVA/quiet" . uncurry (==) . (
 			dropWhile Component.Turn.isCapture . Data.List.sortBy (
-				Component.Turn.compareByMVVLVA (`Attribute.RankValues.findRankValue` rankValues')
+				Component.Turn.compareByMVVLVA (`Input.RankValues.findRankValue` rankValues')
 			) &&& filter (
 				not . Component.Turn.isCapture
 			)
@@ -116,12 +116,12 @@ results	= sequence [
 		f :: [Turn] -> Test.QuickCheck.Property
 		f = Test.QuickCheck.label "Turn.prop_compareByMVVLVA/MVV" . (
 			\ranks -> Data.List.sortOn (
-				negate . (`Attribute.RankValues.findRankValue` rankValues) -- Most valuable victim should be first.
+				negate . toRational . (`Input.RankValues.findRankValue` rankValues) -- Most valuable victim should be first.
 			) ranks == ranks
 		 ) . map head . Data.List.group . Data.Maybe.mapMaybe (
 			Attribute.MoveType.getMaybeImplicitlyTakenRank . Component.QualifiedMove.getMoveType . Component.Turn.getQualifiedMove
 		 ) . Data.List.sortBy (
-			Component.Turn.compareByMVVLVA (`Attribute.RankValues.findRankValue` rankValues)
+			Component.Turn.compareByMVVLVA (`Input.RankValues.findRankValue` rankValues)
 		 )
 	in Test.QuickCheck.quickCheckWithResult Test.QuickCheck.stdArgs { Test.QuickCheck.maxSuccess = 256 } f,
 	let
@@ -130,14 +130,14 @@ results	= sequence [
 			(
 				\ranks -> uncurry (++) (
 					Control.Arrow.first (
-						Data.List.sortOn (`Attribute.RankValues.findRankValue` rankValues)	-- Least valuable aggressor should be first.
+						Data.List.sortOn (`Input.RankValues.findRankValue` rankValues)	-- Least valuable aggressor should be first.
 					) $ Data.List.partition (/= Attribute.Rank.King) ranks
 				) == ranks
 			) . map head . Data.List.group . map Component.Turn.getRank {-aggressor's rank-}
 		 ) . Data.List.groupBy (
 			ToolShed.Data.List.equalityBy $ Attribute.MoveType.getMaybeImplicitlyTakenRank . Component.QualifiedMove.getMoveType . Component.Turn.getQualifiedMove
 		 ) . takeWhile Component.Turn.isCapture . Data.List.sortBy (
-			Component.Turn.compareByMVVLVA (`Attribute.RankValues.findRankValue` rankValues)
+			Component.Turn.compareByMVVLVA (`Input.RankValues.findRankValue` rankValues)
 		 )
 	in Test.QuickCheck.quickCheckWithResult Test.QuickCheck.stdArgs { Test.QuickCheck.maxSuccess = 512 } f
  ]

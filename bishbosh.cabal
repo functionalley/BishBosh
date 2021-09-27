@@ -123,7 +123,7 @@ Library
         BishBosh.Attribute.MoveType
         BishBosh.Attribute.PhysicalColour
         BishBosh.Attribute.Rank
-        BishBosh.Attribute.RankValues
+        BishBosh.Input.RankValues
         BishBosh.Cartesian.Abscissa
         BishBosh.Cartesian.Coordinates
         BishBosh.Cartesian.Ordinate
@@ -172,6 +172,7 @@ Library
         BishBosh.Metric.CriteriaWeights
         BishBosh.Metric.CriterionValue
         BishBosh.Metric.CriterionWeight
+        BishBosh.Metric.RankValue
         BishBosh.Metric.WeightedMeanAndCriterionValues
         BishBosh.Model.Game
         BishBosh.Model.GameTree
@@ -460,7 +461,6 @@ Test-Suite quickcheck-tests
         BishBosh.Test.QuickCheck.Attribute.LogicalColour
         BishBosh.Test.QuickCheck.Attribute.MoveType
         BishBosh.Test.QuickCheck.Attribute.Rank
-        BishBosh.Test.QuickCheck.Attribute.RankValues
         BishBosh.Test.QuickCheck.Cartesian.Coordinates
         BishBosh.Test.QuickCheck.Cartesian.Vector
         BishBosh.Test.QuickCheck.Component.Move
@@ -484,12 +484,14 @@ Test-Suite quickcheck-tests
         BishBosh.Test.QuickCheck.Input.Options
         BishBosh.Test.QuickCheck.Input.PGNOptions
         BishBosh.Test.QuickCheck.Input.PieceSquareTable
+        BishBosh.Test.QuickCheck.Input.RankValues
         BishBosh.Test.QuickCheck.Input.SearchOptions
         BishBosh.Test.QuickCheck.Input.StandardOpeningOptions
         BishBosh.Test.QuickCheck.Input.UIOptions
         BishBosh.Test.QuickCheck.Input.Verbosity
         BishBosh.Test.QuickCheck.Metric.CriteriaWeights
         BishBosh.Test.QuickCheck.Metric.CriterionWeight
+        BishBosh.Test.QuickCheck.Metric.RankValue
         BishBosh.Test.QuickCheck.Model.Game
         BishBosh.Test.QuickCheck.Model.GameTree
         BishBosh.Test.QuickCheck.Model.MoveFrequency

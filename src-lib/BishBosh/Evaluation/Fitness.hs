@@ -51,7 +51,6 @@ import			Control.Arrow((&&&))
 import			Data.Array.IArray((!))
 import qualified	BishBosh.Attribute.LogicalColour			as Attribute.LogicalColour
 import qualified	BishBosh.Attribute.MoveType				as Attribute.MoveType
-import qualified	BishBosh.Attribute.RankValues				as Attribute.RankValues
 import qualified	BishBosh.Cartesian.Abscissa				as Cartesian.Abscissa
 import qualified	BishBosh.Cartesian.Coordinates				as Cartesian.Coordinates
 import qualified	BishBosh.Cartesian.Ordinate				as Cartesian.Ordinate
@@ -61,6 +60,7 @@ import qualified	BishBosh.Component.PieceSquareByCoordinatesByRank	as Component.
 import qualified	BishBosh.Component.QualifiedMove			as Component.QualifiedMove
 import qualified	BishBosh.Component.Turn					as Component.Turn
 import qualified	BishBosh.Input.EvaluationOptions			as Input.EvaluationOptions
+import qualified	BishBosh.Input.RankValues				as Input.RankValues
 import qualified	BishBosh.Metric.CriteriaWeights				as Metric.CriteriaWeights
 import qualified	BishBosh.Metric.CriterionValue				as Metric.CriterionValue
 import qualified	BishBosh.Metric.WeightedMeanAndCriterionValues		as Metric.WeightedMeanAndCriterionValues
@@ -151,24 +151,25 @@ measurePieceSquareValueIncrementally previousPieceSquareValue pieceSquareByCoord
 		qualifiedMove	= Component.Turn.getQualifiedMove turn
 
 -- | Measure the arithmetic difference between the total /rank-value/ of the /piece/s currently held by either side; <https://www.chessprogramming.org/Material>.
-measureValueOfMaterial :: (
-	Fractional	rankValue,
-	Real		rankValue
- )
-	=> Attribute.RankValues.RankValues rankValue
+measureValueOfMaterial
+	:: Input.RankValues.RankValues
 	-> Model.Game.Game x y
 	-> Metric.CriterionValue.CriterionValue
--- {-# SPECIALISE measureValueOfMaterial :: Attribute.RankValues.RankValues Type.Mass.RankValue -> Model.Game.Game Type.Length.X Type.Length.Y -> Metric.CriterionValue.CriterionValue #-}
+-- {-# SPECIALISE measureValueOfMaterial :: Input.RankValues.RankValues -> Model.Game.Game Type.Length.X Type.Length.Y -> Metric.CriterionValue.CriterionValue #-}
 measureValueOfMaterial rankValues game	= fromRational . (
-	/ fromIntegral Component.Piece.nPiecesPerSide	-- Normalise.
- ) . toRational {-from NPieces-} . (
+	/ toRational (
+		Input.RankValues.calculateMaximumTotalValue rankValues
+	) -- Normalise.
+ ) . (
 	if Attribute.LogicalColour.isBlack $ Model.Game.getNextLogicalColour game
 		then id		-- White just moved.
 		else negate	-- Black just moved.
  ) . Data.List.foldl' (
-	\acc (rank, nPieces) -> if nPieces == 0
-		then acc	-- Avoid calling 'Attribute.RankValues.findRankValue'.
-		else acc + Attribute.RankValues.findRankValue rank rankValues * fromIntegral nPieces
+	\acc (rank, nPiecesDifference) -> if nPiecesDifference == 0
+		then acc	-- Avoid calling 'Input.RankValues.findRankValue'.
+		else acc + toRational (
+			Input.RankValues.findRankValue rank rankValues
+		) * fromIntegral nPiecesDifference
  ) 0 . Data.Array.IArray.assocs . State.Board.getNPiecesDifferenceByRank {-which arbitrarily counts White pieces as positive & Black as negative-} $ Model.Game.getBoard game
 
 {- |
@@ -183,7 +184,7 @@ measureValueOfMaterial rankValues game	= fromRational . (
 	=> getWeightOfMobility * 1 > weightOfMaterial * (8.8 / 102.47)
 	=> getWeightOfMobility > weightOfMaterial / 11.6
 
-	The corollary is that one probably shouldn't sacrifice even a @Knight@ to temporarily reduce one's opponent mobility to one.
+	The corollary is that one probably shouldn't sacrifice even a @Knight@ to temporarily reduce one's opponent's mobility to one.
 	measureValueOfMobility = 0.5 when mobility = 1,
 	=> getWeightOfMobility * 0.5 < weightOfMaterial * (3.2 / 102.47)
 	=> getWeightOfMobility < weightOfMaterial / 16.0
@@ -328,18 +329,16 @@ evaluateFitness :: (
 	Enum							x,
 	Enum							y,
 	Fractional						pieceSquareValue,
-	Fractional						rankValue,
 	Ord							x,
 	Ord							y,
 	Real							pieceSquareValue,
-	Real							rankValue,
 	Show							x,
 	Show							y
  )
 	=> Maybe pieceSquareValue	-- ^ An optional value for the specified game.
 	-> Model.Game.Game x y
-	-> Input.EvaluationOptions.Reader pieceSquareValue rankValue x y Metric.WeightedMeanAndCriterionValues.WeightedMeanAndCriterionValues
-{-# SPECIALISE evaluateFitness :: Maybe Type.Mass.PieceSquareValue -> Model.Game.Game Type.Length.X Type.Length.Y -> Input.EvaluationOptions.Reader Type.Mass.PieceSquareValue Type.Mass.RankValue Type.Length.X Type.Length.Y Metric.WeightedMeanAndCriterionValues.WeightedMeanAndCriterionValues #-}
+	-> Input.EvaluationOptions.Reader pieceSquareValue x y Metric.WeightedMeanAndCriterionValues.WeightedMeanAndCriterionValues
+{-# SPECIALISE evaluateFitness :: Maybe Type.Mass.PieceSquareValue -> Model.Game.Game Type.Length.X Type.Length.Y -> Input.EvaluationOptions.Reader Type.Mass.PieceSquareValue Type.Length.X Type.Length.Y Metric.WeightedMeanAndCriterionValues.WeightedMeanAndCriterionValues #-}
 evaluateFitness maybePieceSquareValue game
 	| Just gameTerminationReason <- Model.Game.getMaybeTerminationReason game	= return {-to Reader-monad-} $ Metric.WeightedMeanAndCriterionValues.mkWeightedMeanAndCriterionValues (
 		if Rule.GameTerminationReason.isCheckMate gameTerminationReason

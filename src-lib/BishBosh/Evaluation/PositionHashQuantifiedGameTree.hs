@@ -66,7 +66,6 @@ module BishBosh.Evaluation.PositionHashQuantifiedGameTree(
  ) where
 
 import			Control.Arrow((&&&))
-import qualified	BishBosh.Attribute.RankValues			as Attribute.RankValues
 import qualified	BishBosh.Component.QualifiedMove		as Component.QualifiedMove
 import qualified	BishBosh.Component.Turn				as Component.Turn
 import qualified	BishBosh.Component.Zobrist			as Component.Zobrist
@@ -74,6 +73,7 @@ import qualified	BishBosh.Data.RoseTree				as Data.RoseTree
 import qualified	BishBosh.Evaluation.Fitness			as Evaluation.Fitness
 import qualified	BishBosh.Evaluation.QuantifiedGame		as Evaluation.QuantifiedGame
 import qualified	BishBosh.Input.EvaluationOptions		as Input.EvaluationOptions
+import qualified	BishBosh.Input.RankValues			as Input.RankValues
 import qualified	BishBosh.Input.SearchOptions			as Input.SearchOptions
 import qualified	BishBosh.Metric.WeightedMeanAndCriterionValues	as Metric.WeightedMeanAndCriterionValues
 import qualified	BishBosh.Model.Game				as Model.Game
@@ -152,22 +152,20 @@ mkPositionHashQuantifiedGameTree :: (
 #endif
 	Data.Bits.Bits						positionHash,
 	Fractional						pieceSquareValue,
-	Fractional						rankValue,
 	Integral						x,
 	Integral						y,
 	Real							pieceSquareValue,
-	Real							rankValue,
 	Show							x,
 	Show							y
  )
-	=> Input.EvaluationOptions.EvaluationOptions pieceSquareValue rankValue x y
+	=> Input.EvaluationOptions.EvaluationOptions pieceSquareValue x y
 	-> Input.SearchOptions.SearchOptions
 	-> Component.Zobrist.Zobrist x y positionHash
 	-> Model.GameTree.MoveFrequency x y
 	-> Model.Game.Game x y	-- ^ The current state of the /game/.
 	-> PositionHashQuantifiedGameTree x y positionHash
 {-# SPECIALISE mkPositionHashQuantifiedGameTree
-	:: Input.EvaluationOptions.EvaluationOptions Type.Mass.PieceSquareValue Type.Mass.RankValue Type.Length.X Type.Length.Y
+	:: Input.EvaluationOptions.EvaluationOptions Type.Mass.PieceSquareValue Type.Length.X Type.Length.Y
 	-> Input.SearchOptions.SearchOptions
 	-> Component.Zobrist.Zobrist Type.Length.X Type.Length.Y Type.Crypto.PositionHash
 	-> Model.GameTree.MoveFrequency Type.Length.X Type.Length.Y
@@ -224,7 +222,7 @@ mkPositionHashQuantifiedGameTree evaluationOptions searchOptions zobrist moveFre
 	bareGameTree	= Model.GameTree.deconstruct . Model.GameTree.sortGameTree (
 		Input.SearchOptions.getMaybeCaptureMoveSortAlgorithm searchOptions
 	 ) (
-		`Attribute.RankValues.findRankValue` Input.EvaluationOptions.getRankValues evaluationOptions
+		`Input.RankValues.findRankValue` Input.EvaluationOptions.getRankValues evaluationOptions
 	 ) moveFrequency $ Model.GameTree.fromGame seedGame
 
 -- | Accessor.

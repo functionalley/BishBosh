@@ -30,8 +30,8 @@ module BishBosh.Test.HUnit.Model.GameTree(
 ) where
 
 import qualified	BishBosh.Attribute.CaptureMoveSortAlgorithm	as Attribute.CaptureMoveSortAlgorithm
-import qualified	BishBosh.Attribute.RankValues			as Attribute.RankValues
 import qualified	BishBosh.Component.Turn				as Component.Turn
+import qualified	BishBosh.Input.RankValues			as Input.RankValues
 import qualified	BishBosh.Model.Game				as Model.Game
 import qualified	BishBosh.Model.GameTree				as Model.GameTree
 import qualified	BishBosh.Notation.MoveNotation			as Notation.MoveNotation
@@ -39,7 +39,6 @@ import qualified	BishBosh.Property.Empty				as Property.Empty
 import qualified	BishBosh.Property.FixedMembership		as Property.FixedMembership
 import qualified	BishBosh.Property.ForsythEdwards		as Property.ForsythEdwards
 import qualified	BishBosh.Type.Length				as Type.Length
-import qualified	BishBosh.Type.Mass				as Type.Mass
 import qualified	Data.Default
 import qualified	Data.Maybe
 import qualified	Data.Tree
@@ -77,9 +76,11 @@ testCases	= Test.HUnit.test [
 	sortAvailableMoves maybeSortAlgorithm	= Data.Maybe.mapMaybe (
 		Model.Game.maybeLastTurn . Data.Tree.rootLabel
 	 ) . Data.Tree.subForest . Model.GameTree.deconstruct . Model.GameTree.sortGameTree maybeSortAlgorithm (
-		`Attribute.RankValues.findRankValue` Attribute.RankValues.fromAssocs (
-			zip Property.FixedMembership.members $ map (/ 10) [
-				1	:: Type.Mass.RankValue,
+		`Input.RankValues.findRankValue` Input.RankValues.fromAssocs (
+			zip Property.FixedMembership.members $ map (
+				fromRational . (/ 10)	-- Map into the closed unit-interval.
+			) [
+				1,	-- P
 				5,	-- R
 				3,	-- N
 				7 / 2,	-- B

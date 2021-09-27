@@ -97,7 +97,7 @@ import qualified	BishBosh.Concurrent.SignalHandlers	as Concurrent.SignalHandlers
 -- Define concrete types to resolve the underlying polymorphic functions.
 type Row	= Type.Length.Y
 type Column	= Type.Length.X		-- N.B. there's no requirement to be the same type as Row.
-type Options	= Input.Options.Options Column Type.Mass.PieceSquareValue Type.Mass.RankValue Row Type.Length.X Type.Length.Y
+type Options	= Input.Options.Options Column Type.Mass.PieceSquareValue Row Type.Length.X Type.Length.Y
 
 writeXMLToFile
 	:: HXT.XmlPickler pickleable
@@ -448,7 +448,7 @@ main	= do
 								 ) Property.Empty.empty {-QualifiedMoveForest-} (Input.IOOptions.getPGNOptionsList ioOptions)
 
 								let
-									maybeApplicationTerminationReason	= State.PlayState.getMaybeApplicationTerminationReason (playState :: State.PlayState.PlayState Column Type.Mass.PieceSquareValue Type.Crypto.PositionHash Type.Mass.RankValue Row Type.Length.X Type.Length.Y)
+									maybeApplicationTerminationReason	= State.PlayState.getMaybeApplicationTerminationReason (playState :: State.PlayState.PlayState Column Type.Mass.PieceSquareValue Type.Crypto.PositionHash Row Type.Length.X Type.Length.Y)
 								 in Control.Monad.when (
 									verbosity /= minBound && Data.Maybe.isJust maybeApplicationTerminationReason
 								 ) . System.IO.hPutStrLn System.IO.stderr . showsInfoPrefix . showString "application terminated " $ shows (Data.Maybe.fromJust maybeApplicationTerminationReason) "."

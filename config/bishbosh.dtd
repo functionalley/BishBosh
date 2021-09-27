@@ -30,8 +30,8 @@
 		>
 		<!ELEMENT rankValues EMPTY>
 			<!ATTLIST rankValues
-				rank	(p | r | n | b | q | k)	#REQUIRED
-				value	CDATA			#REQUIRED
+				rank		(p | r | n | b | q | k)	#REQUIRED
+				rankValue	CDATA			#REQUIRED
 			>
 		<!ENTITY rankValues_Carlson SYSTEM "rankValues_Carlson.xml">
 		<!ENTITY rankValues_Kaufman SYSTEM "rankValues_Kaufman.xml">

@@ -107,18 +107,16 @@ fromGame :: (
 	Enum							x,
 	Enum							y,
 	Fractional						pieceSquareValue,
-	Fractional						rankValue,
 	Ord							x,
 	Ord							y,
 	Real							pieceSquareValue,
-	Real							rankValue,
 	Show							x,
 	Show							y
  )
 	=> Maybe pieceSquareValue	-- ^ The value for the specified game.
 	-> Model.Game.Game x y		-- ^ The current state of the /game/.
-	-> Input.EvaluationOptions.Reader pieceSquareValue rankValue x y (QuantifiedGame x y)
-{-# SPECIALISE fromGame :: Maybe Type.Mass.PieceSquareValue -> Model.Game.Game Type.Length.X Type.Length.Y -> Input.EvaluationOptions.Reader Type.Mass.PieceSquareValue Type.Mass.RankValue Type.Length.X Type.Length.Y (QuantifiedGame Type.Length.X Type.Length.Y) #-}
+	-> Input.EvaluationOptions.Reader pieceSquareValue x y (QuantifiedGame x y)
+{-# SPECIALISE fromGame :: Maybe Type.Mass.PieceSquareValue -> Model.Game.Game Type.Length.X Type.Length.Y -> Input.EvaluationOptions.Reader Type.Mass.PieceSquareValue Type.Length.X Type.Length.Y (QuantifiedGame Type.Length.X Type.Length.Y) #-}
 fromGame maybePieceSquareValue game	= MkQuantifiedGame game `fmap` Evaluation.Fitness.evaluateFitness maybePieceSquareValue game
 
 -- | Retrieve the /turn/ used to generate the selected /game/.

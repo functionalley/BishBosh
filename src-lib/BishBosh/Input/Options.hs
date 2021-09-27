@@ -92,22 +92,21 @@ randomSeedTag		= "randomSeed"
 type RandomSeed	= Int
 
 -- | Defines the application's options.
-data Options column pieceSquareValue rankValue row x y	= MkOptions {
-	getMaybeMaximumPlies	:: Maybe Type.Count.NPlies,							-- ^ The maximum number of plies before the game is terminated; required for profiling the application.
-	getMaybeRandomSeed	:: Maybe RandomSeed,								-- ^ Optionally seed the pseudo-random number-generator to produce a repeatable sequence.
-	getEvaluationOptions	:: Input.EvaluationOptions.EvaluationOptions pieceSquareValue rankValue x y,	-- ^ The single set of options by which all automated /move/s are evaluated.
-	getSearchOptions	:: Input.SearchOptions.SearchOptions,						-- ^ The options by which to automatically select /move/s.
-	getIOOptions		:: Input.IOOptions.IOOptions row column						-- ^ The /ioOptions/ by which to receive commands & present results.
+data Options column pieceSquareValue row x y	= MkOptions {
+	getMaybeMaximumPlies	:: Maybe Type.Count.NPlies,						-- ^ The maximum number of plies before the game is terminated; required for profiling the application.
+	getMaybeRandomSeed	:: Maybe RandomSeed,							-- ^ Optionally seed the pseudo-random number-generator to produce a repeatable sequence.
+	getEvaluationOptions	:: Input.EvaluationOptions.EvaluationOptions pieceSquareValue x y,	-- ^ The single set of options by which all automated /move/s are evaluated.
+	getSearchOptions	:: Input.SearchOptions.SearchOptions,					-- ^ The options by which to automatically select /move/s.
+	getIOOptions		:: Input.IOOptions.IOOptions row column					-- ^ The /ioOptions/ by which to receive commands & present results.
 } deriving (Eq, Show)
 
 instance (
 	Control.DeepSeq.NFData	column,
 	Control.DeepSeq.NFData	pieceSquareValue,
-	Control.DeepSeq.NFData	rankValue,
 	Control.DeepSeq.NFData	row,
 	Control.DeepSeq.NFData	x,
 	Control.DeepSeq.NFData	y
- ) => Control.DeepSeq.NFData (Options column pieceSquareValue rankValue row x y) where
+ ) => Control.DeepSeq.NFData (Options column pieceSquareValue row x y) where
 	rnf MkOptions {
 		getMaybeMaximumPlies	= maybeMaximumPlies,
 		getMaybeRandomSeed	= maybeRandomSeed,
@@ -122,11 +121,10 @@ instance (
 	Ord	x,
 	Ord	y,
 	Real	pieceSquareValue,
-	Real	rankValue,
 	Show	column,
 	Show	pieceSquareValue,
 	Show	row
- ) => Property.ShowFloat.ShowFloat (Options column pieceSquareValue rankValue row x y) where
+ ) => Property.ShowFloat.ShowFloat (Options column pieceSquareValue row x y) where
 	showsFloat fromDouble MkOptions {
 		getMaybeMaximumPlies	= maybeMaximumPlies,
 		getMaybeRandomSeed	= maybeRandomSeed,
@@ -150,13 +148,7 @@ instance (
 		)
 	 ]
 
-instance (
-	Fractional	rankValue,
-	Num		column,
-	Num		row,
-	Ord		rankValue,
-	Show		rankValue
- ) => Data.Default.Default (Options column pieceSquareValue rankValue row x y) where
+instance (Num column, Num row) => Data.Default.Default (Options column pieceSquareValue row x y) where
 	def = MkOptions {
 		getMaybeMaximumPlies	= Nothing,
 		getMaybeRandomSeed	= Nothing,
@@ -169,22 +161,18 @@ instance (
 	Enum		x,
 	Enum		y,
 	Fractional	pieceSquareValue,
-	Fractional	rankValue,
 	HXT.XmlPickler	column,
-	HXT.XmlPickler	rankValue,
 	HXT.XmlPickler	row,
 	Integral	column,
 	Integral	row,
 	Ord		pieceSquareValue,
-	Ord		rankValue,
 	Ord		x,
 	Ord		y,
 	Real		pieceSquareValue,
 	Show		column,
 	Show		pieceSquareValue,
-	Show		rankValue,
 	Show		row
- ) => HXT.XmlPickler (Options column pieceSquareValue rankValue row x y) where
+ ) => HXT.XmlPickler (Options column pieceSquareValue row x y) where
 	xpickle	= HXT.xpElem tag . HXT.xpWrap (
 		\(a, b, c, d, e) -> mkOptions a b c d e,	-- Construct.
 		\MkOptions {
@@ -210,10 +198,10 @@ instance (
 mkOptions
 	:: Maybe Type.Count.NPlies	-- ^ The maximum number of plies before the game is terminated; required for profiling the application.
 	-> Maybe RandomSeed		-- ^ Optionally seed the pseudo-random number-generator to produce a repeatable sequence.
-	-> Input.EvaluationOptions.EvaluationOptions pieceSquareValue rankValue x y
+	-> Input.EvaluationOptions.EvaluationOptions pieceSquareValue x y
 	-> Input.SearchOptions.SearchOptions
 	-> Input.IOOptions.IOOptions row column
-	-> Options column pieceSquareValue rankValue row x y
+	-> Options column pieceSquareValue row x y
 mkOptions maybeMaximumPlies maybeRandomSeed evaluationOptions searchOptions ioOptions
 	| Just maximumPlies	<- maybeMaximumPlies
 	, maximumPlies <= 0	= Control.Exception.throw . Data.Exception.mkOutOfBounds . showString "BishBosh.Input.Options.mkOptions:\t" . showString maximumPliesTag . Text.ShowList.showsAssociation $ shows maximumPlies " must exceed zero."
@@ -226,22 +214,22 @@ mkOptions maybeMaximumPlies maybeRandomSeed evaluationOptions searchOptions ioOp
 	}
 
 -- | The type of a function used to transform 'Options'.
-type Transformation column pieceSquareValue rankValue row x y	= Options column pieceSquareValue rankValue row x y -> Options column pieceSquareValue rankValue row x y
+type Transformation column pieceSquareValue row x y	= Options column pieceSquareValue row x y -> Options column pieceSquareValue row x y
 
 -- | Mutator.
-setMaybeOutputConfigFilePath :: Maybe System.FilePath.FilePath -> Transformation column pieceSquareValue rankValue row x y
+setMaybeOutputConfigFilePath :: Maybe System.FilePath.FilePath -> Transformation column pieceSquareValue row x y
 setMaybeOutputConfigFilePath maybeOutputConfigFilePath options@MkOptions { getIOOptions	= ioOptions }	= options {
 	getIOOptions	= Input.IOOptions.setMaybeOutputConfigFilePath maybeOutputConfigFilePath ioOptions
 }
 
 -- | Mutator.
-setMaybeRandomSeed :: Maybe RandomSeed -> Transformation column pieceSquareValue rankValue row x y
+setMaybeRandomSeed :: Maybe RandomSeed -> Transformation column pieceSquareValue row x y
 setMaybeRandomSeed maybeRandomSeed options	= options {
 	getMaybeRandomSeed	= maybeRandomSeed
 }
 
 -- | Mutator.
-setMaybePersistence :: Maybe (System.FilePath.FilePath, Bool) -> Transformation column pieceSquareValue rankValue row x y
+setMaybePersistence :: Maybe (System.FilePath.FilePath, Bool) -> Transformation column pieceSquareValue row x y
 setMaybePersistence maybePersistence options@MkOptions { getIOOptions = ioOptions }	= options {
 	getIOOptions	= ioOptions {
 		Input.IOOptions.getMaybePersistence	= maybePersistence
@@ -249,25 +237,25 @@ setMaybePersistence maybePersistence options@MkOptions { getIOOptions = ioOption
 }
 
 -- | Mutator.
-setVerbosity :: Input.Verbosity.Verbosity -> Transformation column pieceSquareValue rankValue row x y
+setVerbosity :: Input.Verbosity.Verbosity -> Transformation column pieceSquareValue row x y
 setVerbosity verbosity options@MkOptions { getIOOptions = ioOptions }	= options {
 	getIOOptions	= Input.IOOptions.setVerbosity verbosity ioOptions
 }
 
 -- | Mutator.
-setEitherNativeUIOrCECPOptions :: Input.UIOptions.EitherNativeUIOrCECPOptions row column -> Transformation column pieceSquareValue rankValue row x y
+setEitherNativeUIOrCECPOptions :: Input.UIOptions.EitherNativeUIOrCECPOptions row column -> Transformation column pieceSquareValue row x y
 setEitherNativeUIOrCECPOptions eitherNativeUIOrCECPOptions options@MkOptions { getIOOptions = ioOptions }	= options {
 	getIOOptions	= Input.IOOptions.setEitherNativeUIOrCECPOptions eitherNativeUIOrCECPOptions ioOptions
 }
 
 -- | Mutator.
-setMaybePrintMoveTree :: Maybe Property.Arboreal.Depth -> Transformation column pieceSquareValue rankValue row x y
+setMaybePrintMoveTree :: Maybe Property.Arboreal.Depth -> Transformation column pieceSquareValue row x y
 setMaybePrintMoveTree maybePrintMoveTree options@MkOptions { getIOOptions = ioOptions }	= options {
 	getIOOptions	= Input.IOOptions.setMaybePrintMoveTree maybePrintMoveTree ioOptions
 }
 
 -- | Mutator.
-swapSearchDepth :: Transformation column pieceSquareValue rankValue row x y
+swapSearchDepth :: Transformation column pieceSquareValue row x y
 swapSearchDepth options@MkOptions { getSearchOptions = searchOptions }	= options {
 	getSearchOptions	= Input.SearchOptions.swapSearchDepth searchOptions
 }

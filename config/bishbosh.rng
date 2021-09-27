@@ -20,7 +20,7 @@
 					<zeroOrMore>
 						<element name="rankValues">
 							<ref name="Rank"/>
-							<attribute name="value">
+							<attribute name="rankValue">
 								<ref name="ClosedUnitInterval"/>
 							</attribute>
 						</element>

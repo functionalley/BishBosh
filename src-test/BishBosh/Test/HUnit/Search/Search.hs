@@ -54,12 +54,9 @@ import			Test.HUnit((~?))
 -- | Constant.
 evaluationOptions :: (
 	Fractional	pieceSquareValue,
-	Fractional	rankValue,
 	Integral	x,
-	Integral	y,
-	Ord		rankValue,
-	Show		rankValue
- ) => Input.EvaluationOptions.EvaluationOptions pieceSquareValue rankValue x y
+	Integral	y
+ ) => Input.EvaluationOptions.EvaluationOptions pieceSquareValue x y
 evaluationOptions	= Input.EvaluationOptions.mkEvaluationOptions Data.Default.def {-rankValues-} Data.Default.def {
 	Metric.CriteriaWeights.getWeightOfMobility		= 24 / 1000,
 	Metric.CriteriaWeights.getWeightOfCastlingPotential	= 5 / 1000
@@ -81,7 +78,7 @@ testCases	= Test.HUnit.test $ map (
 				turnString	= Notation.MoveNotation.showNotation Data.Default.def {-Smith-} $ case Search.Search.getQuantifiedGames $ Control.Monad.Reader.runReader (
 					Search.Search.search searchDepth $ Search.SearchState.initialise (
 						Evaluation.PositionHashQuantifiedGameTree.mkPositionHashQuantifiedGameTree (
-							evaluationOptions	:: Input.EvaluationOptions.EvaluationOptions Type.Mass.PieceSquareValue Type.Mass.RankValue Type.Length.X Type.Length.Y
+							evaluationOptions	:: Input.EvaluationOptions.EvaluationOptions Type.Mass.PieceSquareValue Type.Length.X Type.Length.Y
 						) searchOptions Data.Default.def {-Zobrist-} Property.Empty.empty {-MoveFrequency-} game :: Evaluation.PositionHashQuantifiedGameTree.PositionHashQuantifiedGameTree Type.Length.X Type.Length.Y Type.Crypto.PositionHash
 					 )
 				 ) searchOptions of
