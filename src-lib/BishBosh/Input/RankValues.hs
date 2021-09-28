@@ -103,11 +103,17 @@ fromAssocs assocs
 	| not $ null undefinedRanks	= Control.Exception.throw . Data.Exception.mkInsufficientData . showString "BishBosh.Input.RankValues.fromAssocs:\tranks" . Text.ShowList.showsAssociation $ shows undefinedRanks " are undefined."
 	| not $ null duplicateRanks	= Control.Exception.throw . Data.Exception.mkDuplicateData . showString "BishBosh.Input.RankValues.fromAssocs:\tranks must be distinct; " $ shows duplicateRanks "."
 	| all (
-		(== 0) . snd {-rank-value-}
+		(== 0) . snd {-RankValue-}
 	) assocs			= Control.Exception.throw . Data.Exception.mkNullDatum . showString "BishBosh.Input.RankValues.fromAssocs:\tat least one rank should have a non-zero value; " $ shows assocs "."
-	| otherwise			= MkRankValues $ Attribute.Rank.arrayByRank assocs
+	| byRank ! Attribute.Rank.Queen /= maximum [
+		rankValue |
+			(rank, rankValue)	<- assocs,
+			rank /= Attribute.Rank.King	-- Whose rank-value is irrelevant.
+	] {-list-comprehension-}	= Control.Exception.throw . Data.Exception.mkIncompatibleData . showString "BishBosh.Input.RankValues.fromAssocs:\texcepting possibly the King, the Queen should be the most valuable rank; " $ shows assocs "."
+	| otherwise			= MkRankValues byRank
 	where
 		(undefinedRanks, duplicateRanks)	= Attribute.Rank.findUndefinedRanks &&& Data.Foldable.findDuplicates $ map fst assocs
+		byRank					= Attribute.Rank.arrayByRank assocs
 
 -- | Query.
 findRankValue :: Attribute.Rank.Rank -> RankValues -> Metric.RankValue.RankValue

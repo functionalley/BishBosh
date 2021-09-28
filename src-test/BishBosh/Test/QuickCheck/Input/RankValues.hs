@@ -33,5 +33,5 @@ import qualified	Data.List
 import qualified	Test.QuickCheck
 
 instance Test.QuickCheck.Arbitrary Input.RankValues.RankValues where
-	arbitrary	= Input.RankValues.fromAssocs . zip Property.FixedMembership.members . Data.List.sort {-ensures Q is most valuable-} <$> Test.QuickCheck.vector (fromIntegral Attribute.Rank.nDistinctRanks)
+	arbitrary	= Input.RankValues.fromAssocs . zip Property.FixedMembership.members . Data.List.sort {-ensures Q is most valuable (except K)-} <$> Test.QuickCheck.vector (fromIntegral Attribute.Rank.nDistinctRanks)
 

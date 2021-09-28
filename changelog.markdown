@@ -114,3 +114,4 @@ New Module					| Purpose
 	+ Replaced the pointless polymorphic payloads in data-types **BishBosh.Metric.{CriterionValue.CriterionValue, CriterionWeight.CriterionWeight, WeightedMeanAndCriterionValues.WeightedMeanAndCriterionValues}** with concrete types.
 * Moved **BishBosh.Attribute.RankValues** to **BishBosh.Input**.
 * Replaced the polymorphic type-parameters **row** & **column** with newtypes in module **iBishBosh.Type.Length**.
+* Checked that (with the possible exception of the King) the Queen is configured as the most valuable rank.
