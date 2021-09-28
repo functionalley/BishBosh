@@ -306,7 +306,7 @@ initialise options
 							] configFilePath
 							>>> HXT.arr (
 								 \inputOptions -> Input.SearchOptions.identifyAutomatedPlayers . Input.Options.getSearchOptions &&& Input.UIOptions.getMoveNotation . Input.IOOptions.getUIOptions . Input.Options.getIOOptions $ (
-									inputOptions	:: Input.Options.Options Type.Length.X Type.Mass.PieceSquareValue Type.Length.Y Type.Length.X Type.Length.Y	-- Arbitrary concrete type.
+									inputOptions	:: Input.Options.Options Type.Mass.PieceSquareValue Type.Length.X Type.Length.Y	-- Arbitrary concrete type.
 								 )
 							) -- Lift function into an arrow.
 

@@ -96,9 +96,9 @@ New Module					| Purpose
 **BishBosh.Time.GameClock**			| Contains two **Data.Time.StopWatch** to enable module **Duel.Process.Intermediary** to measure the time used by each player.
 **BishBosh.Property.Switchable**		| Exports a type-class, which both **BishBosh.Time.StopWatch** & **BishBosh.Time.GameClock** implement, to expose their functionality.
 **BishBosh.Property.SelfValidating**		| Exports a type-class, which both **BishBosh.Time.GameClock** & **Duel.Data.Options** implement, to validate themselves.
-**BishBosh.Types.Countable**			| Defines newtypes to enhance type-safety, replacing type-synonyms for **Int**. There is a performance-degradation, so this enhancement can be disabled using a new cabal-flag.
-**BishBosh.Types.Crypto**			| Self-documentation.
-**BishBosh.Types.Mass**				| Self-documentation.
+**BishBosh.Type.Countable**			| Defines newtypes to enhance type-safety, replacing type-synonyms for **Int**. There is a performance-degradation, so this enhancement can be disabled using a new cabal-flag.
+**BishBosh.Type.Crypto**			| Self-documentation.
+**BishBosh.Type.Mass**				| Self-documentation.
 **BishBosh.Metric.RankValue**			| Replaced the polymorphic type-parameter **rankValue**, with a newtype including a smart-constructor to guard permissible bounds.
 **BishBosh.Test.QuickCheck.Metric.RankValue**	| Provides an instance of **Test.QuickCheck.Arbitrary**.
 
@@ -113,3 +113,4 @@ New Module					| Purpose
 	+ Implemented classes [**Num**, **Fractional**, **Real**] for data-types **BishBosh.Metric.{CriterionValue.CriterionValue, CriterionWeight.CriterionWeight}**, nullifying the requirement for exports.
 	+ Replaced the pointless polymorphic payloads in data-types **BishBosh.Metric.{CriterionValue.CriterionValue, CriterionWeight.CriterionWeight, WeightedMeanAndCriterionValues.WeightedMeanAndCriterionValues}** with concrete types.
 * Moved **BishBosh.Attribute.RankValues** to **BishBosh/Input/**.
+* Replaced the polymorphic type-parameters **row** & **column** with newtypes in module **iBishBosh.Type.Length**.

@@ -158,7 +158,7 @@ measureValueOfMaterial
 -- {-# SPECIALISE measureValueOfMaterial :: Input.RankValues.RankValues -> Model.Game.Game Type.Length.X Type.Length.Y -> Metric.CriterionValue.CriterionValue #-}
 measureValueOfMaterial rankValues game	= fromRational . (
 	/ toRational (
-		Input.RankValues.calculateMaximumTotalValue rankValues
+		Input.RankValues.calculateMaximumTotalValue rankValues	-- CAVEAT: this assumes that the Queen is most valuable & might generate an illegally high criterion-value if someone defines alternative rank-values.
 	) -- Normalise.
  ) . (
 	if Attribute.LogicalColour.isBlack $ Model.Game.getNextLogicalColour game
@@ -269,7 +269,7 @@ measureValueOfPassedPawns game	= fromRational . (
 	valuePassedPawns logicalColour	= Data.List.foldl' (
 		\acc -> (acc +) . recip {-value increases exponentially as distance to promotion decreases-} . fromIntegral {-Int-} . abs . subtract (
 			fromEnum (
-				Cartesian.Ordinate.lastRank logicalColour	:: y
+				Cartesian.Ordinate.lastRank logicalColour	:: y	-- N.B.: ScopedTypeVariables.
 			)
 		) . fromEnum . Cartesian.Coordinates.getY	-- Measure the distance to promotion.
 	 ) 0 $ State.Board.getPassedPawnCoordinatesByLogicalColour (Model.Game.getBoard game) ! logicalColour

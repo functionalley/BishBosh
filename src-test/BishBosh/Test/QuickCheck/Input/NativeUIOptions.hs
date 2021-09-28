@@ -30,13 +30,10 @@ import qualified	BishBosh.Input.NativeUIOptions	as Input.NativeUIOptions
 import qualified	Data.Default
 import qualified	Test.QuickCheck
 
-instance (
-	Integral	column,
-	Integral	row,
-	Show		column,
-	Show		row
- ) => Test.QuickCheck.Arbitrary (Input.NativeUIOptions.NativeUIOptions row column) where
+instance Test.QuickCheck.Arbitrary Input.NativeUIOptions.NativeUIOptions where
 	arbitrary	= Input.NativeUIOptions.mkNativeUIOptions <$> fmap (
-		fromInteger . succ . (* 2) . (`mod` 3) *** fromInteger . succ . (* 2) . (`mod` 3)
-	 ) Test.QuickCheck.arbitrary {-BoardMagnification-} <*> return {-to Gen-monad-} Data.Default.def {-ColourScheme-}
+		mkOddWholeNumber *** mkOddWholeNumber
+	 ) Test.QuickCheck.arbitrary {-BoardMagnification-} <*> return {-to Gen-monad-} Data.Default.def {-ColourScheme-} where
+		mkOddWholeNumber :: Num n => Integer -> n
+		mkOddWholeNumber	= fromInteger . succ . (* 2) . (`mod` 3)
 

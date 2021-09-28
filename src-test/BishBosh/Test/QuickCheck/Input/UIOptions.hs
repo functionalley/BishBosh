@@ -34,12 +34,7 @@ import qualified	BishBosh.Input.UIOptions	as Input.UIOptions
 import qualified	BishBosh.Notation.MoveNotation	as Notation.MoveNotation
 import qualified	Test.QuickCheck
 
-instance (
-	Integral	column,
-	Integral	row,
-	Show		column,
-	Show		row
- ) => Test.QuickCheck.Arbitrary (Input.UIOptions.UIOptions row column) where
+instance Test.QuickCheck.Arbitrary Input.UIOptions.UIOptions where
 	arbitrary	= do
 		eitherNativeUIOrCECPOptions	<- Test.QuickCheck.arbitrary
 		moveNotation			<- const Test.QuickCheck.arbitrary ||| const (return {-to Gen-monad-} Notation.MoveNotation.pureCoordinate) $ eitherNativeUIOrCECPOptions

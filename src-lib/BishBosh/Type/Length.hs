@@ -1,4 +1,4 @@
-{-# LANGUAGE CPP #-}
+{-# LANGUAGE CPP, GeneralizedNewtypeDeriving #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 {-
 	Copyright (C) 2021 Dr. Alistair Ward
@@ -34,11 +34,19 @@ module BishBosh.Type.Length(
 --	Base,
 	Distance,
 	X,
-	Y
+	Y,
+	Row(),
+	Column()
 ) where
 
-#ifdef USE_NARROW_NUMBERS
+#if defined(USE_NARROW_NUMBERS) || defined(USE_NEWTYPE_WRAPPERS)
+#	ifdef USE_NARROW_NUMBERS
 import qualified	Data.Int
+#	endif
+
+#	ifdef USE_NEWTYPE_WRAPPERS
+import qualified	Control.DeepSeq
+#	endif
 import qualified	Text.XML.HXT.Arrow.Pickle	as HXT
 #endif
 
@@ -65,3 +73,23 @@ type X	= Base
 
 -- | The distance along the ordinate.
 type Y	= Base	-- N.B.: it can be independent of 'X'.
+
+-- | Indexes screen-coordinates in the vertical direction.
+#ifdef USE_NEWTYPE_WRAPPERS
+newtype Row	= MkRow Y deriving (Control.DeepSeq.NFData, Enum, Eq, HXT.XmlPickler, Integral, Num, Ord, Real)
+
+instance Show Row where
+	showsPrec precision (MkRow row)	= showsPrec precision row
+#else
+type Row	= Y
+#endif
+
+-- | Indexes screen-coordinates in the horizontal direction.
+#ifdef USE_NEWTYPE_WRAPPERS
+newtype Column	= MkColumn X deriving (Control.DeepSeq.NFData, Enum, Eq, HXT.XmlPickler, Integral, Num, Ord, Real)
+
+instance Show Column where
+	showsPrec precision (MkColumn column)	= showsPrec precision column
+#else
+type Column	= X
+#endif

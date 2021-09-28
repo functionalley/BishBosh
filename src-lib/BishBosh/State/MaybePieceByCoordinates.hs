@@ -302,7 +302,12 @@ instance (
 		([_], [_])	-> True
 		_		-> False
 
-instance (Enum x, Enum y, Ord x, Ord y) => Component.Zobrist.Hashable2D MaybePieceByCoordinates x y {-CAVEAT: FlexibleInstances, MultiParamTypeClasses-} where
+instance (
+	Enum	x,
+	Enum	y,
+	Ord	x,
+	Ord	y
+ ) => Component.Zobrist.Hashable2D MaybePieceByCoordinates x y {-CAVEAT: FlexibleInstances, MultiParamTypeClasses-} where
 	listRandoms2D MkMaybePieceByCoordinates { deconstruct = byCoordinates } zobrist	= [
 		Component.Zobrist.dereferenceRandomByCoordinatesByRankByLogicalColour (Component.Piece.getLogicalColour piece, Component.Piece.getRank piece, coordinates) zobrist |
 			(coordinates, Just piece)	<- Data.Array.IArray.assocs byCoordinates
@@ -462,13 +467,12 @@ listDestinationsFor source piece maybePieceByCoordinates@MkMaybePieceByCoordinat
 
 -- | Show the /board/ in two dimensions, with /x/ & /y/ indexes.
 shows2D :: (
-	Enum		x,
-	Enum		y,
-	Integral	column,
-	Ord		x,
-	Ord		y
+	Enum	x,
+	Enum	y,
+	Ord	x,
+	Ord	y
  )
-	=> column	-- ^ The column-magnification.
+	=> Type.Length.Column	-- ^ The column-magnification.
 	-> Attribute.ColourScheme.ColourScheme
 	-> (Int, Int)	-- ^ The origin from which axes are labelled.
 	-> MaybePieceByCoordinates x y
@@ -515,13 +519,12 @@ shows2D boardColumnMagnification colourScheme (xOrigin, yOrigin) MkMaybePieceByC
 
 -- | Show the board using a two-dimensional representation.
 show2D :: (
-	Enum		x,
-	Enum		y,
-	Integral	column,
-	Ord		x,
-	Ord		y
+	Enum	x,
+	Enum	y,
+	Ord	x,
+	Ord	y
  )
-	=> column	-- ^ The column-magnification.
+	=> Type.Length.Column	-- ^ The column-magnification.
 	-> Attribute.ColourScheme.ColourScheme
 	-> (Int, Int)	-- ^ The origin from which axes are labelled.
 	-> MaybePieceByCoordinates x y

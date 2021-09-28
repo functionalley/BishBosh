@@ -34,12 +34,7 @@ import qualified	System.FilePath
 import qualified	Test.QuickCheck
 import			System.FilePath((</>), (<.>))
 
-instance (
-	Integral	column,
-	Integral	row,
-	Show		column,
-	Show		row
- ) => Test.QuickCheck.Arbitrary (Input.IOOptions.IOOptions row column) where
+instance Test.QuickCheck.Arbitrary Input.IOOptions.IOOptions where
 	arbitrary	= do
 		maybePGNOptions	<- Test.QuickCheck.arbitrary
 

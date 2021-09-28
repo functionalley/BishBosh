@@ -96,18 +96,15 @@ automaticTag :: String
 automaticTag		= "automatic"
 
 -- | Defines options related to i/o.
-data IOOptions row column	= MkIOOptions {
+data IOOptions	= MkIOOptions {
 	getMaybeOutputConfigFilePath	:: Maybe System.FilePath.FilePath,		-- ^ An optional path to a file, into which the unprocessed configuration, formatted as XML, should be written (obliterating any existing file-contents).
 	getMaybeMaximumPGNNames		:: Maybe Type.Count.NGames,			-- ^ The maximum number of names to display, of matching games from the PGN-database; @Nothing@ implies unlimited. CAVEAT: pedantically, it's a number of names not a number of games.
 	getPGNOptionsList		:: [Input.PGNOptions.PGNOptions],		-- ^ How to construct each PGN-database.
 	getMaybePersistence		:: Maybe (System.FilePath.FilePath, Bool),	-- ^ Optional path to a file, into which game-state can be persisted (obliterating any existing content), & whether to save this state automatically after each move.
-	getUIOptions			:: Input.UIOptions.UIOptions row column		-- ^ Options which define the user-interface.
+	getUIOptions			:: Input.UIOptions.UIOptions			-- ^ Options which define the user-interface.
 } deriving Eq
 
-instance (
-	Control.DeepSeq.NFData	column,
-	Control.DeepSeq.NFData	row
- ) => Control.DeepSeq.NFData (IOOptions row column) where
+instance Control.DeepSeq.NFData IOOptions where
 	rnf MkIOOptions {
 		getMaybeOutputConfigFilePath	= maybeOutputConfigFilePath,
 		getMaybeMaximumPGNNames		= maybeMaximumPGNNames,
@@ -122,7 +119,7 @@ instance (
 		uiOptions
 	 )
 
-instance (Show column, Show row) => Show (IOOptions row column) where
+instance Show IOOptions where
 	showsPrec _ MkIOOptions {
 		getMaybeOutputConfigFilePath	= maybeOutputConfigFilePath,
 		getMaybeMaximumPGNNames		= maybeMaximumPGNNames,
@@ -145,7 +142,7 @@ instance (Show column, Show row) => Show (IOOptions row column) where
 		)
 	 ]
 
-instance (Num column, Num row) => Data.Default.Default (IOOptions row column) where
+instance Data.Default.Default IOOptions where
 	def = MkIOOptions {
 		getMaybeOutputConfigFilePath	= Nothing,
 		getMaybeMaximumPGNNames		= Nothing,
@@ -154,14 +151,7 @@ instance (Num column, Num row) => Data.Default.Default (IOOptions row column) wh
 		getUIOptions			= Data.Default.def
 	}
 
-instance (
-	HXT.XmlPickler	column,
-	HXT.XmlPickler	row,
-	Integral	column,
-	Integral	row,
-	Show		column,
-	Show		row
- ) => HXT.XmlPickler (IOOptions row column) where
+instance HXT.XmlPickler IOOptions where
 	xpickle	= HXT.xpDefault Data.Default.def . HXT.xpElem tag . HXT.xpWrap (
 		\(a, b, c, d, e) -> mkIOOptions a b c d e,	-- Construct.
 		\MkIOOptions {
@@ -193,8 +183,8 @@ mkIOOptions
 	-> Maybe Type.Count.NGames			-- ^ The optional maximum number of names, of matching PGN-games, to display; @Nothing@ implies unlimited.
 	-> [Input.PGNOptions.PGNOptions]		-- ^ How to find & process PGN-databases.
 	-> Maybe (System.FilePath.FilePath, Bool)	-- ^ Optional path to a file, into which game-state can be persisted (obliterating any existing content), & whether to save this state automatically after each move.
-	-> Input.UIOptions.UIOptions row column
-	-> IOOptions row column
+	-> Input.UIOptions.UIOptions
+	-> IOOptions
 mkIOOptions maybeOutputConfigFilePath maybeMaximumPGNNames pgnOptionsList maybePersistence uiOptions
 	| Data.Maybe.maybe False (
 		not . System.FilePath.isValid {-i.e. non-null on POSIX-}
@@ -218,10 +208,10 @@ mkIOOptions maybeOutputConfigFilePath maybeMaximumPGNNames pgnOptionsList maybeP
 		duplicateFilePaths	= Data.Foldable.findDuplicates $ map (System.FilePath.normalise . Input.PGNOptions.getDatabaseFilePath) pgnOptionsList
 
 -- | The type of a function used to transform 'IOOptions'.
-type Transformation row column	= IOOptions row column -> IOOptions row column
+type Transformation	= IOOptions -> IOOptions
 
 -- | Mutator.
-setMaybeOutputConfigFilePath :: Maybe System.FilePath.FilePath -> Transformation row column
+setMaybeOutputConfigFilePath :: Maybe System.FilePath.FilePath -> Transformation
 setMaybeOutputConfigFilePath maybeOutputConfigFilePath ioOptions
 	| Data.Maybe.maybe False (
 		not . System.FilePath.isValid {-i.e. non-null on POSIX-}
@@ -231,7 +221,7 @@ setMaybeOutputConfigFilePath maybeOutputConfigFilePath ioOptions
 	}
 
 -- | Mutator.
-setEitherNativeUIOrCECPOptions :: Input.UIOptions.EitherNativeUIOrCECPOptions row column -> Transformation row column
+setEitherNativeUIOrCECPOptions :: Input.UIOptions.EitherNativeUIOrCECPOptions -> Transformation
 setEitherNativeUIOrCECPOptions eitherNativeUIOrCECPOptions ioOptions@MkIOOptions { getUIOptions = uiOptions }	= ioOptions {
 	getUIOptions	= uiOptions {
 		Input.UIOptions.getEitherNativeUIOrCECPOptions	= eitherNativeUIOrCECPOptions
@@ -239,7 +229,7 @@ setEitherNativeUIOrCECPOptions eitherNativeUIOrCECPOptions ioOptions@MkIOOptions
 }
 
 -- | Mutator.
-setMaybePrintMoveTree :: Maybe Property.Arboreal.Depth -> Transformation row column
+setMaybePrintMoveTree :: Maybe Property.Arboreal.Depth -> Transformation
 setMaybePrintMoveTree maybePrintMoveTree ioOptions@MkIOOptions { getUIOptions = uiOptions }	= ioOptions {
 	getUIOptions	= uiOptions {
 		Input.UIOptions.getMaybePrintMoveTree	= maybePrintMoveTree
@@ -247,19 +237,19 @@ setMaybePrintMoveTree maybePrintMoveTree ioOptions@MkIOOptions { getUIOptions = 
 }
 
 -- | Mutator.
-updateCECPFeature :: Input.CECPFeatures.Feature -> Transformation row column
+updateCECPFeature :: Input.CECPFeatures.Feature -> Transformation
 updateCECPFeature feature ioOptions@MkIOOptions { getUIOptions = uiOptions }	= ioOptions {
 	getUIOptions	= Input.UIOptions.updateCECPFeature feature uiOptions
 }
 
 -- | Mutator.
-deleteCECPFeature :: Input.CECPFeatures.Feature -> Transformation row column
+deleteCECPFeature :: Input.CECPFeatures.Feature -> Transformation
 deleteCECPFeature feature ioOptions@MkIOOptions { getUIOptions = uiOptions }	= ioOptions {
 	getUIOptions	= Input.UIOptions.deleteCECPFeature feature uiOptions
 }
 
 -- | Mutator.
-setVerbosity :: Input.Verbosity.Verbosity -> Transformation row column
+setVerbosity :: Input.Verbosity.Verbosity -> Transformation
 setVerbosity verbosity ioOptions@MkIOOptions { getUIOptions = uiOptions }	= ioOptions {
 	getUIOptions	= uiOptions {
 		Input.UIOptions.getVerbosity	= verbosity

@@ -89,21 +89,18 @@ maxNDecimalDigits	= floor $ fromIntegral (
  ) * (logBase 10 2 :: Double)
 
 -- | Self-documentation.
-type EitherNativeUIOrCECPOptions row column	= Either (Input.NativeUIOptions.NativeUIOptions row column) Input.CECPOptions.CECPOptions
+type EitherNativeUIOrCECPOptions	= Either Input.NativeUIOptions.NativeUIOptions Input.CECPOptions.CECPOptions
 
 -- | Defines the application's user-interface.
-data UIOptions row column = MkUIOptions {
-	getMoveNotation			:: Notation.MoveNotation.MoveNotation,		-- ^ The notation used to describe /move/s.
-	getMaybePrintMoveTree		:: Maybe Property.Arboreal.Depth,		-- ^ Print the move-tree to the specified depth.
-	getNDecimalDigits		:: Type.Count.NDecimalDigits,			-- ^ The precision to which fractional auxiliary data is displayed.
-	getEitherNativeUIOrCECPOptions	:: EitherNativeUIOrCECPOptions row column,	-- ^ When a native display is configured some additional style-parameters are required.
-	getVerbosity			:: Input.Verbosity.Verbosity			-- ^ Set the threshold for ancillary information-output.
+data UIOptions = MkUIOptions {
+	getMoveNotation			:: Notation.MoveNotation.MoveNotation,	-- ^ The notation used to describe /move/s.
+	getMaybePrintMoveTree		:: Maybe Property.Arboreal.Depth,	-- ^ Print the move-tree to the specified depth.
+	getNDecimalDigits		:: Type.Count.NDecimalDigits,		-- ^ The precision to which fractional auxiliary data is displayed.
+	getEitherNativeUIOrCECPOptions	:: EitherNativeUIOrCECPOptions,		-- ^ When a native display is configured some additional style-parameters are required.
+	getVerbosity			:: Input.Verbosity.Verbosity		-- ^ Set the threshold for ancillary information-output.
 } deriving Eq
 
-instance (
-	Control.DeepSeq.NFData	column,
-	Control.DeepSeq.NFData	row
- ) => Control.DeepSeq.NFData (UIOptions row column) where
+instance Control.DeepSeq.NFData UIOptions where
 	rnf MkUIOptions {
 		getMoveNotation			= moveNotation,
 		getMaybePrintMoveTree		= maybePrintMoveTree,
@@ -118,7 +115,7 @@ instance (
 		verbosity
 	 )
 
-instance (Show row, Show column) => Show (UIOptions row column) where
+instance Show UIOptions where
 	showsPrec _ MkUIOptions {
 		getMoveNotation			= moveNotation,
 		getMaybePrintMoveTree		= maybePrintMoveTree,
@@ -142,7 +139,7 @@ instance (Show row, Show column) => Show (UIOptions row column) where
 		)
 	 ]
 
-instance (Num row, Num column) => Data.Default.Default (UIOptions row column) where
+instance Data.Default.Default UIOptions where
 	def = MkUIOptions {
 		getMoveNotation			= Data.Default.def,
 		getMaybePrintMoveTree		= Nothing,
@@ -151,14 +148,7 @@ instance (Num row, Num column) => Data.Default.Default (UIOptions row column) wh
 		getVerbosity			= Data.Default.def
 	}
 
-instance (
-	HXT.XmlPickler	column,
-	HXT.XmlPickler	row,
-	Integral	column,
-	Integral	row,
-	Show		column,
-	Show		row
- ) => HXT.XmlPickler (UIOptions row column) where
+instance HXT.XmlPickler UIOptions where
 	xpickle	= HXT.xpDefault Data.Default.def . HXT.xpElem tag . HXT.xpWrap (
 		\(a, b, c, d, e) -> mkUIOptions a b c d e,	-- Construct.
 		\MkUIOptions {
@@ -190,9 +180,9 @@ mkUIOptions
 	:: Notation.MoveNotation.MoveNotation	-- ^ The chess-notation used to describe /move/s.
 	-> Maybe Property.Arboreal.Depth
 	-> Type.Count.NDecimalDigits		-- ^ The precision to which fractional auxiliary data is displayed.
-	-> EitherNativeUIOrCECPOptions row column
+	-> EitherNativeUIOrCECPOptions
 	-> Input.Verbosity.Verbosity		-- ^ Set the threshold for logging.
-	-> UIOptions row column
+	-> UIOptions
 mkUIOptions moveNotation maybePrintMoveTree nDecimalDigits eitherNativeUIOrCECPOptions verbosity
 	| Just depth <- maybePrintMoveTree
 	, depth <= 0						= Control.Exception.throw . Data.Exception.mkOutOfBounds . showString "BishBosh.Input.UIOptions.mkUIOptions:\t" . showString printMoveTreeTag . Text.ShowList.showsAssociation $ shows depth " must exceed zero."
@@ -212,22 +202,22 @@ mkUIOptions moveNotation maybePrintMoveTree nDecimalDigits eitherNativeUIOrCECPO
 	}
 
 -- | Whether the chess-engine has been temporarily turned-off in order to set-up pieces.
-isCECPManualMode :: UIOptions row column -> Bool
+isCECPManualMode :: UIOptions -> Bool
 isCECPManualMode MkUIOptions { getEitherNativeUIOrCECPOptions = eitherNativeUIOrCECPOptions }	= const False ||| (
 	uncurry (||) . (Input.CECPOptions.getEditMode &&& Input.CECPOptions.getForceMode)
  ) $ eitherNativeUIOrCECPOptions
 
 -- | The type of a function used to transform 'UIOptions'.
-type Transformation row column	= UIOptions row column -> UIOptions row column
+type Transformation	= UIOptions -> UIOptions
 
 -- | Mutator.
-updateCECPFeature :: Input.CECPFeatures.Feature -> Transformation row column
+updateCECPFeature :: Input.CECPFeatures.Feature -> Transformation
 updateCECPFeature feature uiOptions@MkUIOptions { getEitherNativeUIOrCECPOptions = eitherNativeUIOrCECPOptions }	= uiOptions {
 	getEitherNativeUIOrCECPOptions	= Input.CECPOptions.updateFeature feature `fmap` eitherNativeUIOrCECPOptions
 }
 
 -- | Mutator.
-deleteCECPFeature :: Input.CECPFeatures.Feature -> Transformation row column
+deleteCECPFeature :: Input.CECPFeatures.Feature -> Transformation
 deleteCECPFeature feature uiOptions@MkUIOptions { getEitherNativeUIOrCECPOptions = eitherNativeUIOrCECPOptions }	= uiOptions {
 	getEitherNativeUIOrCECPOptions	= Input.CECPOptions.deleteFeature feature `fmap` eitherNativeUIOrCECPOptions
 }

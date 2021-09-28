@@ -26,8 +26,6 @@
 module BishBosh.Test.QuickCheck.Input.Options(
 -- * Types
 -- ** Type-synonyms
---	Row,
---	Column,
 	Options,
 -- * Constants
 	results
@@ -42,29 +40,19 @@ import qualified	BishBosh.Type.Mass	as Type.Mass
 import qualified	Test.QuickCheck
 
 -- | Defines a concrete type for testing.
-type Row	= Type.Length.Y
-
--- | Defines a concrete type for testing.
-type Column	= Type.Length.X
-
--- | Defines a concrete type for testing.
-type Options	= Input.Options.Options Column Type.Mass.PieceSquareValue Row Type.Length.X Type.Length.Y
+type Options	= Input.Options.Options Type.Mass.PieceSquareValue Type.Length.X Type.Length.Y
 
 instance (
 	Enum				pieceSquareValue,
 	Fractional			pieceSquareValue,
-	Integral			column,
-	Integral			row,
 	Ord				pieceSquareValue,
 	Enum				x,
 	Enum				y,
 	Ord				x,
 	Ord				y,
-	Show				column,
 	Show				pieceSquareValue,
-	Show				row,
 	Test.QuickCheck.Arbitrary	pieceSquareValue
- ) => Test.QuickCheck.Arbitrary (Input.Options.Options column pieceSquareValue row x y) where
+ ) => Test.QuickCheck.Arbitrary (Input.Options.Options pieceSquareValue x y) where
 --	{-# SPECIALISE instance Test.QuickCheck.Arbitrary Options #-}
 	arbitrary	= do
 		(maybeMaximumPlies, maybeRandomSeed, evaluationOptions, searchOptions, ioOptions)	<- Test.QuickCheck.arbitrary

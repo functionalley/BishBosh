@@ -85,7 +85,7 @@ testCases	= Test.HUnit.test [
 				(== Just (head optionsList)) (
 					(HXT.unpickleDoc HXT.xpickle . HXT.pickleDoc HXT.xpickle) =<< Data.Maybe.listToMaybe (
 						optionsList :: [
-							Input.Options.Options Type.Length.Y {-column-} Type.Mass.PieceSquareValue Type.Length.X {-row-} Type.Length.X Type.Length.Y
+							Input.Options.Options Type.Mass.PieceSquareValue Type.Length.X Type.Length.Y
 						]
 					)
 				 ) @? "Input.Options.pickler failed."

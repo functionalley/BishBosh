@@ -25,7 +25,7 @@
 module BishBosh.Input.NativeUIOptions(
 -- * Types
 -- ** Type-synonyms
-	ScreenCoordinates,
+--	ScreenCoordinates,
 -- ** Data-types
 	NativeUIOptions(
 --		MkNativeUIOptions,
@@ -46,6 +46,7 @@ import			Control.Arrow((***))
 import qualified	BishBosh.Attribute.ColourScheme	as Attribute.ColourScheme
 import qualified	BishBosh.Data.Exception		as Data.Exception
 import qualified	BishBosh.Text.ShowList		as Text.ShowList
+import qualified	BishBosh.Type.Length		as Type.Length
 import qualified	Control.DeepSeq
 import qualified	Control.Exception
 import qualified	Data.Default
@@ -68,18 +69,15 @@ nColumnsTag :: String
 nColumnsTag		= "nColumns"
 
 -- | The coordinates used to index the screen.
-type ScreenCoordinates row column	= (row, column)
+type ScreenCoordinates	= (Type.Length.Row, Type.Length.Column)
 
 -- | Constructor.
-data NativeUIOptions row column	= MkNativeUIOptions {
-	getBoardMagnification	:: ScreenCoordinates row column,	-- ^ The factor by which the dimensions of the board are stretched when displayed.
+data NativeUIOptions	= MkNativeUIOptions {
+	getBoardMagnification	:: ScreenCoordinates,	-- ^ The factor by which the dimensions of the board are stretched when displayed.
 	getColourScheme		:: Attribute.ColourScheme.ColourScheme
 } deriving Eq
 
-instance (
-	Control.DeepSeq.NFData	column,
-	Control.DeepSeq.NFData	row
- ) => Control.DeepSeq.NFData (NativeUIOptions row column) where
+instance Control.DeepSeq.NFData NativeUIOptions where
 	rnf MkNativeUIOptions {
 		getBoardMagnification	= boardMagnification,
 		getColourScheme		= colourScheme
@@ -88,34 +86,27 @@ instance (
 		colourScheme
 	 )
 
-instance (Show row, Show column) => Show (NativeUIOptions row column) where
-	showsPrec _ MkNativeUIOptions {
+instance Show NativeUIOptions where
+	showsPrec precision MkNativeUIOptions {
 		getBoardMagnification	= boardMagnification,
 		getColourScheme		= colourScheme
 	} = Text.ShowList.showsAssociationList' [
 		(
 			boardMagnificationTag,
-			shows boardMagnification
+			showsPrec precision boardMagnification
 		), (
 			Attribute.ColourScheme.tag,
-			shows colourScheme
+			showsPrec precision colourScheme
 		)
 	 ]
 
-instance (Num row, Num column) => Data.Default.Default (NativeUIOptions row column) where
+instance Data.Default.Default NativeUIOptions where
 	def = MkNativeUIOptions {
 		getBoardMagnification	= (1, 1),
 		getColourScheme		= Data.Default.def
 	}
 
-instance (
-	HXT.XmlPickler	column,
-	HXT.XmlPickler	row,
-	Integral	column,
-	Integral	row,
-	Show		column,
-	Show		row
- ) => HXT.XmlPickler (NativeUIOptions row column) where
+instance HXT.XmlPickler NativeUIOptions where
 	xpickle	= HXT.xpElem tag . HXT.xpWrap (
 		uncurry mkNativeUIOptions,	-- Construct.
 		\MkNativeUIOptions {
@@ -135,15 +126,10 @@ instance (
 		def	= Data.Default.def
 
 -- | Smart constructor.
-mkNativeUIOptions :: (
-	Integral	column,
-	Integral	row,
-	Show		column,
-	Show		row
- )
-	=> ScreenCoordinates row column		-- ^ The factor by which the dimensions of the board are stretched when displayed.
+mkNativeUIOptions
+	:: ScreenCoordinates	-- ^ The factor by which the dimensions of the board are stretched when displayed.
 	-> Attribute.ColourScheme.ColourScheme
-	-> NativeUIOptions row column
+	-> NativeUIOptions
 mkNativeUIOptions boardMagnification colourScheme
 	| uncurry (||) $ (
 		(< 1) *** (< 1)
