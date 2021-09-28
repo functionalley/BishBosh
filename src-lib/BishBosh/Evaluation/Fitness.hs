@@ -59,9 +59,9 @@ import qualified	BishBosh.Component.Piece				as Component.Piece
 import qualified	BishBosh.Component.PieceSquareByCoordinatesByRank	as Component.PieceSquareByCoordinatesByRank
 import qualified	BishBosh.Component.QualifiedMove			as Component.QualifiedMove
 import qualified	BishBosh.Component.Turn					as Component.Turn
+import qualified	BishBosh.Input.CriteriaWeights				as Input.CriteriaWeights
 import qualified	BishBosh.Input.EvaluationOptions			as Input.EvaluationOptions
 import qualified	BishBosh.Input.RankValues				as Input.RankValues
-import qualified	BishBosh.Metric.CriteriaWeights				as Metric.CriteriaWeights
 import qualified	BishBosh.Metric.CriterionValue				as Metric.CriterionValue
 import qualified	BishBosh.Metric.WeightedMeanAndCriterionValues		as Metric.WeightedMeanAndCriterionValues
 import qualified	BishBosh.Model.Game					as Model.Game
@@ -350,7 +350,7 @@ evaluateFitness maybePieceSquareValue game
 		rankValues				<- Control.Monad.Reader.asks Input.EvaluationOptions.getRankValues
 		maybePieceSquareByCoordinatesByRank	<- Control.Monad.Reader.asks Input.EvaluationOptions.getMaybePieceSquareByCoordinatesByRank
 
-		return {-to Reader-monad-} $ Metric.CriteriaWeights.calculateWeightedMean criteriaWeights (
+		return {-to Reader-monad-} $ Input.CriteriaWeights.calculateWeightedMean criteriaWeights (
 			measureValueOfMaterial rankValues game
 		 ) (
 			measureValueOfMobility game

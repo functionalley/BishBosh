@@ -59,9 +59,9 @@ import			Control.Arrow((***))
 import qualified	BishBosh.Cartesian.Coordinates				as Cartesian.Coordinates
 import qualified	BishBosh.Component.PieceSquareByCoordinatesByRank	as Component.PieceSquareByCoordinatesByRank
 import qualified	BishBosh.Data.Exception					as Data.Exception
+import qualified	BishBosh.Input.CriteriaWeights				as Input.CriteriaWeights
 import qualified	BishBosh.Input.PieceSquareTable				as Input.PieceSquareTable
 import qualified	BishBosh.Input.RankValues				as Input.RankValues
-import qualified	BishBosh.Metric.CriteriaWeights				as Metric.CriteriaWeights
 import qualified	BishBosh.Property.ShowFloat				as Property.ShowFloat
 import qualified	BishBosh.Text.ShowList					as Text.ShowList
 import qualified	Control.DeepSeq
@@ -98,7 +98,7 @@ type PieceSquareTablePair x y pieceSquareValue	= (Input.PieceSquareTable.PieceSq
 -- | Defines the options related to the automatic selection of /move/s.
 data EvaluationOptions pieceSquareValue x y	= MkEvaluationOptions {
 	getRankValues				:: Input.RankValues.RankValues,				-- ^ The static value associated with each /piece/'s /rank/.
-	getCriteriaWeights			:: Metric.CriteriaWeights.CriteriaWeights,		-- ^ The weights applied to each of the heterogeneous criterion-values used to select a /move/.
+	getCriteriaWeights			:: Input.CriteriaWeights.CriteriaWeights,		-- ^ The weights applied to each of the heterogeneous criterion-values used to select a /move/.
 	getIncrementalEvaluation		:: IncrementalEvaluation,				-- ^ Whether to generate position-hashes & evaluate the piece-square value, from the previous value or from scratch.
 	getMaybePieceSquareTablePair		:: Maybe (PieceSquareTablePair x y pieceSquareValue),	-- ^ A optional pair of piece-square tables representing the opening & end-games respectively.
 	getMaybePieceSquareByCoordinatesByRank	:: Maybe (
@@ -139,7 +139,7 @@ instance (
 		), (
 			incrementalEvaluationTag,	shows incrementalEvaluation
 		), (
-			Metric.CriteriaWeights.tag,	Property.ShowFloat.showsFloat fromDouble criteriaWeights
+			Input.CriteriaWeights.tag,	Property.ShowFloat.showsFloat fromDouble criteriaWeights
 		)
 	 ] ++ Data.Maybe.maybe [] (
 		\(t, t')	-> [
@@ -220,7 +220,7 @@ mkEvaluationOptions :: (
 	Ord		y
  )
 	=> Input.RankValues.RankValues				-- ^ The static value associated with each /piece/'s /rank/.
-	-> Metric.CriteriaWeights.CriteriaWeights		-- ^ The weights applied to the values of the criteria used to select a /move/.
+	-> Input.CriteriaWeights.CriteriaWeights		-- ^ The weights applied to the values of the criteria used to select a /move/.
 	-> IncrementalEvaluation
 	-> Maybe (PieceSquareTablePair x y pieceSquareValue)	-- ^ The value to each type of piece, of each square, during normal play & the end-game.
 	-> EvaluationOptions pieceSquareValue x y
@@ -229,9 +229,9 @@ mkEvaluationOptions rankValues criteriaWeights incrementalEvaluation maybePieceS
 	, let undefinedRanks	= Input.PieceSquareTable.findUndefinedRanks pieceSquareTable
 	, not $ Data.Set.null undefinedRanks
 	= Control.Exception.throw . Data.Exception.mkInsufficientData . showString "BishBosh.Input.EvaluationOptions.mkEvaluationOptions:\tranks" . Text.ShowList.showsAssociation $ shows (Data.Set.toList undefinedRanks) " are undefined."
-	| Metric.CriteriaWeights.getWeightOfPieceSquareValue criteriaWeights /= minBound
+	| Input.CriteriaWeights.getWeightOfPieceSquareValue criteriaWeights /= minBound
 	, Data.Maybe.isNothing maybePieceSquareTablePair
-	= Control.Exception.throw . Data.Exception.mkIncompatibleData . showString "BishBosh.Input.EvaluationOptions.mkEvaluationOptions:\tweight of " . shows Metric.CriteriaWeights.weightOfPieceSquareValueTag . showString " is defined but " $ shows Input.PieceSquareTable.tag " isn't."
+	= Control.Exception.throw . Data.Exception.mkIncompatibleData . showString "BishBosh.Input.EvaluationOptions.mkEvaluationOptions:\tweight of " . shows Input.CriteriaWeights.weightOfPieceSquareValueTag . showString " is defined but " $ shows Input.PieceSquareTable.tag " isn't."
 	| otherwise		= MkEvaluationOptions {
 		getRankValues				= rankValues,
 		getCriteriaWeights			= criteriaWeights,

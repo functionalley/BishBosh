@@ -109,8 +109,8 @@ New Module					| Purpose
 * Created a new directory **Rule/** to which **Model.[DrawReason, GameTerminationReason, Result]** were relocated.
 * Refactored functions **BishBosh.ContextualNotation.PositionHashQualifiedMoveTree.findNextOnymousQualifiedMovesForPosition**, **BishBosh.Model.MoveFrequency.insertMoves** & **BishBosh.Model.GameTree.toMoveFrequency**.
 * Evaluation-criteria:
-	+ Moved **BishBosh.Attribute.{CriterionValue, CriterionWeight, WeightedMeanAndCriterionValues}**, **BishBosh.Input.CriteriaWeights** to a new directory **Metric/**
+	+ Moved **BishBosh.Attribute.{CriterionValue, CriterionWeight, WeightedMeanAndCriterionValues}** to a new directory **Metric/**
 	+ Implemented classes [**Num**, **Fractional**, **Real**] for data-types **BishBosh.Metric.{CriterionValue.CriterionValue, CriterionWeight.CriterionWeight}**, nullifying the requirement for exports.
 	+ Replaced the pointless polymorphic payloads in data-types **BishBosh.Metric.{CriterionValue.CriterionValue, CriterionWeight.CriterionWeight, WeightedMeanAndCriterionValues.WeightedMeanAndCriterionValues}** with concrete types.
-* Moved **BishBosh.Attribute.RankValues** to **BishBosh/Input/**.
+* Moved **BishBosh.Attribute.RankValues** to **BishBosh.Input**.
 * Replaced the polymorphic type-parameters **row** & **column** with newtypes in module **iBishBosh.Type.Length**.

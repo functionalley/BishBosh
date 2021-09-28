@@ -22,7 +22,7 @@
  [@DESCRIPTION@]	Defines the weight associated with each criterion.
 -}
 
-module BishBosh.Metric.CriteriaWeights(
+module BishBosh.Input.CriteriaWeights(
 -- * Types
 -- ** Type-synonyms
 --	Transformation,
@@ -136,7 +136,7 @@ mkCriteriaWeights
 	-> Metric.CriterionWeight.CriterionWeight	-- ^ /passedPawns/.
 	-> CriteriaWeights
 mkCriteriaWeights a b c d e f g h
-	| criteriaWeights == minBound	= Control.Exception.throw $ Data.Exception.mkInvalidDatum "BishBosh.Metric.CriteriaWeights.mkCriteriaWeights:\tall weights are zero."
+	| criteriaWeights == minBound	= Control.Exception.throw $ Data.Exception.mkInvalidDatum "BishBosh.Input.CriteriaWeights.mkCriteriaWeights:\tall weights are zero."
 	| otherwise			= criteriaWeights
 	where
 		criteriaWeights	= MkCriteriaWeights a b c d e f g h

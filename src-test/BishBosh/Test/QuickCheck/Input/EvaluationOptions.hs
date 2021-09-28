@@ -33,14 +33,14 @@ module BishBosh.Test.QuickCheck.Input.EvaluationOptions(
 
 import			BishBosh.Data.Bool()
 import			BishBosh.Test.QuickCheck.Attribute.Rank()
+import			BishBosh.Test.QuickCheck.Input.CriteriaWeights()
 import			BishBosh.Test.QuickCheck.Input.PieceSquareTable()
 import			BishBosh.Test.QuickCheck.Input.RankValues()
-import			BishBosh.Test.QuickCheck.Metric.CriteriaWeights()
 import			Control.Arrow((&&&))
 import qualified	BishBosh.Component.PieceSquareByCoordinatesByRank	as Component.PieceSquareByCoordinatesByRank
+import qualified	BishBosh.Input.CriteriaWeights				as Input.CriteriaWeights
 import qualified	BishBosh.Input.EvaluationOptions			as Input.EvaluationOptions
 import qualified	BishBosh.Input.PieceSquareTable				as Input.PieceSquareTable
-import qualified	BishBosh.Metric.CriteriaWeights				as Metric.CriteriaWeights
 import qualified	BishBosh.Property.Reflectable				as Property.Reflectable
 import qualified	BishBosh.State.Board					as State.Board
 import qualified	BishBosh.State.CoordinatesByRankByLogicalColour		as State.CoordinatesByRankByLogicalColour
@@ -71,7 +71,7 @@ instance (
 	arbitrary	= do
 		criteriaWeights	<- Test.QuickCheck.arbitrary
 
-		Input.EvaluationOptions.mkEvaluationOptions <$> Test.QuickCheck.arbitrary {-RankValues-} <*> return {-to Gen-monad-} criteriaWeights <*> Test.QuickCheck.arbitrary {-incrementalEvaluation-} <*> if Metric.CriteriaWeights.getWeightOfPieceSquareValue criteriaWeights == minBound
+		Input.EvaluationOptions.mkEvaluationOptions <$> Test.QuickCheck.arbitrary {-RankValues-} <*> return {-to Gen-monad-} criteriaWeights <*> Test.QuickCheck.arbitrary {-incrementalEvaluation-} <*> if Input.CriteriaWeights.getWeightOfPieceSquareValue criteriaWeights == minBound
 			then return {-to Gen-monad-} Nothing
 			else do
 				(pieceSquareTable, pieceSquareTable', ranks)	<- Test.QuickCheck.arbitrary

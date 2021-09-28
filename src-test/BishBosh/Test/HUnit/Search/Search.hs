@@ -33,9 +33,9 @@ import qualified	BishBosh.Attribute.CaptureMoveSortAlgorithm		as Attribute.Captu
 import qualified	BishBosh.Data.Exception					as Data.Exception
 import qualified	BishBosh.Evaluation.PositionHashQuantifiedGameTree	as Evaluation.PositionHashQuantifiedGameTree
 import qualified	BishBosh.Evaluation.QuantifiedGame			as Evaluation.QuantifiedGame
+import qualified	BishBosh.Input.CriteriaWeights				as Input.CriteriaWeights
 import qualified	BishBosh.Input.EvaluationOptions			as Input.EvaluationOptions
 import qualified	BishBosh.Input.SearchOptions				as Input.SearchOptions
-import qualified	BishBosh.Metric.CriteriaWeights				as Metric.CriteriaWeights
 import qualified	BishBosh.Notation.MoveNotation				as Notation.MoveNotation
 import qualified	BishBosh.Property.Empty					as Property.Empty
 import qualified	BishBosh.Property.ExtendedPositionDescription		as Property.ExtendedPositionDescription
@@ -58,8 +58,8 @@ evaluationOptions :: (
 	Integral	y
  ) => Input.EvaluationOptions.EvaluationOptions pieceSquareValue x y
 evaluationOptions	= Input.EvaluationOptions.mkEvaluationOptions Data.Default.def {-rankValues-} Data.Default.def {
-	Metric.CriteriaWeights.getWeightOfMobility		= 24 / 1000,
-	Metric.CriteriaWeights.getWeightOfCastlingPotential	= 5 / 1000
+	Input.CriteriaWeights.getWeightOfMobility		= 24 / 1000,
+	Input.CriteriaWeights.getWeightOfCastlingPotential	= 5 / 1000
 } False {-IncrementalEvaluation-} Nothing {-Maybe PieceSquareTable-}
 
 -- | Constant.

@@ -24,17 +24,17 @@
  [@DESCRIPTION@]	Implements 'Test.QuickCheck.Arbitrary' & defines /QuickCheck/-properties.
 -}
 
-module BishBosh.Test.QuickCheck.Metric.CriteriaWeights(
+module BishBosh.Test.QuickCheck.Input.CriteriaWeights(
 -- * Constants
 	results
 ) where
 
 import			BishBosh.Test.QuickCheck.Metric.CriterionWeight()
-import qualified	BishBosh.Metric.CriteriaWeights	as Metric.CriteriaWeights
+import qualified	BishBosh.Input.CriteriaWeights	as Input.CriteriaWeights
 import qualified	Test.QuickCheck
 
-instance Test.QuickCheck.Arbitrary Metric.CriteriaWeights.CriteriaWeights where
-	arbitrary	= Metric.CriteriaWeights.mkCriteriaWeights
+instance Test.QuickCheck.Arbitrary Input.CriteriaWeights.CriteriaWeights where
+	arbitrary	= Input.CriteriaWeights.mkCriteriaWeights
 		<$> Test.QuickCheck.arbitrary
 		<*> Test.QuickCheck.arbitrary
 		<*> Test.QuickCheck.arbitrary
@@ -48,18 +48,18 @@ instance Test.QuickCheck.Arbitrary Metric.CriteriaWeights.CriteriaWeights where
 results :: IO [Test.QuickCheck.Result]
 results	= sequence [
 	let
-		f :: Metric.CriteriaWeights.CriteriaWeights -> Test.QuickCheck.Property
+		f :: Input.CriteriaWeights.CriteriaWeights -> Test.QuickCheck.Property
 		f criteriaWeights	= Test.QuickCheck.label "CriteriaWeights.prop_normalise" . (== maxBound) . maximum $ map ($ criteriaWeights') [
-			Metric.CriteriaWeights.getWeightOfMaterial,
-			Metric.CriteriaWeights.getWeightOfMobility,
-			Metric.CriteriaWeights.getWeightOfPieceSquareValue,
-			Metric.CriteriaWeights.getWeightOfCastlingPotential,
-			Metric.CriteriaWeights.getWeightOfDefence,
-			Metric.CriteriaWeights.getWeightOfDoubledPawns,
-			Metric.CriteriaWeights.getWeightOfIsolatedPawns,
-			Metric.CriteriaWeights.getWeightOfPassedPawns
+			Input.CriteriaWeights.getWeightOfMaterial,
+			Input.CriteriaWeights.getWeightOfMobility,
+			Input.CriteriaWeights.getWeightOfPieceSquareValue,
+			Input.CriteriaWeights.getWeightOfCastlingPotential,
+			Input.CriteriaWeights.getWeightOfDefence,
+			Input.CriteriaWeights.getWeightOfDoubledPawns,
+			Input.CriteriaWeights.getWeightOfIsolatedPawns,
+			Input.CriteriaWeights.getWeightOfPassedPawns
 		 ] where
-			criteriaWeights'	= Metric.CriteriaWeights.normalise criteriaWeights
+			criteriaWeights'	= Input.CriteriaWeights.normalise criteriaWeights
 
 	in Test.QuickCheck.quickCheckWithResult Test.QuickCheck.stdArgs { Test.QuickCheck.maxSuccess = 32 } f
  ]

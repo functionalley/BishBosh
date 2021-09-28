@@ -123,7 +123,6 @@ Library
         BishBosh.Attribute.MoveType
         BishBosh.Attribute.PhysicalColour
         BishBosh.Attribute.Rank
-        BishBosh.Input.RankValues
         BishBosh.Cartesian.Abscissa
         BishBosh.Cartesian.Coordinates
         BishBosh.Cartesian.Ordinate
@@ -159,17 +158,18 @@ Library
         BishBosh.Input.CECPFeatures
         BishBosh.Input.CECPOptions
         BishBosh.Input.CommandLineOption
+        BishBosh.Input.CriteriaWeights
         BishBosh.Input.EvaluationOptions
         BishBosh.Input.IOOptions
         BishBosh.Input.NativeUIOptions
         BishBosh.Input.Options
         BishBosh.Input.PGNOptions
         BishBosh.Input.PieceSquareTable
+        BishBosh.Input.RankValues
         BishBosh.Input.SearchOptions
         BishBosh.Input.StandardOpeningOptions
         BishBosh.Input.UIOptions
         BishBosh.Input.Verbosity
-        BishBosh.Metric.CriteriaWeights
         BishBosh.Metric.CriterionValue
         BishBosh.Metric.CriterionWeight
         BishBosh.Metric.RankValue
@@ -478,6 +478,7 @@ Test-Suite quickcheck-tests
         BishBosh.Test.QuickCheck.Evaluation.PositionHashQuantifiedGameTree
         BishBosh.Test.QuickCheck.Input.CECPFeatures
         BishBosh.Test.QuickCheck.Input.CECPOptions
+        BishBosh.Test.QuickCheck.Input.CriteriaWeights
         BishBosh.Test.QuickCheck.Input.EvaluationOptions
         BishBosh.Test.QuickCheck.Input.IOOptions
         BishBosh.Test.QuickCheck.Input.NativeUIOptions
@@ -489,7 +490,6 @@ Test-Suite quickcheck-tests
         BishBosh.Test.QuickCheck.Input.StandardOpeningOptions
         BishBosh.Test.QuickCheck.Input.UIOptions
         BishBosh.Test.QuickCheck.Input.Verbosity
-        BishBosh.Test.QuickCheck.Metric.CriteriaWeights
         BishBosh.Test.QuickCheck.Metric.CriterionWeight
         BishBosh.Test.QuickCheck.Metric.RankValue
         BishBosh.Test.QuickCheck.Model.Game
