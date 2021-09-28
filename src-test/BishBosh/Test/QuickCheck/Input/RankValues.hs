@@ -29,8 +29,9 @@ import			BishBosh.Test.QuickCheck.Metric.RankValue()
 import qualified	BishBosh.Attribute.Rank			as Attribute.Rank
 import qualified	BishBosh.Input.RankValues		as Input.RankValues
 import qualified	BishBosh.Property.FixedMembership	as Property.FixedMembership
+import qualified	Data.List
 import qualified	Test.QuickCheck
 
 instance Test.QuickCheck.Arbitrary Input.RankValues.RankValues where
-	arbitrary	= Input.RankValues.fromAssocs . zip Property.FixedMembership.members <$> Test.QuickCheck.vector (fromIntegral Attribute.Rank.nDistinctRanks)
+	arbitrary	= Input.RankValues.fromAssocs . zip Property.FixedMembership.members . Data.List.sort {-ensures Q is most valuable-} <$> Test.QuickCheck.vector (fromIntegral Attribute.Rank.nDistinctRanks)
 
