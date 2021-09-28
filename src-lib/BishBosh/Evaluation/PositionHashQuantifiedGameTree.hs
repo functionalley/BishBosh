@@ -132,7 +132,7 @@ newtype PositionHashQuantifiedGameTree x y positionHash	= MkPositionHashQuantifi
 instance Property.Arboreal.Prunable (PositionHashQuantifiedGameTree x y positionHash) where
 	prune depth MkPositionHashQuantifiedGameTree { deconstruct = barePositionHashQuantifiedGameTree }	= MkPositionHashQuantifiedGameTree $ Property.Arboreal.prune depth barePositionHashQuantifiedGameTree
 
-instance (Enum	x, Enum	y) => Notation.MoveNotation.ShowNotationFloat (PositionHashQuantifiedGameTree x y positionHash) where
+instance (Enum x, Enum y) => Notation.MoveNotation.ShowNotationFloat (PositionHashQuantifiedGameTree x y positionHash) where
 	showsNotationFloat moveNotation showsDouble MkPositionHashQuantifiedGameTree { deconstruct = barePositionHashQuantifiedGameTree } = showString $ (
 		if Property.Null.isNull . Data.Tree.rootLabel $ barePositionHashQuantifiedGameTree
 			then Data.RoseTree.drawForest toString . Data.Tree.subForest
