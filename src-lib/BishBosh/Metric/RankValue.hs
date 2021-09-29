@@ -60,31 +60,31 @@ newtype RankValue = MkRankValue {
 } deriving (Eq, Ord)
 
 instance Show RankValue where
-	showsPrec precision MkRankValue { deconstruct = f }	= showsPrec precision f
+	showsPrec precision MkRankValue { deconstruct = rankValue }	= showsPrec precision rankValue
 
 instance Read RankValue where
 	readsPrec precision	= map (Control.Arrow.first mkRankValue) . readsPrec precision . Data.List.Extra.trimStart
 
 instance Property.ShowFloat.ShowFloat RankValue where
-	showsFloat fromDouble	= fromDouble . realToFrac . deconstruct
+	showsFloat fromDouble MkRankValue { deconstruct = rankValue }	= fromDouble $ realToFrac rankValue
 
 instance Num RankValue where
-	MkRankValue l + MkRankValue r	= mkRankValue $ l + r
-	MkRankValue l * MkRankValue r	= MkRankValue $ l * r
-	abs (MkRankValue rankValue)	= MkRankValue $ abs rankValue
-	signum (MkRankValue rankValue)	= MkRankValue $ signum rankValue
-	fromInteger			= mkRankValue . fromInteger
-	negate (MkRankValue rankValue)	= MkRankValue $ negate rankValue
+	MkRankValue { deconstruct = l } + MkRankValue { deconstruct = r }	= mkRankValue $ l + r
+	MkRankValue { deconstruct = l } * MkRankValue { deconstruct = r }	= MkRankValue $ l * r
+	abs MkRankValue { deconstruct = rankValue }				= MkRankValue $ abs rankValue		-- N.B.: if the operand is valid, then this is equivalent to 'id'.
+	signum MkRankValue { deconstruct = rankValue }				= MkRankValue $ signum rankValue
+	fromInteger								= mkRankValue . fromInteger
+	negate MkRankValue { deconstruct = rankValue }				= mkRankValue $ negate rankValue	-- CAVEAT: only valid for '0'.
 
 instance Fractional RankValue where
-	MkRankValue l / MkRankValue r	= mkRankValue $ l / r	-- CAVEAT: it's hard to concoct a scenario in which neither the numerator, denominator nor result are invalid.
-	fromRational			= mkRankValue . fromRational
+	MkRankValue { deconstruct = l } / MkRankValue { deconstruct = r }	= mkRankValue $ l / r	-- CAVEAT: it's hard to concoct a scenario in which neither the numerator, denominator nor result are invalid.
+	fromRational								= mkRankValue . fromRational
 
 instance Real RankValue where
-	toRational (MkRankValue rankValue)	= toRational rankValue
+	toRational MkRankValue { deconstruct = rankValue }	= toRational rankValue
 
 instance Control.DeepSeq.NFData RankValue where
-	rnf (MkRankValue rankValue)	= Control.DeepSeq.rnf rankValue
+	rnf MkRankValue { deconstruct = rankValue }	= Control.DeepSeq.rnf rankValue
 
 instance HXT.XmlPickler RankValue where
 	xpickle	= HXT.xpWrap (mkRankValue, deconstruct) $ HXT.xpAttr tag HXT.xpickle
