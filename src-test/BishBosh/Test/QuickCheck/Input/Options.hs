@@ -43,15 +43,13 @@ import qualified	Test.QuickCheck
 type Options	= Input.Options.Options Type.Mass.PieceSquareValue Type.Length.X Type.Length.Y
 
 instance (
-	Enum				pieceSquareValue,
-	Fractional			pieceSquareValue,
-	Ord				pieceSquareValue,
-	Enum				x,
-	Enum				y,
-	Ord				x,
-	Ord				y,
-	Show				pieceSquareValue,
-	Test.QuickCheck.Arbitrary	pieceSquareValue
+	Enum		x,
+	Enum		y,
+	Fractional	pieceSquareValue,
+	Ord		pieceSquareValue,
+	Ord		x,
+	Ord		y,
+	Show		pieceSquareValue
  ) => Test.QuickCheck.Arbitrary (Input.Options.Options pieceSquareValue x y) where
 --	{-# SPECIALISE instance Test.QuickCheck.Arbitrary Options #-}
 	arbitrary	= do

@@ -51,9 +51,7 @@ instance (
 	Data.Bits.FiniteBits	positionHash,
 	Enum			x,
 	Enum			y,
-	Num			positionHash,
 	Ord			y,
-	Show			positionHash,
 	System.Random.Random	positionHash
  ) => Test.QuickCheck.Arbitrary (Component.Zobrist.Zobrist x y positionHash) where
 --	{-# SPECIALISE instance Test.QuickCheck.Arbitrary Zobrist #-}

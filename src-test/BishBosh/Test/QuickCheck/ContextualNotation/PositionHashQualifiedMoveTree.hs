@@ -62,9 +62,7 @@ instance (
 	Enum			x,
 	Enum			y,
 	Num			positionHash,
-	Ord			x,
 	Ord			y,
-	Show			positionHash,
 	Show			x,
 	Show			y,
 	System.Random.Random	positionHash

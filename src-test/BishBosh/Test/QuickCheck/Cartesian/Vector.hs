@@ -40,7 +40,7 @@ import qualified	BishBosh.Type.Length				as Type.Length
 import qualified	Test.QuickCheck
 import			Test.QuickCheck((==>))
 
-instance Integral distance => Test.QuickCheck.Arbitrary (Cartesian.Vector.Vector distance) where
+instance (Num distance, Ord distance) => Test.QuickCheck.Arbitrary (Cartesian.Vector.Vector distance) where
 --	{-# SPECIALISE instance Test.QuickCheck.Arbitrary Cartesian.Vector.VectorInt #-}
 	arbitrary	= do
 		source		<- Test.QuickCheck.arbitrary :: Test.QuickCheck.Gen Test.QuickCheck.Cartesian.Coordinates.Coordinates

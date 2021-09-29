@@ -49,8 +49,8 @@ type Move	= Component.Move.Move Type.Length.X Type.Length.Y
 instance (
 	Enum	x,
 	Enum	y,
-	Ord	x,
-	Ord	y
+	Eq	x,
+	Eq	y
  ) => Test.QuickCheck.Arbitrary (Component.Move.Move x y) where
 --	{-# SPECIALISE instance Test.QuickCheck.Arbitrary Move #-}
 	arbitrary	= fmap (uncurry Component.Move.mkMove) . Test.QuickCheck.suchThat Test.QuickCheck.arbitrary $ uncurry (/=)

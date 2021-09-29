@@ -46,8 +46,8 @@ type QualifiedMove	= Component.QualifiedMove.QualifiedMove Type.Length.X Type.Le
 instance (
 	Enum	x,
 	Enum	y,
-	Ord	x,
-	Ord	y
+	Eq	x,
+	Eq	y
  ) => Test.QuickCheck.Arbitrary (Component.QualifiedMove.QualifiedMove x y) where
 --	{-# SPECIALISE instance Test.QuickCheck.Arbitrary QualifiedMove #-}
 	arbitrary	= uncurry Component.QualifiedMove.mkQualifiedMove `fmap` Test.QuickCheck.arbitrary	-- CAVEAT: the move & moveType are unlikely to be compatible.

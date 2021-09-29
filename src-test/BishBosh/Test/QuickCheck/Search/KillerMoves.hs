@@ -49,12 +49,10 @@ import qualified	Test.QuickCheck
 type KillerMoveKey	= Search.DynamicMoveData.KillerMoveKey Type.Length.X Type.Length.Y
 
 instance (
-	Enum				x,
-	Enum				y,
-	Ord				x,
-	Ord				y,
-	Test.QuickCheck.Arbitrary	x,
-	Test.QuickCheck.Arbitrary	y
+	Enum	x,
+	Enum	y,
+	Ord	x,
+	Ord	y
  ) => Test.QuickCheck.Arbitrary (Search.DynamicMoveData.KillerMoveKey x y) where
 --	{-# SPECIALISE instance Test.QuickCheck.Arbitrary KillerMoveKey #-}
 	arbitrary	= fmap Search.DynamicMoveData.mkKillerMoveKeyFromTurn Test.QuickCheck.arbitrary
@@ -71,7 +69,6 @@ populate	= foldr (\(nPlies, killerMoveKey) -> Search.KillerMoves.insert (normali
 type KillerMoves	= Search.KillerMoves.KillerMoves KillerMoveKey
 
 instance (
-	Enum				key,
 	Ord				key,
 	Test.QuickCheck.Arbitrary	key
  ) => Test.QuickCheck.Arbitrary (Search.KillerMoves.KillerMoves key) where
