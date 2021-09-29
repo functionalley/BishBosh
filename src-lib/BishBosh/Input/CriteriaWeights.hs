@@ -319,7 +319,7 @@ normalise criteriaWeights@MkCriteriaWeights {
 			weightOfIsolatedPawns,
 			weightOfPassedPawns
 		]
-	 )
+	 ) -- Section.
 
 {- |
 	* Independently perturbs each /criterion-weight/ by a random value, of configurable magnitude.
@@ -351,7 +351,7 @@ perturbWeights randomGen changeMagnitude MkCriteriaWeights {
 	getWeightOfIsolatedPawns	= reduceBy g weightOfIsolatedPawns,
 	getWeightOfPassedPawns		= reduceBy h weightOfPassedPawns
 } where
-	(a : b : c : d : e : f : g : h : _)	= System.Random.randomRs (1 :: Double, succ $ realToFrac changeMagnitude) randomGen
+	(a : b : c : d : e : f : g : h : _)	= System.Random.randomRs (1, succ changeMagnitude) randomGen
 	reduceBy randomValue			= (/ realToFrac randomValue)	-- N.B. this always reduces the weight, leaving 'normalise' to correct this.
 
 -- | A constant list of named accessors & mutators.
