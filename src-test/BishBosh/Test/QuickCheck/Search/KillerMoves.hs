@@ -57,8 +57,8 @@ instance (
 --	{-# SPECIALISE instance Test.QuickCheck.Arbitrary KillerMoveKey #-}
 	arbitrary	= fmap Search.DynamicMoveData.mkKillerMoveKeyFromTurn Test.QuickCheck.arbitrary
 
--- | Map the Int-domain into a smaller number of plies.
-normalise :: Int -> Type.Count.NPlies
+-- | Map the integer-domain into a smaller non-negative number of plies.
+normalise :: Integral i => i -> Type.Count.NPlies
 normalise	= fromIntegral . succ . (`mod` 4)
 
 -- |

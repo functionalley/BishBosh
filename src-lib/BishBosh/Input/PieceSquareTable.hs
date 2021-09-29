@@ -75,6 +75,7 @@ import qualified	BishBosh.Property.FixedMembership	as Property.FixedMembership
 import qualified	BishBosh.Property.ShowFloat		as Property.ShowFloat
 import qualified	BishBosh.Text.Case			as Text.Case
 import qualified	BishBosh.Text.ShowList			as Text.ShowList
+import qualified	BishBosh.Type.Mass			as Type.Mass
 import qualified	Control.Arrow
 import qualified	Control.Exception
 import qualified	Data.Array.IArray
@@ -183,11 +184,11 @@ instance (
 			showString "by" $ Text.Case.toUpperInitial Attribute.Rank.tag
 		) $ HXT.xpickle {-rank-} `HXT.xpPair` HXT.xpWrap (
 			\s -> [
-				realToFrac (pieceSquareValue :: Double) |
+				realToFrac (pieceSquareValue :: Type.Mass.PieceSquareValue) |
 					word			<- words s,
 					(pieceSquareValue, "")	<- reads word
 			], -- List-comprehension.
-			unwords . map (show . (\pieceSquareValue -> realToFrac pieceSquareValue :: Double))
+			unwords . map (show . (\pieceSquareValue -> realToFrac pieceSquareValue :: Type.Mass.PieceSquareValue))
 		) (
 			HXT.xpTextAttr . showString "by" $ Text.Case.toUpperInitial Cartesian.Coordinates.tag
 		)
