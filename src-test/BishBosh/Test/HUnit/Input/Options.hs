@@ -56,9 +56,6 @@ testCases	= Test.HUnit.test [
 			HXT.withValidate	HXT.yes		-- Validate against any DTD referenced from the XML-file.
 		 ]
 
-		maximumTraceLevel :: Int
-		maximumTraceLevel	= 0
-
 		fileName :: System.FilePath.FilePath
 		fileName	= "bishbosh_both" <.> "xml"
 	in do
@@ -80,7 +77,7 @@ testCases	= Test.HUnit.test [
 			Control.Exception.throw . Data.Exception.mkSearchFailure . showString "BishBosh.Test.HUnit.Input.Options.testCases:\tfailed to locate " . shows fileName . showString " in " $ shows searchPath "."
 		 ) (
 			\path -> do
-				optionsList	<- HXT.runX {-which returns a list-} $ HXT.setTraceLevel maximumTraceLevel >>> HXT.xunpickleDocument HXT.xpickle inputSysConfig path
+				optionsList	<- HXT.runX {-which returns a list-} $ HXT.setTraceLevel 0 >>> HXT.xunpickleDocument HXT.xpickle inputSysConfig path
 
 				(== Just (head optionsList)) (
 					(HXT.unpickleDoc HXT.xpickle . HXT.pickleDoc HXT.xpickle) =<< Data.Maybe.listToMaybe (
