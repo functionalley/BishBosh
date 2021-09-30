@@ -245,23 +245,20 @@ findNextJoiningOnymousQualifiedMovesFromPosition :: (
 	Show			y
  ) => FindMatch x y positionHash
 {-# SPECIALISE findNextJoiningOnymousQualifiedMovesFromPosition :: FindMatch Type.Length.X Type.Length.Y Type.Crypto.PositionHash #-}
-findNextJoiningOnymousQualifiedMovesFromPosition game positionHashQualifiedMoveTree	= [
-	(
-		preMatchQualifiedMove,
-		concatMap snd {-[OnymousResult]-} matchingOnymousQualifiedMoves	-- Discard the opponent's matching move, but cite the names of archived games it reached.
-	) |
-		not $ Model.Game.isTerminated game,
-		(preMatchQualifiedMove, matchingOnymousQualifiedMoves)	<-
+findNextJoiningOnymousQualifiedMovesFromPosition game positionHashQualifiedMoveTree
+	| Model.Game.isTerminated game	= []
+	| otherwise			= [
+		Control.Arrow.second (concatMap snd {-[OnymousResult]-}) movePair |	-- Discard the opponent's matching move, but cite the names of archived games it reached.
+			movePair@(_, _ : _)	<-
 #ifdef USE_PARALLEL
-		Control.Parallel.Strategies.withStrategy (
-			Control.Parallel.Strategies.parList $ Control.Parallel.Strategies.evalTuple2 Control.Parallel.Strategies.r0 {-pre-match move-} Control.Parallel.Strategies.rdeepseq {-matching moves-}
-		) .
+				Control.Parallel.Strategies.withStrategy (
+					Control.Parallel.Strategies.parList $ Control.Parallel.Strategies.evalTuple2 Control.Parallel.Strategies.r0 {-pre-match move-} Control.Parallel.Strategies.rdeepseq {-matching moves-}
+				) .
 #endif
-		map (
-			id &&& (`findNextOnymousQualifiedMovesForPosition` positionHashQualifiedMoveTree) . (`Model.Game.applyQualifiedMove` game)	-- Apply this player's move.
-		) $ Model.Game.findQualifiedMovesAvailableToNextPlayer game,
-		not $ null matchingOnymousQualifiedMoves
- ] -- List-comprehension.
+				map (
+					id &&& (`findNextOnymousQualifiedMovesForPosition` positionHashQualifiedMoveTree) . (`Model.Game.applyQualifiedMove` game)	-- Apply this player's move.
+				) $ Model.Game.findQualifiedMovesAvailableToNextPlayer game
+	] -- List-comprehension.
 
 {- |
 	* Calls 'findNextOnymousQualifiedMovesForGame' to find an exact match for the current /game/ in the tree.
