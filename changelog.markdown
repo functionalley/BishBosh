@@ -92,27 +92,26 @@ Module				| Purpose
 ---------------------------------------------------------
 New Module					| Purpose
 ------------------------------------------------| -------
-**Data.Time.StopWatch**				| Replaces module **BishBosh.Data.Time** to encapsulate interaction with module **Data.Time.Clock**.
-**BishBosh.Time.GameClock**			| Contains two **Data.Time.StopWatch** to enable module **Duel.Process.Intermediary** to measure the time used by each player.
+**BishBosh.Time.StopWatch**			| Replaces module **BishBosh.Data.Time** to encapsulate interaction with module **Data.Time.Clock**.
+**BishBosh.Time.GameClock**			| Contains two **BishBosh.Time.StopWatch**es to enable module **Duel.Process.Intermediary** to measure the time used by each player.
 **BishBosh.Property.Switchable**		| Exports a type-class, which both **BishBosh.Time.StopWatch** & **BishBosh.Time.GameClock** implement, to expose their functionality.
 **BishBosh.Property.SelfValidating**		| Exports a type-class, which both **BishBosh.Time.GameClock** & **Duel.Data.Options** implement, to validate themselves.
 **BishBosh.Type.Countable**			| Defines newtypes to enhance type-safety, replacing type-synonyms for **Int**. There is a performance-degradation, so this enhancement can be disabled using a new cabal-flag.
 **BishBosh.Type.Crypto**			| Self-documentation.
+**BishBosh.Type.Length**			| Replaced the polymorphic type-parameters **row** & **column** with newtypes to enhance type-safety.
 **BishBosh.Type.Mass**				| Self-documentation.
-**BishBosh.Metric.RankValue**			| Replaced the polymorphic type-parameter **rankValue**, with a newtype including a smart-constructor to guard permissible bounds.
-**BishBosh.Test.QuickCheck.Metric.RankValue**	| Provides an instance of **Test.QuickCheck.Arbitrary**.
+**BishBosh.Metric.RankValue**			| Replaced the polymorphic type-parameter **rankValue**, with a newtype & a smart-constructor to guard permissible bounds.
 
 ### Duel:
 * Added command-line option **--verifyConfiguration**, to request that the mutual compatibility of the two configuration-files be verified before forwarding each to a forked instance of **bishbosh**.
 
 ### BishBosh:
-* Created a new directory **Rule/** to which **Model.[DrawReason, GameTerminationReason, Result]** were relocated.
+* Created a new directory **Rule/** to which **Model.**{**DrawReason**, **GameTerminationReason**, **Result**} were relocated.
 * Refactored functions **BishBosh.ContextualNotation.PositionHashQualifiedMoveTree.findNextOnymousQualifiedMovesForPosition**, **BishBosh.Model.MoveFrequency.insertMoves** & **BishBosh.Model.GameTree.toMoveFrequency**.
 * Evaluation-criteria:
-	+ Moved **BishBosh.Attribute.{CriterionValue, CriterionWeight, WeightedMeanAndCriterionValues}** to a new directory **Metric/**
-	+ Implemented classes [**Num**, **Fractional**, **Real**] for data-types **BishBosh.Metric.{CriterionValue.CriterionValue, CriterionWeight.CriterionWeight}**, nullifying the requirement for exports.
-	+ Replaced the pointless polymorphic payloads in data-types **BishBosh.Metric.{CriterionValue.CriterionValue, CriterionWeight.CriterionWeight, WeightedMeanAndCriterionValues.WeightedMeanAndCriterionValues}** with concrete types.
+	+ Moved **BishBosh.Attribute.**{**CriterionValue**, **CriterionWeight**, **WeightedMeanAndCriterionValues**} to a new directory **Metric/**
+	+ Implemented classes [**Num**, **Fractional**, **Real**] for data-types **BishBosh.Metric.**{**CriterionValue.CriterionValue**, **CriterionWeight.CriterionWeight**}, nullifying the requirement for exports.
+	+ Replaced the pointless polymorphic payloads in data-types **BishBosh.Metric.**{**CriterionValue.CriterionValue**, **CriterionWeight.CriterionWeight**, **WeightedMeanAndCriterionValues.WeightedMeanAndCriterionValues**} with concrete types.
 * Moved **BishBosh.Attribute.RankValues** to **BishBosh.Input**.
-* Replaced the polymorphic type-parameters **row** & **column** with newtypes in module **iBishBosh.Type.Length**.
 * Checked that (with the possible exception of the King) the Queen is configured as the most valuable rank.
-* Avoided repeated calls to **Input.RankValues.calculateMaximumTotalValue** by adding the record-field **Input.EvaluationOptions.getMaximumTotalRankValue**.
+* Avoided repeated calls from module **BishBosh.Evaluation.Fitness** to function **IBishBosh.nput.RankValues.calculateMaximumTotalValue** by adding the record-field **BishBosh.Input.EvaluationOptions.getMaximumTotalRankValue**.
