@@ -69,3 +69,4 @@ type RankValue		= CriterionValue
 	* CAVEAT: performance of 'BishBosh.Evaluation.Fitness.interpolatePieceSquareValues' suffers from use of 'Rational'.
 -}
 type PieceSquareValue	= CriterionValue
+

@@ -141,3 +141,4 @@ mkNativeUIOptions boardMagnification colourScheme
 		getBoardMagnification	= boardMagnification,
 		getColourScheme		= colourScheme
 	}
+

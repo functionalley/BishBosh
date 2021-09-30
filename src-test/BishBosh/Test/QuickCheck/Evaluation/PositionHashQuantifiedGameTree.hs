@@ -103,3 +103,4 @@ results	= sequence [
 		 ) . Data.Tree.flatten . Evaluation.PositionHashQuantifiedGameTree.deconstruct . Evaluation.PositionHashQuantifiedGameTree.mkPositionHashQuantifiedGameTree evaluationOptions searchOptions zobrist Property.Empty.empty {-MoveFrequency-}
 	in Test.QuickCheck.quickCheckWithResult Test.QuickCheck.stdArgs { Test.QuickCheck.maxSuccess = 32 } f
  ]
+

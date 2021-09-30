@@ -118,3 +118,4 @@ sortByHistoryHeuristic logicalColour killerMoveKeyConstructor MkKillerMoves { de
  ) . (
 	`Data.Map.lookup` (nInstancesByNPliesByKeyByLogicalColour ! logicalColour)
  ) . killerMoveKeyConstructor
+

@@ -159,3 +159,4 @@ testCases	= Test.HUnit.test [
 		)
 	) ~?= negate 1	-- White is the next player.
  ]
+

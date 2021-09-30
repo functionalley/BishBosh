@@ -154,3 +154,4 @@ unboundedInterval	= (Nothing, Nothing)
 -- | Reflect the interval about zero.
 negateInterval :: OpenInterval x y -> OpenInterval x y
 negateInterval (maybeAlpha, maybeBeta)	= ($ maybeBeta) &&& ($ maybeAlpha) $ fmap negateFitness
+

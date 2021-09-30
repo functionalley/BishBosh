@@ -86,3 +86,4 @@ results	= sequence [
 		 ) . tail {-drop the default game-} . Data.Tree.flatten . Model.GameTree.deconstruct $ ContextualNotation.QualifiedMoveForest.toGameTree qualifiedMoveForest
 	in Test.QuickCheck.quickCheckWithResult Test.QuickCheck.stdArgs { Test.QuickCheck.maxSuccess = 8 } f
  ]
+

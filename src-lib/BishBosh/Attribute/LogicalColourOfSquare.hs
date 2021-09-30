@@ -56,3 +56,4 @@ white	= MkLogicalColourOfSquare Attribute.LogicalColour.White
 -- | Whether the specified /logical colour/ is @Black@.
 isBlack :: LogicalColourOfSquare -> Bool
 isBlack MkLogicalColourOfSquare { deconstruct = logicalColour }	= Attribute.LogicalColour.isBlack logicalColour
+

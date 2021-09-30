@@ -31,3 +31,4 @@ import qualified	Test.QuickCheck
 
 instance Test.QuickCheck.Arbitrary Notation.MoveNotation.MoveNotation where
 	arbitrary	= Test.QuickCheck.elements Property.FixedMembership.members
+

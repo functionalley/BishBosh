@@ -152,3 +152,4 @@ instance Show NSeconds where
 #else
 type NSeconds		= Base
 #endif
+

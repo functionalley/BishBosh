@@ -144,3 +144,4 @@ deletePosition position MkInstancesByPosition { getNPositionsByPosition = m }	= 
 		then Nothing		-- Delete the entry.
 		else Just $ pred n	-- Decrement the number of instances.
  ) position $ Control.Exception.assert (Data.Map.Strict.member position m) m
+

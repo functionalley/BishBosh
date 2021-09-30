@@ -31,3 +31,4 @@ import qualified	Test.QuickCheck
 
 instance Test.QuickCheck.Arbitrary Input.Verbosity.Verbosity where
 	arbitrary	= Test.QuickCheck.elements Property.FixedMembership.members
+

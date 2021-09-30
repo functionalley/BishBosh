@@ -32,3 +32,4 @@ import	Control.Arrow((&&&))
 -- | Whether the specified number lies within the closed unit-interval, @[0,1]@; <https://en.wikipedia.org/wiki/Unit_interval>.
 inClosedUnitInterval :: (Num n, Ord n) => n -> Bool
 inClosedUnitInterval	= uncurry (&&) . ((>= 0) &&& (<= 1))
+

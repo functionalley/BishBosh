@@ -85,3 +85,4 @@ results	= sequence [
 		 ) $ Model.Game.rollBack game
 	in Test.QuickCheck.quickCheckWithResult Test.QuickCheck.stdArgs { Test.QuickCheck.maxSuccess = 512 } f
  ]
+

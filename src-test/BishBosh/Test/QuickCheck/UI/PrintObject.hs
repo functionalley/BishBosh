@@ -58,3 +58,4 @@ results	= sequence [
 		 ) printObject
 	in Test.QuickCheck.quickCheckWithResult Test.QuickCheck.stdArgs { Test.QuickCheck.maxSuccess = 1024 } f
  ]
+

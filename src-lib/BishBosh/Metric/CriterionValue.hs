@@ -76,3 +76,4 @@ mkCriterionValue criterionValue
 -- | Quantifies some criterion; the larger the signed value, the better.
 type CriterionValue	= Type.Mass.CriterionValue
 #endif
+

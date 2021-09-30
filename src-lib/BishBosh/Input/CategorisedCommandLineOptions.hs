@@ -103,3 +103,4 @@ prependContextualIOAction contextualIOAction categorisedCommandLineOptions	= cat
 -- | Mutator.
 prependOptionsMutator :: OptionsMutator options -> Transformation options
 prependOptionsMutator optionsMutator categorisedCommandLineOptions	= categorisedCommandLineOptions { getOptionsMutators = optionsMutator : getOptionsMutators categorisedCommandLineOptions }
+

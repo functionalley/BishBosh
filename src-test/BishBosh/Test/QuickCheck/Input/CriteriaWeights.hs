@@ -63,3 +63,4 @@ results	= sequence [
 
 	in Test.QuickCheck.quickCheckWithResult Test.QuickCheck.stdArgs { Test.QuickCheck.maxSuccess = 32 } f
  ]
+

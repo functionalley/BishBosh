@@ -43,3 +43,4 @@ toLowerInitial	= translateInitial Data.Char.toLower
 -- | Convert the initial letter of the specified string to upper-case.
 toUpperInitial :: String -> String
 toUpperInitial	= translateInitial Data.Char.toUpper
+

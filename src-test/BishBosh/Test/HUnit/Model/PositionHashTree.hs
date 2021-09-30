@@ -44,3 +44,4 @@ testCases	= Test.HUnit.test [
 		\i -> Model.PositionHashTree.countDistinctPositions i (Data.Default.def :: Model.PositionHashTree.PositionHashTree Type.Crypto.PositionHash)
 	) [0 .. maxDepth] ~?= take (succ maxDepth) [1, 20, 400, 5362, 72078, 822518, 9417681, 96400068, 988187354, 9183421888, 85375278064, 726155461002]	-- <https://oeis.org/A083276>. CAVEAT: the point at which this test fails, depends on the square-root of the bits in 'Crypto.PositionHash'.
  ]
+

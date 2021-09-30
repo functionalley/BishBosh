@@ -61,3 +61,4 @@ results	= sequence [
 		 ) . Model.Game.listTurnsChronologically
 	in Test.QuickCheck.quickCheckWithResult Test.QuickCheck.stdArgs { Test.QuickCheck.maxSuccess = 64 } f
  ]
+

@@ -268,3 +268,4 @@ hasMorePlies playState playState'	= Data.Ord.comparing (State.TurnsByLogicalColo
 -- | Whether the user has requested application-termination, or the configured maximum number of turns has been reached.
 hasApplicationTerminationBeenRequested :: PlayState pieceSquareValue positionHash x y -> Bool
 hasApplicationTerminationBeenRequested MkPlayState { getMaybeApplicationTerminationReason = maybeApplicationTerminationReason }	= Data.Maybe.isJust maybeApplicationTerminationReason
+

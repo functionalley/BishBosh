@@ -74,3 +74,4 @@ results	= sequence [
 		f	= Test.QuickCheck.label "QualifiedMove.prop_reflectOnX" . uncurry (==) . (id &&& Property.Reflectable.reflectOnX . Property.Reflectable.reflectOnX)
 	in Test.QuickCheck.quickCheckWithResult Test.QuickCheck.stdArgs { Test.QuickCheck.maxSuccess = 64 } f
  ]
+

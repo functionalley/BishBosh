@@ -119,3 +119,4 @@ testCases	= Test.HUnit.test $ map (
 	(4,	"r1bqk2r/pp2bppp/2p5/3pP3/P2Q1P2/2N1B3/1PP3PP/R4RK1 b kq -",		"f7f6"),		-- c8f5.
 	(4,	"r2qnrnk/p2b2b1/1p1p2pp/2pPpp2/1PP1P3/PRNBB3/3QNPPP/5RK1 w - -",	"f2f4")			-- e4f5p.
  ]
+

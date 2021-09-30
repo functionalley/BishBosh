@@ -253,3 +253,4 @@ toGameTree MkQualifiedMoveForest { deconstruct = qualifiedMoveForest }	= Model.G
 		Data.Tree.subForest	= map (slave game') qualifiedMoveForest'	-- Recurse.
 	} where
 		game'	= Model.Game.applyQualifiedMove qualifiedMove game
+

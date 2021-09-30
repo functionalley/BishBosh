@@ -95,3 +95,4 @@ results	= sequence [
 		 ) coordinate
 	in Test.QuickCheck.quickCheckWithResult Test.QuickCheck.stdArgs { Test.QuickCheck.maxSuccess = 2048 } f
  ]
+

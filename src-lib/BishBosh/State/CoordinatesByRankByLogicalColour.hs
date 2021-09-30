@@ -345,3 +345,4 @@ movePiece move sourcePiece maybePromotionRank eitherPassingPawnsDestinationOrMay
 -- | Independently sort each list of /coordinates/.
 sortCoordinates :: (Ord x, Ord y) => Transformation x y
 sortCoordinates MkCoordinatesByRankByLogicalColour { deconstruct = byLogicalColour }	= MkCoordinatesByRankByLogicalColour $ Data.Array.IArray.amap (Data.Array.IArray.amap Data.List.sort) byLogicalColour
+

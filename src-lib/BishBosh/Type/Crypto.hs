@@ -42,3 +42,4 @@ type PositionHash	=
 #else
 	Data.Word.Word
 #endif
+

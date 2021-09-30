@@ -70,3 +70,4 @@ results	= sequence [
 		f smith	= Test.QuickCheck.label "Smith.prop_readTrailingGarbage" . ToolShed.Test.ReversibleIO.readTrailingGarbage (`elem` ("cCE" ++ Component.Piece.showPieces)) smith
 	in Test.QuickCheck.quickCheckWithResult Test.QuickCheck.stdArgs { Test.QuickCheck.maxSuccess = 512 } f
  ]
+

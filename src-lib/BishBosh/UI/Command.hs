@@ -261,3 +261,4 @@ autoComplete :: ShowS
 autoComplete	= Text.AutoComplete.autoComplete $ "help" : map (
 	\(tag, _, _) -> tag
  ) commands
+

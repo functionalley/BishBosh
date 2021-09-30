@@ -134,3 +134,4 @@ main	= do
 			(_, nonOptions, [])	-> Control.Exception.throwIO . Data.Exception.mkRedundantData . showString "unexpected command-line arguments; " $ shows nonOptions "."
 			(_, _, errors)		-> Control.Exception.throwIO . Data.Exception.mkParseFailure $ concat errors
 	 ) . G.getOpt G.RequireOrder optDescrList
+

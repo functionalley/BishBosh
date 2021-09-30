@@ -32,3 +32,4 @@ import Prelude()
 -- | An interface which data which have the concept of an opposite, may implement.
 class Opposable a where
 	getOpposite	:: a -> a
+

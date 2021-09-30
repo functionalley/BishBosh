@@ -45,3 +45,4 @@ class MaybeEphemeralData a where
 		-> Input.SearchOptions.MaybeRetireAfterNMoves	-- ^ The optional age at which to retire transpositions.
 		-> a
 		-> a
+

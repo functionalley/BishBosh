@@ -334,3 +334,4 @@ initialise options
 		Control.Monad.when (verbosity == maxBound) $ IO.Logger.printInfo "Exiting."
 
 		System.Exit.exitFailure
+

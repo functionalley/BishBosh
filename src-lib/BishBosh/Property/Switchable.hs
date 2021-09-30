@@ -50,3 +50,4 @@ class Switchable a where
 -- | Toggle the switch the specified number of times.
 flick :: Switchable switchable => Int -> switchable -> IO switchable
 flick n switchable	= Data.Foldable.foldrM ($) switchable $ replicate n toggle
+

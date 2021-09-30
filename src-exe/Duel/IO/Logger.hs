@@ -61,3 +61,4 @@ dump handle	= slave where
 			System.IO.hGetLine handle >>= putString
 
 			slave	-- Recurse.
+

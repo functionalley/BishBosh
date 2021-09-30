@@ -53,3 +53,4 @@ results	= sequence [
 		f rankValue	= Test.QuickCheck.label "RankValue.prop_readTrailingGarbage" . ToolShed.Test.ReversibleIO.readTrailingGarbage (`elem` ".-+eEoOxX" ++ ['0' .. '9']) rankValue
 	in Test.QuickCheck.quickCheckWithResult Test.QuickCheck.stdArgs { Test.QuickCheck.maxSuccess = 256 } f
  ]
+

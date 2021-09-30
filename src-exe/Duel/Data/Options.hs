@@ -113,3 +113,4 @@ appendInputConfigFilePath s options
 	| otherwise						= options { getInputConfigFilePaths = s : inputConfigFilePaths }
 	where
 		inputConfigFilePaths	= getInputConfigFilePaths options
+

@@ -115,3 +115,4 @@ New Module					| Purpose
 * Moved **BishBosh.Attribute.RankValues** to **BishBosh.Input**.
 * Checked that (with the possible exception of the King) the Queen is configured as the most valuable rank.
 * Avoided repeated calls from module **BishBosh.Evaluation.Fitness** to function **IBishBosh.nput.RankValues.calculateMaximumTotalValue** by adding the record-field **BishBosh.Input.EvaluationOptions.getMaximumTotalRankValue**.
+
