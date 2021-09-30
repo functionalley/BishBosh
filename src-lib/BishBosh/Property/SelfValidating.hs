@@ -32,6 +32,11 @@ module BishBosh.Property.SelfValidating(
 	isInvalid
  ) where
 
+{- |
+	* This class serves data-types which must preserve compatibility beyond that which can be guarded by a smart-constructor.
+
+	* E.g.: data-types which are constructed piece-meal & endure a temporarily invalid state.
+-}
 class SelfValidating a where
 	findInvalidity	:: a -> [String]
 

@@ -31,6 +31,7 @@ module BishBosh.Property.Switchable(
 
 import qualified	Data.Foldable
 
+-- | For data which operate like binary switches.
 class Switchable a where
 	on	:: IO a		-- ^ Returns a switch in the /on/ state, regardless of any previous state.
 
