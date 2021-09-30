@@ -32,8 +32,8 @@ import qualified	Test.QuickCheck
 
 instance Test.QuickCheck.Arbitrary Input.NativeUIOptions.NativeUIOptions where
 	arbitrary	= Input.NativeUIOptions.mkNativeUIOptions <$> fmap (
-		mkOddWholeNumber *** mkOddWholeNumber
+		mkOddNaturalNumber *** mkOddNaturalNumber
 	 ) Test.QuickCheck.arbitrary {-BoardMagnification-} <*> return {-to Gen-monad-} Data.Default.def {-ColourScheme-} where
-		mkOddWholeNumber :: Num n => Integer -> n
-		mkOddWholeNumber	= fromInteger . succ . (* 2) . (`mod` 3)
+		mkOddNaturalNumber :: Num n => Integer -> n
+		mkOddNaturalNumber	= fromInteger . succ . (* 2) . (`mod` 3)
 
