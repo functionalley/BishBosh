@@ -68,7 +68,7 @@ nRowsTag		= "nRows"
 nColumnsTag :: String
 nColumnsTag		= "nColumns"
 
--- | The coordinates used to index the screen.
+-- | The coordinates used to index the screen. CAVEAT: the name is an anachronistic hang-over from a discarded implementation of a Curses display.
 type ScreenCoordinates	= (Type.Length.Row, Type.Length.Column)
 
 -- | Constructor.
