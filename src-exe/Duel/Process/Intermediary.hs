@@ -118,7 +118,11 @@ readMove
 	-> System.IO.Handle				-- ^ Output handle from which data should be read.
 	-> IO (Either Rule.GameTerminationReason.GameTerminationReason (MoveNotation Type.Length.X Type.Length.Y))
 readMove verbosity readTimeout logicalColour stdOut = do
-	Control.Monad.when (verbosity == maxBound) . IO.Logger.printInfo . showString "Waiting for " $ shows logicalColour "."
+	Control.Monad.when (verbosity == maxBound) . IO.Logger.printInfo . showString "Waiting " . (
+		if readTimeout < 0
+			then showString "indefinitely"
+			else showString "for up to " . shows readTimeout . showString " s"
+	 ) . showString " for " $ shows logicalColour " to move."
 
 	inputReady	<- System.IO.hWaitForInput stdOut $ 1000 * fromIntegral readTimeout
 

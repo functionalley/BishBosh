@@ -23,7 +23,7 @@ The precision with which to display the total time taken by each side.
 The number of games to be played before presenting the results.
 .TP
 \fB-t\fR \fIInt\fR, \fB--readTimeout=\fR\fIInt\fR, defaulting to \fIindefinitely\fR.
-The number of seconds to wait for one of the forked processes to return a move, before aborting.
+The maximum number of seconds to wait for one of the forked processes to return a move, before aborting.
 CAVEAT: the required period typically required depends on;
 .IP \(bu
 the machine's speed,
@@ -31,6 +31,8 @@ the machine's speed,
 what else is running on the machine,
 .IP \(bu
 the size of the machine's RAM,
+.IP \(bu
+the time initially required to process any PGN-database,
 .IP \(bu
 \fBbishbosh\fR's configuration (e.g. search-depth or fitness-evaluation criteria).
 .TP
