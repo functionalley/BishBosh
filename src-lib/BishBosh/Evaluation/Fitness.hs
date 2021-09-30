@@ -153,13 +153,12 @@ measurePieceSquareValueIncrementally previousPieceSquareValue pieceSquareByCoord
 -- | Measure the arithmetic difference between the total /rank-value/ of the /piece/s currently held by either side; <https://www.chessprogramming.org/Material>.
 measureValueOfMaterial
 	:: Input.RankValues.RankValues
+	-> Type.Mass.RankValue	-- ^ Maximum total rank-value.
 	-> Model.Game.Game x y
 	-> Metric.CriterionValue.CriterionValue
--- {-# SPECIALISE measureValueOfMaterial :: Input.RankValues.RankValues -> Model.Game.Game Type.Length.X Type.Length.Y -> Metric.CriterionValue.CriterionValue #-}
-measureValueOfMaterial rankValues game	= fromRational . (
-	/ toRational (
-		Input.RankValues.calculateMaximumTotalValue rankValues	-- CAVEAT: this assumes that the Queen is most valuable & might generate an illegally high criterion-value if someone defines alternative rank-values.
-	) -- Normalise.
+-- {-# SPECIALISE measureValueOfMaterial :: Input.RankValues.RankValues -> Type.Mass.RankValue -> Model.Game.Game Type.Length.X Type.Length.Y -> Metric.CriterionValue.CriterionValue #-}
+measureValueOfMaterial rankValues maximumTotalRankValue game	= fromRational . (
+	/ toRational maximumTotalRankValue -- Normalise.
  ) . (
 	if Attribute.LogicalColour.isBlack $ Model.Game.getNextLogicalColour game
 		then id		-- White just moved.
@@ -347,11 +346,11 @@ evaluateFitness maybePieceSquareValue game
 	) []
 	| otherwise	= do
 		criteriaWeights				<- Control.Monad.Reader.asks Input.EvaluationOptions.getCriteriaWeights
-		rankValues				<- Control.Monad.Reader.asks Input.EvaluationOptions.getRankValues
+		rankValuePair				<- Control.Monad.Reader.asks $ Input.EvaluationOptions.getRankValues &&& Input.EvaluationOptions.getMaximumTotalRankValue
 		maybePieceSquareByCoordinatesByRank	<- Control.Monad.Reader.asks Input.EvaluationOptions.getMaybePieceSquareByCoordinatesByRank
 
 		return {-to Reader-monad-} $ Input.CriteriaWeights.calculateWeightedMean criteriaWeights (
-			measureValueOfMaterial rankValues game
+			uncurry measureValueOfMaterial rankValuePair game
 		 ) (
 			measureValueOfMobility game
 		 ) (

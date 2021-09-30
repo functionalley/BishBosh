@@ -38,6 +38,7 @@ module BishBosh.Input.EvaluationOptions(
 	EvaluationOptions(
 --		MkEvaluationOptions,
 		getRankValues,
+		getMaximumTotalRankValue,
 		getCriteriaWeights,
 		getIncrementalEvaluation,
 --		getMaybePieceSquareTablePair,
@@ -64,6 +65,7 @@ import qualified	BishBosh.Input.PieceSquareTable				as Input.PieceSquareTable
 import qualified	BishBosh.Input.RankValues				as Input.RankValues
 import qualified	BishBosh.Property.ShowFloat				as Property.ShowFloat
 import qualified	BishBosh.Text.ShowList					as Text.ShowList
+import qualified	BishBosh.Type.Mass					as Type.Mass
 import qualified	Control.DeepSeq
 import qualified	Control.Exception
 import qualified	Control.Monad.Reader
@@ -98,6 +100,7 @@ type PieceSquareTablePair x y pieceSquareValue	= (Input.PieceSquareTable.PieceSq
 -- | Defines the options related to the automatic selection of /move/s.
 data EvaluationOptions pieceSquareValue x y	= MkEvaluationOptions {
 	getRankValues				:: Input.RankValues.RankValues,				-- ^ The static value associated with each /piece/'s /rank/.
+	getMaximumTotalRankValue		:: Type.Mass.RankValue,					-- ^ Used to normalise the total value of pieces. Derived from 'getRankValues'.
 	getCriteriaWeights			:: Input.CriteriaWeights.CriteriaWeights,		-- ^ The weights applied to each of the heterogeneous criterion-values used to select a /move/.
 	getIncrementalEvaluation		:: IncrementalEvaluation,				-- ^ Whether to generate position-hashes & evaluate the piece-square value, from the previous value or from scratch.
 	getMaybePieceSquareTablePair		:: Maybe (PieceSquareTablePair x y pieceSquareValue),	-- ^ A optional pair of piece-square tables representing the opening & end-games respectively.
@@ -112,12 +115,13 @@ instance (
 	Control.DeepSeq.NFData	y
  ) => Control.DeepSeq.NFData (EvaluationOptions pieceSquareValue x y) where
 	rnf MkEvaluationOptions {
-		getRankValues				= rankValues,
+--		getRankValues				= rankValues,
+		getMaximumTotalRankValue		= maximumTotalValue,
 		getCriteriaWeights			= criteriaWeights,
 		getIncrementalEvaluation		= incrementalEvaluation,
 --		getMaybePieceSquareTablePair		= maybePieceSquareTablePair,
 		getMaybePieceSquareByCoordinatesByRank	= maybePieceSquareByCoordinatesByRank
-	} = Control.DeepSeq.rnf (rankValues, criteriaWeights, incrementalEvaluation, maybePieceSquareByCoordinatesByRank)
+	} = Control.DeepSeq.rnf (maximumTotalValue, criteriaWeights, incrementalEvaluation, maybePieceSquareByCoordinatesByRank)
 
 instance (
 	Enum	x,
@@ -129,13 +133,14 @@ instance (
  ) => Property.ShowFloat.ShowFloat (EvaluationOptions pieceSquareValue x y) where
 	showsFloat fromDouble MkEvaluationOptions {
 		getRankValues				= rankValues,
+--		getMaximumTotalRankValue		= maximumTotalValue,
 		getCriteriaWeights			= criteriaWeights,
 		getIncrementalEvaluation		= incrementalEvaluation,
 		getMaybePieceSquareTablePair		= maybePieceSquareTablePair
 --		getMaybePieceSquareByCoordinatesByRank	= maybePieceSquareByCoordinatesByRank
 	} = Text.ShowList.showsAssociationList' $ [
 		(
-			Input.RankValues.tag,	Property.ShowFloat.showsFloat fromDouble rankValues
+			Input.RankValues.tag,		Property.ShowFloat.showsFloat fromDouble rankValues
 		), (
 			incrementalEvaluationTag,	shows incrementalEvaluation
 		), (
@@ -155,12 +160,14 @@ instance (
 
 instance Data.Default.Default (EvaluationOptions pieceSquareValue x y) where
 	def = MkEvaluationOptions {
-		getRankValues				= Data.Default.def,
+		getRankValues				= rankValues,
+		getMaximumTotalRankValue		= Input.RankValues.calculateMaximumTotalValue rankValues,
 		getCriteriaWeights			= Data.Default.def,
 		getIncrementalEvaluation		= True,
 		getMaybePieceSquareTablePair		= Nothing,
 		getMaybePieceSquareByCoordinatesByRank	= Nothing
-	}
+	} where
+		rankValues	= Data.Default.def
 
 instance (
 	Enum		x,
@@ -176,6 +183,7 @@ instance (
 		\(a, b, c, d) -> mkEvaluationOptions a b c d,	-- Construct.
 		\MkEvaluationOptions {
 			getRankValues				= rankValues,
+--			getMaximumTotalRankValue		= maximumTotalRankValue,
 			getCriteriaWeights			= criteriaWeights,
 			getIncrementalEvaluation		= incrementalEvaluation,
 			getMaybePieceSquareTablePair		= maybePieceSquareTablePair
@@ -234,6 +242,7 @@ mkEvaluationOptions rankValues criteriaWeights incrementalEvaluation maybePieceS
 	= Control.Exception.throw . Data.Exception.mkIncompatibleData . showString "BishBosh.Input.EvaluationOptions.mkEvaluationOptions:\tweight of " . shows Input.CriteriaWeights.weightOfPieceSquareValueTag . showString " is defined but " $ shows Input.PieceSquareTable.tag " isn't."
 	| otherwise		= MkEvaluationOptions {
 		getRankValues				= rankValues,
+		getMaximumTotalRankValue		= Input.RankValues.calculateMaximumTotalValue rankValues,	-- Infer.
 		getCriteriaWeights			= criteriaWeights,
 		getIncrementalEvaluation		= incrementalEvaluation,
 		getMaybePieceSquareTablePair		= maybePieceSquareTablePair,

@@ -115,3 +115,4 @@ New Module					| Purpose
 * Moved **BishBosh.Attribute.RankValues** to **BishBosh.Input**.
 * Replaced the polymorphic type-parameters **row** & **column** with newtypes in module **iBishBosh.Type.Length**.
 * Checked that (with the possible exception of the King) the Queen is configured as the most valuable rank.
+* Avoided repeated calls to **Input.RankValues.calculateMaximumTotalValue** by adding the record-field **Input.EvaluationOptions.getMaximumTotalRankValue**.
