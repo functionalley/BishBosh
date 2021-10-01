@@ -2,8 +2,9 @@
 
 [![Build Status](https://travis-ci.com/functionalley/BishBosh.svg?branch=master)](https://travis-ci.com/functionalley/BishBosh)
 [![Hackage](https://img.shields.io/hackage/v/bishbosh.svg)](https://hackage.haskell.org/package/bishbosh)
+[![GitHub top language](https://img.shields.io/github/languages/top/functionalley/BishBosh?color=yellow)](https://github.com/functionalley/BishBosh)
+[![GitHub code size in bytes](https://img.shields.io/github/languages/code-size/functionalley/BishBosh?color=violet)](https://github.com/functionalley/BishBosh)
 [![License: GPL v3](https://img.shields.io/badge/License-GPL%20v3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
-[![Haskell](https://b.repl.ca/v1/language-haskell-yellow.png)](https://haskell.org)
 
 This is "**BishBosh**", a chess-game which can be rendered in a terminal (emulator) using raw ASCII, or used as an engine by [xboard](https://www.gnu.org/software/xboard/).
 
