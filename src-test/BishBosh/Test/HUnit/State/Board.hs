@@ -52,7 +52,7 @@ import qualified	Control.Arrow
 import qualified	Data.Array.IArray
 import qualified	Data.Default
 import qualified	Data.Foldable
-import qualified	Data.Map
+import qualified	Data.Map.Strict
 import qualified	Data.Maybe
 import qualified	Test.HUnit
 import qualified	ToolShed.Data.Foldable
@@ -284,7 +284,7 @@ testCases	= Test.HUnit.test [
 		State.CoordinatesByRankByLogicalColour.countPawnsByFileByLogicalColour $ State.Board.getCoordinatesByRankByLogicalColour (Data.Default.def :: Board)
 	) ~? "'BishBosh.State.Board.countPawnsByFileByLogicalColour': failed for default board",
 	(
-		(== [(0, 3), (2, 2), (4, 1)]) . Data.Map.assocs . (! Attribute.LogicalColour.White) . State.CoordinatesByRankByLogicalColour.countPawnsByFileByLogicalColour . State.Board.getCoordinatesByRankByLogicalColour . placePieces $ map (
+		(== [(0, 3), (2, 2), (4, 1)]) . Data.Map.Strict.assocs . (! Attribute.LogicalColour.White) . State.CoordinatesByRankByLogicalColour.countPawnsByFileByLogicalColour . State.Board.getCoordinatesByRankByLogicalColour . placePieces $ map (
 			(,) (Component.Piece.mkPawn Attribute.LogicalColour.White) . Cartesian.Coordinates.mkRelativeCoordinates
 		) [
 			Control.Arrow.second succ,
@@ -296,12 +296,12 @@ testCases	= Test.HUnit.test [
 		]
 	) ~? "'BishBosh.State.Board.countPawnsByFileByLogicalColour': failed",
 	(
-		Data.Map.unions (
+		Data.Map.Strict.unions (
 			Data.Array.IArray.elems $ State.Board.countDefendersByCoordinatesByLogicalColour (Data.Default.def :: Board)
 		) == foldr (
-			Data.Map.delete . Cartesian.Coordinates.kingsStartingCoordinates
+			Data.Map.Strict.delete . Cartesian.Coordinates.kingsStartingCoordinates
 		) (
-			Data.Map.fromList $ zip [
+			Data.Map.Strict.fromList $ zip [
 				Cartesian.Coordinates.mkCoordinates x y |
 					y	<- [
 						Cartesian.Ordinate.yMax,

@@ -56,7 +56,7 @@ import qualified	BishBosh.Type.Length					as Type.Length
 import qualified	Control.Monad
 import qualified	Data.Foldable
 import qualified	Data.List
-import qualified	Data.Map
+import qualified	Data.Map.Strict
 import qualified	Data.Maybe
 import qualified	Data.Ord
 import qualified	Data.Set
@@ -148,13 +148,13 @@ results	= sequence [
 			in all (
 				\destination -> foldr (
 					\rank m -> foldr (
-						\source -> Data.Map.insertWith Data.Set.union source $ Data.Set.singleton rank
+						\source -> Data.Map.Strict.insertWith Data.Set.union source $ Data.Set.singleton rank
 					) m $ State.Board.findAttacksBy (
 						Component.Piece.mkPiece (Property.Opposable.getOpposite logicalColour) rank
 					) destination board
-				) Data.Map.empty Property.FixedMembership.members == foldr (
-					\(source, rank)	-> Data.Map.insertWith Data.Set.union source $ Data.Set.singleton rank
-				) Data.Map.empty (
+				) Data.Map.Strict.empty Property.FixedMembership.members == foldr (
+					\(source, rank)	-> Data.Map.Strict.insertWith Data.Set.union source $ Data.Set.singleton rank
+				) Data.Map.Strict.empty (
 					State.Board.findAttackersOf logicalColour destination board
 				)
 			) coordinates

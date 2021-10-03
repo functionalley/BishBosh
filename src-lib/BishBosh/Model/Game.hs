@@ -1395,7 +1395,7 @@ countPliesAvailableTo logicalColour game@MkGame { getAvailableQualifiedMovesByLo
 	| Just availableQualifiedMoves	<- Data.Map.lookup logicalColour availableQualifiedMovesByLogicalColour	-- N.B.: 'findQualifiedMovesAvailableToNextPlayer' unnecessarily constructs a list.
 --	= length $ Data.Foldable.concat availableQualifiedMoves			-- CAVEAT: terrible performance.
 --	= Data.Map.foldl' (flip $ (+) . length) 0 availableQualifiedMoves	-- CAVEAT: poor performance.
-	= fromIntegral $ Data.Map.Strict.foldl' (\acc -> (+ acc) . length) 0 availableQualifiedMoves
+	= fromIntegral $ Data.Map.foldl' (\acc -> (+ acc) . length) 0 availableQualifiedMoves
 	| otherwise	= fromIntegral . length $ listQualifiedMovesAvailableTo logicalColour game
 
 -- | Retrieve the recorded value, or generate the list of /move/s available to the next player.
