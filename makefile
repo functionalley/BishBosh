@@ -13,7 +13,7 @@
 # You should have received a copy of the GNU General Public License
 # along with BishBosh.  If not, see <http://www.gnu.org/licenses/>.
 
-.PHONY: cabalCheck duel findOmissions graphmod haddock hlint prof randomTest sdist test xboard
+.PHONY: cabalCheck duel findOmissions graphmod haddock hlint prof profN2 randomTest sdist test xboard
 
 PACKAGE_NAME	= bishbosh
 SHELL		= /bin/bash
@@ -30,18 +30,18 @@ graphmod: $(BIN_DIR)/graphmod
 # Groom sourcecode.
 hlint: $(BIN_DIR)/hlint
 	@$@ -j --no-exit-code\
+		--cpp-define 'USE_NEWTYPE_WRAPPERS'\
 		--cpp-define 'USE_PARALLEL'\
 		--cpp-define 'USE_POLYPARSE=1'\
 		--cpp-define 'USE_UNBOXED_ARRAYS'\
-		--cpp-define 'USE_NEWTYPE_WRAPPERS'\
 		--ignore 'Use tuple-section'\
 		src-lib/ +RTS -N -RTS
 	@$@ -j --no-exit-code\
+		--cpp-define 'MOVE_NOTATION=S'\
 		--cpp-define 'USE_HXTRELAXNG'\
 		--cpp-define 'USE_PARALLEL'\
 		--cpp-define 'USE_UNBOXED_ARRAYS'\
 		--cpp-define 'USE_UNIX'\
-		--cpp-define 'MOVE_NOTATION=S'\
 		--ignore 'Reduce duplication'\
 		src-exe/ +RTS -N -RTS
 	@$@ -j 	--cpp-define 'USE_PARALLEL'\
@@ -60,12 +60,17 @@ test:
 # Compile with random CPP-flags & run the test-suites.
 randomTest:
 	@FLAGS=$$(shuf --echo -- hxtrelaxng -hxtrelaxng narrownumbers -narrownumbers newtypewrappers -newtypewrappers polyparse -polyparse threaded -threaded unboxedarrays -unboxedarrays | head --lines=3 | sed -e 's/\(.*\)/--flag=$(PACKAGE_NAME):\1/');\
-	echo $$FLAGS;\
+	echo $${FLAGS};\
 	stack test $${FLAGS} $(GHC_OPTIONS)
 
-# Profile.
+# Profile a single-threaded build, to access entry-counts.
 prof:
-	@stack install --library-profiling --executable-profiling $(GHC_OPTIONS)
+	@stack install --profile --flag='bishbosh:-threaded' $(GHC_OPTIONS)
+	@$(PACKAGE_NAME) -i 'config/Raw/$(PACKAGE_NAME)_$@.xml' +RTS -p -RTS
+
+# Profile.
+profN2:
+	@stack install --profile $(GHC_OPTIONS)
 	@$(PACKAGE_NAME) -i 'config/Raw/$(PACKAGE_NAME)_$@.xml' +RTS -p -N2 -RTS
 
 # Install this product.
