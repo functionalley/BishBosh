@@ -147,8 +147,12 @@ readMove positionHashQualifiedMoveTree randomGen runningWatch playState	= let
  in (
 	\nativeUIOptions -> let
 		show2D :: Model.Game.Game x y -> String
-		show2D	= uncurry State.MaybePieceByCoordinates.show2D (
-			snd {-columns-} . Input.NativeUIOptions.getBoardMagnification &&& Input.NativeUIOptions.getColourScheme $ nativeUIOptions
+		show2D	= State.MaybePieceByCoordinates.show2D (
+			snd {-columns-} $ Input.NativeUIOptions.getBoardMagnification nativeUIOptions
+		 ) (
+			Input.NativeUIOptions.getColourScheme nativeUIOptions
+		 ) (
+			Input.NativeUIOptions.getDepictFigurine nativeUIOptions
 		 ) (
 			Notation.MoveNotation.getOrigin moveNotation
 		 ) . State.Board.getMaybePieceByCoordinates . Model.Game.getBoard
@@ -418,8 +422,12 @@ takeTurns positionHashQualifiedMoveTree randomGen playState	= let
 
 		let
 			show2D :: Model.Game.Game x y -> String
-			show2D	= uncurry State.MaybePieceByCoordinates.show2D (
-				snd {-columns-} . Input.NativeUIOptions.getBoardMagnification &&& Input.NativeUIOptions.getColourScheme $ nativeUIOptions
+			show2D	= State.MaybePieceByCoordinates.show2D (
+				snd {-columns-} $ Input.NativeUIOptions.getBoardMagnification nativeUIOptions
+			 ) (
+				Input.NativeUIOptions.getColourScheme nativeUIOptions
+			 ) (
+				Input.NativeUIOptions.getDepictFigurine nativeUIOptions
 			 ) (
 				Notation.MoveNotation.getOrigin moveNotation
 			 ) . State.Board.getMaybePieceByCoordinates . Model.Game.getBoard

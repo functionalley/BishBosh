@@ -29,11 +29,10 @@
 
 module BishBosh.Attribute.PhysicalColour(
 -- * Types
--- ** Type-synonyms
---	ANSIColourCode,
 -- ** Data-types
-	PhysicalColour(..),
+	PhysicalColour(),
 -- * Constants
+--	range,
 	black,
 	red,
 	green,
@@ -41,22 +40,20 @@ module BishBosh.Attribute.PhysicalColour(
 	blue,
 	magenta,
 	cyan,
-	white,
---	range,
--- * Functions
---	toANSIColourCode,
-	mkFgColourCode,
-	mkBgColourCode,
-	selectGraphicsRendition,
-	bracket
+	white
 ) where
 
 import qualified	BishBosh.Property.FixedMembership	as Property.FixedMembership
+import qualified	BishBosh.Property.Opposable		as Property.Opposable
 import qualified	Control.DeepSeq
 import qualified	Text.XML.HXT.Arrow.Pickle		as HXT
 import qualified	Text.XML.HXT.Arrow.Pickle.Schema
 
--- | Defines the sum-type of physical colours which can typically be rendered by a terminal.
+{- |
+	* Defines the sum-type of physical colours which can typically be rendered by a terminal.
+
+	* CAVEAT: the constructor-order both facilitates conversion to an ANSI Colour-code & the derivation of the complementary colour.
+-}
 data PhysicalColour
 	= Black
 	| Red
@@ -77,6 +74,9 @@ instance Bounded PhysicalColour where
 
 instance HXT.XmlPickler PhysicalColour where
 	xpickle	= HXT.xpWrap (read, show) . HXT.xpTextDT . Text.XML.HXT.Arrow.Pickle.Schema.scEnum $ map show range
+
+instance Property.Opposable.Opposable PhysicalColour where
+	getOpposite physicalColour	= toEnum $ fromEnum (maxBound :: PhysicalColour) - fromEnum physicalColour	-- N.B. the complementary colour
 
 -- | The constant complete range of values.
 range :: [PhysicalColour]
@@ -116,29 +116,3 @@ cyan	= Cyan
 -- | Constant.
 white :: PhysicalColour
 white	= White
-
--- | A colour-code, as used by terminal-emulators; <https://en.wikipedia.org/wiki/ANSI_escape_code>.
-type ANSIColourCode	= Int
-
--- | Offset the specified colour-code, so that it applies to the foreground.
-mkFgColourCode :: PhysicalColour -> ANSIColourCode
-mkFgColourCode	= (+ 30) . toANSIColourCode
-
--- | Offset the specified colour-code, so that it applies to the background.
-mkBgColourCode :: PhysicalColour -> ANSIColourCode
-mkBgColourCode	= (+ 40) . toANSIColourCode
-
--- | Translate.
-toANSIColourCode :: PhysicalColour -> ANSIColourCode
-toANSIColourCode	= fromEnum	-- CAVEAT: the order of the data-constructors has been defined with this in mind.
-
--- | Generate the escape-sequence required to change a terminal to the specified physical colour.
-selectGraphicsRendition :: Bool -> ANSIColourCode -> String
-selectGraphicsRendition isBold parameter	= showString "\x1b[" . shows parameter $ (if isBold then showString ";1" else id) "m"
-
--- | Render the specified string according to instructions, then revert to default.
-bracket :: String -> String -> ShowS
-bracket graphicsRendition s	= showString graphicsRendition . showString s . showString (
-	selectGraphicsRendition False 0
- )
-

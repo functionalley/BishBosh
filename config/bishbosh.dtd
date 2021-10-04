@@ -127,6 +127,9 @@
 				verbosity	(Silent | Normal | Verbose | Deafening)	#IMPLIED
 			>
 			<!ELEMENT nativeUIOptions ((boardMagnification)?, (colourScheme)?)>
+				<!ATTLIST nativeUIOptions
+					depictFigurine	(False | True)	#IMPLIED
+				>
 				<!ELEMENT boardMagnification EMPTY>
 					<!ATTLIST boardMagnification
 						nRows		CDATA	#REQUIRED

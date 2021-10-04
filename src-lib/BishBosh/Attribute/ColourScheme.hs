@@ -19,7 +19,7 @@
 {- |
  [@AUTHOR@]	Dr. Alistair Ward
 
- [@DESCRIPTION@]	Defines the physical colour used to represent each component of the display.
+ [@DESCRIPTION@]	Defines the physical colour used to represent each component of the board.
 -}
 
 module BishBosh.Attribute.ColourScheme (
@@ -45,6 +45,7 @@ module BishBosh.Attribute.ColourScheme (
 
 import qualified	BishBosh.Attribute.PhysicalColour	as Attribute.PhysicalColour
 import qualified	BishBosh.Data.Exception			as Data.Exception
+import qualified	BishBosh.Property.Opposable		as Property.Opposable
 import qualified	BishBosh.Text.ShowList			as Text.ShowList
 import qualified	Control.Arrow
 import qualified	Control.DeepSeq
@@ -105,9 +106,9 @@ instance Show ColourScheme where
 instance Data.Default.Default ColourScheme where
 	def = MkColourScheme {
 		getDarkPieceColour	= Attribute.PhysicalColour.blue,
-		getLightPieceColour	= Attribute.PhysicalColour.yellow,
+		getLightPieceColour	= Property.Opposable.getOpposite $ getDarkPieceColour Data.Default.def,
 		getDarkSquareColour	= Attribute.PhysicalColour.black,
-		getLightSquareColour	= Attribute.PhysicalColour.white
+		getLightSquareColour	= Property.Opposable.getOpposite $ getDarkSquareColour Data.Default.def
 	}
 
 instance HXT.XmlPickler ColourScheme where

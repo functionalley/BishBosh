@@ -24,7 +24,7 @@ Author:		Dr. Alistair Ward
 Stability:	stable
 Synopsis:	Plays chess.
 Build-type:	Simple
-Description:	A chess-game which can be rendered in a terminal (emulator) in raw ASCII, or used as an engine by xboard.
+Description:	A chess-game which can be rendered in a terminal (emulator) in raw ASCII, or used as an engine by @xboard@.
 Category:	Game
 Tested-with:	GHC == 8.0, GHC == 8.4, GHC == 8.8, GHC == 8.10
 Homepage:	https://functionalley.com/BishBosh/bishbosh.html
@@ -115,6 +115,7 @@ Library
     Hs-source-dirs:	src-lib
 
     Exposed-modules:
+        BishBosh.Attribute.ANSIColourCode
         BishBosh.Attribute.CaptureMoveSortAlgorithm
         BishBosh.Attribute.ColourScheme
         BishBosh.Attribute.Direction
@@ -178,6 +179,7 @@ Library
         BishBosh.Model.GameTree
         BishBosh.Model.MoveFrequency
         BishBosh.Model.PositionHashTree
+        BishBosh.Notation.Figurine
         BishBosh.Notation.ICCFNumeric
         BishBosh.Notation.MoveNotation
         BishBosh.Notation.PureCoordinate
@@ -495,6 +497,7 @@ Test-Suite quickcheck-tests
         BishBosh.Test.QuickCheck.Model.Game
         BishBosh.Test.QuickCheck.Model.GameTree
         BishBosh.Test.QuickCheck.Model.MoveFrequency
+        BishBosh.Test.QuickCheck.Notation.Figurine
         BishBosh.Test.QuickCheck.Notation.ICCFNumeric
         BishBosh.Test.QuickCheck.Notation.MoveNotation
         BishBosh.Test.QuickCheck.Notation.PureCoordinate

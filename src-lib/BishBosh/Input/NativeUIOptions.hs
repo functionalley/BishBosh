@@ -26,11 +26,13 @@ module BishBosh.Input.NativeUIOptions(
 -- * Types
 -- ** Type-synonyms
 --	ScreenCoordinates,
+--	DepictFigurine,
 -- ** Data-types
 	NativeUIOptions(
 --		MkNativeUIOptions,
 		getBoardMagnification,
-		getColourScheme
+		getColourScheme,
+		getDepictFigurine
 	),
 -- * Constants
 	tag,
@@ -42,6 +44,7 @@ module BishBosh.Input.NativeUIOptions(
 	mkNativeUIOptions
 ) where
 
+import			BishBosh.Data.Bool()
 import			Control.Arrow((***))
 import qualified	BishBosh.Attribute.ColourScheme	as Attribute.ColourScheme
 import qualified	BishBosh.Data.Exception		as Data.Exception
@@ -61,6 +64,10 @@ boardMagnificationTag :: String
 boardMagnificationTag	= "boardMagnification"
 
 -- | Used to qualify XML.
+depictFigurineTag :: String
+depictFigurineTag	= "depictFigurine"
+
+-- | Used to qualify XML.
 nRowsTag :: String
 nRowsTag		= "nRows"
 
@@ -71,25 +78,32 @@ nColumnsTag		= "nColumns"
 -- | The coordinates used to index the screen. CAVEAT: the name is an anachronistic hang-over from a discarded implementation of a Curses display.
 type ScreenCoordinates	= (Type.Length.Row, Type.Length.Column)
 
+-- | Whether to a depict a piece using a Unicode figurine.
+type DepictFigurine	= Bool
+
 -- | Constructor.
 data NativeUIOptions	= MkNativeUIOptions {
 	getBoardMagnification	:: ScreenCoordinates,	-- ^ The factor by which the dimensions of the board are stretched when displayed.
-	getColourScheme		:: Attribute.ColourScheme.ColourScheme
+	getColourScheme		:: Attribute.ColourScheme.ColourScheme,
+	getDepictFigurine	:: DepictFigurine	-- ^ Whether to a depict pieces using Unicode figurines.
 } deriving Eq
 
 instance Control.DeepSeq.NFData NativeUIOptions where
 	rnf MkNativeUIOptions {
 		getBoardMagnification	= boardMagnification,
-		getColourScheme		= colourScheme
+		getColourScheme		= colourScheme,
+		getDepictFigurine	= depictFigurine
 	} = Control.DeepSeq.rnf (
 		boardMagnification,
-		colourScheme
+		colourScheme,
+		depictFigurine
 	 )
 
 instance Show NativeUIOptions where
 	showsPrec precision MkNativeUIOptions {
 		getBoardMagnification	= boardMagnification,
-		getColourScheme		= colourScheme
+		getColourScheme		= colourScheme,
+		getDepictFigurine	= depictFigurine
 	} = Text.ShowList.showsAssociationList' [
 		(
 			boardMagnificationTag,
@@ -97,31 +111,39 @@ instance Show NativeUIOptions where
 		), (
 			Attribute.ColourScheme.tag,
 			showsPrec precision colourScheme
+		), (
+			depictFigurineTag,
+			showsPrec precision depictFigurine
 		)
 	 ]
 
 instance Data.Default.Default NativeUIOptions where
 	def = MkNativeUIOptions {
 		getBoardMagnification	= (1, 1),
-		getColourScheme		= Data.Default.def
+		getColourScheme		= Data.Default.def,
+		getDepictFigurine	= False
 	}
 
 instance HXT.XmlPickler NativeUIOptions where
 	xpickle	= HXT.xpElem tag . HXT.xpWrap (
-		uncurry mkNativeUIOptions,	-- Construct.
+		\(a, b, c) -> mkNativeUIOptions a b c,	-- Construct.
 		\MkNativeUIOptions {
 			getBoardMagnification	= boardMagnification,
-			getColourScheme		= colourScheme
+			getColourScheme		= colourScheme,
+			getDepictFigurine	= depictFigurine
 		} -> (
 			boardMagnification,
-			colourScheme
+			colourScheme,
+			depictFigurine
 		)
-	 ) $ HXT.xpPair (
+	 ) $ HXT.xpTriple (
 		getBoardMagnification def `HXT.xpDefault` HXT.xpElem boardMagnificationTag (
 			HXT.xpAttr nRowsTag HXT.xpickle `HXT.xpPair` HXT.xpAttr nColumnsTag HXT.xpickle
 		)
 	 ) (
 		getColourScheme def `HXT.xpDefault` HXT.xpickle
+	 ) (
+		getDepictFigurine def `HXT.xpDefault` HXT.xpAttr depictFigurineTag HXT.xpickle
 	 ) where
 		def	= Data.Default.def
 
@@ -129,8 +151,9 @@ instance HXT.XmlPickler NativeUIOptions where
 mkNativeUIOptions
 	:: ScreenCoordinates	-- ^ The factor by which the dimensions of the board are stretched when displayed.
 	-> Attribute.ColourScheme.ColourScheme
+	-> DepictFigurine
 	-> NativeUIOptions
-mkNativeUIOptions boardMagnification colourScheme
+mkNativeUIOptions boardMagnification colourScheme depictFigurine
 	| uncurry (||) $ (
 		(< 1) *** (< 1)
 	) boardMagnification	= Control.Exception.throw . Data.Exception.mkOutOfBounds . showString "BishBosh.Input.NativeUIOptions.mkNativeUIOptions:\t" . showString boardMagnificationTag . Text.ShowList.showsAssociation $ shows boardMagnification " must both exceed zero."
@@ -139,6 +162,7 @@ mkNativeUIOptions boardMagnification colourScheme
 	) boardMagnification	= Control.Exception.throw . Data.Exception.mkInvalidDatum . showString "BishBosh.Input.NativeUIOptions.mkNativeUIOptions:\t" . showString boardMagnificationTag . Text.ShowList.showsAssociation $ shows boardMagnification " must both be odd."
 	| otherwise		= MkNativeUIOptions {
 		getBoardMagnification	= boardMagnification,
-		getColourScheme		= colourScheme
+		getColourScheme		= colourScheme,
+		getDepictFigurine	= depictFigurine
 	}
 

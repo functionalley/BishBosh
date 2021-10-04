@@ -220,6 +220,10 @@
 								<choice>
 									<element name="nativeUIOptions">
 										<optional>
+											<attribute name="depictFigurine">
+												<ref name="Boolean"/>
+											</attribute>
+										</optional><optional>
 											<element name="boardMagnification">
 												<attribute name="nRows">
 													<data type="positiveInteger"/>

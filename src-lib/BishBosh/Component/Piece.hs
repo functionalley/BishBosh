@@ -29,7 +29,7 @@ module BishBosh.Component.Piece(
 -- ** Type-synonyms
 --	ByRankByLogicalColour,
 --	AttackDestinationsByCoordinatesByRankByLogicalColour,
---	ArrayByPiece,
+	ArrayByPiece,
 	LocatedPiece,
 -- ** Data-types
 	Piece(
@@ -62,7 +62,7 @@ module BishBosh.Component.Piece(
 	mkPiece,
 	mkQueen,
 	mkRook,
---	listArrayByPiece,
+	listArrayByPiece,
 -- ** Predicates
 	canAttackAlong,
 	canMoveBetween,

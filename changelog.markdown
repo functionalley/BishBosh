@@ -116,3 +116,6 @@ New Module					| Purpose
 * Checked that (with the possible exception of the King) the Queen is configured as the most valuable rank.
 * Avoided repeated calls from module **BishBosh.Evaluation.Fitness** to function **IBishBosh.nput.RankValues.calculateMaximumTotalValue** by adding the record-field **BishBosh.Input.EvaluationOptions.getMaximumTotalRankValue**.
 
+## 0.1.2.0
+* Added a Boolean configuration-option **BishBosh.Input.NativeUIOptions.getDepictFigurine** to specify whether the native UI should depict pieces using Unicode figurines rather than merely ASCII letters.
+

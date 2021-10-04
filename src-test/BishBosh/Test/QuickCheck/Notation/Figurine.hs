@@ -20,20 +20,25 @@
 {- |
  [@AUTHOR@]	Dr. Alistair Ward
 
- [@DESCRIPTION@]	Implements 'Test.QuickCheck.Arbitrary'.
+ [@DESCRIPTION@]	Defines /QuickCheck/-properties.
 -}
 
-module BishBosh.Test.QuickCheck.Input.NativeUIOptions() where
+module BishBosh.Test.QuickCheck.Notation.Figurine(
+-- * Constants
+	results
+) where
 
-import			Control.Arrow((***))
-import qualified	BishBosh.Input.NativeUIOptions	as Input.NativeUIOptions
-import qualified	Data.Default
+import			BishBosh.Test.QuickCheck.Component.Piece()
+import qualified	BishBosh.Component.Piece	as Component.Piece
+import qualified	BishBosh.Notation.Figurine	as Notation.Figurine
 import qualified	Test.QuickCheck
 
-instance Test.QuickCheck.Arbitrary Input.NativeUIOptions.NativeUIOptions where
-	arbitrary	= Input.NativeUIOptions.mkNativeUIOptions <$> fmap (
-		mkOddNaturalNumber *** mkOddNaturalNumber
-	 ) Test.QuickCheck.arbitrary {-BoardMagnification-} <*> return {-to Gen-monad-} Data.Default.def {-ColourScheme-} <*> Test.QuickCheck.arbitrary {-DepictFigurine-} where
-		mkOddNaturalNumber :: Num n => Integer -> n
-		mkOddNaturalNumber	= fromInteger . succ . (* 2) . (`mod` 3)
+-- | The constant test-results for this data-type.
+results :: IO [Test.QuickCheck.Result]
+results	= sequence [
+	let
+		f :: Component.Piece.Piece -> Test.QuickCheck.Property
+		f piece	= Test.QuickCheck.label "Figurine.prop_figurine" $ Notation.Figurine.fromFigurine (Notation.Figurine.toFigurine piece) == Just piece
+	in Test.QuickCheck.quickCheckWithResult Test.QuickCheck.stdArgs { Test.QuickCheck.maxSuccess = 16 } f
+ ]
 

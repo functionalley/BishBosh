@@ -64,6 +64,7 @@ import			Control.Applicative((<|>))
 import			Control.Arrow((&&&), (***))
 import			Control.Category((>>>))
 import			Data.Array.IArray((!), (//))
+import qualified	BishBosh.Attribute.ANSIColourCode			as Attribute.ANSIColourCode
 import qualified	BishBosh.Attribute.ColourScheme				as Attribute.ColourScheme
 import qualified	BishBosh.Attribute.Direction				as Attribute.Direction
 import qualified	BishBosh.Attribute.LogicalColour			as Attribute.LogicalColour
@@ -80,6 +81,7 @@ import qualified	BishBosh.Component.Piece				as Component.Piece
 import qualified	BishBosh.Component.PieceSquareByCoordinatesByRank	as Component.PieceSquareByCoordinatesByRank
 import qualified	BishBosh.Component.Zobrist				as Component.Zobrist
 import qualified	BishBosh.Data.Exception					as Data.Exception
+import qualified	BishBosh.Notation.Figurine				as Notation.Figurine
 import qualified	BishBosh.Property.Empty					as Property.Empty
 import qualified	BishBosh.Property.ExtendedPositionDescription		as Property.ExtendedPositionDescription
 import qualified	BishBosh.Property.FixedMembership			as Property.FixedMembership
@@ -474,26 +476,25 @@ shows2D :: (
  )
 	=> Type.Length.Column	-- ^ The column-magnification.
 	-> Attribute.ColourScheme.ColourScheme
-	-> (Int, Int)	-- ^ The origin from which axes are labelled.
+	-> Bool			-- ^ Whether to depict pieces as Unicode figurines.
+	-> (Int, Int)		-- ^ The origin from which axes are labelled.
 	-> MaybePieceByCoordinates x y
-	-> ShowS	-- ^ The output suitable for display on a terminal.
-shows2D boardColumnMagnification colourScheme (xOrigin, yOrigin) MkMaybePieceByCoordinates { deconstruct = byCoordinates }	= (
+	-> ShowS		-- ^ Output suitable for display on a terminal.
+shows2D boardColumnMagnification colourScheme depictFigurine (xOrigin, yOrigin) MkMaybePieceByCoordinates { deconstruct = byCoordinates }	= (
 	foldr (
-		\(y, pairs) showsRow -> showsRow . showString (
-			Attribute.PhysicalColour.selectGraphicsRendition True $ Attribute.PhysicalColour.mkFgColourCode Attribute.PhysicalColour.green
-		) . showChar y . foldr (
+		\(y, pairs) showsRow -> showsRow . showString axisGraphicsRendition . showChar y . foldr (
 			\(coordinates, c) acc' -> showString (
-				Attribute.PhysicalColour.selectGraphicsRendition False . Attribute.PhysicalColour.mkBgColourCode $ (
+				Attribute.ANSIColourCode.selectGraphicsRendition False {-isBold-} . Attribute.ANSIColourCode.mkBgColourCode $ (
 					if Attribute.LogicalColourOfSquare.isBlack $ Cartesian.Coordinates.getLogicalColourOfSquare coordinates
 						then Attribute.ColourScheme.getDarkSquareColour
 						else Attribute.ColourScheme.getLightSquareColour
-				 ) colourScheme
+				) colourScheme
 			) . showString (
-				Attribute.PhysicalColour.selectGraphicsRendition True . Attribute.PhysicalColour.mkFgColourCode $ (
+				Attribute.ANSIColourCode.selectGraphicsRendition True {-isBold-} . Attribute.ANSIColourCode.mkFgColourCode $ (
 					if Data.Char.isLower c {-Black-}
 						then Attribute.ColourScheme.getDarkPieceColour
 						else Attribute.ColourScheme.getLightPieceColour
-				 ) colourScheme
+				) colourScheme
 			) . let
 				showPadding	= showString (fromIntegral (pred boardColumnMagnification) `replicate` ' ')
 			in showPadding . showChar c . showPadding . acc'
@@ -501,21 +502,24 @@ shows2D boardColumnMagnification colourScheme (xOrigin, yOrigin) MkMaybePieceByC
 	) id . zip (
 		take (fromIntegral Cartesian.Ordinate.yLength) . enumFrom $ Data.Char.chr yOrigin
 	) . listToRaster . map (
-		Control.Arrow.second . Data.Maybe.maybe ' ' $ head . show	-- Represent each piece as a single character.
+		Control.Arrow.second . Data.Maybe.maybe ' ' $ if depictFigurine
+			then Notation.Figurine.toFigurine	-- Represent each piece as a Unicode figurine.
+			else head . show			-- Represent each piece as an ASCII character.
 	) $ Data.Array.IArray.assocs byCoordinates
  ) . showString (
 	replicate (fromIntegral boardColumnMagnification) ' '	-- Shift the line of x-axis labels right.
- ) . showString (
-	Attribute.PhysicalColour.selectGraphicsRendition True $ Attribute.PhysicalColour.mkFgColourCode Attribute.PhysicalColour.green
- ) . foldr (.) showsReset (
+ ) . showString axisGraphicsRendition . foldr (.) showsReset (
 	Data.List.intersperse (
 		showString $ replicate (2 * fromIntegral (pred boardColumnMagnification)) ' '	-- Separate each of the x-axis labels.
 	) . map showChar . take (
 		fromIntegral Cartesian.Abscissa.xLength
 	) . enumFrom $ Data.Char.chr xOrigin
  ) where
+	axisGraphicsRendition :: Attribute.ANSIColourCode.GraphicsRendition
+	axisGraphicsRendition	= Attribute.ANSIColourCode.selectGraphicsRendition True {-isBold-} $ Attribute.ANSIColourCode.mkFgColourCode Attribute.PhysicalColour.green
+
 	showsReset :: ShowS
-	showsReset	= showString $ Attribute.PhysicalColour.selectGraphicsRendition False 0
+	showsReset	= showString $ Attribute.ANSIColourCode.selectGraphicsRendition False Data.Default.def
 
 -- | Show the board using a two-dimensional representation.
 show2D :: (
@@ -526,10 +530,11 @@ show2D :: (
  )
 	=> Type.Length.Column	-- ^ The column-magnification.
 	-> Attribute.ColourScheme.ColourScheme
-	-> (Int, Int)	-- ^ The origin from which axes are labelled.
+	-> Bool			-- ^ Whether to depict figurines.
+	-> (Int, Int)		-- ^ The origin from which axes are labelled.
 	-> MaybePieceByCoordinates x y
-	-> String	-- ^ The output suitable for display on a terminal.
-show2D boardColumnMagnification colourScheme (xOrigin, yOrigin) maybePieceByCoordinates	= shows2D boardColumnMagnification colourScheme (xOrigin, yOrigin) maybePieceByCoordinates ""
+	-> String		-- ^ The output suitable for display on a terminal.
+show2D boardColumnMagnification colourScheme depictFigurine (xOrigin, yOrigin) maybePieceByCoordinates	= shows2D boardColumnMagnification colourScheme depictFigurine (xOrigin, yOrigin) maybePieceByCoordinates ""
 
 -- | Extract the pieces from the board, discarding their coordinates.
 getPieces :: (
