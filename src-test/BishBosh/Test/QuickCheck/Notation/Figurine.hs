@@ -1,6 +1,5 @@
-{-# OPTIONS_GHC -fno-warn-orphans #-}
 {-
-	Copyright (C) 2018 Dr. Alistair Ward
+	Copyright (C) 2021 Dr. Alistair Ward
 
 	This file is part of BishBosh.
 
