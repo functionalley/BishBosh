@@ -38,6 +38,7 @@ import qualified	BishBosh.Component.Zobrist	as Component.Zobrist
 import qualified	BishBosh.Data.Exception		as Data.Exception
 import qualified	BishBosh.Model.GameTree		as Model.GameTree
 import qualified	BishBosh.Property.Arboreal	as Property.Arboreal
+import qualified	BishBosh.Property.Empty		as Property.Empty
 import qualified	BishBosh.Text.ShowList		as Text.ShowList
 import qualified	BishBosh.Type.Count		as Type.Count
 import qualified	BishBosh.Type.Crypto		as Type.Crypto
@@ -96,5 +97,5 @@ countDistinctPositions depth MkPositionHashTree { deconstruct = barePositionHash
 		}								= Data.Set.singleton hash	-- Being unable to descend further, include the terminal game's hash.
 		slave depth' Data.Tree.Node { Data.Tree.subForest = forest }	= Data.List.foldl' (
 			\s -> Data.Set.union s . slave (pred depth') {-recurse-}
-		 ) Data.Set.empty forest
+		 ) Property.Empty.empty forest
 

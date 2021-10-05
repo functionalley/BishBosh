@@ -78,7 +78,7 @@ instance Search.EphemeralData.EphemeralData (KillerMoves killerMoveKey) where
 		| otherwise	= MkKillerMoves $ Data.Array.IArray.amap (
 			Data.Map.mapMaybe $ \m -> let
 				m'	= Data.IntMap.Strict.filterWithKey (\nPlies' _ -> nPlies' > fromIntegral nPlies) m
-			in if Data.IntMap.Strict.null m'
+			in if Data.Foldable.null m'
 				then Nothing
 				else Just m'
 		) nInstancesByNPliesByKeyByLogicalColour

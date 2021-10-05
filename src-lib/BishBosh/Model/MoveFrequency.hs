@@ -74,7 +74,7 @@ instance Property.Empty.Empty (MoveFrequency move) where
 	empty	= MkMoveFrequency . Attribute.LogicalColour.listArrayByLogicalColour . repeat . Attribute.Rank.listArrayByRank $ repeat Property.Empty.empty
 
 instance Property.Null.Null (MoveFrequency move) where
-	isNull MkMoveFrequency { deconstruct = instancesByMoveByRankByLogicalColour }	= Data.Foldable.all (Data.Foldable.all Data.Map.Strict.null) instancesByMoveByRankByLogicalColour
+	isNull MkMoveFrequency { deconstruct = instancesByMoveByRankByLogicalColour }	= Data.Foldable.all (Data.Foldable.all Data.Foldable.null) instancesByMoveByRankByLogicalColour
 
 -- | Count the total number of entries.
 countEntries :: MoveFrequency move -> Type.Count.NPlies

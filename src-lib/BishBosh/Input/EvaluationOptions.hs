@@ -71,8 +71,8 @@ import qualified	Control.Exception
 import qualified	Control.Monad.Reader
 import qualified	Data.Array.IArray
 import qualified	Data.Default
+import qualified	Data.Foldable
 import qualified	Data.Maybe
-import qualified	Data.Set
 import qualified	Text.XML.HXT.Arrow.Pickle				as HXT
 
 -- | Used to qualify XML.
@@ -123,14 +123,7 @@ instance (
 		getMaybePieceSquareByCoordinatesByRank	= maybePieceSquareByCoordinatesByRank
 	} = Control.DeepSeq.rnf (maximumTotalValue, criteriaWeights, incrementalEvaluation, maybePieceSquareByCoordinatesByRank)
 
-instance (
-	Enum	x,
-	Enum	y,
-	Ord	x,
-	Ord	y,
-	Real	pieceSquareValue,
-	Show	pieceSquareValue
- ) => Property.ShowFloat.ShowFloat (EvaluationOptions pieceSquareValue x y) where
+instance (Real pieceSquareValue, Show pieceSquareValue) => Property.ShowFloat.ShowFloat (EvaluationOptions pieceSquareValue x y) where
 	showsFloat fromDouble MkEvaluationOptions {
 		getRankValues				= rankValues,
 --		getMaximumTotalRankValue		= maximumTotalValue,
@@ -235,8 +228,8 @@ mkEvaluationOptions :: (
 mkEvaluationOptions rankValues criteriaWeights incrementalEvaluation maybePieceSquareTablePair
 	| Just (pieceSquareTable, _)	<- maybePieceSquareTablePair
 	, let undefinedRanks	= Input.PieceSquareTable.findUndefinedRanks pieceSquareTable
-	, not $ Data.Set.null undefinedRanks
-	= Control.Exception.throw . Data.Exception.mkInsufficientData . showString "BishBosh.Input.EvaluationOptions.mkEvaluationOptions:\tranks" . Text.ShowList.showsAssociation $ shows (Data.Set.toList undefinedRanks) " are undefined."
+	, not $ Data.Foldable.null undefinedRanks
+	= Control.Exception.throw . Data.Exception.mkInsufficientData . showString "BishBosh.Input.EvaluationOptions.mkEvaluationOptions:\tranks" . Text.ShowList.showsAssociation $ shows (Data.Foldable.toList undefinedRanks) " are undefined."
 	| Input.CriteriaWeights.getWeightOfPieceSquareValue criteriaWeights /= minBound
 	, Data.Maybe.isNothing maybePieceSquareTablePair
 	= Control.Exception.throw . Data.Exception.mkIncompatibleData . showString "BishBosh.Input.EvaluationOptions.mkEvaluationOptions:\tweight of " . shows Input.CriteriaWeights.weightOfPieceSquareValueTag . showString " is defined but " $ shows Input.PieceSquareTable.tag " isn't."

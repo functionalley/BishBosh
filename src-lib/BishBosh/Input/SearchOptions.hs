@@ -85,6 +85,7 @@ import qualified	BishBosh.Attribute.LogicalColour		as Attribute.LogicalColour
 import qualified	BishBosh.Data.Exception				as Data.Exception
 import qualified	BishBosh.Data.Foldable
 import qualified	BishBosh.Input.StandardOpeningOptions		as Input.StandardOpeningOptions
+import qualified	BishBosh.Property.Empty				as Property.Empty
 import qualified	BishBosh.Property.Opposable			as Property.Opposable
 import qualified	BishBosh.Text.Case				as Text.Case
 import qualified	BishBosh.Text.ShowList				as Text.ShowList
@@ -259,7 +260,7 @@ instance Data.Default.Default SearchOptions where
 		getUsePondering				= False,
 		getMaybeUseTranspositions		= Nothing,
 		getStandardOpeningOptions		= Data.Default.def,
-		getSearchDepthByLogicalColour		= Data.Map.Strict.empty	-- Manual.
+		getSearchDepthByLogicalColour		= Property.Empty.empty	-- Manual play.
 	}
 
 instance HXT.XmlPickler SearchOptions where
@@ -309,7 +310,7 @@ instance HXT.XmlPickler SearchOptions where
 					then l
 					else Control.Exception.throw . Data.Exception.mkDuplicateData . showString "BishBosh.Input.SearchOptions.xpickle:\t" . showString Attribute.LogicalColour.tag . showString "s must be distinct; " $ shows duplicateLogicalColours "."
 			),	-- Construct from a List.
-			Data.Map.Strict.toList		-- Deconstruct to a List.
+			Data.Map.Strict.toList		-- Deconstruct to an association-list.
 		) . HXT.xpList {-potentially null-} . HXT.xpElem (
 			showString "by" $ Text.Case.toUpperInitial Attribute.LogicalColour.tag
 		) $ HXT.xpickle {-LogicalColour-} `HXT.xpPair` HXT.xpAttr searchDepthTag HXT.xpickle {-NPlies-}
@@ -341,7 +342,7 @@ mkSearchOptions sortOnStandardOpeningMoveFrequency maybeCaptureMoveSortAlgorithm
 	| Just (_, minimumTranspositionSearchDepth)	<- maybeUseTranspositions
 	, minimumTranspositionSearchDepth < 1	= Control.Exception.throw . Data.Exception.mkOutOfBounds . showString "BishBosh.Input.SearchOptions.mkSearchOptions:\t" . showString minimumTranspositionSearchDepthTag . Text.ShowList.showsAssociation $ shows minimumTranspositionSearchDepth " must exceed zero."
 	| Just (_, minimumTranspositionSearchDepth)	<- maybeUseTranspositions
-	, not $ Data.Map.Strict.null searchDepthByLogicalColour
+	, not $ Data.Foldable.null searchDepthByLogicalColour
 	, Data.Foldable.all (
 		minimumTranspositionSearchDepth >
 	) searchDepthByLogicalColour	= Control.Exception.throw . Data.Exception.mkOutOfBounds . showString "BishBosh.Input.SearchOptions.mkSearchOptions:\t" . showString minimumTranspositionSearchDepthTag . Text.ShowList.showsAssociation $ shows minimumTranspositionSearchDepth . showString " exceeds " . showString searchDepthTag . Text.ShowList.showsAssociation $ shows (Data.Map.Strict.toList searchDepthByLogicalColour) "."
@@ -362,7 +363,7 @@ mkSearchOptions sortOnStandardOpeningMoveFrequency maybeCaptureMoveSortAlgorithm
 
 -- | Get either player's search-depth, using a default value when none are defined.
 getSearchDepth :: SearchOptions -> Type.Count.NPlies
-getSearchDepth MkSearchOptions { getSearchDepthByLogicalColour = searchDepthByLogicalColour }	= Data.Maybe.fromMaybe defaultSearchDepth . Data.Maybe.listToMaybe $ Data.Map.Strict.elems searchDepthByLogicalColour	-- Manual players don't have a searchDepth, so use the opponent's settings.
+getSearchDepth MkSearchOptions { getSearchDepthByLogicalColour = searchDepthByLogicalColour }	= Data.Maybe.fromMaybe defaultSearchDepth . Data.Maybe.listToMaybe $ Data.Foldable.toList searchDepthByLogicalColour	-- Manual players don't have a searchDepth, so use the opponent's settings.
 
 -- | Self-documentation.
 type RecordKillerMoves	= Bool

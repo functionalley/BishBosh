@@ -113,14 +113,7 @@ instance (
 		getIOOptions		= ioOptions
 	} = Control.DeepSeq.rnf (maybeMaximumPlies, maybeRandomSeed, evaluationOptions, searchOptions, ioOptions)
 
-instance (
-	Enum	x,
-	Enum	y,
-	Ord	x,
-	Ord	y,
-	Real	pieceSquareValue,
-	Show	pieceSquareValue
- ) => Property.ShowFloat.ShowFloat (Options pieceSquareValue x y) where
+instance (Real pieceSquareValue, Show pieceSquareValue) => Property.ShowFloat.ShowFloat (Options pieceSquareValue x y) where
 	showsFloat fromDouble MkOptions {
 		getMaybeMaximumPlies	= maybeMaximumPlies,
 		getMaybeRandomSeed	= maybeRandomSeed,

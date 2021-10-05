@@ -1353,7 +1353,7 @@ mkAvailableQualifiedMovesFor logicalColour	= foldr {-maintains destination-order
 			Component.QualifiedMove.getMoveType qualifiedMove
 		) -- Pair.
 	] {-singleton-}
- ) Data.Map.empty . listQualifiedMovesAvailableTo logicalColour
+ ) Property.Empty.empty . listQualifiedMovesAvailableTo logicalColour
 
 {- |
 	* Retrieve the recorded value, or generate the list of /move/s available to the player of the specified /logical colour/.

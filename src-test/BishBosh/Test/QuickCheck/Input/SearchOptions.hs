@@ -51,7 +51,7 @@ instance Test.QuickCheck.Arbitrary Input.SearchOptions.SearchOptions where
 		 ) <*> (
 			fmap (
 				fromInteger . (`mod` 3) *** (
-					if Data.Map.Strict.null searchDepthByLogicalColour
+					if Data.Foldable.null searchDepthByLogicalColour
 						then id
 						else min $ Data.Foldable.maximum searchDepthByLogicalColour
 				) . fromInteger . succ . (`mod` 3)

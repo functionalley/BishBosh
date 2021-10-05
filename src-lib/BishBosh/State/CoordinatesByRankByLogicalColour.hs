@@ -69,6 +69,7 @@ import qualified	BishBosh.Component.Move					as Component.Move
 import qualified	BishBosh.Component.Piece				as Component.Piece
 import qualified	BishBosh.Component.PieceSquareByCoordinatesByRank	as Component.PieceSquareByCoordinatesByRank
 import qualified	BishBosh.Component.Zobrist				as Component.Zobrist
+import qualified	BishBosh.Property.Empty					as Property.Empty
 import qualified	BishBosh.Property.FixedMembership			as Property.FixedMembership
 import qualified	BishBosh.Property.Opposable				as Property.Opposable
 import qualified	BishBosh.State.MaybePieceByCoordinates			as State.MaybePieceByCoordinates
@@ -237,7 +238,7 @@ countPawnsByFileByLogicalColour :: Ord x => CoordinatesByRankByLogicalColour x y
 countPawnsByFileByLogicalColour MkCoordinatesByRankByLogicalColour { deconstruct = byLogicalColour }	= Data.Array.IArray.amap (
 	Data.List.foldl' (
 		\m coordinates -> Data.Map.Strict.insertWith (const succ) (Cartesian.Coordinates.getX coordinates) 1 m
-	) Data.Map.Strict.empty . (! Attribute.Rank.Pawn)
+	) Property.Empty.empty . (! Attribute.Rank.Pawn)
  ) byLogicalColour
 
 -- | Locate all /piece/s of the specified /logical colour/.
@@ -267,7 +268,7 @@ findPassedPawnCoordinatesByLogicalColour MkCoordinatesByRankByLogicalColour { de
 			) {-only compare with the least advanced opposing Pawn in each file-} (
 				Cartesian.Coordinates.getX &&& Cartesian.Coordinates.getY $ coordinates
 			) m
-		 ) Data.Map.Strict.empty $ findPawns opponentsLogicalColour
+		 ) Property.Empty.empty $ findPawns opponentsLogicalColour
 	in filter (
 		\coordinates -> all (
 			Data.Maybe.maybe True {-the absence of an opposing Pawn doesn't impede advancement-} (

@@ -35,10 +35,11 @@ module BishBosh.Property.Empty(
 
 import qualified	Data.IntMap
 import qualified	Data.Map
+import qualified	Data.Set
 
 -- | An interface which data which can support the concept of being empty, may implement.
 class Empty a where
-	empty	:: a	-- ^ Constant.
+	empty	:: a	-- ^ A constant empty state.
 
 instance (Empty a, Empty b) => Empty (a, b) where
 	empty	= (empty, empty)
@@ -49,9 +50,12 @@ instance Empty (Maybe a) where
 instance Empty [a] where
 	empty	= []
 
+instance Empty (Data.IntMap.IntMap e) where
+	empty	= Data.IntMap.empty
+
 instance Empty (Data.Map.Map i e) where
 	empty	= Data.Map.empty
 
-instance Empty (Data.IntMap.IntMap e) where
-	empty	= Data.IntMap.empty
+instance Empty (Data.Set.Set i) where
+	empty	= Data.Set.empty
 

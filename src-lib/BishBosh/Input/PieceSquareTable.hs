@@ -71,6 +71,7 @@ import qualified	BishBosh.Cartesian.Coordinates		as Cartesian.Coordinates
 import qualified	BishBosh.Data.Exception			as Data.Exception
 import qualified	BishBosh.Data.Foldable			as Data.Foldable
 import qualified	BishBosh.Data.Num			as Data.Num
+import qualified	BishBosh.Property.Empty			as Property.Empty
 import qualified	BishBosh.Property.FixedMembership	as Property.FixedMembership
 import qualified	BishBosh.Property.ShowFloat		as Property.ShowFloat
 import qualified	BishBosh.Text.Case			as Text.Case
@@ -78,8 +79,8 @@ import qualified	BishBosh.Text.ShowList			as Text.ShowList
 import qualified	BishBosh.Type.Mass			as Type.Mass
 import qualified	Control.Arrow
 import qualified	Control.Exception
-import qualified	Data.Array.IArray
 import qualified	Data.Default
+import qualified	Data.Foldable
 import qualified	Data.Map.Strict
 import qualified	Data.Set
 import qualified	Text.XML.HXT.Arrow.Pickle		as HXT
@@ -111,14 +112,7 @@ data PieceSquareTable x y pieceSquareValue	= MkPieceSquareTable {
 	)							-- ^ N.B.: on the assumption that the values for Black pieces are the reflection of those for White, merely the /rank/ of each /piece/ need be defined.
 } deriving (Eq, Show)
 
-instance (
-	Enum	x,
-	Enum	y,
-	Ord	x,
-	Ord	y,
-	Real	pieceSquareValue,
-	Show	pieceSquareValue
- ) => Property.ShowFloat.ShowFloat (PieceSquareTable x y pieceSquareValue) where
+instance (Real pieceSquareValue, Show pieceSquareValue) => Property.ShowFloat.ShowFloat (PieceSquareTable x y pieceSquareValue) where
 	showsFloat fromDouble MkPieceSquareTable {
 		getNormalise				= normalise,
 		getReflectOnY				= reflectOnY,
@@ -136,7 +130,7 @@ instance (
 			if reflectOnY
 				then unmirror
 				else id
-		) . Data.Array.IArray.elems
+		) . Data.Foldable.toList
 	 ) (
 		Data.Map.Strict.assocs byRank
 	 )
@@ -145,7 +139,7 @@ instance Data.Default.Default (PieceSquareTable x y pieceSquareValue) where
 	def = MkPieceSquareTable {
 		getNormalise				= False,
 		getReflectOnY				= True,
-		getPieceSquareValueByCoordinatesByRank	= Data.Map.Strict.empty
+		getPieceSquareValueByCoordinatesByRank	= Property.Empty.empty
 	}
 
 instance (
@@ -172,7 +166,7 @@ instance (
 					if reflectOnY
 						then unmirror
 						else id
-				) . Data.Array.IArray.elems
+				) . Data.Foldable.toList
 			) byRank
 		) -- Deconstruct to tuple.
 	 ) . HXT.xpTriple (

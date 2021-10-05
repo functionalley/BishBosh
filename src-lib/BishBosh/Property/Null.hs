@@ -33,5 +33,4 @@ import	Prelude(Bool)
 
 -- | An interface for data which can support the concept of being null.
 class Null a where
-	isNull	:: a -> Bool	-- ^ Predicate, cf. 'Prelude.null' for a 'Prelude.Foldable'.
-
+	isNull	:: a -> Bool	-- ^ Predicate. N.B.: similar to 'Data.Foldable.null', but for unfoldable types.

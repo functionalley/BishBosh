@@ -44,8 +44,8 @@ type Zobrist	= Component.Zobrist.Zobrist Type.Length.X Type.Length.Y Type.Crypto
 -- | Check the sanity of the implementation, by validating a list of static test-cases.
 testCases :: Test.HUnit.Test
 testCases	= Test.HUnit.test [
-	"'BishBosh.Component.Zobrist.Zobrist' contains the wrong number of random numbers." ~: length (
-		Data.Foldable.toList (Data.Default.def :: Zobrist)
+	"'BishBosh.Component.Zobrist.Zobrist' contains the wrong number of random numbers." ~: Data.Foldable.length (
+		Data.Default.def :: Zobrist
 	) ~?= 781 -- <https://www.chessprogramming.org/Zobrist_Hashing>
  ]
 

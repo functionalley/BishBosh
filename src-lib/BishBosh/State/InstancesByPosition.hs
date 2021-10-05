@@ -121,8 +121,8 @@ anyInstancesByPosition predicate MkInstancesByPosition { getNPositionsByPosition
 -}
 findMaximumInstances :: InstancesByPosition position -> Type.Count.NPositions
 findMaximumInstances MkInstancesByPosition { getNPositionsByPosition = m }
-	| Data.Map.Strict.null m	= 0	-- CAVEAT: this shouldn't happen.
-	| otherwise			= Data.Foldable.maximum m
+	| Data.Foldable.null m	= 0	-- CAVEAT: this shouldn't happen.
+	| otherwise		= Data.Foldable.maximum m
 
 -- | The type of a function which transforms the collection.
 type Transformation position	= InstancesByPosition position -> InstancesByPosition position

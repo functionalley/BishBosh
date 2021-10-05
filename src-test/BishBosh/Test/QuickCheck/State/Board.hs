@@ -152,9 +152,9 @@ results	= sequence [
 					) m $ State.Board.findAttacksBy (
 						Component.Piece.mkPiece (Property.Opposable.getOpposite logicalColour) rank
 					) destination board
-				) Data.Map.Strict.empty Property.FixedMembership.members == foldr (
+				) Property.Empty.empty Property.FixedMembership.members == foldr (
 					\(source, rank)	-> Data.Map.Strict.insertWith Data.Set.union source $ Data.Set.singleton rank
-				) Data.Map.Strict.empty (
+				) Property.Empty.empty (
 					State.Board.findAttackersOf logicalColour destination board
 				)
 			) coordinates

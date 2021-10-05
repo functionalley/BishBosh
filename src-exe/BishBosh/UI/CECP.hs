@@ -99,6 +99,7 @@ import qualified	Control.Monad.Reader
 import qualified	Data.Array.IArray
 import qualified	Data.Bits
 import qualified	Data.Default
+import qualified	Data.Foldable
 import qualified	Data.List
 import qualified	Data.List.Extra
 import qualified	Data.Map.Strict
@@ -230,7 +231,7 @@ readMove positionHashQualifiedMoveTree randomGen	= slave where
 		(searchOptions, ioOptions)	= Input.Options.getSearchOptions &&& Input.Options.getIOOptions $ options
 
 		(searchDepthByLogicalColour, tryToMatchSwitches)	= Input.SearchOptions.getSearchDepthByLogicalColour &&& Input.StandardOpeningOptions.getMatchSwitches . Input.SearchOptions.getStandardOpeningOptions $ searchOptions
-		fullyManual						= Data.Map.Strict.null searchDepthByLogicalColour
+		fullyManual						= Data.Foldable.null searchDepthByLogicalColour
 
 		uiOptions	= Input.IOOptions.getUIOptions ioOptions
 
@@ -811,7 +812,7 @@ readMove positionHashQualifiedMoveTree randomGen	= slave where
 								] ++ map show [
 									Data.Maybe.fromMaybe (
 										Control.Exception.throw . Data.Exception.mkNullDatum . showString "BishBosh.UI.CECP.readMove.slave.eventLoop:\tundefined " $ shows Input.Options.tag "."
-									) . Data.Maybe.listToMaybe $ Data.Map.Strict.elems searchDepthByLogicalColour,
+									) . Data.Maybe.listToMaybe $ Data.Foldable.toList searchDepthByLogicalColour,
 									Input.SearchOptions.minimumSearchDepth,
 									7	-- Arbitrary maximum.
 								]

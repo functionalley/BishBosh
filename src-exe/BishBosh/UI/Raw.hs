@@ -82,6 +82,7 @@ import qualified	Control.Monad.Reader
 import qualified	Data.Array.IArray
 import qualified	Data.Bits
 import qualified	Data.Default
+import qualified	Data.Foldable
 import qualified	Data.List.Extra
 import qualified	Data.Map.Strict
 import qualified	Data.Maybe
@@ -137,7 +138,7 @@ readMove positionHashQualifiedMoveTree randomGen runningWatch playState	= let
 	(searchOptions, ioOptions)	= Input.Options.getSearchOptions &&& Input.Options.getIOOptions $ options
 
 	searchDepthByLogicalColour	= Input.SearchOptions.getSearchDepthByLogicalColour searchOptions
-	fullyManual			= Data.Map.Strict.null searchDepthByLogicalColour
+	fullyManual			= Data.Foldable.null searchDepthByLogicalColour
 
 	(uiOptions, maybeMaximumPGNNames)	= Input.IOOptions.getUIOptions &&& Input.IOOptions.getMaybeMaximumPGNNames $ ioOptions
 

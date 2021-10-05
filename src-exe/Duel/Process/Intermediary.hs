@@ -51,6 +51,7 @@ import qualified	BishBosh.Input.SearchOptions		as Input.SearchOptions
 import qualified	BishBosh.Input.UIOptions		as Input.UIOptions
 import qualified	BishBosh.Input.Verbosity		as Input.Verbosity
 import qualified	BishBosh.Notation.MoveNotation		as Notation.MoveNotation
+import qualified	BishBosh.Property.Empty			as Property.Empty
 import qualified	BishBosh.Property.Opposable		as Property.Opposable
 import qualified	BishBosh.Property.SelfValidating	as Property.SelfValidating
 import qualified	BishBosh.Property.Switchable		as Property.Switchable
@@ -85,7 +86,7 @@ type MoveNotation	= Notation.PureCoordinate.PureCoordinate
 import qualified	BishBosh.Notation.Smith			as Notation.Smith
 type MoveNotation	= Notation.Smith.Smith
 #	else
-#		error "MOVE_NOTATION ill-defined"
+#		error "MOVE_NOTATION invalid"
 #	endif
 #else
 #	error "MOVE_NOTATION undefined"
@@ -325,7 +326,7 @@ initialise options
 				uncurry (startGame verbosity) $ (Data.Options.getNDecimalDigits &&& Data.Options.getReadTimeout) options
 			 ) (
 				($ handles) &&& ($ handles') $ Process.Handles.getHandlePair
-			 ) Data.Map.Strict.empty (
+			 ) Property.Empty.empty (
 				Data.Options.getNGames options
 			 ) >>= IO.Logger.printInfo . show . Data.Map.Strict.toList
 	) $ \e -> do
