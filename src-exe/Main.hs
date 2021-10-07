@@ -381,12 +381,12 @@ main	= do
 
 								System.IO.hSetBuffering System.IO.stdout System.IO.LineBuffering	-- CAVEAT: required when the output is another process instead of a terminal.
 
-								playState	<- uncurry (Play.play randomGen) . (,) options' =<< (	-- CAVEAT: artificially construct a pair, to reduce the strictness & thus allow the UI to be rendered while PGN-databases are evaluated in the background.
+								playState	<- uncurry (Play.play verbosity randomGen) . (,) options' =<< (	-- CAVEAT: artificially construct a pair, to reduce the strictness & thus allow the UI to be rendered while PGN-databases are evaluated in the background.
 									\qualifiedMoveForest -> do
 										Control.Monad.when (verbosity == maxBound && not (Property.Null.isNull qualifiedMoveForest)) $ mapM_ (
 											System.IO.hPutStrLn System.IO.stderr . showsInfoPrefix . ($ ".")
 										 ) [
-											showString "resulting tree contains (nGames, nMoves)" . Text.ShowList.showsAssociation . shows (ContextualNotation.QualifiedMoveForest.count qualifiedMoveForest),	-- CAVEAT: application stalls during this call.
+											showString "resulting tree contains (nGames, nPositions)" . Text.ShowList.showsAssociation . shows (ContextualNotation.QualifiedMoveForest.count qualifiedMoveForest),	-- CAVEAT: application stalls during this call.
 
 											showString "the minimum number of pieces remaining in any of the archived games" . Text.ShowList.showsAssociation . shows (ContextualNotation.QualifiedMoveForest.findMinimumPieces qualifiedMoveForest)
 										 ]

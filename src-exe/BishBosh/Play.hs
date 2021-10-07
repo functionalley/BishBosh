@@ -47,7 +47,9 @@ import qualified	BishBosh.Input.IOOptions					as Input.IOOptions
 import qualified	BishBosh.Input.Options						as Input.Options
 import qualified	BishBosh.Input.SearchOptions					as Input.SearchOptions
 import qualified	BishBosh.Input.UIOptions					as Input.UIOptions
+import qualified	BishBosh.Input.Verbosity					as Input.Verbosity
 import qualified	BishBosh.Model.GameTree						as Model.GameTree
+import qualified	BishBosh.Model.MoveFrequency					as Model.MoveFrequency
 import qualified	BishBosh.Notation.MoveNotation					as Notation.MoveNotation
 import qualified	BishBosh.Property.Arboreal					as Property.Arboreal
 import qualified	BishBosh.Property.Empty						as Property.Empty
@@ -61,6 +63,7 @@ import qualified	BishBosh.UI.CECP						as UI.CECP
 import qualified	BishBosh.UI.Raw							as UI.Raw
 import qualified	Control.DeepSeq
 import qualified	Control.Exception
+import qualified	Control.Monad
 import qualified	Data.Array.IArray
 import qualified	Data.Bits
 import qualified	Data.Default
@@ -97,18 +100,20 @@ play :: (
 	System.Random.Random					positionHash,
 	System.Random.RandomGen					randomGen
  )
-	=> randomGen
+	=> Input.Verbosity.Verbosity
+	-> randomGen
 	-> Input.Options.Options pieceSquareValue x y
 	-> ContextualNotation.QualifiedMoveForest.QualifiedMoveForest x y	-- ^ Standard openings.
 	-> IO (State.PlayState.PlayState pieceSquareValue positionHash x y)
 {-# SPECIALISE play
 	:: System.Random.RandomGen randomGen
-	=> randomGen
+	=> Input.Verbosity.Verbosity
+	-> randomGen
 	-> Input.Options.Options Type.Mass.PieceSquareValue Type.Length.X Type.Length.Y
 	-> ContextualNotation.QualifiedMoveForest.QualifiedMoveForest Type.Length.X Type.Length.Y
 	-> IO (State.PlayState.PlayState Type.Mass.PieceSquareValue Type.Crypto.PositionHash Type.Length.X Type.Length.Y)
  #-}
-play randomGen options qualifiedMoveForest	= Data.Maybe.maybe (
+play verbosity randomGen options qualifiedMoveForest	= Data.Maybe.maybe (
 	return {-to IO-monad-} Data.Default.def {-game-}
  ) (
 	\(filePath, _) -> if any (System.FilePath.equalFilePath filePath) [
@@ -128,9 +133,18 @@ play randomGen options qualifiedMoveForest	= Data.Maybe.maybe (
  ) (
 	Input.IOOptions.getMaybePersistence ioOptions
  ) >>= (
-	(
+	let
+		sortOnStandardOpeningMoveFrequency	= Input.SearchOptions.getSortOnStandardOpeningMoveFrequency searchOptions
+
+		moveFrequency
+			| sortOnStandardOpeningMoveFrequency	= Model.GameTree.toMoveFrequency $ ContextualNotation.QualifiedMoveForest.toGameTree qualifiedMoveForest
+			| otherwise				= Property.Empty.empty
+	in (
 		\playState -> Data.Maybe.maybe (
-			return {-to IO-monad-} playState
+			do
+				Control.Monad.when (sortOnStandardOpeningMoveFrequency && verbosity == maxBound) . System.IO.hPutStrLn System.IO.stderr . Text.ShowColouredPrefix.showsPrefixInfo . shows (Model.MoveFrequency.countEntries moveFrequency) . showString " plies are recorded in the tree, of which " $ shows (Model.MoveFrequency.countDistinctEntries moveFrequency) " are distinct."
+
+				return {-to IO-monad-} playState
 		) (
 			\depth -> do
 				System.IO.hPutStrLn System.IO.stderr . Text.ShowColouredPrefix.showsPrefixInfo . showString "Move-tree:\n" $ (
@@ -141,11 +155,7 @@ play randomGen options qualifiedMoveForest	= Data.Maybe.maybe (
 
 				return {-to IO-monad-} playState
 		) $ Input.UIOptions.getMaybePrintMoveTree uiOptions
-	) . State.PlayState.initialise options zobrist (
-		if Input.SearchOptions.getSortOnStandardOpeningMoveFrequency searchOptions
-			then Model.GameTree.toMoveFrequency $ ContextualNotation.QualifiedMoveForest.toGameTree qualifiedMoveForest
-			else Property.Empty.empty {-MoveFrequency-}
-	)
+	) . State.PlayState.initialise options zobrist moveFrequency
  ) >>= (
 	const UI.Raw.takeTurns ||| const UI.CECP.takeTurns $ Input.UIOptions.getEitherNativeUIOrCECPOptions uiOptions	-- Select a user-interface.
  ) (

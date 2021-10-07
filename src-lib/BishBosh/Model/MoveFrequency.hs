@@ -22,7 +22,7 @@
 
  [@DESCRIPTION@]
 
-	* The instances of various moves, categorised by /logical colour/ & /rank/, are recorded from a large resource of games.
+	* The instances of various moves, categorised by /logical colour/ & /rank/, are recorded from recorded games.
 
 	* The frequency-distribution can then be used to sort the moves in the current game, to prioritise evaluation of likely candidates.
 -}
@@ -36,7 +36,7 @@ module BishBosh.Model.MoveFrequency(
 	MoveFrequency(),
 -- * Functions
 	countEntries,
---	countDistinctEntries,
+	countDistinctEntries,
 	insertMoves,
 	sortByDescendingMoveFrequency
 ) where
@@ -82,7 +82,13 @@ countEntries MkMoveFrequency { deconstruct = instancesByMoveByRankByLogicalColou
 	Data.Foldable.foldl' $ \acc -> (acc +) . Data.Foldable.sum
  ) 0 instancesByMoveByRankByLogicalColour
 
--- | Count the total number of distinct entries.
+{- |
+	* Count the total number of distinct entries.
+
+	* N.B.: in this context, a distinct move is one which wasn't made in any other branch of the tree.
+	E.g.: many recorded games will start with the same move, which becomes just one node in the game-tree from which this structure is derived, & so will only have a count of one in this structure.
+	If this same move is also made subsequently (i.e. after a different opening), then it exists on a different branch of the tree, & increases the move's count to 2 but doesn't increase the number of distinct moves.
+-}
 countDistinctEntries :: MoveFrequency move -> Type.Count.NPlies
 countDistinctEntries MkMoveFrequency { deconstruct = instancesByMoveByRankByLogicalColour }	= fromIntegral $ Data.Foldable.foldl' (
 	Data.Foldable.foldl' $ \acc -> (acc +) . Data.Foldable.length
