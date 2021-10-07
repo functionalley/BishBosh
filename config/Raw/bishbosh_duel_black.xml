@@ -31,7 +31,7 @@
 		<criteriaWeights material="1" mobility="0" pieceSquareValue="0.1" castlingPotential="0" defence="0" doubledPawns="0" isolatedPawns="0" passedPawns="0"/>	<!-- N.B. only those criteria under test need be non-zero -->
 		&pieceSquareTables_Rofchade;
 	</evaluationOptions>
-	<searchOptions sortOnStandardOpeningMoveFrequency="True" captureMoveSortAlgorithm="MVVLVA" retireKillerMovesAfter="3" usePondering="False">	<!-- CAVEAT: pondering uses time more productively used by the other instance -->
+	<searchOptions captureMoveSortAlgorithm="MVVLVA" retireKillerMovesAfter="3" usePondering="False">	<!-- CAVEAT: pondering uses time more productively used by the other instance -->
 		&transpositions;
 		<searchDepthByLogicalColour>
 			<byLogicalColour logicalColour="Black" searchDepth="3"/>

@@ -26,7 +26,7 @@
 		&criteriaWeights;
 		&pieceSquareTables_symmetric;
 	</evaluationOptions>
-	<searchOptions sortOnStandardOpeningMoveFrequency="True" captureMoveSortAlgorithm="MVVLVA" retireKillerMovesAfter="3" usePondering="True">
+	<searchOptions captureMoveSortAlgorithm="MVVLVA" retireKillerMovesAfter="3" usePondering="True">
 		&transpositions;
 		<searchDepthByLogicalColour>
 			<byLogicalColour logicalColour="Black" searchDepth="5"/>

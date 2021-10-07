@@ -51,7 +51,7 @@ module BishBosh.Input.SearchOptions(
 	),
 -- * Constants
 	tag,
---	sortOnStandardOpeningMoveFrequencyTag
+	sortOnStandardOpeningMoveFrequencyTag,
 --	minimumHammingDistanceTag,
 --	retireKillerMovesAfterTag,
 --	trapRepeatedPositionsTag,
@@ -252,7 +252,7 @@ instance Show SearchOptions where
 
 instance Data.Default.Default SearchOptions where
 	def = MkSearchOptions {
-		getSortOnStandardOpeningMoveFrequency	= False,
+		getSortOnStandardOpeningMoveFrequency	= True,
 		getMaybeCaptureMoveSortAlgorithm	= Nothing,
 		getMaybeMinimumHammingDistance		= Nothing,
 		getMaybeRetireKillerMovesAfter		= Nothing,

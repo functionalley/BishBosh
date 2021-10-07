@@ -26,7 +26,7 @@
 		<criteriaWeights material="1" mobility="0.01" pieceSquareValue="0.01" castlingPotential="0.01" defence="0.0001" doubledPawns="0.0001" isolatedPawns="0.0001" passedPawns="0.0001"/>
 		&pieceSquareTables_symmetric;
 	</evaluationOptions>
-	<searchOptions sortOnStandardOpeningMoveFrequency="True" captureMoveSortAlgorithm="MVVLVA" retireKillerMovesAfter="3">
+	<searchOptions captureMoveSortAlgorithm="MVVLVA" retireKillerMovesAfter="3">
 		&transpositions;
 		<searchDepthByLogicalColour>
 			<byLogicalColour logicalColour="Black" searchDepth="4"/>
