@@ -34,9 +34,11 @@ module BishBosh.Test.QuickCheck.Input.Options(
 import			BishBosh.Test.QuickCheck.Input.EvaluationOptions()
 import			BishBosh.Test.QuickCheck.Input.IOOptions()
 import			BishBosh.Test.QuickCheck.Input.SearchOptions()
-import qualified	BishBosh.Input.Options	as Input.Options
-import qualified	BishBosh.Type.Length	as Type.Length
-import qualified	BishBosh.Type.Mass	as Type.Mass
+import qualified	BishBosh.Input.IOOptions	as Input.IOOptions
+import qualified	BishBosh.Input.Options		as Input.Options
+import qualified	BishBosh.Input.SearchOptions	as Input.SearchOptions
+import qualified	BishBosh.Type.Length		as Type.Length
+import qualified	BishBosh.Type.Mass		as Type.Mass
 import qualified	Test.QuickCheck
 
 -- | Defines a concrete type for testing.
@@ -57,7 +59,13 @@ instance (
 
 		return {-to Gen-monad-} $ Input.Options.mkOptions (
 			fmap (fromInteger . succ . abs) maybeMaximumPlies
-		 ) maybeRandomSeed evaluationOptions searchOptions ioOptions
+		 ) maybeRandomSeed evaluationOptions (
+			if null $ Input.IOOptions.getPGNOptionsList ioOptions
+				then searchOptions {
+					Input.SearchOptions.getSortOnStandardOpeningMoveFrequency	= False
+				}
+				else searchOptions
+		 ) ioOptions
 
 -- | The constant test-results for this data-type.
 results :: IO [Test.QuickCheck.Result]

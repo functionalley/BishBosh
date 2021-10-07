@@ -62,6 +62,7 @@ import			BishBosh.Data.Bool()		-- For 'HXT.xpickle'.
 import qualified	BishBosh.Data.Exception			as Data.Exception
 import qualified	BishBosh.Input.EvaluationOptions	as Input.EvaluationOptions
 import qualified	BishBosh.Input.IOOptions		as Input.IOOptions
+import qualified	BishBosh.Input.PGNOptions		as Input.PGNOptions
 import qualified	BishBosh.Input.SearchOptions		as Input.SearchOptions
 import qualified	BishBosh.Input.UIOptions		as Input.UIOptions
 import qualified	BishBosh.Input.Verbosity		as Input.Verbosity
@@ -188,6 +189,9 @@ mkOptions
 mkOptions maybeMaximumPlies maybeRandomSeed evaluationOptions searchOptions ioOptions
 	| Just maximumPlies	<- maybeMaximumPlies
 	, maximumPlies <= 0	= Control.Exception.throw . Data.Exception.mkOutOfBounds . showString "BishBosh.Input.Options.mkOptions:\t" . showString maximumPliesTag . Text.ShowList.showsAssociation $ shows maximumPlies " must exceed zero."
+	| Input.SearchOptions.getSortOnStandardOpeningMoveFrequency searchOptions && null (
+		Input.IOOptions.getPGNOptionsList ioOptions
+	)			= Control.Exception.throw . Data.Exception.mkIncompatibleData . showString "BishBosh.Input.Options.mkOptions:\tcan't implement '" . showString Input.SearchOptions.tag . showChar '.' . showString Input.SearchOptions.sortOnStandardOpeningMoveFrequencyTag . showString "' without any '" . showString Input.PGNOptions.tag . showChar '.' $ showString Input.PGNOptions.databaseFilePathTag "'"
 	| otherwise	= MkOptions {
 		getMaybeMaximumPlies	= maybeMaximumPlies,
 		getMaybeRandomSeed	= maybeRandomSeed,
