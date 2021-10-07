@@ -27,11 +27,11 @@ module BishBosh.Data.Foldable(
 ) where
 
 import qualified	Data.Foldable
-import qualified	Data.Map.Strict
+import qualified	Data.Map.Strict	as Map
 
 -- | Returns a unique instance of any item which has been specified more than once.
 findDuplicates :: (Foldable foldable, Ord a) => foldable a -> [a]
-findDuplicates	= Data.Map.Strict.keys . Data.Map.Strict.filter (> 1) . Data.Foldable.foldr (
-	flip (Data.Map.Strict.insertWith $ const succ) (1 :: Int)	-- Count instances.
- ) Data.Map.Strict.empty
+findDuplicates	= Map.keys . Map.filter (> 1) . Data.Foldable.foldr (
+	flip (Map.insertWith $ const succ) (1 :: Int)	-- Count instances.
+ ) Map.empty
 

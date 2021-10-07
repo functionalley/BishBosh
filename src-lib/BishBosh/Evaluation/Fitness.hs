@@ -74,8 +74,9 @@ import qualified	BishBosh.Type.Length					as Type.Length
 import qualified	BishBosh.Type.Mass					as Type.Mass
 import qualified	Control.Monad.Reader
 import qualified	Data.Array.IArray
+import qualified	Data.Foldable
 import qualified	Data.List
-import qualified	Data.Map.Strict
+import qualified	Data.Map.Strict						as Map
 import qualified	Data.Maybe
 
 #ifdef USE_UNBOXED_ARRAYS
@@ -232,7 +233,7 @@ measureValueOfDoubledPawns game	= fromRational . (
 	countDoubledPawns &&& countDoubledPawns . Property.Opposable.getOpposite {-recent mover-}
  ) $ Model.Game.getNextLogicalColour game where
 	countDoubledPawns logicalColour	= uncurry (-) . (
-		Data.Map.Strict.foldl' (+) 0 &&& fromIntegral . Data.Map.Strict.size {-one Pawn can't be considered to be doubled, so substract one Pawn per column-}
+		Data.Foldable.foldl' (+) 0 &&& fromIntegral . Data.Foldable.length {-one Pawn can't be considered to be doubled, so substract one Pawn per column-}
 	 ) $ State.Board.getNPawnsByFileByLogicalColour (Model.Game.getBoard game) ! logicalColour
 
 {- |
@@ -248,9 +249,9 @@ measureValueOfIsolatedPawns game	= fromRational . (
 	countIsolatedPawns &&& countIsolatedPawns . Property.Opposable.getOpposite {-recent mover-}
  ) $ Model.Game.getNextLogicalColour game where
 	countIsolatedPawns :: Attribute.LogicalColour.LogicalColour -> Type.Count.NPieces
-	countIsolatedPawns logicalColour	= Data.Map.Strict.foldlWithKey' (
+	countIsolatedPawns logicalColour	= Map.foldlWithKey' (
 		\acc x nPawns -> (
-			if (`Data.Map.Strict.member` nPawnsByFile) `any` Cartesian.Abscissa.getAdjacents x
+			if (`Map.member` nPawnsByFile) `any` Cartesian.Abscissa.getAdjacents x
 				then id		-- This file has at least one neighbouring Pawn which can (if at a suitable rank) be used to protect any of those in this file.
 				else (+ nPawns)	-- All the Pawns on this file are isolated & thus lack the protection that may be offered by adjacent Pawns.
 		) acc

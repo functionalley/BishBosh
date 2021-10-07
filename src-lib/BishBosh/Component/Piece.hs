@@ -98,7 +98,7 @@ import qualified	Control.Exception
 import qualified	Data.Array.IArray
 import qualified	Data.Char
 import qualified	Data.List.Extra
-import qualified	Data.Map
+import qualified	Data.Map					as Map
 import qualified	Data.Maybe
 import qualified	Text.XML.HXT.Arrow.Pickle			as HXT
 import qualified	Text.XML.HXT.Arrow.Pickle.Schema
@@ -228,7 +228,7 @@ promote :: Attribute.Rank.Rank -> Piece -> Piece
 promote newRank piece	= piece { getRank = newRank }
 
 -- | The structure of a container of arbitrary data, indexed by /logicalColour/ & some /rank/s.
-type ByRankByLogicalColour element	= Attribute.LogicalColour.ArrayByLogicalColour (Data.Map.Map Attribute.Rank.Rank element)
+type ByRankByLogicalColour element	= Attribute.LogicalColour.ArrayByLogicalColour (Map.Map Attribute.Rank.Rank element)
 
 -- | Constructor of a certain shape of container, but with arbitrary contents.
 mkByRankByLogicalColour ::
@@ -241,7 +241,7 @@ mkByRankByLogicalColour ranks mkElement	= Attribute.LogicalColour.listArrayByLog
 	. Control.Parallel.Strategies.withStrategy (Control.Parallel.Strategies.parList Control.Parallel.Strategies.rdeepseq)
 #endif
 	$ map (
-		\logicalColour	-> Data.Map.fromList $ map (id &&& mkElement logicalColour) ranks
+		\logicalColour	-> Map.fromList $ map (id &&& mkElement logicalColour) ranks
 	) Property.FixedMembership.members
 
 {- |
@@ -305,7 +305,7 @@ findAttackDestinations' source MkPiece {
 } = Data.Maybe.mapMaybe (
 	Cartesian.Vector.maybeTranslate source
  ) (
-	attackVectorsByRankByLogicalColour ! logicalColour Data.Map.! rank :: [Cartesian.Vector.VectorInt]
+	attackVectorsByRankByLogicalColour ! logicalColour Map.! rank :: [Cartesian.Vector.VectorInt]
  )
 
 -- | Find the destinations which the specified /piece/ can attack from the specified position.
@@ -327,7 +327,7 @@ findAttackDestinationsInt :: Cartesian.Coordinates.Coordinates Type.Length.X Typ
 findAttackDestinationsInt coordinates MkPiece {
 	getLogicalColour	= logicalColour,
 	getRank			= rank
-} = attackDestinationsByCoordinatesByRankByLogicalColour ! logicalColour Data.Map.! rank ! coordinates
+} = attackDestinationsByCoordinatesByRankByLogicalColour ! logicalColour Map.! rank ! coordinates
 
 -- The constant /direction/s of the straight lines along which each type of /piece/ can attack.
 
@@ -353,7 +353,7 @@ getAttackDirections :: Piece -> [Attribute.Direction.Direction]
 getAttackDirections MkPiece {
 	getLogicalColour	= logicalColour,
 	getRank			= rank
-} = attackDirectionsByRankByLogicalColour ! logicalColour Data.Map.! rank
+} = attackDirectionsByRankByLogicalColour ! logicalColour Map.! rank
 
 {- |
 	* Whether a /piece/ at the specified /coordinates/ could attack the target at the specified /coordinates/.

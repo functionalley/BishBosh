@@ -69,7 +69,6 @@ import qualified	BishBosh.Type.Mass					as Type.Mass
 import qualified	Control.DeepSeq
 import qualified	Control.Exception
 import qualified	Control.Monad.Reader
-import qualified	Data.Array.IArray
 import qualified	Data.Default
 import qualified	Data.Foldable
 import qualified	Data.Maybe
@@ -205,8 +204,8 @@ fromPieceSquareTablePair pieceSquareTablePair	= Component.PieceSquareByCoordinat
 		Left openingGamePieceSquareValuesByCoordinates
 	) (
 		Right . Cartesian.Coordinates.listArrayByCoordinates . zipWith Component.PieceSquareByCoordinatesByRank.interpolatePieceSquareValues (
-			Data.Array.IArray.elems openingGamePieceSquareValuesByCoordinates
-		) . Data.Array.IArray.elems
+			Data.Foldable.toList openingGamePieceSquareValuesByCoordinates
+		) . Data.Foldable.toList
 	) maybeEndGamePieceSquareValuesByCoordinates
  ) $ (
 	 Data.Maybe.fromJust {-values for the openingGame must be specified-} . Input.PieceSquareTable.dereference rank *** Input.PieceSquareTable.dereference rank

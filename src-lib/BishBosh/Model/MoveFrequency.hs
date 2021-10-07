@@ -51,7 +51,7 @@ import qualified	BishBosh.Type.Count			as Type.Count
 import qualified	Data.Foldable
 import qualified	Data.List
 import qualified	Data.List.Extra
-import qualified	Data.Map.Strict
+import qualified	Data.Map.Strict				as Map
 import qualified	Data.Ord
 
 {- |
@@ -61,7 +61,7 @@ import qualified	Data.Ord
 -}
 type InstancesByMoveByRankByLogicalColour move	= Attribute.LogicalColour.ArrayByLogicalColour (
 	Attribute.Rank.ArrayByRank (
-		Data.Map.Strict.Map move Type.Count.NPlies
+		Map.Map move Type.Count.NPlies
 	)
  )
 
@@ -85,7 +85,7 @@ countEntries MkMoveFrequency { deconstruct = instancesByMoveByRankByLogicalColou
 -- | Count the total number of distinct entries.
 countDistinctEntries :: MoveFrequency move -> Type.Count.NPlies
 countDistinctEntries MkMoveFrequency { deconstruct = instancesByMoveByRankByLogicalColour }	= fromIntegral $ Data.Foldable.foldl' (
-	Data.Foldable.foldl' $ \acc -> (acc +) . Data.Map.Strict.size
+	Data.Foldable.foldl' $ \acc -> (acc +) . Data.Foldable.length
  ) 0 instancesByMoveByRankByLogicalColour
 
 -- | The type of a function which can extract the /rank/ & /move/ from a datum.
@@ -124,7 +124,7 @@ insertMoves logicalColour getRankAndMove MkMoveFrequency { deconstruct = instanc
 	 ] -- List-comprehension.
 	where
 		instancesByMoveByRank	= instancesByMoveByRankByLogicalColour ! logicalColour
-		incrementMoveCount	= flip (Data.Map.Strict.insertWith (+)) 1
+		incrementMoveCount	= flip (Map.insertWith (+)) 1
 
 {- |
 	* Sorts an arbitrary list on the recorded frequency of the /rank/ & /move/ accessible from each list-item.
@@ -140,6 +140,6 @@ sortByDescendingMoveFrequency
 	-> [a]
 {-# INLINE sortByDescendingMoveFrequency #-}
 sortByDescendingMoveFrequency logicalColour getRankAndMove MkMoveFrequency { deconstruct = instancesByMoveByRankByLogicalColour }	= Data.List.sortOn $ negate {-most frequent first-} . (
-	\(rank, move) -> Data.Map.Strict.findWithDefault 0 move $ instancesByMoveByRankByLogicalColour ! logicalColour ! rank
+	\(rank, move) -> Map.findWithDefault 0 move $ instancesByMoveByRankByLogicalColour ! logicalColour ! rank
  ) . getRankAndMove
 

@@ -84,7 +84,7 @@ import qualified	Control.Exception
 import qualified	Data.Array.IArray
 import qualified	Data.Foldable
 import qualified	Data.List
-import qualified	Data.Map.Strict
+import qualified	Data.Map.Strict						as Map
 import qualified	Data.Maybe
 
 -- | The /coordinate/s of all the pieces of one /rank/.
@@ -116,7 +116,7 @@ instance (Enum x, Enum y) => StateProperty.Censor.Censor (CoordinatesByRankByLog
 		zipWith (-)
 	 ) . (
 		($ Attribute.LogicalColour.White) &&& ($ Attribute.LogicalColour.Black)
-	 ) $ map (fromIntegral . length) . Data.Array.IArray.elems . (byLogicalColour !)
+	 ) $ map (fromIntegral . length) . Data.Foldable.toList . (byLogicalColour !)
 
 	hasInsufficientMaterial MkCoordinatesByRankByLogicalColour { deconstruct = byLogicalColour }	= Data.Foldable.all (
 		\byRank -> all (
@@ -129,7 +129,7 @@ instance (Enum x, Enum y) => StateProperty.Censor.Censor (CoordinatesByRankByLog
 		where
 			[blackKnights, blackBishops, whiteKnights, whiteBishops]	= [
 				byRank ! rank |
-					byRank	<- Data.Array.IArray.elems byLogicalColour,
+					byRank	<- Data.Foldable.toList byLogicalColour,
 					rank	<- [Attribute.Rank.Knight, Attribute.Rank.Bishop]
 			 ] -- List-comprehension.
 
@@ -211,8 +211,8 @@ assocs MkCoordinatesByRankByLogicalColour { deconstruct = byLogicalColour }	= [
 listCoordinates :: CoordinatesByRankByLogicalColour x y -> [Cartesian.Coordinates.Coordinates x y]
 listCoordinates MkCoordinatesByRankByLogicalColour { deconstruct = byLogicalColour }	= [
 	coordinates |
-		byRank		<- Data.Array.IArray.elems byLogicalColour,
-		coordinatesList	<- Data.Array.IArray.elems byRank,
+		byRank		<- Data.Foldable.toList byLogicalColour,
+		coordinatesList	<- Data.Foldable.toList byRank,
 		coordinates	<- coordinatesList
  ] -- List-comprehension.
 
@@ -226,7 +226,7 @@ getKingsCoordinates logicalColour MkCoordinatesByRankByLogicalColour { deconstru
 	coordinates	= byLogicalColour ! logicalColour ! Attribute.Rank.King
 
 -- | The number of /piece/s in each file, for each /logical colour/.
-type NPiecesByFileByLogicalColour x	= Attribute.LogicalColour.ArrayByLogicalColour (Data.Map.Strict.Map x Type.Count.NPieces)
+type NPiecesByFileByLogicalColour x	= Attribute.LogicalColour.ArrayByLogicalColour (Map.Map x Type.Count.NPieces)
 
 {- |
 	* Counts the number of @Pawn@s of each /logical colour/ with similar /x/-coordinates; their /y/-coordinate is irrelevant.
@@ -237,7 +237,7 @@ countPawnsByFileByLogicalColour :: Ord x => CoordinatesByRankByLogicalColour x y
 {-# INLINABLE countPawnsByFileByLogicalColour #-}
 countPawnsByFileByLogicalColour MkCoordinatesByRankByLogicalColour { deconstruct = byLogicalColour }	= Data.Array.IArray.amap (
 	Data.List.foldl' (
-		\m coordinates -> Data.Map.Strict.insertWith (const succ) (Cartesian.Coordinates.getX coordinates) 1 m
+		\m coordinates -> Map.insertWith (const succ) (Cartesian.Coordinates.getX coordinates) 1 m
 	) Property.Empty.empty . (! Attribute.Rank.Pawn)
  ) byLogicalColour
 
@@ -262,7 +262,7 @@ findPassedPawnCoordinatesByLogicalColour MkCoordinatesByRankByLogicalColour { de
 		opponentsLogicalColour	= Property.Opposable.getOpposite logicalColour
 		opposingPawnYByX	= Data.List.foldl' (
 			\m coordinates -> uncurry (
-				Data.Map.Strict.insertWith $ if Attribute.LogicalColour.isBlack opponentsLogicalColour
+				Map.insertWith $ if Attribute.LogicalColour.isBlack opponentsLogicalColour
 					then max
 					else min
 			) {-only compare with the least advanced opposing Pawn in each file-} (
@@ -277,7 +277,7 @@ findPassedPawnCoordinatesByLogicalColour MkCoordinatesByRankByLogicalColour { de
 				) . (
 					{-opponent-} `compare` Cartesian.Coordinates.getY coordinates
 				) -- As a Pawn advances, it becomes "Passed" when the y-distance to the least advanced adjacent opposing Pawn, is either equal or backwards.
-			 ) . (`Data.Map.Strict.lookup` opposingPawnYByX)
+			 ) . (`Map.lookup` opposingPawnYByX)
 		) . uncurry (:) . (
 			id &&& Cartesian.Abscissa.getAdjacents
 		) $ Cartesian.Coordinates.getX coordinates

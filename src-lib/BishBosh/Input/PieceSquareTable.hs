@@ -81,7 +81,7 @@ import qualified	Control.Arrow
 import qualified	Control.Exception
 import qualified	Data.Default
 import qualified	Data.Foldable
-import qualified	Data.Map.Strict
+import qualified	Data.Map.Strict				as Map
 import qualified	Data.Set
 import qualified	Text.XML.HXT.Arrow.Pickle		as HXT
 
@@ -107,7 +107,7 @@ type ReflectOnY	= Bool
 data PieceSquareTable x y pieceSquareValue	= MkPieceSquareTable {
 	getNormalise				:: Normalise,	-- ^ Whether to map the specified values into the closed unit-interval.	CAVEAT: incompatible with RelaxNG, the specification for which already constrains values to the unit-interval.
 	getReflectOnY				:: ReflectOnY,	-- ^ Whether values for the RHS of the board should be inferred by reflection about the y-axis.
-	getPieceSquareValueByCoordinatesByRank	:: Data.Map.Strict.Map Attribute.Rank.Rank (
+	getPieceSquareValueByCoordinatesByRank	:: Map.Map Attribute.Rank.Rank (
 		Cartesian.Coordinates.ArrayByCoordinates x y pieceSquareValue
 	)							-- ^ N.B.: on the assumption that the values for Black pieces are the reflection of those for White, merely the /rank/ of each /piece/ need be defined.
 } deriving (Eq, Show)
@@ -132,7 +132,7 @@ instance (Real pieceSquareValue, Show pieceSquareValue) => Property.ShowFloat.Sh
 				else id
 		) . Data.Foldable.toList
 	 ) (
-		Data.Map.Strict.assocs byRank
+		Map.toList byRank
 	 )
 
 instance Data.Default.Default (PieceSquareTable x y pieceSquareValue) where
@@ -161,7 +161,7 @@ instance (
 		} -> (
 			normalise,
 			reflectOnY,
-			Data.Map.Strict.assocs $ Data.Map.Strict.map (
+			Map.toList $ Map.map (
 				(
 					if reflectOnY
 						then unmirror
@@ -248,7 +248,7 @@ mkPieceSquareTable normalise reflectOnY assocs
 	| otherwise						= MkPieceSquareTable {
 		getNormalise				= normalise,
 		getReflectOnY				= reflectOnY,
-		getPieceSquareValueByCoordinatesByRank	= Data.Map.Strict.fromList . map (
+		getPieceSquareValueByCoordinatesByRank	= Map.fromList . map (
 			Control.Arrow.second Cartesian.Coordinates.listArrayByCoordinates
 		) . (
 			if reflectOnY
@@ -271,12 +271,12 @@ mkPieceSquareTable normalise reflectOnY assocs
 
 -- | Identify any /rank/ lacking a definition.
 findUndefinedRanks :: PieceSquareTable x y pieceSquareValue -> Data.Set.Set Attribute.Rank.Rank
-findUndefinedRanks MkPieceSquareTable { getPieceSquareValueByCoordinatesByRank = pieceSquareValueByCoordinatesByRank }	= Data.Set.fromAscList Property.FixedMembership.members `Data.Set.difference` Data.Map.Strict.keysSet pieceSquareValueByCoordinatesByRank
+findUndefinedRanks MkPieceSquareTable { getPieceSquareValueByCoordinatesByRank = pieceSquareValueByCoordinatesByRank }	= Data.Set.fromAscList Property.FixedMembership.members `Data.Set.difference` Map.keysSet pieceSquareValueByCoordinatesByRank
 
 -- | Lookup the values for all /coordinates/, corresponding to the specified /rank/.
 dereference
 	:: Attribute.Rank.Rank
 	-> PieceSquareTable x y pieceSquareValue
 	-> Maybe (Cartesian.Coordinates.ArrayByCoordinates x y pieceSquareValue)
-dereference rank MkPieceSquareTable { getPieceSquareValueByCoordinatesByRank = pieceSquareValueByCoordinatesByRank }	= Data.Map.Strict.lookup rank pieceSquareValueByCoordinatesByRank
+dereference rank MkPieceSquareTable { getPieceSquareValueByCoordinatesByRank = pieceSquareValueByCoordinatesByRank }	= Map.lookup rank pieceSquareValueByCoordinatesByRank
 

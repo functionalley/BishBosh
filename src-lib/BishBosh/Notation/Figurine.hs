@@ -37,7 +37,7 @@ module BishBosh.Notation.Figurine(
 import			Data.Array.IArray((!))
 import qualified	BishBosh.Component.Piece	as Component.Piece
 import qualified	Data.Array.IArray
-import qualified	Data.Map.Strict
+import qualified	Data.Map.Strict			as Map
 import qualified	Data.Tuple
 
 -- | A Unicode character depicting a piece.
@@ -52,10 +52,10 @@ toFigurine :: Component.Piece.Piece -> Figurine
 toFigurine	= (figurinesByPiece !)
 
 -- | The constant piece corresponding to each Unicode figurine.
-piecesByFigurine :: Data.Map.Strict.Map Figurine Component.Piece.Piece
-piecesByFigurine	= Data.Map.Strict.fromList . map Data.Tuple.swap $ Data.Array.IArray.assocs figurinesByPiece
+piecesByFigurine :: Map.Map Figurine Component.Piece.Piece
+piecesByFigurine	= Map.fromList . map Data.Tuple.swap $ Data.Array.IArray.assocs figurinesByPiece
 
 -- | Returns any piece which corresponds to the specified Unicode character.
 fromFigurine :: Figurine -> Maybe Component.Piece.Piece
-fromFigurine	= (`Data.Map.Strict.lookup` piecesByFigurine)
+fromFigurine	= (`Map.lookup` piecesByFigurine)
 

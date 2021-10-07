@@ -52,7 +52,7 @@ import qualified	Control.Arrow
 import qualified	Data.Array.IArray
 import qualified	Data.Default
 import qualified	Data.Foldable
-import qualified	Data.Map.Strict
+import qualified	Data.Map.Strict						as Map
 import qualified	Data.Maybe
 import qualified	Test.HUnit
 import qualified	ToolShed.Data.Foldable
@@ -96,7 +96,7 @@ testCases	= Test.HUnit.test [
 			in map ((,) attacker . directionToCoordinates) $ Component.Piece.getAttackDirections attacker
 		]
 	) ~? "'BishBosh.State.Board.isKingChecked' failed.",
-	"'BishBosh.State.CoordinatesByRankByLogicalColour.countPassedPawns' failed, for passed Pawn adjacent to opposing Pawn of equal rank." ~: Data.Array.IArray.elems (
+	"'BishBosh.State.CoordinatesByRankByLogicalColour.countPassedPawns' failed, for passed Pawn adjacent to opposing Pawn of equal rank." ~: Data.Foldable.toList (
 		Data.Array.IArray.amap length . State.CoordinatesByRankByLogicalColour.findPassedPawnCoordinatesByLogicalColour . State.Board.getCoordinatesByRankByLogicalColour . placePieces $ map (
 			Component.Piece.mkPawn *** Cartesian.Coordinates.mkRelativeCoordinates
 		) [
@@ -109,7 +109,7 @@ testCases	= Test.HUnit.test [
 			)
 		]
 	) ~?= [1, 1],
-	"'BishBosh.State.CoordinatesByRankByLogicalColour.countPassedPawns' failed for passed Pawns isolated from opposing Pawn." ~: Data.Array.IArray.elems (
+	"'BishBosh.State.CoordinatesByRankByLogicalColour.countPassedPawns' failed for passed Pawns isolated from opposing Pawn." ~: Data.Foldable.toList (
 		Data.Array.IArray.amap length . State.CoordinatesByRankByLogicalColour.findPassedPawnCoordinatesByLogicalColour . State.Board.getCoordinatesByRankByLogicalColour . placePieces $ map (
 			Component.Piece.mkPawn *** Cartesian.Coordinates.mkRelativeCoordinates
 		) [
@@ -122,7 +122,7 @@ testCases	= Test.HUnit.test [
 			)
 		]
 	) ~?= [1, 1],
-	"'BishBosh.State.CoordinatesByRankByLogicalColour.countPassedPawns' failed for un-passed Pawn approaching opposing Pawn." ~: Data.Array.IArray.elems (
+	"'BishBosh.State.CoordinatesByRankByLogicalColour.countPassedPawns' failed for un-passed Pawn approaching opposing Pawn." ~: Data.Foldable.toList (
 		 Data.Array.IArray.amap length . State.CoordinatesByRankByLogicalColour.findPassedPawnCoordinatesByLogicalColour . State.Board.getCoordinatesByRankByLogicalColour . placePieces $ map (
 			Component.Piece.mkPawn *** Cartesian.Coordinates.mkRelativeCoordinates
 		) [
@@ -135,7 +135,7 @@ testCases	= Test.HUnit.test [
 			)
 		]
 	) ~?= [0, 0],
-	"'BishBosh.State.CoordinatesByRankByLogicalColour.countPassedPawns' failed for un-passed Pawn sandwiched by opposing Pawns." ~: Data.Array.IArray.elems (
+	"'BishBosh.State.CoordinatesByRankByLogicalColour.countPassedPawns' failed for un-passed Pawn sandwiched by opposing Pawns." ~: Data.Foldable.toList (
 		 Data.Array.IArray.amap length . State.CoordinatesByRankByLogicalColour.findPassedPawnCoordinatesByLogicalColour . State.Board.getCoordinatesByRankByLogicalColour . placePieces $ map (
 			Component.Piece.mkPawn *** Cartesian.Coordinates.mkRelativeCoordinates
 		) [
@@ -151,7 +151,7 @@ testCases	= Test.HUnit.test [
 			)
 		]
 	) ~?= [1, 0],
-	"'BishBosh.State.CoordinatesByRankByLogicalColour.countPassedPawns' failed for un-passed Pawn between doubled opposing Pawns." ~: Data.Array.IArray.elems (
+	"'BishBosh.State.CoordinatesByRankByLogicalColour.countPassedPawns' failed for un-passed Pawn between doubled opposing Pawns." ~: Data.Foldable.toList (
 		Data.Array.IArray.amap length . State.CoordinatesByRankByLogicalColour.findPassedPawnCoordinatesByLogicalColour . State.Board.getCoordinatesByRankByLogicalColour . placePieces $ map (
 			Component.Piece.mkPawn *** Cartesian.Coordinates.mkRelativeCoordinates
 		) [
@@ -284,7 +284,7 @@ testCases	= Test.HUnit.test [
 		State.CoordinatesByRankByLogicalColour.countPawnsByFileByLogicalColour $ State.Board.getCoordinatesByRankByLogicalColour (Data.Default.def :: Board)
 	) ~? "'BishBosh.State.Board.countPawnsByFileByLogicalColour': failed for default board",
 	(
-		(== [(0, 3), (2, 2), (4, 1)]) . Data.Map.Strict.assocs . (! Attribute.LogicalColour.White) . State.CoordinatesByRankByLogicalColour.countPawnsByFileByLogicalColour . State.Board.getCoordinatesByRankByLogicalColour . placePieces $ map (
+		(== [(0, 3), (2, 2), (4, 1)]) . Map.toList . (! Attribute.LogicalColour.White) . State.CoordinatesByRankByLogicalColour.countPawnsByFileByLogicalColour . State.Board.getCoordinatesByRankByLogicalColour . placePieces $ map (
 			(,) (Component.Piece.mkPawn Attribute.LogicalColour.White) . Cartesian.Coordinates.mkRelativeCoordinates
 		) [
 			Control.Arrow.second succ,
@@ -296,12 +296,12 @@ testCases	= Test.HUnit.test [
 		]
 	) ~? "'BishBosh.State.Board.countPawnsByFileByLogicalColour': failed",
 	(
-		Data.Map.Strict.unions (
-			Data.Array.IArray.elems $ State.Board.countDefendersByCoordinatesByLogicalColour (Data.Default.def :: Board)
+		Map.unions (
+			Data.Foldable.toList $ State.Board.countDefendersByCoordinatesByLogicalColour (Data.Default.def :: Board)
 		) == foldr (
-			Data.Map.Strict.delete . Cartesian.Coordinates.kingsStartingCoordinates
+			Map.delete . Cartesian.Coordinates.kingsStartingCoordinates
 		) (
-			Data.Map.Strict.fromList $ zip [
+			Map.fromList $ zip [
 				Cartesian.Coordinates.mkCoordinates x y |
 					y	<- [
 						Cartesian.Ordinate.yMax,

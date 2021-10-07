@@ -61,6 +61,7 @@ import qualified	BishBosh.Type.Length			as Type.Length
 import qualified	BishBosh.Type.Mass			as Type.Mass
 import qualified	Control.DeepSeq
 import qualified	Data.Array.IArray
+import qualified	Data.Foldable
 import qualified	Data.List
 
 -- | The piece-square value may vary as the game progresses.
@@ -197,13 +198,8 @@ gnuPlotComment :: Char
 gnuPlotComment	= '#'
 
 -- | Format the data for input to __GNUPlot__.
-formatForGNUPlot :: (
-	Enum	x,
-	Enum	y,
-	Ord	x,
-	Ord	y
- )
-	=> (pieceSquareValue -> ShowS)						-- ^ Format a /pieceSquareValue/.
+formatForGNUPlot
+	:: (pieceSquareValue -> ShowS)						-- ^ Format a /pieceSquareValue/.
 	-> ShowS								-- ^ The column-delimiter.
 	-> (PieceSquareValueByNPieces pieceSquareValue -> pieceSquareValue)	-- ^ Select one /pieceSquareValue/ from interpolated values.
 	-> PieceSquareByCoordinatesByRank x y pieceSquareValue
@@ -225,8 +221,8 @@ formatForGNUPlot pieceSquareValueFormatter columnDelimiter selector MkPieceSquar
  ) id . zip (
 	Property.FixedMembership.members	:: [Cartesian.Coordinates.Coordinates Type.Length.X Type.Length.Y]
  ) . Data.List.transpose . map (
-	Data.Array.IArray.elems ||| map selector {-select one pieceSquareValue from interpolated values-} . Data.Array.IArray.elems {-ByCoordinates-}
- ) $ Data.Array.IArray.elems {-ByRank-} byRank where
+	Data.Foldable.toList ||| map selector {-select one pieceSquareValue from interpolated values-} . Data.Foldable.toList {-ByCoordinates-}
+ ) $ Data.Foldable.toList {-ByRank-} byRank where
 	terminateRow	= showChar '\n'
 	showsRow	= Text.ShowList.showsDelimitedList columnDelimiter id terminateRow
 

@@ -60,7 +60,7 @@ import qualified	Data.Array.IArray
 import qualified	Data.Default
 import qualified	Data.Foldable
 import qualified	Data.List
-import qualified	Data.Map
+import qualified	Data.Map					as Map
 import qualified	Data.Maybe
 import qualified	Data.Ord
 import qualified	System.Random
@@ -204,7 +204,7 @@ results	= sequence [
 		f :: Game -> Test.QuickCheck.Property
 		f game	= Test.QuickCheck.label "Game.prop_(getAvailableQualifiedMovesByLogicalColour == mkAvailableQualifiedMovesFor)" . Data.Maybe.maybe True (
 			== Model.Game.mkAvailableQualifiedMovesFor nextLogicalColour game
-		 ) . Data.Map.lookup nextLogicalColour $ Model.Game.getAvailableQualifiedMovesByLogicalColour game where
+		 ) . Map.lookup nextLogicalColour $ Model.Game.getAvailableQualifiedMovesByLogicalColour game where
 			nextLogicalColour	= Model.Game.getNextLogicalColour game
 	in Test.QuickCheck.quickCheckWithResult Test.QuickCheck.stdArgs { Test.QuickCheck.maxSuccess = 4096 } f,
 	let

@@ -93,7 +93,7 @@ import qualified	Control.Exception
 import qualified	Data.Char
 import qualified	Data.Default
 import qualified	Data.List
-import qualified	Data.Map
+import qualified	Data.Map					as Map
 import qualified	Data.Maybe
 import qualified	Data.Time.Calendar
 import qualified	Data.Time.Clock
@@ -349,7 +349,7 @@ mkPGN' identificationTags tagPairs	= mkPGN maybeEventName maybeSiteName (
 	(`elem` identificationTags) . fst {-tag-}
  ) tagPairs where
 	[maybeEventName, maybeSiteName, maybeDate, maybeRoundName, maybeWhitePlayerName, maybeBlackPlayerName]	= map (
-		`Data.Map.lookup` Data.Map.fromList tagPairs
+		`Map.lookup` Map.fromList tagPairs
 	 ) [
 		eventNameTag,
 		siteNameTag,

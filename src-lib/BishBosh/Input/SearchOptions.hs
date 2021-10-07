@@ -95,7 +95,7 @@ import qualified	Control.Exception
 import qualified	Control.Monad.Reader
 import qualified	Data.Default
 import qualified	Data.Foldable
-import qualified	Data.Map.Strict
+import qualified	Data.Map.Strict					as Map
 import qualified	Data.Maybe
 import qualified	Text.XML.HXT.Arrow.Pickle			as HXT
 
@@ -170,7 +170,7 @@ type UsePondering			= Bool
 type MaybeUseTranspositions		= Maybe (Type.Count.NMoves, Type.Count.NPlies)
 
 -- | The depth to search for each /logical colour/.
-type SearchDepthByLogicalColour		= Data.Map.Strict.Map Attribute.LogicalColour.LogicalColour Type.Count.NPlies
+type SearchDepthByLogicalColour		= Map.Map Attribute.LogicalColour.LogicalColour Type.Count.NPlies
 
 -- | Defines options related to searching for a move.
 data SearchOptions	= MkSearchOptions {
@@ -246,7 +246,7 @@ instance Show SearchOptions where
 			shows standardOpeningOptions
 		), (
 			searchDepthByLogicalColourTag,
-			Text.ShowList.showsAssociationList' . map (show *** shows) $ Data.Map.Strict.assocs searchDepthByLogicalColour
+			Text.ShowList.showsAssociationList' . map (show *** shows) $ Map.toList searchDepthByLogicalColour
 		)
 	 ]
 
@@ -303,14 +303,14 @@ instance HXT.XmlPickler SearchOptions where
 		HXT.xpOption . HXT.xpElem "transpositions" $ HXT.xpAttr retireTranspositionsAfterTag HXT.xpickle {-NMoves-} `HXT.xpPair` HXT.xpAttr minimumTranspositionSearchDepthTag HXT.xpickle {-NPlies-}
 	 ) HXT.xpickle {-standardOpeningOptions-} (
 		HXT.xpElem searchDepthByLogicalColourTag . HXT.xpWrap (
-			Data.Map.Strict.fromList . (
+			Map.fromList . (
 				\l	-> let
 					duplicateLogicalColours	= BishBosh.Data.Foldable.findDuplicates $ map fst {-logicalColour-} l
 				in if null duplicateLogicalColours
 					then l
 					else Control.Exception.throw . Data.Exception.mkDuplicateData . showString "BishBosh.Input.SearchOptions.xpickle:\t" . showString Attribute.LogicalColour.tag . showString "s must be distinct; " $ shows duplicateLogicalColours "."
 			),	-- Construct from a List.
-			Data.Map.Strict.toList		-- Deconstruct to an association-list.
+			Map.toList		-- Deconstruct to an association-list.
 		) . HXT.xpList {-potentially null-} . HXT.xpElem (
 			showString "by" $ Text.Case.toUpperInitial Attribute.LogicalColour.tag
 		) $ HXT.xpickle {-LogicalColour-} `HXT.xpPair` HXT.xpAttr searchDepthTag HXT.xpickle {-NPlies-}
@@ -334,7 +334,7 @@ mkSearchOptions sortOnStandardOpeningMoveFrequency maybeCaptureMoveSortAlgorithm
 	, minimumHammingDistance < 1	= Control.Exception.throw . Data.Exception.mkOutOfBounds . showString "BishBosh.Input.SearchOptions.mkSearchOptions:\t" . showString minimumHammingDistanceTag . Text.ShowList.showsAssociation $ shows minimumHammingDistance " must exceed zero."
 	| Just retireKillerMovesAfter		<- maybeRetireKillerMovesAfter
 	, retireKillerMovesAfter < 0	= Control.Exception.throw . Data.Exception.mkOutOfBounds . showString "BishBosh.Input.SearchOptions.mkSearchOptions:\t" . showString retireKillerMovesAfterTag . Text.ShowList.showsAssociation $ shows retireKillerMovesAfter " can't be negative."
-	| let nAutomatedPlayers	= Data.Map.Strict.size searchDepthByLogicalColour
+	| let nAutomatedPlayers	= Data.Foldable.length searchDepthByLogicalColour
 	, usePondering && nAutomatedPlayers /= 1
 	= Control.Exception.throw . Data.Exception.mkIncompatibleData . showString "BishBosh.Input.SearchOptions.mkSearchOptions:\tpondering is pointless unless there's an automated player who can use the unused CPU-time during a manual player's move, but there're " $ shows nAutomatedPlayers " automated players."
 	| Just (retireTranspositionsAfter, _)	<- maybeUseTranspositions
@@ -345,7 +345,7 @@ mkSearchOptions sortOnStandardOpeningMoveFrequency maybeCaptureMoveSortAlgorithm
 	, not $ Data.Foldable.null searchDepthByLogicalColour
 	, Data.Foldable.all (
 		minimumTranspositionSearchDepth >
-	) searchDepthByLogicalColour	= Control.Exception.throw . Data.Exception.mkOutOfBounds . showString "BishBosh.Input.SearchOptions.mkSearchOptions:\t" . showString minimumTranspositionSearchDepthTag . Text.ShowList.showsAssociation $ shows minimumTranspositionSearchDepth . showString " exceeds " . showString searchDepthTag . Text.ShowList.showsAssociation $ shows (Data.Map.Strict.toList searchDepthByLogicalColour) "."
+	) searchDepthByLogicalColour	= Control.Exception.throw . Data.Exception.mkOutOfBounds . showString "BishBosh.Input.SearchOptions.mkSearchOptions:\t" . showString minimumTranspositionSearchDepthTag . Text.ShowList.showsAssociation $ shows minimumTranspositionSearchDepth . showString " exceeds " . showString searchDepthTag . Text.ShowList.showsAssociation $ shows (Map.toList searchDepthByLogicalColour) "."
 	| Data.Foldable.any (
 		< minimumSearchDepth
 	) searchDepthByLogicalColour	= Control.Exception.throw . Data.Exception.mkOutOfBounds . showString "BishBosh.Input.SearchOptions.mkSearchOptions:\t" $ showString searchDepthTag " must be positive."
@@ -387,21 +387,21 @@ type Transformation	= SearchOptions -> SearchOptions
 setSearchDepth :: Type.Count.NPlies -> Transformation
 setSearchDepth searchDepth searchOptions@MkSearchOptions { getSearchDepthByLogicalColour = searchDepthByLogicalColour }
 	| searchDepth < minimumSearchDepth	= Control.Exception.throw . Data.Exception.mkOutOfBounds . showString "BishBosh.Input.SearchOptions.setSearchDepth:\t" . showString searchDepthTag . Text.ShowList.showsAssociation $ shows searchDepth " must be positive."
-	| otherwise	= searchOptions { getSearchDepthByLogicalColour = Data.Map.Strict.map (const searchDepth) searchDepthByLogicalColour }
+	| otherwise	= searchOptions { getSearchDepthByLogicalColour = Map.map (const searchDepth) searchDepthByLogicalColour }
 
 -- | Swap the /logical colour/ associated with any /searchDepth/ currently assigned.
 swapSearchDepth :: Transformation
 swapSearchDepth searchOptions@MkSearchOptions {
 	getSearchDepthByLogicalColour	= searchDepthByLogicalColour
 } = searchOptions {
-	getSearchDepthByLogicalColour	= Data.Map.Strict.mapKeys Property.Opposable.getOpposite searchDepthByLogicalColour
+	getSearchDepthByLogicalColour	= Map.mapKeys Property.Opposable.getOpposite searchDepthByLogicalColour
 }
 
 -- | Extract those /logical colour/s for which a search-depth has been defined, which implies that the corresponding player is automated.
 identifyAutomatedPlayers :: SearchOptions -> [Attribute.LogicalColour.LogicalColour]
 identifyAutomatedPlayers MkSearchOptions {
 	getSearchDepthByLogicalColour	= searchDepthByLogicalColour
-} = Data.Map.Strict.keys searchDepthByLogicalColour
+} = Map.keys searchDepthByLogicalColour
 
 -- | Self-documentation.
 type Reader	= Control.Monad.Reader.Reader SearchOptions

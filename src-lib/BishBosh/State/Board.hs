@@ -97,8 +97,9 @@ import qualified	Control.DeepSeq
 import qualified	Control.Exception
 import qualified	Data.Array.IArray
 import qualified	Data.Default
+import qualified	Data.Foldable
 import qualified	Data.List
-import qualified	Data.Map.Strict
+import qualified	Data.Map.Strict						as Map
 import qualified	Data.Maybe
 import qualified	ToolShed.Data.List
 
@@ -110,7 +111,7 @@ import qualified	Data.Array.Unboxed
 type Transformation x y	= Board x y -> Board x y
 
 -- | The number of defenders for each /piece/, belonging to each side.
-type NDefendersByCoordinatesByLogicalColour x y	= Attribute.LogicalColour.ArrayByLogicalColour (Data.Map.Strict.Map (Cartesian.Coordinates.Coordinates x y) Type.Count.NPieces)
+type NDefendersByCoordinatesByLogicalColour x y	= Attribute.LogicalColour.ArrayByLogicalColour (Map.Map (Cartesian.Coordinates.Coordinates x y) Type.Count.NPieces)
 
 {- |
 	* The board is modelled as two alternative structures representing the same data, but indexed by either /coordinates/ or /piece/.
@@ -183,12 +184,7 @@ instance (
 	{-# SPECIALISE instance Property.ExtendedPositionDescription.ReadsEPD (Board Type.Length.X Type.Length.Y) #-}
 	readsEPD	= map (Control.Arrow.first fromMaybePieceByCoordinates) . Property.ExtendedPositionDescription.readsEPD
 
-instance (
-	Enum	x,
-	Enum	y,
-	Ord	x,
-	Ord	y
- ) => Property.ExtendedPositionDescription.ShowsEPD (Board x y) where
+instance Property.ExtendedPositionDescription.ShowsEPD (Board x y) where
 	showsEPD MkBoard { getMaybePieceByCoordinates = maybePieceByCoordinates }	= Property.ExtendedPositionDescription.showsEPD maybePieceByCoordinates
 
 instance (
@@ -355,7 +351,7 @@ movePiece move maybeMoveType board@MkBoard {
 						if Attribute.LogicalColour.isBlack logicalColour'
 							then Control.Arrow.first
 							else Control.Arrow.second
-					) . Data.Map.Strict.insert affectedCoordinates {-overwrite-} . fromIntegral . length $ findAttackersOf (
+					) . Map.insert affectedCoordinates {-overwrite-} . fromIntegral . length $ findAttackersOf (
 						Property.Opposable.getOpposite logicalColour'	-- Investigate an attack on the affected coordinates by the affected piece's own logical colour, i.e. defence.
 					) affectedCoordinates board'
 			) (
@@ -365,20 +361,20 @@ movePiece move maybeMoveType board@MkBoard {
 					in (
 						\passingPawnsDestination -> (:) (
 							opponentsLogicalColour,
-							Data.Map.Strict.delete passingPawnsDestination nDefendersByCoordinates	-- This Pawn has been taken.
+							Map.delete passingPawnsDestination nDefendersByCoordinates	-- This Pawn has been taken.
 						)
 					) ||| (
 						\maybeExplicitlyTakenRank -> if Data.Maybe.isJust maybeExplicitlyTakenRank
 							then (:) (
 								opponentsLogicalColour,
-								Data.Map.Strict.delete destination nDefendersByCoordinates	-- This piece has been taken.
+								Map.delete destination nDefendersByCoordinates	-- This piece has been taken.
 							)
 							else id
 					) $ eitherPassingPawnsDestinationOrMaybeTakenRank
 				 ) [
 					(
 						logicalColour,
-						Data.Map.Strict.delete source $ nDefendersByCoordinatesByLogicalColour ! logicalColour	-- This piece has been moved.
+						Map.delete source $ nDefendersByCoordinatesByLogicalColour ! logicalColour	-- This piece has been moved.
 					) -- Pair.
 				 ] -- Singleton.
 			) . Data.List.nubBy (
@@ -636,7 +632,7 @@ countDefendersByCoordinatesByLogicalColour :: (
  ) => Board x y -> NDefendersByCoordinatesByLogicalColour x y
 {-# SPECIALISE countDefendersByCoordinatesByLogicalColour :: Board Type.Length.X Type.Length.Y -> NDefendersByCoordinatesByLogicalColour Type.Length.X Type.Length.Y #-}
 countDefendersByCoordinatesByLogicalColour board@MkBoard { getCoordinatesByRankByLogicalColour = coordinatesByRankByLogicalColour }	= Attribute.LogicalColour.listArrayByLogicalColour [
-	Data.Map.Strict.fromList [
+	Map.fromList [
 		(
 			coordinates,
 			fromIntegral . length $ findAttackersOf (
@@ -651,6 +647,6 @@ countDefendersByCoordinatesByLogicalColour board@MkBoard { getCoordinatesByRankB
 -- | Collapses 'NDefendersByCoordinatesByLogicalColour' into the total number of defenders on either side.
 summariseNDefendersByLogicalColour :: Board x y -> Attribute.LogicalColour.ArrayByLogicalColour Type.Count.NPieces
 summariseNDefendersByLogicalColour MkBoard { getNDefendersByCoordinatesByLogicalColour = nDefendersByCoordinatesByLogicalColour }	= Data.Array.IArray.amap (
-	Data.Map.Strict.foldl' (+) 0	-- CAVEAT: 'Data.Foldable.sum' is too slow.
+	Data.Foldable.foldl' (+) 0	-- CAVEAT: 'Data.Foldable.sum' is too slow.
  ) nDefendersByCoordinatesByLogicalColour
 

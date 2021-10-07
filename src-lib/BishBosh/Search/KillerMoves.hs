@@ -43,9 +43,9 @@ import qualified	BishBosh.Search.EphemeralData		as Search.EphemeralData
 import qualified	BishBosh.Type.Count			as Type.Count
 import qualified	Data.Array.IArray
 import qualified	Data.Foldable
-import qualified	Data.IntMap.Strict
+import qualified	Data.IntMap.Strict			as IntMap
 import qualified	Data.List
-import qualified	Data.Map
+import qualified	Data.Map				as Map
 import qualified	Data.Maybe
 
 {- |
@@ -55,8 +55,8 @@ import qualified	Data.Maybe
 	& the logical colour of the player making the move.
 -}
 type NInstancesByNPliesByKeyByLogicalColour killerMoveKey	= Attribute.LogicalColour.ArrayByLogicalColour (
-	Data.Map.Map killerMoveKey (
-		Data.IntMap.Strict.IntMap Type.Count.NPlies {-NInstances-}	-- CAVEAT: 'Int' is used to represent the number of plies into the game (in order to utilise 'IntMap') though it ought to be NPlies also.
+	Map.Map killerMoveKey (
+		IntMap.IntMap Type.Count.NPlies {-NInstances-}	-- CAVEAT: 'Int' is used to represent the number of plies into the game (in order to utilise 'IntMap') though it ought to be NPlies also.
 	)
  )
 
@@ -70,14 +70,14 @@ instance Property.Empty.Empty (KillerMoves killerMoveKey) where
 
 instance Search.EphemeralData.EphemeralData (KillerMoves killerMoveKey) where
 	getSize MkKillerMoves { deconstruct = nInstancesByNPliesByKeyByLogicalColour }	= fromIntegral $ Data.Foldable.foldl' (
-		Data.Map.foldl' $ Data.IntMap.Strict.foldl' (+)
+		Data.Foldable.foldl' $ Data.Foldable.foldl' (+)
 	 ) 0 nInstancesByNPliesByKeyByLogicalColour
 
 	euthanise nPlies killerMoves@MkKillerMoves { deconstruct = nInstancesByNPliesByKeyByLogicalColour }
 		| nPlies <= 0	= killerMoves	-- This might occur at the start of the game, because the caller subtracts a fixed value from the current number of plies.
 		| otherwise	= MkKillerMoves $ Data.Array.IArray.amap (
-			Data.Map.mapMaybe $ \m -> let
-				m'	= Data.IntMap.Strict.filterWithKey (\nPlies' _ -> nPlies' > fromIntegral nPlies) m
+			Map.mapMaybe $ \m -> let
+				m'	= IntMap.filterWithKey (\nPlies' _ -> nPlies' > fromIntegral nPlies) m
 			in if Data.Foldable.null m'
 				then Nothing
 				else Just m'
@@ -93,10 +93,10 @@ insert
 	-> killerMoveKey
 	-> Transformation killerMoveKey
 insert nPlies killerMoveKey MkKillerMoves { deconstruct = nInstancesByNPliesByKeyByLogicalColour }	= MkKillerMoves $ nInstancesByNPliesByKeyByLogicalColour // [
-	id &&& Data.Map.insertWith (
-		Data.IntMap.Strict.unionWith (+)
+	id &&& Map.insertWith (
+		IntMap.unionWith (+)
 	) killerMoveKey (
-		Data.IntMap.Strict.singleton (fromIntegral nPlies) 1
+		IntMap.singleton (fromIntegral nPlies) 1
 	) . (
 		nInstancesByNPliesByKeyByLogicalColour !
 	) $ if even nPlies
@@ -114,8 +114,8 @@ sortByHistoryHeuristic
 	-> [a]
 {-# INLINABLE sortByHistoryHeuristic #-}
 sortByHistoryHeuristic logicalColour killerMoveKeyConstructor MkKillerMoves { deconstruct = nInstancesByNPliesByKeyByLogicalColour }	= Data.List.sortOn $ Data.Maybe.maybe 0 (
-	negate {-largest first-} . Data.IntMap.Strict.foldl' (+) 0
+	negate {-largest first-} . Data.Foldable.foldl' (+) 0
  ) . (
-	`Data.Map.lookup` (nInstancesByNPliesByKeyByLogicalColour ! logicalColour)
+	`Map.lookup` (nInstancesByNPliesByKeyByLogicalColour ! logicalColour)
  ) . killerMoveKeyConstructor
 

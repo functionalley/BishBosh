@@ -84,7 +84,7 @@ import qualified	Data.Bits
 import qualified	Data.Default
 import qualified	Data.Foldable
 import qualified	Data.List.Extra
-import qualified	Data.Map.Strict
+import qualified	Data.Map.Strict							as Map
 import qualified	Data.Maybe
 import qualified	System.IO
 import qualified	System.Random
@@ -246,7 +246,7 @@ readMove positionHashQualifiedMoveTree randomGen runningWatch playState	= let
 		 in Data.Maybe.maybe (
 			let
 				nPlies :: Type.Count.NPlies
-				nPlies	= fromIntegral . succ $ Data.Map.Strict.size searchDepthByLogicalColour	-- In fully manual play, rollback one ply, in semi-manual play rollback two plies.
+				nPlies	= fromIntegral . succ $ Data.Foldable.length searchDepthByLogicalColour	-- In fully manual play, rollback one ply, in semi-manual play rollback two plies.
 			in do
 				Control.Monad.when (verbosity == maxBound) . System.IO.hPutStrLn System.IO.stderr . Text.ShowColouredPrefix.showsPrefixInfo . showString "rolling-back " $ shows nPlies " plies."
 
@@ -563,7 +563,7 @@ takeTurns positionHashQualifiedMoveTree randomGen playState	= let
 							Input.StandardOpeningOptions.getMatchSwitches $ Input.SearchOptions.getStandardOpeningOptions searchOptions
 						 ) game' positionHashQualifiedMoveTree	-- Determine whether the automated player's move can be decided by a search of recorded games or we must decide ourself.
 					 ) (
-						Model.Game.getNextLogicalColour game' `Data.Map.Strict.lookup` Input.SearchOptions.getSearchDepthByLogicalColour searchOptions'	-- Determinate whether the next player is manual.
+						Model.Game.getNextLogicalColour game' `Map.lookup` Input.SearchOptions.getSearchDepthByLogicalColour searchOptions'	-- Determinate whether the next player is manual.
 					 ) >>= (
 						\(playState'', maybePondering') -> do
 							Data.Maybe.maybe (

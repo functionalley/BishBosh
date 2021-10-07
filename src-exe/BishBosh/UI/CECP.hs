@@ -102,7 +102,7 @@ import qualified	Data.Default
 import qualified	Data.Foldable
 import qualified	Data.List
 import qualified	Data.List.Extra
-import qualified	Data.Map.Strict
+import qualified	Data.Map.Strict							as Map
 import qualified	Data.Maybe
 import qualified	System.IO
 import qualified	System.Random
@@ -345,7 +345,7 @@ readMove positionHashQualifiedMoveTree randomGen	= slave where
 			 in Data.Maybe.maybe (
 				let
 					nPlies :: Type.Count.NPlies
-					nPlies	= fromIntegral . succ $ Data.Map.Strict.size searchDepthByLogicalColour	-- In fully manual play, rollback one ply, in semi-manual play rollback two plies.
+					nPlies	= fromIntegral . succ $ Data.Foldable.length searchDepthByLogicalColour	-- In fully manual play, rollback one ply, in semi-manual play rollback two plies.
 				in do
 					Control.Monad.when (verbosity == maxBound) . System.IO.hPutStrLn System.IO.stderr . Text.ShowPrefix.showsPrefixInfo . showString "rolling-back " $ shows nPlies " plies."
 
@@ -533,7 +533,7 @@ readMove positionHashQualifiedMoveTree randomGen	= slave where
 									eventLoop
 								else let
 									nextLogicalColour	= Model.Game.getNextLogicalColour game
-								in if nextLogicalColour `Data.Map.Strict.member` searchDepthByLogicalColour
+								in if nextLogicalColour `Map.member` searchDepthByLogicalColour
 									then return {-to IO-monad-} playState { State.PlayState.getOptions = options' }
 									else do
 										Control.Monad.when (verbosity == maxBound) . System.IO.hPutStrLn System.IO.stderr . Text.ShowPrefix.showsPrefixInfo . showString "swapping to play " $ shows nextLogicalColour ", i.e. next."
@@ -558,7 +558,7 @@ readMove positionHashQualifiedMoveTree randomGen	= slave where
 							\playState' -> let
 								engineLogicalColour	= minBound
 								options'		= State.PlayState.getOptions playState'
-							in if Data.Map.Strict.member engineLogicalColour . Input.SearchOptions.getSearchDepthByLogicalColour $ Input.Options.getSearchOptions options'
+							in if Map.member engineLogicalColour . Input.SearchOptions.getSearchDepthByLogicalColour $ Input.Options.getSearchOptions options'
 								then return {-to IO-monad-} playState'
 								else do
 									Control.Monad.when (verbosity == maxBound) . System.IO.hPutStrLn System.IO.stderr . Text.ShowPrefix.showsPrefixInfo . showString "swapping to play " $ shows engineLogicalColour "."
@@ -1239,7 +1239,7 @@ takeTurns positionHashQualifiedMoveTree randomGen playState	= do
 				 ) (
 					if Input.UIOptions.isCECPManualMode uiOptions'
 						then Nothing
-						else Model.Game.getNextLogicalColour game' `Data.Map.Strict.lookup` Input.SearchOptions.getSearchDepthByLogicalColour searchOptions'
+						else Model.Game.getNextLogicalColour game' `Map.lookup` Input.SearchOptions.getSearchDepthByLogicalColour searchOptions'
 				 ) >>= (
 					\(playState'', maybePondering') -> do
 						Data.Maybe.maybe (

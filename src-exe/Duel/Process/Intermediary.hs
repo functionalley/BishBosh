@@ -65,7 +65,7 @@ import qualified	BishBosh.UI.Command			as UI.Command
 import qualified	Control.Exception
 import qualified	Control.Monad
 import qualified	Data.Default
-import qualified	Data.Map.Strict
+import qualified	Data.Map.Strict				as Map
 import qualified	Data.Maybe
 import qualified	Duel.Data.Options			as Data.Options
 import qualified	Duel.IO.Logger				as IO.Logger
@@ -201,7 +201,7 @@ purge handle	= do
 
 	* N.B.: the recorded result is merely a string, though it could be read into a 'BishBosh.Rule.GameTerminationReason'.
 -}
-type GameTerminationReasonsMap	= Data.Map.Strict.Map Rule.GameTerminationReason.GameTerminationReason Type.Count.NGames
+type GameTerminationReasonsMap	= Map.Map Rule.GameTerminationReason.GameTerminationReason Type.Count.NGames
 
 {- |
 	* Constructs a game-clock.
@@ -248,7 +248,7 @@ startGame verbosity nDecimalDigits readTimeout producer consumer gameTermination
 		 ] <*> [consumer, producer]
 
 		slave (
-			Data.Map.Strict.insertWith (const succ) gameTerminationReason 1 gameTerminationReasonsMap'
+			Map.insertWith (const succ) gameTerminationReason 1 gameTerminationReasonsMap'
 		 ) (
 			pred nGames' -- Recurse.
 		 ) gameClock'
@@ -328,7 +328,7 @@ initialise options
 				($ handles) &&& ($ handles') $ Process.Handles.getHandlePair
 			 ) Property.Empty.empty (
 				Data.Options.getNGames options
-			 ) >>= IO.Logger.printInfo . show . Data.Map.Strict.toList
+			 ) >>= IO.Logger.printInfo . show . Map.toList
 	) $ \e -> do
 		IO.Logger.printError . showString "caught " $ show (e :: Control.Exception.SomeException)
 

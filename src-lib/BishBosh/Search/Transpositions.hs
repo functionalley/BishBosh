@@ -43,20 +43,21 @@ module BishBosh.Search.Transpositions (
 import qualified	BishBosh.Property.Empty			as Property.Empty
 import qualified	BishBosh.Search.EphemeralData		as Search.EphemeralData
 import qualified	BishBosh.Search.TranspositionValue	as Search.TranspositionValue
-import qualified	Data.Map
+import qualified	Data.Foldable
+import qualified	Data.Map				as Map
 import qualified	Data.Maybe
 
 -- | Stores the result of an alpha-beta search from a /position/.
 newtype Transpositions qualifiedMove positionHash	= MkTranspositions {
-	deconstruct	:: Data.Map.Map positionHash (Search.TranspositionValue.TranspositionValue qualifiedMove)
+	deconstruct	:: Map.Map positionHash (Search.TranspositionValue.TranspositionValue qualifiedMove)
 }
 
 instance Property.Empty.Empty (Transpositions qualifiedMove positionHash) where
 	empty	= MkTranspositions Property.Empty.empty
 
 instance Search.EphemeralData.EphemeralData (Transpositions qualifiedMove positionHash) where
-	getSize	MkTranspositions { deconstruct = byPositionHash }		= Data.Map.size byPositionHash
-	euthanise nPlies MkTranspositions { deconstruct = byPositionHash }	= MkTranspositions $ Data.Map.filter ((> nPlies) . Search.TranspositionValue.getNPlies) byPositionHash
+	getSize	MkTranspositions { deconstruct = byPositionHash }		= Data.Foldable.length byPositionHash
+	euthanise nPlies MkTranspositions { deconstruct = byPositionHash }	= MkTranspositions $ Map.filter ((> nPlies) . Search.TranspositionValue.getNPlies) byPositionHash
 
 -- | Returns any value previously recorded when searching from the specified /position/.
 find
@@ -64,7 +65,7 @@ find
 	=> positionHash
 	-> Transpositions qualifiedMove positionHash
 	-> Maybe (Search.TranspositionValue.TranspositionValue qualifiedMove)
-find positionHash MkTranspositions { deconstruct = byPositionHash }	= Data.Map.lookup positionHash byPositionHash
+find positionHash MkTranspositions { deconstruct = byPositionHash }	= Map.lookup positionHash byPositionHash
 
 -- | The type of a function which transforms 'Transpositions'.
 type Transformation qualifiedMove positionHash	= Transpositions qualifiedMove positionHash -> Transpositions qualifiedMove positionHash
@@ -80,7 +81,7 @@ insert
 	-> positionHash							-- ^ Represents the game from which the sequence of qualifiedMoves starts.
 	-> Search.TranspositionValue.TranspositionValue qualifiedMove	-- ^ The value to record.
 	-> Transformation qualifiedMove positionHash
-insert findFitness positionHash proposedValue MkTranspositions { deconstruct = byPositionHash }	= MkTranspositions $ Data.Map.alter (
+insert findFitness positionHash proposedValue MkTranspositions { deconstruct = byPositionHash }	= MkTranspositions $ Map.alter (
 	Data.Maybe.maybe (Just proposedValue) {-there's no incumbent-} $ \incumbentValue -> if Search.TranspositionValue.isBetter findFitness proposedValue incumbentValue
 		then Just proposedValue	-- Upgrade.
 		else Nothing	-- Leave incumbent.

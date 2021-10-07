@@ -97,8 +97,9 @@ import qualified	Control.DeepSeq
 import qualified	Control.Exception
 import qualified	Data.Array.IArray
 import qualified	Data.Array.Unboxed
+import qualified	Data.Foldable
 import qualified	Data.List
-import qualified	Data.Map
+import qualified	Data.Map					as Map
 import qualified	Data.Maybe
 
 #ifdef USE_PARALLEL
@@ -459,14 +460,14 @@ interpolationsByDestinationBySource :: (
 	Enum			y,
 	Ord			x,
 	Ord			y
- ) => ArrayByCoordinates x y (Data.Map.Map (Coordinates x y) [Coordinates x y])
-{-# SPECIALISE interpolationsByDestinationBySource :: ArrayByCoordinates Type.Length.X Type.Length.Y (Data.Map.Map (Coordinates Type.Length.X Type.Length.Y) [Coordinates Type.Length.X Type.Length.Y]) #-}	-- To promote memoisation.
+ ) => ArrayByCoordinates x y (Map.Map (Coordinates x y) [Coordinates x y])
+{-# SPECIALISE interpolationsByDestinationBySource :: ArrayByCoordinates Type.Length.X Type.Length.Y (Map.Map (Coordinates Type.Length.X Type.Length.Y) [Coordinates Type.Length.X Type.Length.Y]) #-}	-- To promote memoisation.
 interpolationsByDestinationBySource	= Data.Array.IArray.amap (
-	Data.Map.fromList . map (
+	Map.fromList . map (
 		last {-destination-} &&& id {-interpolation-}
 	) . concatMap (
 		tail {-remove null list-} . Data.List.inits	-- Generate all possible interpolations from this extrapolation.
-	) . Data.Array.IArray.elems
+	) . Data.Foldable.toList
  ) extrapolationsByDirectionByCoordinates	-- Derive from extrapolations.
 
 {- |
@@ -510,7 +511,7 @@ interpolate source@MkCoordinates {
 
 -- | A specialisation of 'interpolate'.
 interpolateInt :: Coordinates Type.Length.X Type.Length.Y -> Coordinates Type.Length.X Type.Length.Y -> [Coordinates Type.Length.X Type.Length.Y]
-interpolateInt coordinatesSource coordinatesDestination	= interpolationsByDestinationBySource ! coordinatesSource Data.Map.! coordinatesDestination
+interpolateInt coordinatesSource coordinatesDestination	= interpolationsByDestinationBySource ! coordinatesSource Map.! coordinatesDestination
 
 -- | The type of a function which changes one set of /coordinates/ to another.
 type Transformation x y	= Coordinates x y -> Coordinates x y

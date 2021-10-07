@@ -101,6 +101,7 @@ import qualified	Control.Exception
 import qualified	Data.Array.IArray
 import qualified	Data.Char
 import qualified	Data.Default
+import qualified	Data.Foldable
 import qualified	Data.List
 import qualified	Data.List.Extra
 import qualified	Data.Maybe
@@ -165,12 +166,7 @@ instance (
 				`elem` rankSeparator : concatMap Property.ExtendedPositionDescription.showEPD Component.Piece.range ++ concatMap show [1 .. Cartesian.Abscissa.xLength]
 			 ) $ Data.List.Extra.trimStart s
 
-instance (
-	Enum	x,
-	Enum	y,
-	Ord	x,
-	Ord	y
- ) => Property.ExtendedPositionDescription.ShowsEPD (MaybePieceByCoordinates x y) where
+instance Property.ExtendedPositionDescription.ShowsEPD (MaybePieceByCoordinates x y) where
 	showsEPD MkMaybePieceByCoordinates { deconstruct = byCoordinates }	= foldr1 (
 		>>>	-- Render the line with the highest y-coordinate first.
 	 ) . Data.List.intersperse (
@@ -183,7 +179,7 @@ instance (
 				replicate runLength . Property.ExtendedPositionDescription.showsEPD	-- Render each piece.
 			) maybePiece
 		) . ToolShed.Data.List.Runlength.encode
-	 ) . listToRaster $ Data.Array.IArray.elems byCoordinates
+	 ) . listToRaster $ Data.Foldable.toList byCoordinates
 
 instance (
 	Enum	x,
@@ -537,13 +533,8 @@ show2D :: (
 show2D boardColumnMagnification colourScheme depictFigurine (xOrigin, yOrigin) maybePieceByCoordinates	= shows2D boardColumnMagnification colourScheme depictFigurine (xOrigin, yOrigin) maybePieceByCoordinates ""
 
 -- | Extract the pieces from the board, discarding their coordinates.
-getPieces :: (
-	Enum	x,
-	Enum	y,
-	Ord	x,
-	Ord	y
- ) => MaybePieceByCoordinates x y -> [Component.Piece.Piece]
-getPieces MkMaybePieceByCoordinates { deconstruct = byCoordinates }	= Data.Maybe.catMaybes $ Data.Array.IArray.elems byCoordinates
+getPieces :: MaybePieceByCoordinates x y -> [Component.Piece.Piece]
+getPieces MkMaybePieceByCoordinates { deconstruct = byCoordinates }	= Data.Maybe.catMaybes $ Data.Foldable.toList byCoordinates
 
 {- |
 	* Find the first /piece/ of either /logical colour/, encountered along a straight line in the specified /direction/, from just after the specified /coordinates/.

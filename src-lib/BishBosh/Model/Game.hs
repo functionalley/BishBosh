@@ -140,8 +140,7 @@ import qualified	Data.Default
 import qualified	Data.Foldable
 import qualified	Data.List
 import qualified	Data.List.Extra
-import qualified	Data.Map
-import qualified	Data.Map.Strict
+import qualified	Data.Map					as Map
 import qualified	Data.Maybe
 import qualified	Data.Ord
 import qualified	ToolShed.Data.List
@@ -161,7 +160,7 @@ type InstancesByPosition x y	= State.InstancesByPosition.InstancesByPosition (St
 
 -- | The /move/s available to one player, indexed by the source-/coordinates/ of the /move/.
 type AvailableQualifiedMoves x y	= (
-	Data.Map.Map (Cartesian.Coordinates.Coordinates x y)	-- Source.
+	Map.Map (Cartesian.Coordinates.Coordinates x y)	-- Source.
  ) [
 	(
 		Cartesian.Coordinates.Coordinates x y,	-- Destination.
@@ -171,10 +170,10 @@ type AvailableQualifiedMoves x y	= (
 
 -- | Sort the lists of destinations to faciliate testing for equality.
 sortAvailableQualifiedMoves :: (Ord x, Ord y) => AvailableQualifiedMoves x y -> AvailableQualifiedMoves x y
-sortAvailableQualifiedMoves	= Data.Map.map . Data.List.sortBy $ Data.Ord.comparing fst {-destination-}
+sortAvailableQualifiedMoves	= Map.map . Data.List.sortBy $ Data.Ord.comparing fst {-destination-}
 
 -- | The /move/s available to both players.
-type AvailableQualifiedMovesByLogicalColour x y	= Data.Map.Map Attribute.LogicalColour.LogicalColour (AvailableQualifiedMoves x y)
+type AvailableQualifiedMovesByLogicalColour x y	= Map.Map Attribute.LogicalColour.LogicalColour (AvailableQualifiedMoves x y)
 
 {- |
 	* The first three fields represent the state of the /game/.
@@ -225,7 +224,7 @@ instance (
 		turnsByLogicalColour,
 		maybeChecked,
 		instancesByPosition,
-		Data.Map.map sortAvailableQualifiedMoves availableQualifiedMovesByLogicalColour,
+		Map.map sortAvailableQualifiedMoves availableQualifiedMovesByLogicalColour,
 		maybeTerminationReason
 	 ) == (
 		nextLogicalColour',
@@ -234,7 +233,7 @@ instance (
 		turnsByLogicalColour',
 		maybeChecked',
 		instancesByPosition',
-		Data.Map.map sortAvailableQualifiedMoves availableQualifiedMovesByLogicalColour',
+		Map.map sortAvailableQualifiedMoves availableQualifiedMovesByLogicalColour',
 		maybeTerminationReason'
 	 )
 
@@ -321,7 +320,7 @@ instance (
 		mkGame Attribute.LogicalColour.White Data.Default.def {-castleableRooksByLogicalColour-} Data.Default.def {-board-} Data.Default.def {-turnsByLogicalColour-}
 	 ) {
 		getMaybeChecked					= Nothing,
-		getAvailableQualifiedMovesByLogicalColour	= Data.Map.fromAscList $ map (
+		getAvailableQualifiedMovesByLogicalColour	= Map.fromAscList $ map (
 			id &&& (`mkAvailableQualifiedMovesFor` Data.Default.def {-game-})
 		) Property.FixedMembership.members
 	}
@@ -519,7 +518,7 @@ mkGame nextLogicalColour castleableRooksByLogicalColour board turnsByLogicalColo
 			getTurnsByLogicalColour				= turnsByLogicalColour,
 			getMaybeChecked					= Data.List.find (`State.Board.isKingChecked` board) Property.FixedMembership.members,
 			getInstancesByPosition				= State.InstancesByPosition.mkSingleton $ mkPosition game,
-			getAvailableQualifiedMovesByLogicalColour	= Data.Map.fromAscList [
+			getAvailableQualifiedMovesByLogicalColour	= Map.fromAscList [
 				(logicalColour, mkAvailableQualifiedMovesFor logicalColour game) |
 					logicalColour	<- Property.FixedMembership.members,
 					getMaybeChecked game /= Just logicalColour	-- Define the available qualified moves for unchecked players only.
@@ -774,13 +773,13 @@ takeTurn turn game@MkGame {
 					isSafeDestination destination',
 					maybePromotionRank		<- listMaybePromotionRanks destination' piece'
 			 ] {-list-comprehension-} of
-				[]			-> Data.Map.delete source'				-- There're zero moves from here.
-				qualifiedDestinations	-> Data.Map.insert source' qualifiedDestinations	-- Overwrite any existing moves.
+				[]			-> Map.delete source'				-- There're zero moves from here.
+				qualifiedDestinations	-> Map.insert source' qualifiedDestinations	-- Overwrite any existing moves.
 
 			insertCastlingMoves logicalColour	= case findAvailableCastlingMoves logicalColour game' of
 				[]			-> id
 				validCastlingMoves	-> uncurry (
-					Data.Map.insertWith (++)
+					Map.insertWith (++)
 				 ) $ (
 					Component.Move.getSource {-the King-} . Component.QualifiedMove.getMove . head &&& map (
 						Component.Move.getDestination . Component.QualifiedMove.getMove &&& Component.QualifiedMove.getMoveType
@@ -788,19 +787,19 @@ takeTurn turn game@MkGame {
 				 ) validCastlingMoves
 		in (
 			\availableQualifiedMovesByLogicalColour' -> (
-				case (Data.Map.member opponentsLogicalColour availableQualifiedMovesByLogicalColour', Data.Maybe.isJust $ getMaybeChecked game') of
-					(True, True)	-> Data.Map.delete opponentsLogicalColour	-- Many changes result from the King being checked.
-					(True, _)	-> Data.Map.adjust (
+				case (Map.member opponentsLogicalColour availableQualifiedMovesByLogicalColour', Data.Maybe.isJust $ getMaybeChecked game') of
+					(True, True)	-> Map.delete opponentsLogicalColour	-- Many changes result from the King being checked.
+					(True, _)	-> Map.adjust (
 						insertCastlingMoves opponentsLogicalColour . (
 							`insertMovesFrom` affected'	-- Reconstruct any moves for affected pieces.
 						) . (
 							if Attribute.MoveType.isEnPassant moveType
-								then Data.Map.delete $ Cartesian.Coordinates.retreat nextLogicalColour destination
+								then Map.delete $ Cartesian.Coordinates.retreat nextLogicalColour destination
 								else id
-						) . Data.Map.delete destination	-- Delete the moves originally available to any taken piece.
+						) . Map.delete destination	-- Delete the moves originally available to any taken piece.
 					 ) opponentsLogicalColour
 					(_, True)	-> id	-- We neither want an entry in the map, nor is there one.
-					_		-> Data.Map.insert opponentsLogicalColour $ mkAvailableQualifiedMovesFor opponentsLogicalColour game'	-- Reconstruct.
+					_		-> Map.insert opponentsLogicalColour $ mkAvailableQualifiedMovesFor opponentsLogicalColour game'	-- Reconstruct.
 			) availableQualifiedMovesByLogicalColour'
 		) $ (
 			if Data.Maybe.maybe True {-not a member-} (
@@ -811,12 +810,12 @@ takeTurn turn game@MkGame {
 				) {-only required for efficiency-} && Data.Foldable.any (
 					any $ Attribute.MoveType.isEnPassant . snd {-moveType-}
 				) availableQualifiedMoves
-			) $ Data.Map.lookup nextLogicalColour availableQualifiedMovesByLogicalColour
-				then Data.Map.insert nextLogicalColour $ mkAvailableQualifiedMovesFor nextLogicalColour game'	-- Reconstruct.
-				else Data.Map.adjust (
+			) $ Map.lookup nextLogicalColour availableQualifiedMovesByLogicalColour
+				then Map.insert nextLogicalColour $ mkAvailableQualifiedMovesFor nextLogicalColour game'	-- Reconstruct.
+				else Map.adjust (
 					insertCastlingMoves nextLogicalColour . (
 						`insertMovesFrom` affected	-- Reconstruct any moves for affected pieces.
-					) . Data.Map.delete source		-- Delete the moves originally available to the moved piece.
+					) . Map.delete source		-- Delete the moves originally available to the moved piece.
 				) nextLogicalColour
 		) availableQualifiedMovesByLogicalColour,
 		getMaybeTerminationReason	= inferMaybeTerminationReason game'	-- CAVEAT: this will overwrite any previous resignation.
@@ -870,7 +869,7 @@ applyEitherQualifiedMoves :: (
 	-> [a]										-- ^ An ordered sequence of data from which /move/s are constructed.
 	-> Either (a, String) (Game x y)						-- ^ Either a rogue datum & the corresponding error-message, or the resulting /game/.
 {-# SPECIALISE applyEitherQualifiedMoves :: (a -> Either String (Component.EitherQualifiedMove.EitherQualifiedMove Type.Length.X Type.Length.Y)) -> Game Type.Length.X Type.Length.Y -> [a] -> Either (a, String) (Game Type.Length.X Type.Length.Y) #-}
-applyEitherQualifiedMoves moveConstructor	= Data.List.foldl' (
+applyEitherQualifiedMoves moveConstructor	= Data.Foldable.foldl' (
 	\eitherGame datum -> eitherGame >>= (
 		\game -> Left . (,) datum {-Constructor failed-} ||| (
 			\eitherQualifiedMove -> Data.Maybe.maybe (
@@ -1216,7 +1215,7 @@ rollBack	= Data.List.unfoldr (
 				getInstancesByPosition	= if Component.Turn.getIsRepeatableMove turn
 					then State.InstancesByPosition.deletePosition (mkPosition game) instancesByPosition
 					else mkInstancesByPosition game',	-- Reconstruct the map prior to the unrepeatable move.
-				getAvailableQualifiedMovesByLogicalColour	= Data.Map.fromAscList [
+				getAvailableQualifiedMovesByLogicalColour	= Map.fromAscList [
 					(logicalColour, mkAvailableQualifiedMovesFor logicalColour game') |
 						logicalColour	<- Property.FixedMembership.members,
 						maybeChecked' /= Just logicalColour
@@ -1345,7 +1344,7 @@ mkAvailableQualifiedMovesFor :: (
 mkAvailableQualifiedMovesFor logicalColour	= foldr {-maintains destination-order-} (
 	\qualifiedMove -> let
 		move	= Component.QualifiedMove.getMove qualifiedMove
-	in Data.Map.insertWith (++) (
+	in Map.insertWith (++) (
 		Component.Move.getSource move	-- Key.
 	) [
 		(
@@ -1373,9 +1372,9 @@ findQualifiedMovesAvailableTo :: (
 	-> [Component.QualifiedMove.QualifiedMove x y]
 {-# SPECIALISE findQualifiedMovesAvailableTo :: Attribute.LogicalColour.LogicalColour -> Game Type.Length.X Type.Length.Y -> [Component.QualifiedMove.QualifiedMove Type.Length.X Type.Length.Y] #-}
 findQualifiedMovesAvailableTo logicalColour game@MkGame { getAvailableQualifiedMovesByLogicalColour = availableQualifiedMovesByLogicalColour }
-	| Just availableQualifiedMoves <- Data.Map.lookup logicalColour availableQualifiedMovesByLogicalColour	= [
+	| Just availableQualifiedMoves <- Map.lookup logicalColour availableQualifiedMovesByLogicalColour	= [
 		Component.QualifiedMove.mkQualifiedMove (Component.Move.mkMove source destination) moveType |
-			(source, qualifiedDestinations)	<- Data.Map.assocs availableQualifiedMoves,
+			(source, qualifiedDestinations)	<- Map.toList availableQualifiedMoves,
 			(destination, moveType)		<- qualifiedDestinations
 	] -- List-comprehension.
 	| otherwise	= listQualifiedMovesAvailableTo logicalColour game	-- Generate the list of moves for this player.
@@ -1392,11 +1391,9 @@ countPliesAvailableTo :: (
 {-# SPECIALISE countPliesAvailableTo :: Attribute.LogicalColour.LogicalColour -> Game Type.Length.X Type.Length.Y -> Type.Count.NPlies #-}
 countPliesAvailableTo logicalColour game@MkGame { getAvailableQualifiedMovesByLogicalColour = availableQualifiedMovesByLogicalColour }
 	| isTerminated game	= 0
-	| Just availableQualifiedMoves	<- Data.Map.lookup logicalColour availableQualifiedMovesByLogicalColour	-- N.B.: 'findQualifiedMovesAvailableToNextPlayer' unnecessarily constructs a list.
---	= length $ Data.Foldable.concat availableQualifiedMoves			-- CAVEAT: terrible performance.
---	= Data.Map.foldl' (flip $ (+) . length) 0 availableQualifiedMoves	-- CAVEAT: poor performance.
-	= fromIntegral $ Data.Map.foldl' (\acc -> (+ acc) . length) 0 availableQualifiedMoves
-	| otherwise	= fromIntegral . length $ listQualifiedMovesAvailableTo logicalColour game
+	| Just availableQualifiedMoves	<- Map.lookup logicalColour availableQualifiedMovesByLogicalColour	-- N.B.: 'findQualifiedMovesAvailableToNextPlayer' unnecessarily constructs a list.
+	= fromIntegral $ Data.Foldable.foldl' (\acc -> (+ acc) . length) 0 availableQualifiedMoves
+	| otherwise		= fromIntegral . length $ listQualifiedMovesAvailableTo logicalColour game
 
 -- | Retrieve the recorded value, or generate the list of /move/s available to the next player.
 findQualifiedMovesAvailableToNextPlayer :: (
@@ -1505,13 +1502,9 @@ mkInstancesByPosition :: (
 	Show	y
  ) => Game x y -> InstancesByPosition x y
 {-# SPECIALISE mkInstancesByPosition :: Game Type.Length.X Type.Length.Y -> InstancesByPosition Type.Length.X Type.Length.Y #-}
-mkInstancesByPosition	= State.InstancesByPosition.mkInstancesByPosition . uncurry (
-	foldr $ flip (Data.Map.Strict.insertWith $ const succ) 1 . mkPosition . fst {-game-}
- ) . (
-	(`Data.Map.Strict.singleton` 1) . mkPosition &&& takeWhile (
-		Component.Turn.getIsRepeatableMove . snd {-turn-}
-	) . rollBack
- )
+mkInstancesByPosition game	= State.InstancesByPosition.mkInstancesByPosition mkPosition . (game :) . map fst {-game-} . takeWhile (
+	Component.Turn.getIsRepeatableMove . snd {-turn-}
+ ) $ rollBack game
 
 {- |
 	* Whether the specified /game/'s /position/s have converged, & despite perhaps having reached this /position/ from different /move/-sequences, now have equal opportunities.

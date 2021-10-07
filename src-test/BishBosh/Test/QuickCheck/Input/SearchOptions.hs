@@ -31,12 +31,12 @@ import			BishBosh.Test.QuickCheck.Input.StandardOpeningOptions()
 import			Control.Arrow((***))
 import qualified	BishBosh.Input.SearchOptions	as Input.SearchOptions
 import qualified	Data.Foldable
-import qualified	Data.Map.Strict
+import qualified	Data.Map.Strict			as Map
 import qualified	Test.QuickCheck
 
 instance Test.QuickCheck.Arbitrary Input.SearchOptions.SearchOptions where
 	arbitrary	= do
-		searchDepthByLogicalColour	<- Data.Map.Strict.map (
+		searchDepthByLogicalColour	<- Map.map (
 			(+ Input.SearchOptions.minimumSearchDepth) . fromInteger . (`mod` 4)
 		 ) <$> Test.QuickCheck.arbitrary
 
@@ -45,7 +45,7 @@ instance Test.QuickCheck.Arbitrary Input.SearchOptions.SearchOptions where
 		 ) <*> (
 			fmap (fromInteger . (`mod` 4)) <$> Test.QuickCheck.arbitrary	-- maybeRetireKillerMovesAfter.
 		 ) <*> Test.QuickCheck.arbitrary {-trapRepeatedPositions-} <*> (
-			if Data.Map.Strict.size searchDepthByLogicalColour == 1
+			if Data.Foldable.length searchDepthByLogicalColour == 1
 				then Test.QuickCheck.arbitrary
 				else return {-to Gen-monad-} False	-- UsePondering.
 		 ) <*> (

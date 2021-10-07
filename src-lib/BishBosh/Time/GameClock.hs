@@ -63,11 +63,11 @@ instance Property.Switchable.Switchable GameClock where
 		| errorMessages@(_ : _)	<- Property.SelfValidating.findInvalidity gameClock	= Control.Exception.throwIO . Data.Exception.mkInsufficientData . showString "Duel.Process.Intermediary.initialise:\tinvalid gameClock; " $ show errorMessages
 		| otherwise									= fmap (
 			MkGameClock . Attribute.LogicalColour.listArrayByLogicalColour
-		) . mapM Property.Switchable.toggle . Data.Array.IArray.elems $ deconstruct gameClock
+		) . mapM Property.Switchable.toggle . Data.Foldable.toList $ deconstruct gameClock
 
 	switchOff	= fmap (
 		MkGameClock . Attribute.LogicalColour.listArrayByLogicalColour
-	 ) . mapM Property.Switchable.switchOff . Data.Array.IArray.elems . deconstruct	-- CAVEAT: this invalidates the clock, since a subsequent call to 'toggle' would activate both stop-watches.
+	 ) . mapM Property.Switchable.switchOff . Data.Foldable.toList . deconstruct	-- CAVEAT: this invalidates the clock, since a subsequent call to 'toggle' would activate both stop-watches.
 
 	isOn	= Data.Foldable.any Property.Switchable.isOn . deconstruct	-- CAVEAT: includes the dysfunctional state in which both sides are running.
 
@@ -75,7 +75,7 @@ instance Property.Switchable.Switchable GameClock where
 
 instance Property.SelfValidating.SelfValidating GameClock where
 	findInvalidity	= Property.SelfValidating.findErrors [
-		((/= 1) . length . filter Property.Switchable.isOn . Data.Array.IArray.elems . deconstruct,	"The two stop-watches must be in opposite states")
+		((/= 1) . length . filter Property.Switchable.isOn . Data.Foldable.toList . deconstruct,	"The two stop-watches must be in opposite states")
 	 ]
 
 -- | Show the elapsed times.

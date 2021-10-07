@@ -50,7 +50,7 @@ import qualified	BishBosh.Type.Length					as Type.Length
 import qualified	BishBosh.Type.Mass					as Type.Mass
 import qualified	Data.Array.IArray
 import qualified	Data.List
-import qualified	Data.Map.Strict
+import qualified	Data.Map.Strict						as Map
 import qualified	Data.Maybe
 import qualified	Test.QuickCheck
 import			Test.QuickCheck((==>))
@@ -79,7 +79,7 @@ instance (
 				return {-to Gen-monad-} $ Just (
 					pieceSquareTable,
 					pieceSquareTable' {
-						Input.PieceSquareTable.getPieceSquareValueByCoordinatesByRank	= foldr Data.Map.Strict.delete (Input.PieceSquareTable.getPieceSquareValueByCoordinatesByRank pieceSquareTable') $ Data.List.nub ranks	-- Delete arbitrary ranks from the end-game table.
+						Input.PieceSquareTable.getPieceSquareValueByCoordinatesByRank	= foldr Map.delete (Input.PieceSquareTable.getPieceSquareValueByCoordinatesByRank pieceSquareTable') $ Data.List.nub ranks	-- Delete arbitrary ranks from the end-game table.
 					}
 				 ) -- Pair.
 
