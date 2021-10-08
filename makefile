@@ -71,7 +71,7 @@ prof:
 # Profile.
 profN2:
 	@stack install --profile $(GHC_OPTIONS)
-	@$(PACKAGE_NAME) -i 'config/Raw/$(PACKAGE_NAME)_$@.xml' +RTS -p -N2 -RTS
+	@$(PACKAGE_NAME) -i 'config/Raw/$(PACKAGE_NAME)_prof.xml' +RTS -p -N2 -RTS
 
 # Install this product.
 $(BIN_DIR)/$(PACKAGE_NAME) $(BIN_DIR)/duel:
