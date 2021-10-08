@@ -306,41 +306,37 @@ movePiece move maybeMoveType board@MkBoard {
 	getNPiecesDifferenceByRank			= nPiecesDifferenceByRank,
 	getNPieces					= nPieces
 }
-	| Just sourcePiece <- State.MaybePieceByCoordinates.dereference source	maybePieceByCoordinates	= let
-		logicalColour	= Component.Piece.getLogicalColour sourcePiece
+	| Just sourcePiece <- State.MaybePieceByCoordinates.dereference source maybePieceByCoordinates	= let
+		oppositePiece				= Property.Opposable.getOpposite sourcePiece
+		(logicalColour, opponentsLogicalColour)	= ($ sourcePiece) &&& ($ oppositePiece) $ Component.Piece.getLogicalColour
 
 		moveType :: Attribute.MoveType.MoveType
-		moveType -- CAVEAT: one can't call 'State.MaybePieceByCoordinates.inferMoveType', since that performs some validation of the move, which isn't the role of this module.
+		moveType -- CAVEAT: one can't call 'State.MaybePieceByCoordinates.inferMoveType', since that performs some move-validation, & therefore exceeds the remit of this module.
 			| Just explicitMoveType	<- maybeMoveType					= explicitMoveType
 			| State.MaybePieceByCoordinates.isEnPassantMove move maybePieceByCoordinates	= Attribute.MoveType.enPassant	-- N.B.: if this move is valid, then one's opponent must have just double-advanced an adjacent Pawn.
 			| otherwise									= Attribute.MoveType.mkNormalMoveType (
-				Component.Piece.getRank `fmap` State.MaybePieceByCoordinates.dereference destination maybePieceByCoordinates
+				Component.Piece.getRank <$> State.MaybePieceByCoordinates.dereference destination maybePieceByCoordinates
 			) $ if Component.Piece.isPawnPromotion destination sourcePiece
 				then Just Attribute.Rank.defaultPromotionRank
 				else Nothing
 
 -- Derive the required values from moveType.
+		(maybePromotionRank, maybeExplicitlyTakenRank)	= Attribute.Rank.getMaybePromotionRank &&& Attribute.MoveType.getMaybeExplicitlyTakenRank $ moveType	-- Deconstruct.
+		destinationPiece				= Data.Maybe.maybe id Component.Piece.promote maybePromotionRank sourcePiece
+		wasPawnTakenExplicitly				= maybeExplicitlyTakenRank == Just Attribute.Rank.Pawn
+
 		eitherPassingPawnsDestinationOrMaybeTakenRank
 			| Attribute.MoveType.isEnPassant moveType	= Left $ Cartesian.Coordinates.retreat logicalColour destination
-			| otherwise					= Right $ Attribute.MoveType.getMaybeExplicitlyTakenRank moveType
+			| otherwise					= Right maybeExplicitlyTakenRank
 
-		maybePromotionRank :: Maybe Attribute.Rank.Rank
-		maybePromotionRank	= Attribute.Rank.getMaybePromotionRank moveType
-
-		destinationPiece :: Component.Piece.Piece
-		destinationPiece	= Data.Maybe.maybe id Component.Piece.promote maybePromotionRank sourcePiece
+		eitherPassingPawnsDestinationOrMaybeTakenPiece	= fmap (Component.Piece.mkPiece opponentsLogicalColour) <$> eitherPassingPawnsDestinationOrMaybeTakenRank
 
 		board'@MkBoard { getMaybePieceByCoordinates = maybePieceByCoordinates' }	= MkBoard {
 			getMaybePieceByCoordinates	= State.MaybePieceByCoordinates.movePiece move destinationPiece (
 				Just ||| const Nothing $ eitherPassingPawnsDestinationOrMaybeTakenRank
 			) maybePieceByCoordinates,
 			getCoordinatesByRankByLogicalColour	= State.CoordinatesByRankByLogicalColour.movePiece move sourcePiece maybePromotionRank eitherPassingPawnsDestinationOrMaybeTakenRank coordinatesByRankByLogicalColour,
-			getNDefendersByCoordinatesByLogicalColour	= let
-				oppositePiece					= Property.Opposable.getOpposite sourcePiece
-				opponentsLogicalColour				= Component.Piece.getLogicalColour oppositePiece
-				eitherPassingPawnsDestinationOrMaybeTakenPiece	= fmap (Component.Piece.mkPiece opponentsLogicalColour) `fmap` eitherPassingPawnsDestinationOrMaybeTakenRank
-
-			in (
+			getNDefendersByCoordinatesByLogicalColour	= (
 				\(nBlackDefendersByCoordinates, nWhiteDefendersByCoordinates)	-> Attribute.LogicalColour.listArrayByLogicalColour [nBlackDefendersByCoordinates, nWhiteDefendersByCoordinates]
 			) . foldr (
 				\(affectedCoordinates, affectedPiece) -> if Component.Piece.isKing affectedPiece
@@ -364,7 +360,7 @@ movePiece move maybeMoveType board@MkBoard {
 							Map.delete passingPawnsDestination nDefendersByCoordinates	-- This Pawn has been taken.
 						)
 					) ||| (
-						\maybeExplicitlyTakenRank -> if Data.Maybe.isJust maybeExplicitlyTakenRank
+						\maybeExplicitlyTakenRank' -> if Data.Maybe.isJust maybeExplicitlyTakenRank'
 							then (:) (
 								opponentsLogicalColour,
 								Map.delete destination nDefendersByCoordinates	-- This piece has been taken.
@@ -381,7 +377,7 @@ movePiece move maybeMoveType board@MkBoard {
 				ToolShed.Data.List.equalityBy fst {-coordinates-}
 			) $ [
 				(affectedCoordinates, affectedPiece) |
-					(knightsCoordinates, knight)	<- (source, sourcePiece) : map ((,) destination) (destinationPiece : either (const []) Data.Maybe.maybeToList eitherPassingPawnsDestinationOrMaybeTakenPiece),
+					(knightsCoordinates, knight)	<- (source, sourcePiece) : (,) destination `map` (destinationPiece : (const [] ||| Data.Maybe.maybeToList) eitherPassingPawnsDestinationOrMaybeTakenPiece),
 					Component.Piece.isKnight knight,
 					Just affectedCoordinates	<- Cartesian.Vector.maybeTranslate knightsCoordinates `map` (Cartesian.Vector.attackVectorsForKnight :: [Cartesian.Vector.VectorInt]),
 					affectedPiece			<- Data.Maybe.maybeToList $ State.MaybePieceByCoordinates.dereference affectedCoordinates maybePieceByCoordinates',
@@ -444,9 +440,7 @@ movePiece move maybeMoveType board@MkBoard {
 				then [(Attribute.Rank.Pawn, 1)]	-- Increment relative number of Pawns.
 				else Data.Maybe.maybe id (
 					(:) . flip (,) 1	-- Increment.
-				) (
-					Attribute.MoveType.getMaybeExplicitlyTakenRank moveType
-				) $ Data.Maybe.maybe [] (
+				) maybeExplicitlyTakenRank $ Data.Maybe.maybe [] (
 					\promotionRank -> [
 						(
 							promotionRank,
@@ -457,14 +451,12 @@ movePiece move maybeMoveType board@MkBoard {
 						)
 					]
 				) maybePromotionRank,
-			getNPawnsByFileByLogicalColour		= if Component.Piece.isPawn sourcePiece && (
-				Cartesian.Coordinates.getX source /= Cartesian.Coordinates.getX destination {-includes En-passant-} || Attribute.MoveType.isPromotion moveType
-			) || Attribute.MoveType.getMaybeExplicitlyTakenRank moveType == Just Attribute.Rank.Pawn
-				then State.CoordinatesByRankByLogicalColour.countPawnsByFileByLogicalColour coordinatesByRankByLogicalColour'
+			getNPawnsByFileByLogicalColour		= if Component.Piece.isPawn sourcePiece && not (Attribute.MoveType.isQuiet moveType) || wasPawnTakenExplicitly
+				then State.CoordinatesByRankByLogicalColour.countPawnsByFileByLogicalColour coordinatesByRankByLogicalColour'	-- Recalculate.
 				else getNPawnsByFileByLogicalColour board,
 			getNPieces				= Attribute.MoveType.nPiecesMutator moveType nPieces,
-			getPassedPawnCoordinatesByLogicalColour	= if Component.Piece.isPawn sourcePiece {-includes En-passant & promotion-} || Attribute.MoveType.getMaybeExplicitlyTakenRank moveType == Just Attribute.Rank.Pawn
-				then State.CoordinatesByRankByLogicalColour.findPassedPawnCoordinatesByLogicalColour coordinatesByRankByLogicalColour'
+			getPassedPawnCoordinatesByLogicalColour	= if Component.Piece.isPawn sourcePiece || wasPawnTakenExplicitly
+				then State.CoordinatesByRankByLogicalColour.findPassedPawnCoordinatesByLogicalColour coordinatesByRankByLogicalColour'	-- Recalculate.
 				else getPassedPawnCoordinatesByLogicalColour board
 		}
 
