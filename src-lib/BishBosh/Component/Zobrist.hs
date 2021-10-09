@@ -82,7 +82,7 @@ data Zobrist x y positionHash	= MkZobrist {
 	getRandomByCoordinatesByRankByLogicalColour	:: Data.Array.IArray.Array {-Boxed-} (Index x y) positionHash,		-- ^ Defines random numbers to represent all combinations of each piece at each coordinate; though @Pawn@s can't exist on the terminal ranks. N.B.: regrettably the array can't be unboxed, because 'Data.Array.Unboxed.UArray' isn't 'Foldable'; cf. 'Data.Array.IArray.Array'.
 
 	getRandomByCastleableRooksXByLogicalColour	:: Attribute.LogicalColour.ArrayByLogicalColour [(x, positionHash)],	-- ^ Defines random numbers to represent all combinations of castleable @Rook@s.
-	getRandomByEnPassantAbscissa			:: Cartesian.Abscissa.ArrayByAbscissa x positionHash			-- ^ Defines random numbers to represent any file on which capture en-passant might be available.
+	getRandomByEnPassantAbscissa			:: Data.Array.IArray.Array x positionHash				-- ^ Defines random numbers to represent any file on which capture en-passant might be available.
 } deriving Show
 
 instance Foldable (Zobrist x y) where
