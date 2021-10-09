@@ -29,8 +29,6 @@
 -}
 
 module BishBosh.Cartesian.Abscissa(
--- * Types
-	ArrayByAbscissa,
 -- * Constants
 	xOrigin,
 	xLength,
@@ -38,6 +36,7 @@ module BishBosh.Cartesian.Abscissa(
 	xMax,
 	xBounds,
 	xRange,
+--	adjacents,
 -- * Functions
 	toIx,
 	fromIx,
@@ -45,12 +44,15 @@ module BishBosh.Cartesian.Abscissa(
 	translate,
 	maybeTranslate,
 	getAdjacents,
+--	getAdjacents',
+--	getAdjacentsInt,
 -- ** Constructors
 	listArrayByAbscissa,
 -- ** Predicates
 	inBounds
 ) where
 
+import			Data.Array.IArray((!))
 import qualified	BishBosh.Data.Enum	as Data.Enum
 import qualified	BishBosh.Type.Length	as Type.Length
 import qualified	Control.Exception
@@ -114,15 +116,30 @@ maybeTranslate transformation	= (
  ) . transformation
 
 -- | Get the abscissae immediately left & right.
-getAdjacents :: (Enum x, Eq x) => x -> [x]
-{-# INLINE getAdjacents #-}
-getAdjacents x
+getAdjacents' :: (Enum x, Eq x) => x -> [x]
+getAdjacents' x
 	| x == xMin	= [succ xMin]
 	| x == xMax	= [pred xMax]
 	| otherwise	= [pred x, succ x]
 
--- | A boxed array indexed by /coordinates/, of arbitrary elements.
-type ArrayByAbscissa x	= Data.Array.IArray.Array {-Boxed-} x
+-- | The constant abscissae either side of each value.
+adjacents :: (Data.Array.IArray.Ix x, Enum x) => Data.Array.IArray.Array x [x]
+{-# SPECIALISE adjacents :: Data.Array.IArray.Array Type.Length.X [Type.Length.X] #-}	-- To promote memoisation.
+adjacents	= listArrayByAbscissa $ map getAdjacents' xRange
+
+-- | A specialisation of 'getAdjacents'.
+getAdjacentsInt	:: Type.Length.X -> [Type.Length.X]
+getAdjacentsInt	= (adjacents !)
+
+{- |
+	* Get the abscissae immediately left & right.
+
+	* N.B.: this is really a compile-time switch between alternative implementations.
+-}
+getAdjacents :: (Enum x, Eq x) => x -> [x]
+{-# NOINLINE getAdjacents #-}	-- Ensure the rewrite-rule triggers.
+{-# RULES "getAdjacents/Int" getAdjacents = getAdjacentsInt #-}
+getAdjacents	= getAdjacents'
 
 -- | Array-constructor.
 listArrayByAbscissa :: (

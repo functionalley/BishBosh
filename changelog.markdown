@@ -118,4 +118,4 @@ New Module					| Purpose
 
 ## 0.1.2.0
 * Added a Boolean configuration-option **BishBosh.Input.NativeUIOptions.getDepictFigurine** to specify whether the native UI should depict pieces using Unicode figurines rather than merely ASCII letters.
-
+* Reimplemented function **BishBosh.Cartesian.Abscissa.getAdjacents** to promote memoisation.

@@ -32,27 +32,26 @@ module BishBosh.Test.HUnit.State.Board(
 
 import			Control.Arrow((***))
 import			Data.Array.IArray((!))
-import qualified	BishBosh.Attribute.LogicalColour			as Attribute.LogicalColour
-import qualified	BishBosh.Attribute.Rank					as Attribute.Rank
-import qualified	BishBosh.Cartesian.Abscissa				as Cartesian.Abscissa
-import qualified	BishBosh.Cartesian.Coordinates				as Cartesian.Coordinates
-import qualified	BishBosh.Cartesian.Ordinate				as Cartesian.Ordinate
-import qualified	BishBosh.Cartesian.Vector				as Cartesian.Vector
-import qualified	BishBosh.Component.Move					as Component.Move
-import qualified	BishBosh.Component.Piece				as Component.Piece
-import qualified	BishBosh.Property.FixedMembership			as Property.FixedMembership
-import qualified	BishBosh.Property.Opposable				as Property.Opposable
-import qualified	BishBosh.State.Board					as State.Board
-import qualified	BishBosh.State.CoordinatesByRankByLogicalColour		as State.CoordinatesByRankByLogicalColour
-import qualified	BishBosh.State.MaybePieceByCoordinates			as State.MaybePieceByCoordinates
-import qualified	BishBosh.StateProperty.Mutator				as StateProperty.Mutator
-import qualified	BishBosh.Test.HUnit.Cartesian.Coordinates		as Test.HUnit.Cartesian.Coordinates
-import qualified	BishBosh.Type.Length					as Type.Length
+import qualified	BishBosh.Attribute.Rank				as Attribute.Rank
+import qualified	BishBosh.Cartesian.Abscissa			as Cartesian.Abscissa
+import qualified	BishBosh.Cartesian.Coordinates			as Cartesian.Coordinates
+import qualified	BishBosh.Cartesian.Ordinate			as Cartesian.Ordinate
+import qualified	BishBosh.Cartesian.Vector			as Cartesian.Vector
+import qualified	BishBosh.Component.Move				as Component.Move
+import qualified	BishBosh.Component.Piece			as Component.Piece
+import qualified	BishBosh.Property.FixedMembership		as Property.FixedMembership
+import qualified	BishBosh.Property.Opposable			as Property.Opposable
+import qualified	BishBosh.State.Board				as State.Board
+import qualified	BishBosh.State.CoordinatesByRankByLogicalColour	as State.CoordinatesByRankByLogicalColour
+import qualified	BishBosh.State.MaybePieceByCoordinates		as State.MaybePieceByCoordinates
+import qualified	BishBosh.StateProperty.Mutator			as StateProperty.Mutator
+import qualified	BishBosh.Test.HUnit.Cartesian.Coordinates	as Test.HUnit.Cartesian.Coordinates
+import qualified	BishBosh.Type.Length				as Type.Length
 import qualified	Control.Arrow
 import qualified	Data.Array.IArray
 import qualified	Data.Default
 import qualified	Data.Foldable
-import qualified	Data.Map.Strict						as Map
+import qualified	Data.Map.Strict					as Map
 import qualified	Data.Maybe
 import qualified	Test.HUnit
 import qualified	ToolShed.Data.Foldable
@@ -70,7 +69,7 @@ testCases	= Test.HUnit.test [
 		) (Property.FixedMembership.members :: [Test.HUnit.Cartesian.Coordinates.Coordinates])
 	) ~?= [32, 8, 2, 2, 2, 1, 1, 8, 2, 2, 2, 1, 1],
 	let
-		kingsColour		= Attribute.LogicalColour.Black
+		kingsColour		= minBound
 		destination		= Cartesian.Coordinates.mkRelativeCoordinates ((+ 3) *** (+ 3))
 		directionToCoordinates	= last . (`Cartesian.Coordinates.extrapolate` destination)
 		mkPiece			= Component.Piece.mkPiece $ Property.Opposable.getOpposite kingsColour
@@ -96,41 +95,60 @@ testCases	= Test.HUnit.test [
 			in map ((,) attacker . directionToCoordinates) $ Component.Piece.getAttackDirections attacker
 		]
 	) ~? "'BishBosh.State.Board.isKingChecked' failed.",
-	"'BishBosh.State.CoordinatesByRankByLogicalColour.countPassedPawns' failed, for passed Pawn adjacent to opposing Pawn of equal rank." ~: Data.Foldable.toList (
+	"'BishBosh.State.CoordinatesByRankByLogicalColour.countPassedPawns' failed for adjacent Pawns." ~: Data.Foldable.toList (
 		Data.Array.IArray.amap length . State.CoordinatesByRankByLogicalColour.findPassedPawnCoordinatesByLogicalColour . State.Board.getCoordinatesByRankByLogicalColour . placePieces $ map (
 			Component.Piece.mkPawn *** Cartesian.Coordinates.mkRelativeCoordinates
 		) [
 			(
-				Attribute.LogicalColour.Black,
+				minBound,
 				id
 			), (
-				Attribute.LogicalColour.White,
+				maxBound,
 				Control.Arrow.first succ
 			)
 		]
 	) ~?= [1, 1],
-	"'BishBosh.State.CoordinatesByRankByLogicalColour.countPassedPawns' failed for passed Pawns isolated from opposing Pawn." ~: Data.Foldable.toList (
+	"'BishBosh.State.CoordinatesByRankByLogicalColour.countPassedPawns' failed for isolated Pawns." ~: Data.Foldable.toList (
 		Data.Array.IArray.amap length . State.CoordinatesByRankByLogicalColour.findPassedPawnCoordinatesByLogicalColour . State.Board.getCoordinatesByRankByLogicalColour . placePieces $ map (
 			Component.Piece.mkPawn *** Cartesian.Coordinates.mkRelativeCoordinates
 		) [
 			(
-				Attribute.LogicalColour.Black,
+				minBound,
 				Control.Arrow.second succ
 			), (
-				Attribute.LogicalColour.White,
+				maxBound,
 				Control.Arrow.first (+ 2)
 			)
 		]
 	) ~?= [1, 1],
-	"'BishBosh.State.CoordinatesByRankByLogicalColour.countPassedPawns' failed for un-passed Pawn approaching opposing Pawn." ~: Data.Foldable.toList (
+	"'BishBosh.State.CoordinatesByRankByLogicalColour.countPassedPawns' failed for doubled Pawns." ~: Data.Foldable.toList (
+		Data.Array.IArray.amap length . State.CoordinatesByRankByLogicalColour.findPassedPawnCoordinatesByLogicalColour . State.Board.getCoordinatesByRankByLogicalColour . placePieces $ map (
+			Component.Piece.mkPawn *** Cartesian.Coordinates.mkRelativeCoordinates
+		) $ map ((,) minBound) [
+			(+ 4) *** (+ 3),
+			(+ 4) *** (+ 4)
+		] ++ map ((,) maxBound) [
+			(+ 5) *** (+ 4),
+			(+ 5) *** (+ 5)
+		]
+	) ~?= [2, 2],
+	"'BishBosh.State.CoordinatesByRankByLogicalColour.countPassedPawns' failed for asymmetric Pawns." ~: Data.Foldable.toList (
+		Data.Array.IArray.amap length . State.CoordinatesByRankByLogicalColour.findPassedPawnCoordinatesByLogicalColour . State.Board.getCoordinatesByRankByLogicalColour . placePieces $ map (
+			Component.Piece.mkPawn *** Cartesian.Coordinates.mkRelativeCoordinates
+		) $ (minBound, (+ 4) *** (+ 4)) : map ((,) maxBound) [
+			(+ 5) *** (+ 4),
+			(+ 5) *** (+ 5)
+		]
+	) ~?= [1, 2],
+	"'BishBosh.State.CoordinatesByRankByLogicalColour.countPassedPawns' failed for un-passed diagonally adjacent Pawns." ~: Data.Foldable.toList (
 		 Data.Array.IArray.amap length . State.CoordinatesByRankByLogicalColour.findPassedPawnCoordinatesByLogicalColour . State.Board.getCoordinatesByRankByLogicalColour . placePieces $ map (
 			Component.Piece.mkPawn *** Cartesian.Coordinates.mkRelativeCoordinates
 		) [
 			(
-				Attribute.LogicalColour.White,
+				maxBound,
 				id
 			), (
-				Attribute.LogicalColour.Black,
+				minBound,
 				succ *** succ
 			)
 		]
@@ -140,13 +158,13 @@ testCases	= Test.HUnit.test [
 			Component.Piece.mkPawn *** Cartesian.Coordinates.mkRelativeCoordinates
 		) [
 			(
-				Attribute.LogicalColour.Black,
+				minBound,
 				id
 			), (
-				Attribute.LogicalColour.White,
+				maxBound,
 				succ *** succ
 			), (
-				Attribute.LogicalColour.Black,
+				minBound,
 				(+ 2) *** (+ 2)
 			)
 		]
@@ -156,13 +174,13 @@ testCases	= Test.HUnit.test [
 			Component.Piece.mkPawn *** Cartesian.Coordinates.mkRelativeCoordinates
 		) [
 			(
-				Attribute.LogicalColour.Black,
+				minBound,
 				id
 			), (
-				Attribute.LogicalColour.Black,
+				minBound,
 				Control.Arrow.second (+ 2)
 			), (
-				Attribute.LogicalColour.White,
+				maxBound,
 				succ *** succ
 			)
 		]
@@ -170,17 +188,17 @@ testCases	= Test.HUnit.test [
 	let
 		whitePawnsCoordinates	= Cartesian.Coordinates.mkRelativeCoordinates $ succ *** succ
 	in not (
-		State.Board.exposesKing Attribute.LogicalColour.White (
-			Component.Move.mkMove whitePawnsCoordinates $ Cartesian.Coordinates.advance Attribute.LogicalColour.White whitePawnsCoordinates
+		State.Board.exposesKing maxBound (
+			Component.Move.mkMove whitePawnsCoordinates $ Cartesian.Coordinates.advance maxBound whitePawnsCoordinates
 		) $ placePieces [
 			(
-				Component.Piece.mkKing Attribute.LogicalColour.White,
+				Component.Piece.mkKing maxBound,
 				minBound
 			), (
-				Component.Piece.mkPawn Attribute.LogicalColour.White,
+				Component.Piece.mkPawn maxBound,
 				whitePawnsCoordinates
 			), (
-				Component.Piece.mkPawn Attribute.LogicalColour.Black,
+				Component.Piece.mkPawn minBound,
 				Cartesian.Coordinates.mkRelativeCoordinates $ (+ 2) *** (+ 2)
 			)
 		]
@@ -188,17 +206,17 @@ testCases	= Test.HUnit.test [
 	let
 		whitePawnsCoordinates	= Cartesian.Coordinates.mkRelativeCoordinates $ succ *** succ
 	in not (
-		State.Board.exposesKing Attribute.LogicalColour.White (
-			Component.Move.mkMove whitePawnsCoordinates $ Cartesian.Coordinates.advance Attribute.LogicalColour.White whitePawnsCoordinates
+		State.Board.exposesKing maxBound (
+			Component.Move.mkMove whitePawnsCoordinates $ Cartesian.Coordinates.advance maxBound whitePawnsCoordinates
 		) $ placePieces [
 			(
-				Component.Piece.mkKing Attribute.LogicalColour.White,
+				Component.Piece.mkKing maxBound,
 				minBound
 			), (
-				Component.Piece.mkPawn Attribute.LogicalColour.White,
+				Component.Piece.mkPawn maxBound,
 				whitePawnsCoordinates
 			), (
-				Component.Piece.mkKing Attribute.LogicalColour.Black,
+				Component.Piece.mkKing minBound,
 				Cartesian.Coordinates.mkRelativeCoordinates $ (+ 2) *** (+ 2)
 			)
 		]
@@ -206,53 +224,53 @@ testCases	= Test.HUnit.test [
 	let
 		whiteBishopsCoordinates	= Cartesian.Coordinates.mkRelativeCoordinates $ succ *** succ
 	in not (
-		State.Board.exposesKing Attribute.LogicalColour.White (
+		State.Board.exposesKing maxBound (
 			Component.Move.mkMove whiteBishopsCoordinates $ Cartesian.Coordinates.translate (succ *** succ) whiteBishopsCoordinates	-- Move towards Black Queen.
 		) $ placePieces [
 			(
-				Component.Piece.mkKing Attribute.LogicalColour.White,
+				Component.Piece.mkKing maxBound,
 				minBound
 			), (
-				Component.Piece.mkBishop Attribute.LogicalColour.White,
+				Component.Piece.mkBishop maxBound,
 				whiteBishopsCoordinates
 			), (
-				Component.Piece.mkQueen Attribute.LogicalColour.Black,
+				Component.Piece.mkQueen minBound,
 				maxBound
 			)
 		]
 	) ~? "'BishBosh.State.Board.exposesKing false positive attack by black Queen, after moving White Bishop.",
 	let
 		whitePawnsCoordinates	= Cartesian.Coordinates.mkRelativeCoordinates $ succ *** succ
-	in State.Board.exposesKing Attribute.LogicalColour.White (
-		Component.Move.mkMove whitePawnsCoordinates $ Cartesian.Coordinates.advance Attribute.LogicalColour.White whitePawnsCoordinates	-- Expose attack from Black Queen.
+	in State.Board.exposesKing maxBound (
+		Component.Move.mkMove whitePawnsCoordinates $ Cartesian.Coordinates.advance maxBound whitePawnsCoordinates	-- Expose attack from Black Queen.
 	) (
 		placePieces [
 			(
-				Component.Piece.mkKing Attribute.LogicalColour.White,
+				Component.Piece.mkKing maxBound,
 				minBound
 			), (
-				Component.Piece.mkPawn Attribute.LogicalColour.White,
+				Component.Piece.mkPawn maxBound,
 				whitePawnsCoordinates
 			), (
-				Component.Piece.mkQueen Attribute.LogicalColour.Black,
+				Component.Piece.mkQueen minBound,
 				maxBound
 			)
 		]
 	) ~? "'BishBosh.State.Board.exposesKing failed after advancing White Pawn.",
 	let
 		whiteKnightsCoordinates	= Cartesian.Coordinates.mkRelativeCoordinates $ succ *** succ
-	in State.Board.exposesKing Attribute.LogicalColour.White (
+	in State.Board.exposesKing maxBound (
 		Component.Move.mkMove whiteKnightsCoordinates . Cartesian.Coordinates.mkRelativeCoordinates $ (+ 3) *** (+ 2)	-- Expose attack from Black Queen.
 	) (
 		placePieces [
 			(
-				Component.Piece.mkKing Attribute.LogicalColour.White,
+				Component.Piece.mkKing maxBound,
 				minBound
 			), (
-				Component.Piece.mkKnight Attribute.LogicalColour.White,
+				Component.Piece.mkKnight maxBound,
 				whiteKnightsCoordinates
 			), (
-				Component.Piece.mkQueen Attribute.LogicalColour.Black,
+				Component.Piece.mkQueen minBound,
 				maxBound
 			)
 		]
@@ -260,20 +278,20 @@ testCases	= Test.HUnit.test [
 	let
 		whiteRooksCoordinates	= Cartesian.Coordinates.mkRelativeCoordinates $ (+ 2) *** (+ 2)
 	in not (
-		State.Board.exposesKing Attribute.LogicalColour.White (
-			Component.Move.mkMove whiteRooksCoordinates $ Cartesian.Coordinates.advance Attribute.LogicalColour.White whiteRooksCoordinates	-- Shift blocking-role to Pawn.
+		State.Board.exposesKing maxBound (
+			Component.Move.mkMove whiteRooksCoordinates $ Cartesian.Coordinates.advance maxBound whiteRooksCoordinates	-- Shift blocking-role to Pawn.
 		) $ placePieces [
 			(
-				Component.Piece.mkKing Attribute.LogicalColour.White,
+				Component.Piece.mkKing maxBound,
 				minBound
 			), (
-				Component.Piece.mkPawn Attribute.LogicalColour.White,
+				Component.Piece.mkPawn maxBound,
 				Cartesian.Coordinates.mkRelativeCoordinates $ succ *** succ
 			), (
-				Component.Piece.mkRook Attribute.LogicalColour.White,
+				Component.Piece.mkRook maxBound,
 				whiteRooksCoordinates
 			), (
-				Component.Piece.mkQueen Attribute.LogicalColour.Black,
+				Component.Piece.mkQueen minBound,
 				maxBound
 			)
 		]
@@ -284,8 +302,8 @@ testCases	= Test.HUnit.test [
 		State.CoordinatesByRankByLogicalColour.countPawnsByFileByLogicalColour $ State.Board.getCoordinatesByRankByLogicalColour (Data.Default.def :: Board)
 	) ~? "'BishBosh.State.Board.countPawnsByFileByLogicalColour': failed for default board",
 	(
-		(== [(0, 3), (2, 2), (4, 1)]) . Map.toList . (! Attribute.LogicalColour.White) . State.CoordinatesByRankByLogicalColour.countPawnsByFileByLogicalColour . State.Board.getCoordinatesByRankByLogicalColour . placePieces $ map (
-			(,) (Component.Piece.mkPawn Attribute.LogicalColour.White) . Cartesian.Coordinates.mkRelativeCoordinates
+		(== [(0, 3), (2, 2), (4, 1)]) . Map.toList . (! maxBound) . State.CoordinatesByRankByLogicalColour.countPawnsByFileByLogicalColour . State.Board.getCoordinatesByRankByLogicalColour . placePieces $ map (
+			(,) (Component.Piece.mkPawn maxBound) . Cartesian.Coordinates.mkRelativeCoordinates
 		) [
 			Control.Arrow.second succ,
 			Control.Arrow.second (+ 3),
@@ -305,8 +323,8 @@ testCases	= Test.HUnit.test [
 				Cartesian.Coordinates.mkCoordinates x y |
 					y	<- [
 						Cartesian.Ordinate.yMax,
-						Cartesian.Ordinate.pawnsFirstRank Attribute.LogicalColour.Black,
-						Cartesian.Ordinate.pawnsFirstRank Attribute.LogicalColour.White,
+						Cartesian.Ordinate.pawnsFirstRank minBound,
+						Cartesian.Ordinate.pawnsFirstRank maxBound,
 						Cartesian.Ordinate.yMin
 					],
 					x	<- Cartesian.Abscissa.xRange

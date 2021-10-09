@@ -256,7 +256,12 @@ findPiecesOfColour logicalColour MkCoordinatesByRankByLogicalColour { deconstruc
 type CoordinatesByLogicalColour x y	= Attribute.LogicalColour.ArrayByLogicalColour [Cartesian.Coordinates.Coordinates x y]
 
 -- | For each /logical colour/, find the /coordinates/ of any passed @Pawn@s (<https://en.wikipedia.org/wiki/Passed_pawn>).
-findPassedPawnCoordinatesByLogicalColour :: (Enum x, Ord x, Ord y) => CoordinatesByRankByLogicalColour x y -> CoordinatesByLogicalColour x y
+findPassedPawnCoordinatesByLogicalColour :: (
+	Enum	x,
+	Ord	x,
+	Ord	y
+ ) => CoordinatesByRankByLogicalColour x y -> CoordinatesByLogicalColour x y
+{-# SPECIALISE findPassedPawnCoordinatesByLogicalColour :: CoordinatesByRankByLogicalColour Type.Length.X Type.Length.Y -> CoordinatesByLogicalColour Type.Length.X Type.Length.Y #-}
 findPassedPawnCoordinatesByLogicalColour MkCoordinatesByRankByLogicalColour { deconstruct = byLogicalColour }	= Attribute.LogicalColour.listArrayByLogicalColour $ map (
 	\logicalColour	-> let
 		opponentsLogicalColour	= Property.Opposable.getOpposite logicalColour
@@ -271,7 +276,7 @@ findPassedPawnCoordinatesByLogicalColour MkCoordinatesByRankByLogicalColour { de
 		 ) Property.Empty.empty $ findPawns opponentsLogicalColour
 	in filter (
 		\coordinates -> all (
-			Data.Maybe.maybe True {-the absence of an opposing Pawn doesn't impede advancement-} (
+			Data.Maybe.maybe True {-absence of opposition doesn't impede advance-} (
 				(
 					/= Attribute.Direction.advanceDirection logicalColour	-- Either equal or backwards is OK.
 				) . (
