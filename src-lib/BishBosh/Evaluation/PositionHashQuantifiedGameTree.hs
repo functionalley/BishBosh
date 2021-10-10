@@ -146,17 +146,17 @@ fromBarePositionHashQuantifiedGameTree	= MkPositionHashQuantifiedGameTree
 
 -- | Constructor.
 mkPositionHashQuantifiedGameTree :: (
-	Data.Array.IArray.Ix					x,
+	Data.Array.IArray.Ix		x,
 #ifdef USE_UNBOXED_ARRAYS
-	Data.Array.Unboxed.IArray Data.Array.Unboxed.UArray	pieceSquareValue,	-- Requires 'FlexibleContexts'. The unboxed representation of the array-element must be defined (& therefore must be of fixed size).
+	Data.Array.Unboxed.IArray	Data.Array.Unboxed.UArray pieceSquareValue,	-- Requires 'FlexibleContexts'. The unboxed representation of the array-element must be defined (& therefore must be of fixed size).
 #endif
-	Data.Bits.Bits						positionHash,
-	Fractional						pieceSquareValue,
-	Integral						x,
-	Integral						y,
-	Real							pieceSquareValue,
-	Show							x,
-	Show							y
+	Data.Bits.Bits			positionHash,
+	Fractional			pieceSquareValue,
+	Integral			x,
+	Integral			y,
+	Real				pieceSquareValue,
+	Show				x,
+	Show				y
  )
 	=> Input.EvaluationOptions.EvaluationOptions pieceSquareValue x y
 	-> Input.SearchOptions.SearchOptions

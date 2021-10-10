@@ -100,17 +100,17 @@ data PlayState pieceSquareValue positionHash x y	= MkPlayState {
 
 -- | Constructor.
 initialise :: (
-	Data.Array.IArray.Ix					x,
+	Data.Array.IArray.Ix		x,
 #ifdef USE_UNBOXED_ARRAYS
-	Data.Array.Unboxed.IArray Data.Array.Unboxed.UArray	pieceSquareValue,	-- Requires 'FlexibleContexts'. The unboxed representation of the array-element must be defined (& therefore must be of fixed size).
+	Data.Array.Unboxed.IArray	Data.Array.Unboxed.UArray pieceSquareValue,	-- Requires 'FlexibleContexts'. The unboxed representation of the array-element must be defined (& therefore must be of fixed size).
 #endif
-	Data.Bits.Bits						positionHash,
-	Fractional						pieceSquareValue,
-	Integral						x,
-	Integral						y,
-	Real							pieceSquareValue,
-	Show							x,
-	Show							y
+	Data.Bits.Bits			positionHash,
+	Fractional			pieceSquareValue,
+	Integral			x,
+	Integral			y,
+	Real				pieceSquareValue,
+	Show				x,
+	Show				y
  )
 	=> Input.Options.Options pieceSquareValue x y
 	-> Component.Zobrist.Zobrist x y positionHash
@@ -150,17 +150,17 @@ setPositionHashQuantifiedGameTree positionHashQuantifiedGameTree playState@MkPla
 
 -- | Reconstruct the /positionHashQuantifiedGameTree/ (in the /searchState/), with the apex set to the specified game.
 reconstructPositionHashQuantifiedGameTree :: (
-	Data.Array.IArray.Ix					x,
+	Data.Array.IArray.Ix		x,
 #ifdef USE_UNBOXED_ARRAYS
-	Data.Array.Unboxed.IArray Data.Array.Unboxed.UArray	pieceSquareValue,	-- Requires 'FlexibleContexts'. The unboxed representation of the array-element must be defined (& therefore must be of fixed size).
+	Data.Array.Unboxed.IArray	Data.Array.Unboxed.UArray pieceSquareValue,	-- Requires 'FlexibleContexts'. The unboxed representation of the array-element must be defined (& therefore must be of fixed size).
 #endif
-	Data.Bits.Bits						positionHash,
-	Fractional						pieceSquareValue,
-	Integral						x,
-	Integral						y,
-	Real							pieceSquareValue,
-	Show							x,
-	Show							y
+	Data.Bits.Bits			positionHash,
+	Fractional			pieceSquareValue,
+	Integral			x,
+	Integral			y,
+	Real				pieceSquareValue,
+	Show				x,
+	Show				y
  ) => Model.Game.Game x y -> Transformation pieceSquareValue positionHash x y
 reconstructPositionHashQuantifiedGameTree game playState@MkPlayState {
 	getZobrist		= zobrist,
@@ -174,17 +174,17 @@ reconstructPositionHashQuantifiedGameTree game playState@MkPlayState {
 
 -- | Reset to the initial state.
 resetPositionHashQuantifiedGameTree :: (
-	Data.Array.IArray.Ix					x,
+	Data.Array.IArray.Ix		x,
 #ifdef USE_UNBOXED_ARRAYS
-	Data.Array.Unboxed.IArray Data.Array.Unboxed.UArray	pieceSquareValue,	-- Requires 'FlexibleContexts'. The unboxed representation of the array-element must be defined (& therefore must be of fixed size).
+	Data.Array.Unboxed.IArray	Data.Array.Unboxed.UArray pieceSquareValue,	-- Requires 'FlexibleContexts'. The unboxed representation of the array-element must be defined (& therefore must be of fixed size).
 #endif
-	Data.Bits.Bits						positionHash,
-	Fractional						pieceSquareValue,
-	Integral						x,
-	Integral						y,
-	Real							pieceSquareValue,
-	Show							x,
-	Show							y
+	Data.Bits.Bits			positionHash,
+	Fractional			pieceSquareValue,
+	Integral			x,
+	Integral			y,
+	Real				pieceSquareValue,
+	Show				x,
+	Show				y
  ) => Transformation pieceSquareValue positionHash x y
 resetPositionHashQuantifiedGameTree playState	= reconstructPositionHashQuantifiedGameTree Data.Default.def playState {
 	getCriterionValues			= [],

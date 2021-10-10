@@ -194,23 +194,23 @@ showsThinking searchDepth evaluationOptions weightedMean stoppedWatch nPlies pri
 	* Since the user can also request roll-back to an earlier game before then requesting a new move, a new game is returned rather than just the requested move.
 -}
 readMove :: forall pieceSquareValue positionHash randomGen x y. (
-	Control.DeepSeq.NFData					pieceSquareValue,
-	Control.DeepSeq.NFData					x,
-	Control.DeepSeq.NFData					y,
-	Data.Array.IArray.Ix					x,
+	Control.DeepSeq.NFData		pieceSquareValue,
+	Control.DeepSeq.NFData		x,
+	Control.DeepSeq.NFData		y,
+	Data.Array.IArray.Ix		x,
 #ifdef USE_UNBOXED_ARRAYS
-	Data.Array.Unboxed.IArray Data.Array.Unboxed.UArray	pieceSquareValue,	-- Requires 'FlexibleContexts'. The unboxed representation of the array-element must be defined (& therefore must be of fixed size).
+	Data.Array.Unboxed.IArray	Data.Array.Unboxed.UArray pieceSquareValue,	-- Requires 'FlexibleContexts'. The unboxed representation of the array-element must be defined (& therefore must be of fixed size).
 #endif
-	Data.Bits.Bits						positionHash,
-	Fractional						pieceSquareValue,
-	Integral						x,
-	Integral						y,
-	Ord							positionHash,
-	Real							pieceSquareValue,
-	Show							pieceSquareValue,
-	Show							x,
-	Show							y,
-	System.Random.RandomGen					randomGen
+	Data.Bits.Bits			positionHash,
+	Fractional			pieceSquareValue,
+	Integral			x,
+	Integral			y,
+	Ord				positionHash,
+	Real				pieceSquareValue,
+	Show				pieceSquareValue,
+	Show				x,
+	Show				y,
+	System.Random.RandomGen		randomGen
  )
 	=> ContextualNotation.PositionHashQualifiedMoveTree.PositionHashQualifiedMoveTree x y positionHash
 	-> randomGen
@@ -1041,23 +1041,23 @@ readMove positionHashQualifiedMoveTree randomGen	= slave where
 
 -- | Plays the game.
 takeTurns :: forall pieceSquareValue positionHash randomGen x y. (
-	Control.DeepSeq.NFData					pieceSquareValue,
-	Control.DeepSeq.NFData					x,
-	Control.DeepSeq.NFData					y,
-	Data.Array.IArray.Ix					x,
+	Control.DeepSeq.NFData		pieceSquareValue,
+	Control.DeepSeq.NFData		x,
+	Control.DeepSeq.NFData		y,
+	Data.Array.IArray.Ix		x,
 #ifdef USE_UNBOXED_ARRAYS
-	Data.Array.Unboxed.IArray Data.Array.Unboxed.UArray	pieceSquareValue,	-- Requires 'FlexibleContexts'. The unboxed representation of the array-element must be defined (& therefore must be of fixed size).
+	Data.Array.Unboxed.IArray	Data.Array.Unboxed.UArray pieceSquareValue,	-- Requires 'FlexibleContexts'. The unboxed representation of the array-element must be defined (& therefore must be of fixed size).
 #endif
-	Data.Bits.Bits						positionHash,
-	Fractional						pieceSquareValue,
-	Integral						x,
-	Integral						y,
-	Ord							positionHash,
-	Real							pieceSquareValue,
-	Show							pieceSquareValue,
-	Show							x,
-	Show							y,
-	System.Random.RandomGen					randomGen
+	Data.Bits.Bits			positionHash,
+	Fractional			pieceSquareValue,
+	Integral			x,
+	Integral			y,
+	Ord				positionHash,
+	Real				pieceSquareValue,
+	Show				pieceSquareValue,
+	Show				x,
+	Show				y,
+	System.Random.RandomGen		randomGen
  )
 	=> ContextualNotation.PositionHashQualifiedMoveTree.PositionHashQualifiedMoveTree x y positionHash
 	-> randomGen

@@ -469,13 +469,13 @@ movePiece move maybeMoveType board@MkBoard {
 -- | Calculate the total value of the /coordinates/ occupied by the /piece/s of either side, at a stage in the game's life-span defined by the total number of pieces remaining.
 sumPieceSquareValueByLogicalColour :: (
 #ifdef USE_UNBOXED_ARRAYS
-	Data.Array.Unboxed.IArray Data.Array.Unboxed.UArray	pieceSquareValue,	-- Requires 'FlexibleContexts'. The unboxed representation of the array-element must be defined (& therefore must be of fixed size).
+	Data.Array.Unboxed.IArray	Data.Array.Unboxed.UArray pieceSquareValue,	-- Requires 'FlexibleContexts'. The unboxed representation of the array-element must be defined (& therefore must be of fixed size).
 #endif
-	Enum							x,
-	Enum							y,
-	Num							pieceSquareValue,
-	Ord							x,
-	Ord							y
+	Enum				x,
+	Enum				y,
+	Num				pieceSquareValue,
+	Ord				x,
+	Ord				y
  )
 	=> Component.PieceSquareByCoordinatesByRank.PieceSquareByCoordinatesByRank x y pieceSquareValue
 	-> Board x y

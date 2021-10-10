@@ -92,13 +92,13 @@ mkPieceSquareCriterionValue	= fromRational . (
 -- | Measures the piece-square value from the perspective of the last player to move.
 measurePieceSquareValue :: (
 #ifdef USE_UNBOXED_ARRAYS
-	Data.Array.Unboxed.IArray Data.Array.Unboxed.UArray	pieceSquareValue,	-- Requires 'FlexibleContexts'. The unboxed representation of the array-element must be defined (& therefore must be of fixed size).
+	Data.Array.Unboxed.IArray	Data.Array.Unboxed.UArray pieceSquareValue,	-- Requires 'FlexibleContexts'. The unboxed representation of the array-element must be defined (& therefore must be of fixed size).
 #endif
-	Enum							x,
-	Enum							y,
-	Num							pieceSquareValue,
-	Ord							x,
-	Ord							y
+	Enum				x,
+	Enum				y,
+	Num				pieceSquareValue,
+	Ord				x,
+	Ord				y
  )
 	=> Component.PieceSquareByCoordinatesByRank.PieceSquareByCoordinatesByRank x y pieceSquareValue
 	-> Model.Game.Game x y
@@ -120,13 +120,13 @@ measurePieceSquareValue pieceSquareByCoordinatesByRank game
 -}
 measurePieceSquareValueIncrementally :: (
 #ifdef USE_UNBOXED_ARRAYS
-	Data.Array.Unboxed.IArray Data.Array.Unboxed.UArray	pieceSquareValue,	-- Requires 'FlexibleContexts'. The unboxed representation of the array-element must be defined (& therefore must be of fixed size).
+	Data.Array.Unboxed.IArray	Data.Array.Unboxed.UArray pieceSquareValue,	-- Requires 'FlexibleContexts'. The unboxed representation of the array-element must be defined (& therefore must be of fixed size).
 #endif
-	Enum							x,
-	Enum							y,
-	Num							pieceSquareValue,
-	Ord							x,
-	Ord							y
+	Enum				x,
+	Enum				y,
+	Num				pieceSquareValue,
+	Ord				x,
+	Ord				y
  )
 	=> pieceSquareValue	-- ^ The value before the last move was applied, & therefore also from the perspective of the previous player.
 	-> Component.PieceSquareByCoordinatesByRank.PieceSquareByCoordinatesByRank x y pieceSquareValue
@@ -324,16 +324,16 @@ measureValueOfDefence game	= fromRational . (
 -}
 evaluateFitness :: (
 #ifdef USE_UNBOXED_ARRAYS
-	Data.Array.Unboxed.IArray Data.Array.Unboxed.UArray	pieceSquareValue,	-- Requires 'FlexibleContexts'. The unboxed representation of the array-element must be defined (& therefore must be of fixed size).
+	Data.Array.Unboxed.IArray	Data.Array.Unboxed.UArray pieceSquareValue,	-- Requires 'FlexibleContexts'. The unboxed representation of the array-element must be defined (& therefore must be of fixed size).
 #endif
-	Enum							x,
-	Enum							y,
-	Fractional						pieceSquareValue,
-	Ord							x,
-	Ord							y,
-	Real							pieceSquareValue,
-	Show							x,
-	Show							y
+	Enum				x,
+	Enum				y,
+	Fractional			pieceSquareValue,
+	Ord				x,
+	Ord				y,
+	Real				pieceSquareValue,
+	Show				x,
+	Show				y
  )
 	=> Maybe pieceSquareValue	-- ^ An optional value for the specified game.
 	-> Model.Game.Game x y

@@ -79,26 +79,26 @@ import qualified	Data.Array.Unboxed
 
 -- | Plays the game according to the specified configuration.
 play :: (
-	Control.DeepSeq.NFData					pieceSquareValue,
-	Control.DeepSeq.NFData					x,
-	Control.DeepSeq.NFData					y,
-	Data.Array.IArray.Ix					x,
+	Control.DeepSeq.NFData		pieceSquareValue,
+	Control.DeepSeq.NFData		x,
+	Control.DeepSeq.NFData		y,
+	Data.Array.IArray.Ix		x,
 #ifdef USE_UNBOXED_ARRAYS
-	Data.Array.Unboxed.IArray Data.Array.Unboxed.UArray	pieceSquareValue,	-- Requires 'FlexibleContexts'. The unboxed representation of the array-element must be defined (& therefore must be of fixed size).
+	Data.Array.Unboxed.IArray	Data.Array.Unboxed.UArray pieceSquareValue,	-- Requires 'FlexibleContexts'. The unboxed representation of the array-element must be defined (& therefore must be of fixed size).
 #endif
-	Data.Bits.FiniteBits					positionHash,
-	Fractional						pieceSquareValue,
-	Integral						x,
-	Integral						y,
-	Ord							positionHash,
-	Read							x,
-	Read							y,
-	Real							pieceSquareValue,
-	Show							pieceSquareValue,
-	Show							x,
-	Show							y,
-	System.Random.Random					positionHash,
-	System.Random.RandomGen					randomGen
+	Data.Bits.FiniteBits		positionHash,
+	Fractional			pieceSquareValue,
+	Integral			x,
+	Integral			y,
+	Ord				positionHash,
+	Read				x,
+	Read				y,
+	Real				pieceSquareValue,
+	Show				pieceSquareValue,
+	Show				x,
+	Show				y,
+	System.Random.Random		positionHash,
+	System.Random.RandomGen		randomGen
  )
 	=> Input.Verbosity.Verbosity
 	-> randomGen
