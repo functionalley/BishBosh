@@ -60,7 +60,7 @@ results	= sequence [
 	let
 		f :: String -> Test.QuickCheck.Property
 		f garbage	= Test.QuickCheck.label "Smith.prop_read" $ case (
-			reads garbage :: [(Notation.Smith.Smith Int Int, String)]
+			reads garbage :: [(Smith, String)]
 		 ) of
 			[_]	-> True
 			_	-> True	-- Unless the read-implementation throws an exception.

@@ -81,7 +81,7 @@ results	= sequence [
 	let
 		f :: String -> Test.QuickCheck.Property
 		f garbage	= Test.QuickCheck.label "PureCoordinate.prop_read" $ case (
-			reads garbage :: [(Notation.PureCoordinate.PureCoordinate Int Int, String)]
+			reads garbage :: [(PureCoordinate, String)]
 		 ) of
 			[_]	-> True
 			_	-> True	-- Unless the read-implementation throws an exception.

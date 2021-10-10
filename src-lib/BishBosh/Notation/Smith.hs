@@ -49,6 +49,7 @@ import qualified	BishBosh.Cartesian.Coordinates		as Cartesian.Coordinates
 import qualified	BishBosh.Cartesian.Ordinate		as Cartesian.Ordinate
 import qualified	BishBosh.Component.Move			as Component.Move
 import qualified	BishBosh.Component.QualifiedMove	as Component.QualifiedMove
+import qualified	BishBosh.Data.Enum			as Data.Enum
 import qualified	Control.Arrow
 import qualified	Data.Char
 import qualified	Data.Default
@@ -57,7 +58,7 @@ import qualified	Data.Maybe
 
 -- | The origin.
 origin :: (Int, Int)
-origin	= ($ 'a') &&& ($ '1') $ Data.Char.ord
+origin	= ($ 'a') &&& ($ '1') $ fromEnum
 
 -- | The offset of the application's internal coordinate-system from this conventional one.
 xOriginOffset, yOriginOffset :: Int
@@ -82,7 +83,7 @@ fromQualifiedMove	= MkSmith
 
 -- | Encodes the ordinate & abscissa.
 encode :: (Enum x, Enum y) => Cartesian.Coordinates.Coordinates x y -> (ShowS, ShowS)
-encode	= showChar . Data.Char.chr . subtract xOriginOffset . fromEnum . Cartesian.Coordinates.getX &&& showChar . Data.Char.chr . subtract yOriginOffset . fromEnum . Cartesian.Coordinates.getY
+encode	= showChar . Data.Enum.translate (subtract xOriginOffset) . Cartesian.Coordinates.getX &&& showChar . Data.Enum.translate (subtract yOriginOffset) . Cartesian.Coordinates.getY
 
 -- | Shows the specified /coordinates/.
 showsCoordinates :: (Enum x, Enum y) => Cartesian.Coordinates.Coordinates x y -> ShowS
@@ -119,18 +120,24 @@ instance (
  ) => Read (Smith x y) where
 	readsPrec _ s	= case Data.List.Extra.trimStart s of
 		x : y : x' : y' : remainder	-> let
-			fromSmith x'' y''	= Cartesian.Coordinates.mkMaybeCoordinates (
-				toEnum $ Data.Char.ord x'' + xOriginOffset
-			 ) (
-				toEnum $ Data.Char.ord y'' + yOriginOffset
-			 )
+			fromSmith pair@(cx, cy)
+				| not . uncurry (&&) $ (
+					uncurry (&&) . (
+						(cx >=) &&& (cx <) . Data.Enum.translate (+ fromEnum Cartesian.Abscissa.xLength)
+					) . toEnum *** uncurry (&&) . (
+						(cy >=) &&& (cy <) . Data.Enum.translate (+ fromEnum Cartesian.Ordinate.yLength)
+					) . toEnum
+				) origin	= Nothing
+				| otherwise	= uncurry Cartesian.Coordinates.mkMaybeCoordinates $ (
+					Data.Enum.translate (+ xOriginOffset) *** Data.Enum.translate (+ yOriginOffset)
+				) pair
 		 in [
 			(
 				fromQualifiedMove $ Component.QualifiedMove.mkQualifiedMove (Component.Move.mkMove source destination) moveType,
 				remainder'
 			) |
-				source			<- Data.Maybe.maybeToList $ fromSmith x y,
-				destination		<- Data.Maybe.maybeToList $ fromSmith x' y',
+				source			<- Data.Maybe.maybeToList $ fromSmith (x, y),
+				destination		<- Data.Maybe.maybeToList $ fromSmith (x', y'),
 				source /= destination,
 				(moveType, remainder')	<- case remainder of
 					[]		-> [(Data.Default.def, remainder)]

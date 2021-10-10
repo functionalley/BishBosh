@@ -80,7 +80,7 @@ results	= sequence [
 	let
 		f :: String -> Test.QuickCheck.Property
 		f garbage	= Test.QuickCheck.label "ICCFNumeric.prop_read" $ case (
-			reads garbage :: [(Notation.ICCFNumeric.ICCFNumeric Int Int, String)]
+			reads garbage :: [(ICCFNumeric, String)]
 		 ) of
 			[_]	-> True
 			_	-> True	-- Unless the read-implementation throws an exception.
