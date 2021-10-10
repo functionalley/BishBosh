@@ -51,8 +51,8 @@ instance Show SetObject where
 	showsPrec _ (SearchDepth searchDepth)	= showString Input.SearchOptions.searchDepthTag . showChar ' ' . shows searchDepth
 
 instance Read SetObject where
-	readsPrec _ s	= case Control.Arrow.first Data.List.Extra.lower `map` lex s of
-		[("searchdepth", s')]		-> Control.Arrow.first (mkSearchDepth . fromInteger) `map` reads s'
+	readsPrec precedence s	= case Control.Arrow.first Data.List.Extra.lower `map` lex s of
+		[("searchdepth", s')]		-> Control.Arrow.first (mkSearchDepth . fromInteger) `map` readsPrec precedence s'
 		_				-> []	-- No parse.
 
 -- | Smart constructor.
