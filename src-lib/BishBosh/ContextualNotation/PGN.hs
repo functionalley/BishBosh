@@ -68,9 +68,7 @@ module BishBosh.ContextualNotation.PGN(
 	parser,
 -- ** Constructors
 	mkPGN,
-	mkPGN',
--- ** Mutators
-	setGame
+	mkPGN'
  ) where
 
 import			Control.Arrow((&&&), (***))
@@ -303,10 +301,6 @@ mkPGN maybeEventName maybeSiteName day maybeRoundName maybeWhitePlayerName maybe
 					)
 				 ] -- Those tags for which an unknown value is represented by 'unknownTagValue'.
 		 ] -- List-comprehension.
-
--- | Mutator.
-setGame :: Model.Game.Game x y -> PGN x y -> PGN x y
-setGame game pgn	= pgn { getGame = game }
 
 -- | Smart constructor.
 mkPGN'
@@ -619,9 +613,9 @@ parser :: (
 {-# SPECIALISE parser :: IsStrictlySequential -> ContextualNotation.StandardAlgebraic.ValidateMoves -> [Tag] -> Text.Poly.TextParser (PGN Type.Length.X Type.Length.Y) #-}
 parser isStrictlySequential validateMoves identificationTags	= do
 	tagPairs	<- Control.Applicative.many $ tagPairParser <* Control.Applicative.many ContextualNotation.PGNComment.parser
-	moveText	<- moveTextParser' <* Control.Applicative.many ContextualNotation.PGNComment.parser
+	game		<- moveTextParser' <* Control.Applicative.many ContextualNotation.PGNComment.parser
 
-	return {-to Parser-monad-} $ mkPGN' identificationTags (removeUnknownTagValues tagPairs) moveText
+	return {-to Parser-monad-} $ mkPGN' identificationTags (removeUnknownTagValues tagPairs) game
 
 	where
 		tagPairParser :: Text.Poly.TextParser TagPair
