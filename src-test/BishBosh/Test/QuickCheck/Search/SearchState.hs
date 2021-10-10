@@ -58,9 +58,7 @@ instance forall x y positionHash. (
 	Show				positionHash,
 	Show				x,
 	Show				y,
-	System.Random.Random		positionHash,
-	Test.QuickCheck.Arbitrary	x,
-	Test.QuickCheck.Arbitrary	y
+	System.Random.Random		positionHash
  ) => Test.QuickCheck.Arbitrary (Search.SearchState.SearchState x y positionHash) where
 	{-# SPECIALISE instance Test.QuickCheck.Arbitrary SearchState #-}
 	arbitrary	= do
