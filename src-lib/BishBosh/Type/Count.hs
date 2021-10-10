@@ -22,7 +22,7 @@
 
  [@DESCRIPTION@]
 
-	* Defines distinct types for various countable quantities to prevent accidental conflation between conceptually different quantities.
+	* Defines distinct types for various conceptually different countable quantities to prevent accidental conflation.
 
 	* Nothing but the type is exported, facilitating reversion to unwrapped types.
 -}
@@ -50,7 +50,7 @@ import qualified	Data.Array.IArray
 import qualified	Text.XML.HXT.Arrow.Pickle	as HXT
 #endif
 
--- | The private type which is wrapped by countable data-types.
+-- | The private type which is wrapped by various countable data-types.
 type Base	= Int
 
 -- | A number of decimal digits.
@@ -63,7 +63,7 @@ instance Show NDecimalDigits where
 type NDecimalDigits	= Base
 #endif
 
--- | A number of decimal digits.
+-- | A number of directions.
 #ifdef USE_NEWTYPE_WRAPPERS
 newtype NDirections	= MkNDirections Base deriving (Enum, Eq, Integral, Num, Ord, Real)
 #else
