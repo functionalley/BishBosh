@@ -24,23 +24,16 @@
 -}
 
 module BishBosh.Test.QuickCheck.UI.Command (
--- * Types
--- ** Type-synonyms
---	Command,
 -- * Constants
 	results
 ) where
 
 import			BishBosh.Test.QuickCheck.UI.PrintObject()
 import			BishBosh.Test.QuickCheck.UI.SetObject()
-import qualified	BishBosh.Type.Length	as Type.Length
 import qualified	BishBosh.UI.Command	as UI.Command
 import qualified	Test.QuickCheck
 
--- | Define a concrete type for testing.
-type Command	= UI.Command.Command Type.Length.X Type.Length.Y
-
-instance Test.QuickCheck.Arbitrary (UI.Command.Command x y) where
+instance Test.QuickCheck.Arbitrary UI.Command.Command where
 	arbitrary	= Test.QuickCheck.oneof [
 		Test.QuickCheck.elements [
 			UI.Command.Hint,
@@ -59,7 +52,7 @@ instance Test.QuickCheck.Arbitrary (UI.Command.Command x y) where
 results :: IO [Test.QuickCheck.Result]
 results	= sequence [
 	let
-		f :: Command -> Test.QuickCheck.Property
+		f :: UI.Command.Command -> Test.QuickCheck.Property
 		f command	= Test.QuickCheck.label "Command.prop_io" $ UI.Command.readsCommand (UI.Command.showsCommand command "") == Right (command, "")
 	in Test.QuickCheck.quickCheckWithResult Test.QuickCheck.stdArgs { Test.QuickCheck.maxSuccess = 256 } f
  ]

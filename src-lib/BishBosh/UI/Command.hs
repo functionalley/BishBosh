@@ -129,7 +129,7 @@ setArgs	= Data.List.intercalate alternationTag [
  ]
 
 -- | The sum-type of commands that a user may issue.
-data Command x y
+data Command
 	= Hint						-- ^ Request a move-suggestion.
 	| Print UI.PrintObject.PrintObject		-- ^ Print the requested static data.
 	| Quit						-- ^ Terminate this application.
@@ -142,7 +142,7 @@ data Command x y
 	| Swap						-- ^ Swap options between the two sides; which causes the players to swap sides.
 	deriving (Eq, Show)
 
-instance Control.DeepSeq.NFData (Command x y) where
+instance Control.DeepSeq.NFData Command where
 	rnf (Print printObject)	= Control.DeepSeq.rnf printObject
 	rnf (Set setObject)	= Control.DeepSeq.rnf setObject
 	rnf _			= ()
@@ -213,7 +213,7 @@ usageMessage	= showString (
 	objectFieldWidth	= succ $ maximum [length arg | (_, Just arg, _) <- commands]
 
 -- | Reads a /command/.
-readsCommand :: String -> Either String (Command x y, String)
+readsCommand :: String -> Either String (Command, String)
 readsCommand []	= Left . showString "null command received; specify one of " . show $ map (\(tag, _, _) -> tag) commands
 readsCommand s	= case Control.Arrow.first Data.List.Extra.lower `map` lex s of
 	[("hint", s')]		-> Right (Hint, s')
@@ -243,7 +243,7 @@ readsCommand s	= case Control.Arrow.first Data.List.Extra.lower `map` lex s of
 	_			-> Left "no command received"
 
 -- | Shows a /command/.
-showsCommand :: Command x y -> ShowS
+showsCommand :: Command -> ShowS
 showsCommand	= \case
 	Hint			-> showString hintTag
 	Print printObject	-> showString printTag . showChar ' ' . shows printObject

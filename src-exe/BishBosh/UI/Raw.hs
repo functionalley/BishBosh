@@ -158,7 +158,7 @@ readMove positionHashQualifiedMoveTree randomGen runningWatch playState	= let
 			Notation.MoveNotation.getOrigin moveNotation
 		 ) . State.Board.getMaybePieceByCoordinates . Model.Game.getBoard
 
-		onCommand :: UI.Command.Command x y -> IO (State.PlayState.PlayState pieceSquareValue positionHash x y)
+		onCommand :: UI.Command.Command -> IO (State.PlayState.PlayState pieceSquareValue positionHash x y)
 		onCommand UI.Command.Hint	= do
 			Control.Monad.unless (Model.Game.isTerminated game) . Data.Maybe.maybe (
 				do
