@@ -157,7 +157,7 @@ abscissaParser	= Data.Enum.translate (+ xOriginOffset) <$> Parsec.satisfy inXRan
 
 -- | Parse a /y/-coordinate.
 ordinateParser :: Enum y => Parsec.Parser y
-{-# SPECIALISE ordinateParser :: Parsec.Parser Type.Length.X #-}
+{-# SPECIALISE ordinateParser :: Parsec.Parser Type.Length.Y #-}
 ordinateParser	= Data.Enum.translate (+ yOriginOffset) <$> Parsec.satisfy inYRange <?> "Ordinate"
 
 -- | Parse a pair of /coordinates/.
