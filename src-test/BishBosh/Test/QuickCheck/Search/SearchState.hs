@@ -33,6 +33,7 @@ module BishBosh.Test.QuickCheck.Search.SearchState(
 import			BishBosh.Test.QuickCheck.Component.Zobrist()
 import			BishBosh.Test.QuickCheck.Input.EvaluationOptions()
 import			BishBosh.Test.QuickCheck.Input.SearchOptions()
+import			BishBosh.Test.QuickCheck.Model.Game()
 import qualified	BishBosh.Evaluation.PositionHashQuantifiedGameTree	as Evaluation.PositionHashQuantifiedGameTree
 import qualified	BishBosh.Input.EvaluationOptions			as Input.EvaluationOptions
 import qualified	BishBosh.Property.Empty					as Property.Empty

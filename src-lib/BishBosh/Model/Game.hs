@@ -123,6 +123,7 @@ import qualified	BishBosh.State.InstancesByPosition		as State.InstancesByPositio
 import qualified	BishBosh.State.MaybePieceByCoordinates		as State.MaybePieceByCoordinates
 import qualified	BishBosh.State.Position				as State.Position
 import qualified	BishBosh.StateProperty.Censor			as StateProperty.Censor
+import qualified	BishBosh.StateProperty.Hashable			as StateProperty.Hashable
 import qualified	BishBosh.StateProperty.Mutator			as StateProperty.Mutator
 import qualified	BishBosh.StateProperty.Seeker			as StateProperty.Seeker
 import qualified	BishBosh.State.TurnsByLogicalColour		as State.TurnsByLogicalColour
@@ -393,7 +394,7 @@ instance Property.Reflectable.ReflectableOnX Game where
 		getMaybeTerminationReason	= fmap Property.Opposable.getOpposite maybeTerminationReason
 	}
 
-instance Component.Zobrist.Hashable Game where
+instance StateProperty.Hashable.Hashable Game where
 	listRandoms game@MkGame {
 		getNextLogicalColour			= nextLogicalColour,
 		getCastleableRooksByLogicalColour	= castleableRooksByLogicalColour,
@@ -403,12 +404,12 @@ instance Component.Zobrist.Hashable Game where
 			then (Component.Zobrist.getRandomForBlacksMove zobrist :)
 			else id
 	 ) . Data.Maybe.maybe id (
-		(++) . (`Component.Zobrist.listRandoms` zobrist)
+		(++) . (`StateProperty.Hashable.listRandoms` zobrist)
 	 ) (
 		maybeLastTurn game >>= State.EnPassantAbscissa.mkMaybeEnPassantAbscissa nextLogicalColour (
 			State.Board.getMaybePieceByCoordinates board
 		)
-	 ) $ Component.Zobrist.listRandoms castleableRooksByLogicalColour zobrist ++ Component.Zobrist.listRandoms board zobrist
+	 ) $ StateProperty.Hashable.listRandoms castleableRooksByLogicalColour zobrist ++ StateProperty.Hashable.listRandoms board zobrist
 
 -- | Smart constructor.
 mkGame
@@ -1295,7 +1296,7 @@ updateIncrementalPositionHash
 	-> Component.Zobrist.Zobrist positionHash
 	-> positionHash
 {-# SPECIALISE updateIncrementalPositionHash :: Game -> Type.Crypto.PositionHash -> Game -> Component.Zobrist.Zobrist Type.Crypto.PositionHash -> Type.Crypto.PositionHash #-}
-updateIncrementalPositionHash game positionHash game' zobrist	= Component.Zobrist.combine positionHash . (++) randomsFromMoveType . (
+updateIncrementalPositionHash game positionHash game' zobrist	= StateProperty.Hashable.combine positionHash . (++) randomsFromMoveType . (
 	let
 		(castleableRooksByLogicalColour, castleableRooksByLogicalColour')	= ($ game) &&& ($ game') $ getCastleableRooksByLogicalColour
 	in if isCastle || castleableRooksByLogicalColour /= castleableRooksByLogicalColour'
@@ -1312,7 +1313,7 @@ updateIncrementalPositionHash game positionHash game' zobrist	= Component.Zobris
 				State.Board.getMaybePieceByCoordinates $ getBoard g
 			) -- CAVEAT: accounts for any change to the En-passant option, rather than the act of taking En-passant.
 		) [game, game'],
-		random			<- Component.Zobrist.listRandoms enPassantAbscissa zobrist
+		random			<- StateProperty.Hashable.listRandoms enPassantAbscissa zobrist
  ] {-list-comprehension-} ++ Component.Zobrist.getRandomForBlacksMove zobrist : [
 	Component.Zobrist.dereferenceRandomByCoordinatesByRankByLogicalColour (lastLogicalColour, rankAccessor turn, coordinatesAccessor move) zobrist |
 		(rankAccessor, coordinatesAccessor)	<- zip [Component.Turn.getRank, (`Data.Maybe.fromMaybe` Attribute.Rank.getMaybePromotionRank moveType) . Component.Turn.getRank] coordinatesAccessors

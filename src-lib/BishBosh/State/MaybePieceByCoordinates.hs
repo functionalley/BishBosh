@@ -89,6 +89,7 @@ import qualified	BishBosh.Property.Opposable				as Property.Opposable
 import qualified	BishBosh.Property.Orientated				as Property.Orientated
 import qualified	BishBosh.Property.Reflectable				as Property.Reflectable
 import qualified	BishBosh.StateProperty.Censor				as StateProperty.Censor
+import qualified	BishBosh.StateProperty.Hashable				as StateProperty.Hashable
 import qualified	BishBosh.StateProperty.Mutator				as StateProperty.Mutator
 import qualified	BishBosh.StateProperty.Seeker				as StateProperty.Seeker
 import qualified	BishBosh.Text.ShowList					as Text.ShowList
@@ -246,11 +247,16 @@ instance StateProperty.Censor.Censor MaybePieceByCoordinates where
 		([_], [_])	-> True
 		_		-> False
 
-instance Component.Zobrist.Hashable MaybePieceByCoordinates where
+instance StateProperty.Hashable.Hashable MaybePieceByCoordinates where
 	listRandoms MkMaybePieceByCoordinates { deconstruct = byCoordinates } zobrist	= [
 		Component.Zobrist.dereferenceRandomByCoordinatesByRankByLogicalColour (Component.Piece.getLogicalColour piece, Component.Piece.getRank piece, coordinates) zobrist |
 			(coordinates, Just piece)	<- Data.Array.IArray.assocs byCoordinates
 	 ] -- List-comprehension.
+
+instance StateProperty.Mutator.Mutator MaybePieceByCoordinates where
+	defineCoordinates maybePiece coordinates MkMaybePieceByCoordinates { deconstruct = byCoordinates }	= Control.Exception.assert (
+		Data.Maybe.isJust maybePiece || Data.Maybe.isJust (byCoordinates ! coordinates)
+	 ) . MkMaybePieceByCoordinates $ byCoordinates // [(coordinates, maybePiece)]
 
 {- |
 	* Find any @Knight@s of the specified /logical colour/, in attack-range around the specified /coordinates/.
@@ -270,11 +276,6 @@ instance StateProperty.Seeker.Seeker MaybePieceByCoordinates where
 			(coordinates, Just piece)	<- Data.Array.IArray.assocs byCoordinates,
 			predicate piece
 	 ] -- List-comprehension.
-
-instance StateProperty.Mutator.Mutator MaybePieceByCoordinates where
-	defineCoordinates maybePiece coordinates MkMaybePieceByCoordinates { deconstruct = byCoordinates }	= Control.Exception.assert (
-		Data.Maybe.isJust maybePiece || Data.Maybe.isJust (byCoordinates ! coordinates)
-	 ) . MkMaybePieceByCoordinates $ byCoordinates // [(coordinates, maybePiece)]
 
 -- | Dereference the array.
 dereference

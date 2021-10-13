@@ -81,6 +81,7 @@ import qualified	BishBosh.Model.GameTree				as Model.GameTree
 import qualified	BishBosh.Notation.MoveNotation			as Notation.MoveNotation
 import qualified	BishBosh.Property.Arboreal			as Property.Arboreal
 import qualified	BishBosh.Property.Null				as Property.Null
+import qualified	BishBosh.StateProperty.Hashable			as StateProperty.Hashable
 import qualified	BishBosh.Type.Crypto				as Type.Crypto
 import qualified	BishBosh.Type.Mass				as Type.Mass
 import qualified	Control.Arrow
@@ -168,7 +169,7 @@ mkPositionHashQuantifiedGameTree :: (
 mkPositionHashQuantifiedGameTree evaluationOptions searchOptions zobrist moveFrequency seedGame	= MkPositionHashQuantifiedGameTree (
 	if Input.EvaluationOptions.getIncrementalEvaluation evaluationOptions
 		then let
-			apexPositionHash	= Component.Zobrist.hash seedGame zobrist
+			apexPositionHash	= StateProperty.Hashable.hash seedGame zobrist
 		in Data.Tree.Node {
 			Data.Tree.rootLabel	= MkNodeLabel apexPositionHash $ Control.Monad.Reader.runReader (
 				Evaluation.QuantifiedGame.fromGame Nothing seedGame
@@ -208,7 +209,7 @@ mkPositionHashQuantifiedGameTree evaluationOptions searchOptions zobrist moveFre
 		}
 		else fmap (
 			uncurry MkNodeLabel . (
-				(`Component.Zobrist.hash` zobrist) &&& (`Control.Monad.Reader.runReader` evaluationOptions) . Evaluation.QuantifiedGame.fromGame Nothing
+				(`StateProperty.Hashable.hash` zobrist) &&& (`Control.Monad.Reader.runReader` evaluationOptions) . Evaluation.QuantifiedGame.fromGame Nothing
 			)
 		) bareGameTree
  ) where

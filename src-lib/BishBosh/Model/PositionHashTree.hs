@@ -39,6 +39,7 @@ import qualified	BishBosh.Data.Exception		as Data.Exception
 import qualified	BishBosh.Model.GameTree		as Model.GameTree
 import qualified	BishBosh.Property.Arboreal	as Property.Arboreal
 import qualified	BishBosh.Property.Empty		as Property.Empty
+import qualified	BishBosh.StateProperty.Hashable	as StateProperty.Hashable
 import qualified	BishBosh.Text.ShowList		as Text.ShowList
 import qualified	BishBosh.Type.Count		as Type.Count
 import qualified	BishBosh.Type.Crypto		as Type.Crypto
@@ -70,7 +71,7 @@ mkPositionHashTree
 	=> Component.Zobrist.Zobrist positionHash
 	-> Model.GameTree.GameTree
 	-> PositionHashTree positionHash
-mkPositionHashTree zobrist	= MkPositionHashTree . fmap (`Component.Zobrist.hash` zobrist) . Model.GameTree.deconstruct
+mkPositionHashTree zobrist	= MkPositionHashTree . fmap (`StateProperty.Hashable.hash` zobrist) . Model.GameTree.deconstruct
 
 -- | Count the number of distinct positions, irrespective of the sequence of moves taken to reach that terminal state.
 countDistinctPositions

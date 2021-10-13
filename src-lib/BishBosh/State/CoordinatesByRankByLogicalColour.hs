@@ -73,6 +73,7 @@ import qualified	BishBosh.Property.FixedMembership			as Property.FixedMembership
 import qualified	BishBosh.Property.Opposable				as Property.Opposable
 import qualified	BishBosh.State.MaybePieceByCoordinates			as State.MaybePieceByCoordinates
 import qualified	BishBosh.StateProperty.Censor				as StateProperty.Censor
+import qualified	BishBosh.StateProperty.Hashable				as StateProperty.Hashable
 import qualified	BishBosh.StateProperty.Seeker				as StateProperty.Seeker
 import qualified	BishBosh.Type.Count					as Type.Count
 import qualified	BishBosh.Type.Length					as Type.Length
@@ -133,7 +134,7 @@ instance StateProperty.Censor.Censor CoordinatesByRankByLogicalColour where
 
 	hasBothKings MkCoordinatesByRankByLogicalColour { deconstruct = byLogicalColour }	= not $ Data.Foldable.any (null . (! Attribute.Rank.King)) byLogicalColour	-- CAVEAT: true for more than one King per side also.
 
-instance Component.Zobrist.Hashable CoordinatesByRankByLogicalColour where
+instance StateProperty.Hashable.Hashable CoordinatesByRankByLogicalColour where
 	listRandoms MkCoordinatesByRankByLogicalColour { deconstruct = byLogicalColour } zobrist	= [
 		Component.Zobrist.dereferenceRandomByCoordinatesByRankByLogicalColour (logicalColour, rank, coordinates) zobrist |
 			(logicalColour, byRank)	<- Data.Array.IArray.assocs byLogicalColour,

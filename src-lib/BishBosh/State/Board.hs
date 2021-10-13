@@ -76,7 +76,6 @@ import qualified	BishBosh.Cartesian.Vector				as Cartesian.Vector
 import qualified	BishBosh.Component.Move					as Component.Move
 import qualified	BishBosh.Component.Piece				as Component.Piece
 import qualified	BishBosh.Component.PieceSquareByCoordinatesByRank	as Component.PieceSquareByCoordinatesByRank
-import qualified	BishBosh.Component.Zobrist				as Component.Zobrist
 import qualified	BishBosh.Data.Exception					as Data.Exception
 import qualified	BishBosh.Property.Empty					as Property.Empty
 import qualified	BishBosh.Property.ExtendedPositionDescription		as Property.ExtendedPositionDescription
@@ -87,6 +86,7 @@ import qualified	BishBosh.Property.Reflectable				as Property.Reflectable
 import qualified	BishBosh.State.CoordinatesByRankByLogicalColour		as State.CoordinatesByRankByLogicalColour
 import qualified	BishBosh.State.MaybePieceByCoordinates			as State.MaybePieceByCoordinates
 import qualified	BishBosh.StateProperty.Censor				as StateProperty.Censor
+import qualified	BishBosh.StateProperty.Hashable				as StateProperty.Hashable
 import qualified	BishBosh.StateProperty.Mutator				as StateProperty.Mutator
 import qualified	BishBosh.StateProperty.Seeker				as StateProperty.Seeker
 import qualified	BishBosh.Type.Count					as Type.Count
@@ -169,24 +169,24 @@ instance Property.ForsythEdwards.ShowsFEN Board
 instance Data.Default.Default Board where
 	def	= fromMaybePieceByCoordinates Data.Default.def {-MaybePieceByCoordinates-}
 
+instance Property.Empty.Empty Board where
+	empty	= fromMaybePieceByCoordinates Property.Empty.empty {-MaybePieceByCoordinates-}
+
 instance Property.Reflectable.ReflectableOnX Board where
 	reflectOnX MkBoard { getMaybePieceByCoordinates = maybePieceByCoordinates }	= fromMaybePieceByCoordinates $ Property.Reflectable.reflectOnX maybePieceByCoordinates
 
 instance Property.Reflectable.ReflectableOnY Board where
 	reflectOnY MkBoard { getMaybePieceByCoordinates = maybePieceByCoordinates }	= fromMaybePieceByCoordinates $ Property.Reflectable.reflectOnY maybePieceByCoordinates
 
-instance Property.Empty.Empty Board where
-	empty	= fromMaybePieceByCoordinates Property.Empty.empty {-MaybePieceByCoordinates-}
+instance StateProperty.Hashable.Hashable Board where
+	listRandoms MkBoard { getCoordinatesByRankByLogicalColour = coordinatesByRankByLogicalColour }	= StateProperty.Hashable.listRandoms coordinatesByRankByLogicalColour
 
-instance Component.Zobrist.Hashable Board where
-	listRandoms MkBoard { getCoordinatesByRankByLogicalColour = coordinatesByRankByLogicalColour }	= Component.Zobrist.listRandoms coordinatesByRankByLogicalColour
+instance StateProperty.Mutator.Mutator Board where
+	defineCoordinates maybePiece coordinates MkBoard { getMaybePieceByCoordinates = maybePieceByCoordinates }	= fromMaybePieceByCoordinates $ StateProperty.Mutator.defineCoordinates maybePiece coordinates maybePieceByCoordinates
 
 instance StateProperty.Seeker.Seeker Board where
 	findProximateKnights logicalColour coordinates MkBoard { getCoordinatesByRankByLogicalColour = coordinatesByRankByLogicalColour }	= StateProperty.Seeker.findProximateKnights logicalColour coordinates coordinatesByRankByLogicalColour -- Forward the request.
 	findPieces predicate MkBoard { getCoordinatesByRankByLogicalColour = coordinatesByRankByLogicalColour }					= StateProperty.Seeker.findPieces predicate coordinatesByRankByLogicalColour	-- Forward the request.
-
-instance StateProperty.Mutator.Mutator Board where
-	defineCoordinates maybePiece coordinates MkBoard { getMaybePieceByCoordinates = maybePieceByCoordinates }	= fromMaybePieceByCoordinates $ StateProperty.Mutator.defineCoordinates maybePiece coordinates maybePieceByCoordinates
 
 -- | Constructor.
 fromMaybePieceByCoordinates :: State.MaybePieceByCoordinates.MaybePieceByCoordinates -> Board
@@ -209,7 +209,7 @@ fromMaybePieceByCoordinates maybePieceByCoordinates	= board where
 	* CAVEAT: /castling/ must be implemented by making two calls.
 -}
 movePiece
-	:: Component.Move.Move		-- ^ N.B.: illegal moves are acceptable.
+	:: Component.Move.Move			-- ^ N.B.: illegal moves are acceptable.
 	-> Maybe Attribute.MoveType.MoveType	-- ^ N.B.: this may not be available to the caller, for example during the illegal moves required for rollback.
 	-> Transformation
 movePiece move maybeMoveType board@MkBoard {

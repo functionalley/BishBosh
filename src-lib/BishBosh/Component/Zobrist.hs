@@ -29,8 +29,6 @@
 -}
 
 module BishBosh.Component.Zobrist(
--- * Type-classes
-	Hashable(..),
 -- * Types
 -- ** Type-synonyms
 --	Index,
@@ -42,15 +40,11 @@ module BishBosh.Component.Zobrist(
 --		getRandomByCastleableRooksXByLogicalColour,
 --		getRandomByEnPassantAbscissa
 	),
--- * Constants
---	combiningOp,
 -- * Functions
 --	measureHammingDistances,
 	dereferenceRandomByCoordinatesByRankByLogicalColour,
 	dereferenceRandomByCastleableRooksXByLogicalColour,
 	dereferenceRandomByEnPassantAbscissa,
-	hash,
-	combine,
 -- ** Constructors
 	mkZobrist
 ) where
@@ -68,7 +62,6 @@ import qualified	Data.Array.IArray
 import qualified	Data.Bits
 import qualified	Data.Default
 import qualified	Data.Foldable
-import qualified	Data.List
 import qualified	System.Random
 import qualified	ToolShed.System.Random
 
@@ -168,26 +161,4 @@ dereferenceRandomByCastleableRooksXByLogicalColour logicalColour x MkZobrist { g
 -- | Dereferences 'getRandomByEnPassantAbscissa' using the specified abscissa.
 dereferenceRandomByEnPassantAbscissa :: Type.Length.X -> Zobrist positionHash -> positionHash
 dereferenceRandomByEnPassantAbscissa x MkZobrist { getRandomByEnPassantAbscissa = randomByEnPassantAbscissa }	= randomByEnPassantAbscissa ! x
-
--- | An interface to which hashable data can conform.
-class Hashable hashable where
-	listRandoms	:: hashable -> Zobrist positionHash -> [positionHash]
-
--- | The operator used when combining random numbers to compose a hash.
-combiningOp :: Data.Bits.Bits positionHash => positionHash -> positionHash -> positionHash
-combiningOp	= Data.Bits.xor
-
--- | Resolve a hashable into a hash.
-hash :: (
-	Data.Bits.Bits	positionHash,
-	Hashable	hashable
- )
-	=> hashable
-	-> Zobrist positionHash
-	-> positionHash
-hash hashable	= Data.List.foldl1' combiningOp . listRandoms hashable
-
--- | Include a list of random numbers in the hash.
-combine :: Data.Bits.Bits positionHash => positionHash -> [positionHash] -> positionHash
-combine	= Data.List.foldl' combiningOp
 

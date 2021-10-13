@@ -126,3 +126,4 @@ New Module				| Purpose
 	+ elimination of chains of **SPECIALISE** pragmas down the call-stack to hot-spots.
 	+ allow external calls from [**Text.ParserCombinators.Poly.Lazy.runParser**, **Text.ParserCombinators.Parsec.parse**], to access specialised implementations (see previous items),
 	+ permit unification of the similar type-classes **BishBosh.Component.Zobrist.Hashable[12]D**, & to avoid the requirement for the **MultiParameterTypeClasses** pragma.
+* Moved the type-class from module **BishBosh.Component.Zobrist** into a new module **BishBosh.StateProperty.Hashable**.

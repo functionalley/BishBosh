@@ -57,6 +57,7 @@ import qualified	BishBosh.Model.Game				as Model.Game
 import qualified	BishBosh.Property.Reflectable			as Property.Reflectable
 import qualified	BishBosh.Rule.Result				as Rule.Result
 import qualified	BishBosh.State.Board				as State.Board
+import qualified	BishBosh.StateProperty.Hashable			as StateProperty.Hashable
 import qualified	BishBosh.Type.Count				as Type.Count
 import qualified	BishBosh.Type.Crypto				as Type.Crypto
 import qualified	Control.Arrow
@@ -103,7 +104,7 @@ fromQualifiedMoveForest incrementalEvaluation zobrist qualifiedMoveForest	= MkPo
 	getZobrist		= zobrist,
 	getTree			= let
 		initialGame		= Data.Default.def
-		initialPositionHash	= Component.Zobrist.hash initialGame zobrist
+		initialPositionHash	= StateProperty.Hashable.hash initialGame zobrist
 	in Data.Tree.Node {
 		Data.Tree.rootLabel	= MkNodeLabel initialPositionHash Nothing,
 		Data.Tree.subForest	= map (
@@ -124,7 +125,7 @@ fromQualifiedMoveForest incrementalEvaluation zobrist qualifiedMoveForest	= MkPo
 						Data.Tree.rootLabel	= label@(qualifiedMove, _),
 						Data.Tree.subForest	= qualifiedMoveForest'
 					} = Data.Tree.Node {
-						Data.Tree.rootLabel	= MkNodeLabel (Component.Zobrist.hash game' zobrist) $ Just label,	-- Hash the game after applying the move.
+						Data.Tree.rootLabel	= MkNodeLabel (StateProperty.Hashable.hash game' zobrist) $ Just label,	-- Hash the game after applying the move.
 						Data.Tree.subForest	= map (slave game') qualifiedMoveForest'	-- Recurse.
 					} where
 						game'	= Model.Game.applyQualifiedMove qualifiedMove game
@@ -193,7 +194,7 @@ findNextOnymousQualifiedMovesForPosition requiredGame positionHashQualifiedMoveT
 	| cantConverge requiredGame positionHashQualifiedMoveTree	= []	-- The specified game has fewer pieces than any defined in the tree.
 	| otherwise							= slave (2 * Component.Piece.nPiecesPerSide) tree
 	where
-		(requiredPositionHash, requiredNPieces)	= (`Component.Zobrist.hash` zobrist) &&& State.Board.getNPieces . Model.Game.getBoard $ requiredGame
+		(requiredPositionHash, requiredNPieces)	= (`StateProperty.Hashable.hash` zobrist) &&& State.Board.getNPieces . Model.Game.getBoard $ requiredGame
 
 		slave nPieces Data.Tree.Node {
 			Data.Tree.rootLabel	= MkNodeLabel { getPositionHash = positionHash },

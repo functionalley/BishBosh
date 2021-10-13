@@ -28,6 +28,7 @@ module BishBosh.Test.QuickCheck.Evaluation.PositionHashQuantifiedGameTree(
 ) where
 
 import			BishBosh.Test.QuickCheck.Input.SearchOptions()
+import			BishBosh.Test.QuickCheck.Model.Game()
 import qualified	BishBosh.Evaluation.PositionHashQuantifiedGameTree	as Evaluation.PositionHashQuantifiedGameTree
 import qualified	BishBosh.Evaluation.QuantifiedGame			as Evaluation.QuantifiedGame
 import qualified	BishBosh.Input.SearchOptions				as Input.SearchOptions

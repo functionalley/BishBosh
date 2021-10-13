@@ -216,6 +216,7 @@ Library
         BishBosh.State.MaybePieceByCoordinates
         BishBosh.State.Position
         BishBosh.StateProperty.Censor
+        BishBosh.StateProperty.Hashable
         BishBosh.StateProperty.Mutator
         BishBosh.StateProperty.Seeker
         BishBosh.State.TurnsByLogicalColour
@@ -513,6 +514,7 @@ Test-Suite quickcheck-tests
         BishBosh.Test.QuickCheck.State.InstancesByPosition
         BishBosh.Test.QuickCheck.State.Position
         BishBosh.Test.QuickCheck.StateProperty.Censor
+        BishBosh.Test.QuickCheck.StateProperty.Hashable
         BishBosh.Test.QuickCheck.State.TurnsByLogicalColour
         BishBosh.Test.QuickCheck.Text.Encoding
         BishBosh.Test.QuickCheck.Time.StopWatch

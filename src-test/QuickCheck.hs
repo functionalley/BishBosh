@@ -34,7 +34,6 @@ import qualified	BishBosh.Test.QuickCheck.Component.Move						as Test.QuickCheck
 import qualified	BishBosh.Test.QuickCheck.Component.Piece					as Test.QuickCheck.Component.Piece
 import qualified	BishBosh.Test.QuickCheck.Component.QualifiedMove				as Test.QuickCheck.Component.QualifiedMove
 import qualified	BishBosh.Test.QuickCheck.Component.Turn						as Test.QuickCheck.Component.Turn
-import qualified	BishBosh.Test.QuickCheck.Component.Zobrist					as Test.QuickCheck.Component.Zobrist
 import qualified	BishBosh.Test.QuickCheck.ContextualNotation.PGN					as Test.QuickCheck.ContextualNotation.PGN
 import qualified	BishBosh.Test.QuickCheck.ContextualNotation.PGNComment				as Test.QuickCheck.ContextualNotation.PGNComment
 import qualified	BishBosh.Test.QuickCheck.ContextualNotation.PositionHashQualifiedMoveTree	as Test.QuickCheck.ContextualNotation.PositionHashQualifiedMoveTree
@@ -64,6 +63,7 @@ import qualified	BishBosh.Test.QuickCheck.State.CastleableRooksByLogicalColour		
 import qualified	BishBosh.Test.QuickCheck.State.InstancesByPosition				as Test.QuickCheck.State.InstancesByPosition
 import qualified	BishBosh.Test.QuickCheck.State.Position						as Test.QuickCheck.State.Position
 import qualified	BishBosh.Test.QuickCheck.StateProperty.Censor					as Test.QuickCheck.StateProperty.Censor
+import qualified	BishBosh.Test.QuickCheck.StateProperty.Hashable					as Test.QuickCheck.StateProperty.Hashable
 import qualified	BishBosh.Test.QuickCheck.State.TurnsByLogicalColour				as Test.QuickCheck.State.TurnsByLogicalColour
 import qualified	BishBosh.Test.QuickCheck.Text.Encoding						as Test.QuickCheck.Text.Encoding
 import qualified	BishBosh.Test.QuickCheck.UI.Command						as Test.QuickCheck.UI.Command
@@ -106,10 +106,10 @@ main	= mapM_ (
 	Test.QuickCheck.State.Board.results,
 	Test.QuickCheck.State.TurnsByLogicalColour.results,
 	Test.QuickCheck.StateProperty.Censor.results,
+	Test.QuickCheck.StateProperty.Hashable.results,
 	Test.QuickCheck.Model.Game.results,
 	Test.QuickCheck.Model.GameTree.results,
 	Test.QuickCheck.Model.MoveFrequency.results,
-	Test.QuickCheck.Component.Zobrist.results,
 	Test.QuickCheck.ContextualNotation.PositionHashQualifiedMoveTree.results,
 	Test.QuickCheck.ContextualNotation.StandardAlgebraic.results,
 	Test.QuickCheck.ContextualNotation.PGNComment.results,

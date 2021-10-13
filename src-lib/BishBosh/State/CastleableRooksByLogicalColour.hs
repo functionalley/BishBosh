@@ -74,6 +74,7 @@ import qualified	BishBosh.Property.Opposable			as Property.Opposable
 import qualified	BishBosh.Property.Reflectable			as Property.Reflectable
 import qualified	BishBosh.State.Board				as State.Board
 import qualified	BishBosh.State.CoordinatesByRankByLogicalColour	as State.CoordinatesByRankByLogicalColour
+import qualified	BishBosh.StateProperty.Hashable			as StateProperty.Hashable
 import qualified	BishBosh.State.TurnsByLogicalColour		as State.TurnsByLogicalColour
 import qualified	BishBosh.Type.Length				as Type.Length
 import qualified	Control.Arrow
@@ -207,7 +208,7 @@ instance Property.ForsythEdwards.ReadsFEN CastleableRooksByLogicalColour
 instance Property.ForsythEdwards.ShowsFEN CastleableRooksByLogicalColour
 
 -- | Get the list of random numbers required to represent the current castling potential.
-instance Component.Zobrist.Hashable CastleableRooksByLogicalColour where
+instance StateProperty.Hashable.Hashable CastleableRooksByLogicalColour where
 	listRandoms MkCastleableRooksByLogicalColour { getAssocs = assocs } zobrist	= Data.Maybe.catMaybes [
 		Component.Zobrist.dereferenceRandomByCastleableRooksXByLogicalColour logicalColour x zobrist |
 			logicalColour	<- Property.FixedMembership.members,
@@ -399,6 +400,6 @@ listIncrementalRandoms
 listIncrementalRandoms castleableRooksByLogicalColour castleableRooksByLogicalColour' zobrist	= [
 	random |
 		hashable	<- [castleableRooksByLogicalColour, castleableRooksByLogicalColour'],
-		random		<- Component.Zobrist.listRandoms hashable zobrist
+		random		<- StateProperty.Hashable.listRandoms hashable zobrist
  ] -- List-comprehension.
 

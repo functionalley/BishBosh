@@ -42,6 +42,7 @@ import qualified	BishBosh.Component.Zobrist		as Component.Zobrist
 import qualified	BishBosh.Property.FixedMembership	as Property.FixedMembership
 import qualified	BishBosh.Property.Opposable		as Property.Opposable
 import qualified	BishBosh.State.MaybePieceByCoordinates	as State.MaybePieceByCoordinates
+import qualified	BishBosh.StateProperty.Hashable		as StateProperty.Hashable
 import qualified	BishBosh.Type.Length			as Type.Length
 import qualified	Control.DeepSeq
 import qualified	Data.Maybe
@@ -51,11 +52,11 @@ newtype EnPassantAbscissa	= MkEnPassantAbscissa {
 	getAbscissa	:: Type.Length.X	-- ^ The file on which an En-passant option currently exists.
 } deriving (Eq, Ord)
 
-instance Component.Zobrist.Hashable EnPassantAbscissa where
-	listRandoms MkEnPassantAbscissa { getAbscissa = x }	= return {-to List-monad-} . Component.Zobrist.dereferenceRandomByEnPassantAbscissa x
-
 instance Control.DeepSeq.NFData EnPassantAbscissa where
 	rnf MkEnPassantAbscissa { getAbscissa = x }	= Control.DeepSeq.rnf x
+
+instance StateProperty.Hashable.Hashable EnPassantAbscissa where
+	listRandoms MkEnPassantAbscissa { getAbscissa = x }	= return {-to List-monad-} . Component.Zobrist.dereferenceRandomByEnPassantAbscissa x
 
 -- | Constructor.
 mkMaybeEnPassantAbscissa

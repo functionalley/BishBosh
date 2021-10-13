@@ -26,18 +26,12 @@
 module BishBosh.Test.QuickCheck.Component.Zobrist(
 -- * Types
 -- ** Type-synonyms
-	Zobrist,
--- * Constants,
-	results
+	Zobrist
 ) where
 
-import			BishBosh.Test.QuickCheck.Model.Game()
-import			Control.Arrow((&&&))
 import qualified	BishBosh.Component.Zobrist	as Component.Zobrist
-import qualified	BishBosh.Model.Game		as Model.Game
 import qualified	BishBosh.Type.Crypto		as Type.Crypto
 import qualified	Data.Bits
-import qualified	Data.List
 import qualified	System.Random
 import qualified	Test.QuickCheck
 
@@ -50,46 +44,5 @@ instance (Data.Bits.FiniteBits positionHash, System.Random.Random positionHash) 
 		fmap (
 			`mod` 3	-- CAVEAT: this value is limited by the width of 'Crypto.PositionHash'.
 		)
-	 ) Test.QuickCheck.arbitrary <*> fmap System.Random.mkStdGen Test.QuickCheck.arbitrary
-
--- | The constant test-results for this data-type.
-results :: IO [Test.QuickCheck.Result]
-results	= sequence [
-	let
-		f :: Zobrist -> Model.Game.Game -> Test.QuickCheck.Property
-		f zobrist game	= Test.QuickCheck.label "Zobrist.prop_hash1D(Game)/unique" . areUnique . map (
-			(`Component.Zobrist.hash` zobrist) . (`Model.Game.applyQualifiedMove` game)
-		 ) $ Model.Game.findQualifiedMovesAvailableToNextPlayer game
-	in Test.QuickCheck.quickCheckWithResult Test.QuickCheck.stdArgs { Test.QuickCheck.maxSuccess = 64 } f,
-	let
-		f :: Zobrist -> Model.Game.Game -> Test.QuickCheck.Property
-		f zobrist game	= Test.QuickCheck.label "Zobrist.prop_hash1D(Position)/unique" . areUnique . map (
-			(`Component.Zobrist.hash` zobrist) . Model.Game.mkPosition . (`Model.Game.applyQualifiedMove` game)
-		 ) $ Model.Game.findQualifiedMovesAvailableToNextPlayer game
-	in Test.QuickCheck.quickCheckWithResult Test.QuickCheck.stdArgs { Test.QuickCheck.maxSuccess = 64 } f,
-	let
-		f :: Zobrist -> Model.Game.Game -> Test.QuickCheck.Property
-		f zobrist game	= Test.QuickCheck.label "Zobrist.prop_(hash1D(Game) == hash1D(Position))" . all (
-			uncurry (==) . (
-				(
-					`Component.Zobrist.hash` zobrist
-				) &&& (
-					`Component.Zobrist.hash` zobrist
-				) . Model.Game.mkPosition
-			) . (`Model.Game.applyQualifiedMove` game)
-		 ) $ Model.Game.findQualifiedMovesAvailableToNextPlayer game
-	in Test.QuickCheck.quickCheckWithResult Test.QuickCheck.stdArgs { Test.QuickCheck.maxSuccess = 64 } f,
-	let
-		f :: Zobrist -> Model.Game.Game -> Test.QuickCheck.Property
-		f zobrist game	= Test.QuickCheck.label "Zobrist.prop_incrementalEvaluation" . all (
-			(
-				\game' -> Component.Zobrist.hash game' zobrist == Model.Game.updateIncrementalPositionHash game (
-					Component.Zobrist.hash game zobrist
-				) game' zobrist
-			) . (`Model.Game.applyQualifiedMove` game)
-		 ) $ Model.Game.findQualifiedMovesAvailableToNextPlayer game
-	in Test.QuickCheck.quickCheckWithResult Test.QuickCheck.stdArgs { Test.QuickCheck.maxSuccess = 256 } f
- ] where
-	areUnique :: Ord a => [a] -> Bool
-	areUnique	= all ((== 1) . length) . Data.List.group . Data.List.sort
+	 ) Test.QuickCheck.arbitrary {-MaybeMinimumHammingDistance-} <*> fmap System.Random.mkStdGen Test.QuickCheck.arbitrary
 
