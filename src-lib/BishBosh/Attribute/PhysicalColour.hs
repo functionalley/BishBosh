@@ -116,3 +116,4 @@ cyan	= Cyan
 -- | Constant.
 white :: PhysicalColour
 white	= White
+

@@ -73,10 +73,8 @@ import qualified	BishBosh.Search.SearchState				as Search.SearchState
 import qualified	BishBosh.State.ApplicationTerminationReason		as State.ApplicationTerminationReason
 import qualified	BishBosh.State.TurnsByLogicalColour			as State.TurnsByLogicalColour
 import qualified	BishBosh.Type.Crypto					as Type.Crypto
-import qualified	BishBosh.Type.Length					as Type.Length
 import qualified	BishBosh.Type.Mass					as Type.Mass
 import qualified	Control.Exception
-import qualified	Data.Array.IArray
 import qualified	Data.Bits
 import qualified	Data.Default
 import qualified	Data.List
@@ -89,40 +87,35 @@ import qualified	Data.Array.Unboxed
 #endif
 
 -- | The type threaded through the sequence of /game/s during play.
-data PlayState pieceSquareValue positionHash x y	= MkPlayState {
+data PlayState pieceSquareValue positionHash	= MkPlayState {
 	getCriterionValues			:: [[Metric.CriterionValue.CriterionValue]],					-- ^ The /criterion-value/s accumulated during the game.
-	getZobrist				:: Component.Zobrist.Zobrist x y positionHash,					-- ^ The constant hash-codes used construct position-hashes.
-	getMoveFrequency			:: Model.GameTree.MoveFrequency x y,						-- ^ The constant frequency of moves extracted from file.
-	getSearchState				:: Search.SearchState.SearchState x y positionHash,
-	getOptions				:: Input.Options.Options pieceSquareValue x y,					-- ^ The constant options by which the game is configured.
+	getZobrist				:: Component.Zobrist.Zobrist positionHash,					-- ^ The constant hash-codes used construct position-hashes.
+	getMoveFrequency			:: Model.GameTree.MoveFrequency,						-- ^ The constant frequency of moves extracted from file.
+	getSearchState				:: Search.SearchState.SearchState positionHash,
+	getOptions				:: Input.Options.Options pieceSquareValue,					-- ^ The constant options by which the game is configured.
 	getMaybeApplicationTerminationReason	:: Maybe State.ApplicationTerminationReason.ApplicationTerminationReason	-- ^ Whether the game has terminated.
 }
 
 -- | Constructor.
 initialise :: (
-	Data.Array.IArray.Ix		x,
 #ifdef USE_UNBOXED_ARRAYS
 	Data.Array.Unboxed.IArray	Data.Array.Unboxed.UArray pieceSquareValue,	-- Requires 'FlexibleContexts'. The unboxed representation of the array-element must be defined (& therefore must be of fixed size).
 #endif
 	Data.Bits.Bits			positionHash,
 	Fractional			pieceSquareValue,
-	Integral			x,
-	Integral			y,
-	Real				pieceSquareValue,
-	Show				x,
-	Show				y
+	Real				pieceSquareValue
  )
-	=> Input.Options.Options pieceSquareValue x y
-	-> Component.Zobrist.Zobrist x y positionHash
-	-> Model.GameTree.MoveFrequency x y
-	-> Model.Game.Game x y
-	-> PlayState pieceSquareValue positionHash x y
+	=> Input.Options.Options pieceSquareValue
+	-> Component.Zobrist.Zobrist positionHash
+	-> Model.GameTree.MoveFrequency
+	-> Model.Game.Game
+	-> PlayState pieceSquareValue positionHash
 {-# SPECIALISE initialise
-	:: Input.Options.Options Type.Mass.PieceSquareValue Type.Length.X Type.Length.Y
-	-> Component.Zobrist.Zobrist Type.Length.X Type.Length.Y Type.Crypto.PositionHash
-	-> Model.GameTree.MoveFrequency Type.Length.X Type.Length.Y
-	-> Model.Game.Game Type.Length.X Type.Length.Y
-	-> PlayState Type.Mass.PieceSquareValue Type.Crypto.PositionHash Type.Length.X Type.Length.Y
+	:: Input.Options.Options Type.Mass.PieceSquareValue
+	-> Component.Zobrist.Zobrist Type.Crypto.PositionHash
+	-> Model.GameTree.MoveFrequency
+	-> Model.Game.Game
+	-> PlayState Type.Mass.PieceSquareValue Type.Crypto.PositionHash
  #-}
 initialise options zobrist moveFrequency game	= MkPlayState {
 	getCriterionValues			= [],
@@ -136,32 +129,27 @@ initialise options zobrist moveFrequency game	= MkPlayState {
 }
 
 -- | Accessor.
-getGame :: PlayState pieceSquareValue positionHash x y -> Model.Game.Game x y
+getGame :: PlayState pieceSquareValue positionHash -> Model.Game.Game
 getGame MkPlayState { getSearchState = searchState }	= Evaluation.QuantifiedGame.getGame . Evaluation.PositionHashQuantifiedGameTree.getRootQuantifiedGame $ Search.SearchState.getPositionHashQuantifiedGameTree searchState
 
 -- | The type of a function used to transform a 'PlayState'.
-type Transformation pieceSquareValue positionHash x y	= PlayState pieceSquareValue positionHash x y -> PlayState pieceSquareValue positionHash x y
+type Transformation pieceSquareValue positionHash	= PlayState pieceSquareValue positionHash -> PlayState pieceSquareValue positionHash
 
 -- | Mutator.
-setPositionHashQuantifiedGameTree :: Evaluation.PositionHashQuantifiedGameTree.PositionHashQuantifiedGameTree x y positionHash -> Transformation pieceSquareValue positionHash x y
+setPositionHashQuantifiedGameTree :: Evaluation.PositionHashQuantifiedGameTree.PositionHashQuantifiedGameTree positionHash -> Transformation pieceSquareValue positionHash
 setPositionHashQuantifiedGameTree positionHashQuantifiedGameTree playState@MkPlayState { getSearchState = searchState }	= playState {
 	getSearchState	= searchState { Search.SearchState.getPositionHashQuantifiedGameTree = positionHashQuantifiedGameTree }
 }
 
 -- | Reconstruct the /positionHashQuantifiedGameTree/ (in the /searchState/), with the apex set to the specified game.
 reconstructPositionHashQuantifiedGameTree :: (
-	Data.Array.IArray.Ix		x,
 #ifdef USE_UNBOXED_ARRAYS
 	Data.Array.Unboxed.IArray	Data.Array.Unboxed.UArray pieceSquareValue,	-- Requires 'FlexibleContexts'. The unboxed representation of the array-element must be defined (& therefore must be of fixed size).
 #endif
 	Data.Bits.Bits			positionHash,
 	Fractional			pieceSquareValue,
-	Integral			x,
-	Integral			y,
-	Real				pieceSquareValue,
-	Show				x,
-	Show				y
- ) => Model.Game.Game x y -> Transformation pieceSquareValue positionHash x y
+	Real				pieceSquareValue
+ ) => Model.Game.Game -> Transformation pieceSquareValue positionHash
 reconstructPositionHashQuantifiedGameTree game playState@MkPlayState {
 	getZobrist		= zobrist,
 	getMoveFrequency	= moveFrequency,
@@ -174,18 +162,13 @@ reconstructPositionHashQuantifiedGameTree game playState@MkPlayState {
 
 -- | Reset to the initial state.
 resetPositionHashQuantifiedGameTree :: (
-	Data.Array.IArray.Ix		x,
 #ifdef USE_UNBOXED_ARRAYS
 	Data.Array.Unboxed.IArray	Data.Array.Unboxed.UArray pieceSquareValue,	-- Requires 'FlexibleContexts'. The unboxed representation of the array-element must be defined (& therefore must be of fixed size).
 #endif
 	Data.Bits.Bits			positionHash,
 	Fractional			pieceSquareValue,
-	Integral			x,
-	Integral			y,
-	Real				pieceSquareValue,
-	Show				x,
-	Show				y
- ) => Transformation pieceSquareValue positionHash x y
+	Real				pieceSquareValue
+ ) => Transformation pieceSquareValue positionHash
 resetPositionHashQuantifiedGameTree playState	= reconstructPositionHashQuantifiedGameTree Data.Default.def playState {
 	getCriterionValues			= [],
 	getMaybeApplicationTerminationReason	= Nothing
@@ -194,15 +177,15 @@ resetPositionHashQuantifiedGameTree playState	= reconstructPositionHashQuantifie
 -- | Mutator.
 updateWithAutomaticMove
 	:: [Metric.CriterionValue.CriterionValue]
-	-> Search.SearchState.SearchState x y positionHash
-	-> Transformation pieceSquareValue positionHash x y
+	-> Search.SearchState.SearchState positionHash
+	-> Transformation pieceSquareValue positionHash
 updateWithAutomaticMove criterionValues searchState playState	= playState {
 	getCriterionValues	= criterionValues : getCriterionValues playState,
 	getSearchState		= searchState
 }
 
 -- | Mutator.
-updateWithManualMove :: (Eq x, Eq y) => Model.Game.Game x y -> Transformation pieceSquareValue positionHash x y
+updateWithManualMove :: Model.Game.Game -> Transformation pieceSquareValue positionHash
 updateWithManualMove game playState@MkPlayState { getSearchState = searchState }	= setPositionHashQuantifiedGameTree (
 	Data.Maybe.fromMaybe (
 		Control.Exception.throw $ Data.Exception.mkIncompatibleData "BishBosh.State.PlayState.updateWithManualMove:\tEvaluation.PositionHashQuantifiedGameTree.reduce failed."
@@ -222,7 +205,7 @@ calculateCriterionValueStatistics :: (
 	Floating	standardDeviation,
 	Fractional	mean
  )
-	=> PlayState pieceSquareValue positionHash x y
+	=> PlayState pieceSquareValue positionHash
 	-> [(mean, standardDeviation)]
 calculateCriterionValueStatistics MkPlayState { getCriterionValues = criterionValues }	= map (
 	(
@@ -233,22 +216,15 @@ calculateCriterionValueStatistics MkPlayState { getCriterionValues = criterionVa
  ) $ Data.List.transpose criterionValues
 
 -- | Resignation by the player who currently holds the choice of move.
-resign :: Transformation pieceSquareValue positionHash x y
+resign :: Transformation pieceSquareValue positionHash
 resign playState@MkPlayState { getSearchState = searchState }	= setPositionHashQuantifiedGameTree (
 	Evaluation.PositionHashQuantifiedGameTree.resign $ Search.SearchState.getPositionHashQuantifiedGameTree searchState
  ) playState
 
 -- | Given a string from which either a /move/ can't be parsed or the one that can is illegal, returns the closest matches amongst the currently available /move/s.
-suggestCorrections :: (
-	Enum	x,
-	Enum	y,
-	Ord	x,
-	Ord	y,
-	Show	x,
-	Show	y
- )
-	=> String	-- ^ Move-string.
-	-> PlayState pieceSquareValue positionHash x y
+suggestCorrections
+	:: String	-- ^ Move-string.
+	-> PlayState pieceSquareValue positionHash
 	-> [String]	-- ^ Suggested corrections.
 suggestCorrections moveString playState@MkPlayState { getOptions = options }
 	| Model.Game.isTerminated game	= []
@@ -260,12 +236,12 @@ suggestCorrections moveString playState@MkPlayState { getOptions = options }
 
 -- | Whether the game in the first /play-state/ has more plies than that in the second.
 hasMorePlies
-	:: PlayState pieceSquareValue positionHash x y
-	-> PlayState pieceSquareValue positionHash x y
+	:: PlayState pieceSquareValue positionHash
+	-> PlayState pieceSquareValue positionHash
 	-> Bool
 hasMorePlies playState playState'	= Data.Ord.comparing (State.TurnsByLogicalColour.getNPlies . Model.Game.getTurnsByLogicalColour . getGame) playState playState' == GT
 
 -- | Whether the user has requested application-termination, or the configured maximum number of turns has been reached.
-hasApplicationTerminationBeenRequested :: PlayState pieceSquareValue positionHash x y -> Bool
+hasApplicationTerminationBeenRequested :: PlayState pieceSquareValue positionHash -> Bool
 hasApplicationTerminationBeenRequested MkPlayState { getMaybeApplicationTerminationReason = maybeApplicationTerminationReason }	= Data.Maybe.isJust maybeApplicationTerminationReason
 

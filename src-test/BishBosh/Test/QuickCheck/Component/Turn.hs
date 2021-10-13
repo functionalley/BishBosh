@@ -24,9 +24,6 @@
 -}
 
 module BishBosh.Test.QuickCheck.Component.Turn(
--- * Types
--- ** Type-synonyms
-	Turn,
 -- * Constants
 --	rankValues,
 	results
@@ -47,7 +44,6 @@ import qualified	BishBosh.Component.Turn			as Component.Turn
 import qualified	BishBosh.Input.RankValues		as Input.RankValues
 import qualified	BishBosh.Property.FixedMembership	as Property.FixedMembership
 import qualified	BishBosh.Property.Reflectable		as Property.Reflectable
-import qualified	BishBosh.Type.Length			as Type.Length
 import qualified	Control.Arrow
 import qualified	Data.List
 import qualified	Data.Maybe
@@ -55,15 +51,7 @@ import qualified	Test.QuickCheck
 import qualified	ToolShed.Data.List
 import qualified	ToolShed.Test.ReversibleIO
 
--- | Defines a concrete type for testing.
-type Turn	= Component.Turn.Turn Type.Length.X Type.Length.Y
-
-instance (
-	Enum	x,
-	Enum	y,
-	Ord	x,
-	Ord	y
- ) => Test.QuickCheck.Arbitrary (Component.Turn.Turn x y) where
+instance Test.QuickCheck.Arbitrary Component.Turn.Turn where
 	arbitrary	= do
 		moveType	<- Test.QuickCheck.arbitrary
 		(move, piece)	<- case moveType of
@@ -85,25 +73,25 @@ rankValues	= Input.RankValues.fromAssocs . zip Property.FixedMembership.members 
 results :: IO [Test.QuickCheck.Result]
 results	= sequence [
 	let
-		f :: Turn -> Test.QuickCheck.Property
+		f :: Component.Turn.Turn -> Test.QuickCheck.Property
 		f	= Test.QuickCheck.label "Turn.prop_readPrependedWhiteSpace" . ToolShed.Test.ReversibleIO.readPrependedWhiteSpace
 	in Test.QuickCheck.quickCheckWithResult Test.QuickCheck.stdArgs { Test.QuickCheck.maxSuccess = 256 } f,
 	let
 		f :: String -> Test.QuickCheck.Property
-		f garbage	= Test.QuickCheck.label "Turn.prop_read" $ case (reads garbage :: [(Turn, String)]) of
+		f garbage	= Test.QuickCheck.label "Turn.prop_read" $ case (reads garbage :: [(Component.Turn.Turn, String)]) of
 			[_]	-> True
 			_	-> True	-- Unless the read-implementation throws an exception.
 	in Test.QuickCheck.quickCheckWithResult Test.QuickCheck.stdArgs { Test.QuickCheck.maxSuccess = 256 } f,
 	let
-		f :: Turn -> String -> Test.QuickCheck.Property
+		f :: Component.Turn.Turn -> String -> Test.QuickCheck.Property
 		f turn	= Test.QuickCheck.label "Turn.prop_readTrailingGarbage" . ToolShed.Test.ReversibleIO.readTrailingGarbage (const False) turn
 	in Test.QuickCheck.quickCheckWithResult Test.QuickCheck.stdArgs { Test.QuickCheck.maxSuccess = 256 } f,
 	let
-		f :: Turn -> Test.QuickCheck.Property
+		f :: Component.Turn.Turn -> Test.QuickCheck.Property
 		f	= Test.QuickCheck.label "Turn.prop_reflectOnX" . uncurry (==) . (id &&& Property.Reflectable.reflectOnX . Property.Reflectable.reflectOnX)
 	in Test.QuickCheck.quickCheckWithResult Test.QuickCheck.stdArgs { Test.QuickCheck.maxSuccess = 64 } f,
 	let
-		f :: Input.RankValues.RankValues -> [Turn] -> Test.QuickCheck.Property
+		f :: Input.RankValues.RankValues -> [Component.Turn.Turn] -> Test.QuickCheck.Property
 		f rankValues'	= Test.QuickCheck.label "Turn.prop_compareByMVVLVA/quiet" . uncurry (==) . (
 			dropWhile Component.Turn.isCapture . Data.List.sortBy (
 				Component.Turn.compareByMVVLVA (`Input.RankValues.findRankValue` rankValues')
@@ -113,7 +101,7 @@ results	= sequence [
 		 )
 	in Test.QuickCheck.quickCheckWithResult Test.QuickCheck.stdArgs { Test.QuickCheck.maxSuccess = 256 } f,
 	let
-		f :: [Turn] -> Test.QuickCheck.Property
+		f :: [Component.Turn.Turn] -> Test.QuickCheck.Property
 		f = Test.QuickCheck.label "Turn.prop_compareByMVVLVA/MVV" . (
 			\ranks -> Data.List.sortOn (
 				negate . toRational . (`Input.RankValues.findRankValue` rankValues) -- Most valuable victim should be first.
@@ -125,7 +113,7 @@ results	= sequence [
 		 )
 	in Test.QuickCheck.quickCheckWithResult Test.QuickCheck.stdArgs { Test.QuickCheck.maxSuccess = 256 } f,
 	let
-		f :: [Turn] -> Test.QuickCheck.Property
+		f :: [Component.Turn.Turn] -> Test.QuickCheck.Property
 		f = Test.QuickCheck.label "Turn.prop_compareByMVVLVA/LVA" . all (
 			(
 				\ranks -> uncurry (++) (

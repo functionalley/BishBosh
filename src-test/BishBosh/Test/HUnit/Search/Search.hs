@@ -42,7 +42,6 @@ import qualified	BishBosh.Property.ExtendedPositionDescription		as Property.Exte
 import qualified	BishBosh.Search.Search					as Search.Search
 import qualified	BishBosh.Search.SearchState				as Search.SearchState
 import qualified	BishBosh.Type.Crypto					as Type.Crypto
-import qualified	BishBosh.Type.Length					as Type.Length
 import qualified	BishBosh.Type.Mass					as Type.Mass
 import qualified	Control.Exception
 import qualified	Control.Monad.Reader
@@ -52,11 +51,7 @@ import qualified	Test.HUnit
 import			Test.HUnit((~?))
 
 -- | Constant.
-evaluationOptions :: (
-	Fractional	pieceSquareValue,
-	Integral	x,
-	Integral	y
- ) => Input.EvaluationOptions.EvaluationOptions pieceSquareValue x y
+evaluationOptions :: Fractional pieceSquareValue => Input.EvaluationOptions.EvaluationOptions pieceSquareValue
 evaluationOptions	= Input.EvaluationOptions.mkEvaluationOptions Data.Default.def {-rankValues-} Data.Default.def {
 	Input.CriteriaWeights.getWeightOfMobility		= 24 / 1000,
 	Input.CriteriaWeights.getWeightOfCastlingPotential	= 5 / 1000
@@ -78,8 +73,8 @@ testCases	= Test.HUnit.test $ map (
 				turnString	= Notation.MoveNotation.showNotation Data.Default.def {-Smith-} $ case Search.Search.getQuantifiedGames $ Control.Monad.Reader.runReader (
 					Search.Search.search searchDepth $ Search.SearchState.initialise (
 						Evaluation.PositionHashQuantifiedGameTree.mkPositionHashQuantifiedGameTree (
-							evaluationOptions	:: Input.EvaluationOptions.EvaluationOptions Type.Mass.PieceSquareValue Type.Length.X Type.Length.Y
-						) searchOptions Data.Default.def {-Zobrist-} Property.Empty.empty {-MoveFrequency-} game :: Evaluation.PositionHashQuantifiedGameTree.PositionHashQuantifiedGameTree Type.Length.X Type.Length.Y Type.Crypto.PositionHash
+							evaluationOptions	:: Input.EvaluationOptions.EvaluationOptions Type.Mass.PieceSquareValue
+						) searchOptions Data.Default.def {-Zobrist-} Property.Empty.empty {-MoveFrequency-} game :: Evaluation.PositionHashQuantifiedGameTree.PositionHashQuantifiedGameTree Type.Crypto.PositionHash
 					 )
 				 ) searchOptions of
 					quantifiedGame : _	-> Evaluation.QuantifiedGame.getLastTurn quantifiedGame

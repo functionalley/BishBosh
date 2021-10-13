@@ -29,16 +29,12 @@ module BishBosh.Test.QuickCheck.Component.Piece(
 ) where
 
 import			Control.Arrow((&&&))
-import qualified	BishBosh.Attribute.Rank				as Attribute.Rank
-import qualified	BishBosh.Cartesian.Coordinates			as Cartesian.Coordinates
-import qualified	BishBosh.Component.Piece			as Component.Piece
-import qualified	BishBosh.Property.FixedMembership		as Property.FixedMembership
-import qualified	BishBosh.Property.ForsythEdwards		as Property.ForsythEdwards
-import qualified	BishBosh.Property.Opposable			as Property.Opposable
-import qualified	BishBosh.Test.QuickCheck.Cartesian.Coordinates	as Test.QuickCheck.Cartesian.Coordinates
+import qualified	BishBosh.Component.Piece		as Component.Piece
+import qualified	BishBosh.Property.FixedMembership	as Property.FixedMembership
+import qualified	BishBosh.Property.ForsythEdwards	as Property.ForsythEdwards
+import qualified	BishBosh.Property.Opposable		as Property.Opposable
 import qualified	Test.QuickCheck
 import qualified	ToolShed.Test.ReversibleIO
-import			Test.QuickCheck((==>))
 
 instance Test.QuickCheck.Arbitrary Component.Piece.Piece where
 	arbitrary	= Test.QuickCheck.elements Property.FixedMembership.members
@@ -69,14 +65,6 @@ results	= sequence [
 		f piece	= Test.QuickCheck.label "Piece.prop_fen" $ case Property.ForsythEdwards.readsFEN $ Property.ForsythEdwards.showFEN piece of
 			[(piece', "")]	-> piece' == piece
 			_		-> False
-	in Test.QuickCheck.quickCheckWithResult Test.QuickCheck.stdArgs { Test.QuickCheck.maxSuccess = 32 } f,
-	let
-		f :: Test.QuickCheck.Cartesian.Coordinates.Coordinates -> Component.Piece.Piece -> Test.QuickCheck.Property
-		f coordinates piece	= Component.Piece.getRank piece `elem` Attribute.Rank.fixedAttackRange ==> Test.QuickCheck.label "Piece.prop_findAttackDestinationsInt" $ Component.Piece.findAttackDestinations coordinates piece == map Test.QuickCheck.Cartesian.Coordinates.translate (
-			Component.Piece.findAttackDestinations (
-				Test.QuickCheck.Cartesian.Coordinates.translate coordinates	:: Cartesian.Coordinates.Coordinates Integer Integer	-- Force use of unspecialised instance.
-			) piece
-		 )
-	in Test.QuickCheck.quickCheckWithResult Test.QuickCheck.stdArgs { Test.QuickCheck.maxSuccess = 64 } f
+	in Test.QuickCheck.quickCheckWithResult Test.QuickCheck.stdArgs { Test.QuickCheck.maxSuccess = 32 } f
  ]
 

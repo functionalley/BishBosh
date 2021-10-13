@@ -68,7 +68,6 @@ import qualified	BishBosh.Text.ShowPrefix					as Text.ShowPrefix
 import qualified	BishBosh.Time.StopWatch						as Time.StopWatch
 import qualified	BishBosh.Type.Count						as Type.Count
 import qualified	BishBosh.Type.Crypto						as Type.Crypto
-import qualified	BishBosh.Type.Length						as Type.Length
 import qualified	BishBosh.Type.Mass						as Type.Mass
 import qualified	BishBosh.UI.Command						as UI.Command
 import qualified	BishBosh.UI.PrintObject						as UI.PrintObject
@@ -79,7 +78,6 @@ import qualified	Control.DeepSeq
 import qualified	Control.Exception
 import qualified	Control.Monad
 import qualified	Control.Monad.Reader
-import qualified	Data.Array.IArray
 import qualified	Data.Bits
 import qualified	Data.Default
 import qualified	Data.Foldable
@@ -99,39 +97,30 @@ import qualified	Data.Array.Unboxed
 
 	* Since the user can also request roll-back to an earlier game before then requesting a new move, a new game is returned rather than just the requested move.
 -}
-readMove :: forall pieceSquareValue positionHash randomGen x y. (
+readMove :: forall pieceSquareValue positionHash randomGen. (
 	Control.DeepSeq.NFData		pieceSquareValue,
-	Control.DeepSeq.NFData		x,
-	Control.DeepSeq.NFData		y,
-	Data.Array.IArray.Ix		x,
 #ifdef USE_UNBOXED_ARRAYS
 	Data.Array.Unboxed.IArray	Data.Array.Unboxed.UArray pieceSquareValue,	-- Requires 'FlexibleContexts'. The unboxed representation of the array-element must be defined (& therefore must be of fixed size).
 #endif
 	Data.Bits.Bits			positionHash,
 	Fractional			pieceSquareValue,
-	Integral			x,
-	Integral			y,
 	Ord				positionHash,
-	Read				x,
-	Read				y,
 	Real				pieceSquareValue,
 	Show				pieceSquareValue,
-	Show				x,
-	Show				y,
 	System.Random.RandomGen		randomGen
  )
-	=> ContextualNotation.PositionHashQualifiedMoveTree.PositionHashQualifiedMoveTree x y positionHash
+	=> ContextualNotation.PositionHashQualifiedMoveTree.PositionHashQualifiedMoveTree positionHash
 	-> randomGen
 	-> Time.StopWatch.StopWatch
-	-> State.PlayState.PlayState pieceSquareValue positionHash x y
-	-> IO (State.PlayState.PlayState pieceSquareValue positionHash x y)
+	-> State.PlayState.PlayState pieceSquareValue positionHash
+	-> IO (State.PlayState.PlayState pieceSquareValue positionHash)
 {-# SPECIALISE readMove
 	:: System.Random.RandomGen randomGen
-	=> ContextualNotation.PositionHashQualifiedMoveTree.PositionHashQualifiedMoveTree Type.Length.X Type.Length.Y Type.Crypto.PositionHash
+	=> ContextualNotation.PositionHashQualifiedMoveTree.PositionHashQualifiedMoveTree Type.Crypto.PositionHash
 	-> randomGen
 	-> Time.StopWatch.StopWatch
-	-> State.PlayState.PlayState Type.Mass.PieceSquareValue Type.Crypto.PositionHash Type.Length.X Type.Length.Y
-	-> IO (State.PlayState.PlayState Type.Mass.PieceSquareValue Type.Crypto.PositionHash Type.Length.X Type.Length.Y)
+	-> State.PlayState.PlayState Type.Mass.PieceSquareValue Type.Crypto.PositionHash
+	-> IO (State.PlayState.PlayState Type.Mass.PieceSquareValue Type.Crypto.PositionHash)
  #-}
 readMove positionHashQualifiedMoveTree randomGen runningWatch playState	= let
 	(game, options)			= State.PlayState.getGame &&& State.PlayState.getOptions $ playState
@@ -147,7 +136,7 @@ readMove positionHashQualifiedMoveTree randomGen runningWatch playState	= let
 	verbosity	= Input.UIOptions.getVerbosity uiOptions
  in (
 	\nativeUIOptions -> let
-		show2D :: Model.Game.Game x y -> String
+		show2D :: Model.Game.Game -> String
 		show2D	= State.MaybePieceByCoordinates.show2D (
 			snd {-columns-} $ Input.NativeUIOptions.getBoardMagnification nativeUIOptions
 		 ) (
@@ -158,7 +147,7 @@ readMove positionHashQualifiedMoveTree randomGen runningWatch playState	= let
 			Notation.MoveNotation.getOrigin moveNotation
 		 ) . State.Board.getMaybePieceByCoordinates . Model.Game.getBoard
 
-		onCommand :: UI.Command.Command -> IO (State.PlayState.PlayState pieceSquareValue positionHash x y)
+		onCommand :: UI.Command.Command -> IO (State.PlayState.PlayState pieceSquareValue positionHash)
 		onCommand UI.Command.Hint	= do
 			Control.Monad.unless (Model.Game.isTerminated game) . Data.Maybe.maybe (
 				do
@@ -228,7 +217,7 @@ readMove positionHashQualifiedMoveTree randomGen runningWatch playState	= let
 			 ) (
 				\(filePath, _) -> Control.Exception.catch (
 					do
-						System.IO.withFile filePath System.IO.WriteMode (`System.IO.hPrint` (Data.Default.def :: Model.Game.Game Type.Length.X Type.Length.Y))
+						System.IO.withFile filePath System.IO.WriteMode (`System.IO.hPrint` (Data.Default.def :: Model.Game.Game))
 
 						Control.Monad.when (verbosity == maxBound) . System.IO.hPutStrLn System.IO.stderr . Text.ShowColouredPrefix.showsPrefixInfo . showString "the initial game-state has been saved in " $ shows filePath "."
 				) $ \e -> System.IO.hPutStrLn System.IO.stderr . Text.ShowColouredPrefix.showsPrefixError $ show (e :: Control.Exception.SomeException)
@@ -236,7 +225,7 @@ readMove positionHashQualifiedMoveTree randomGen runningWatch playState	= let
 
 			return {-to IO-monad-} $ State.PlayState.resetPositionHashQuantifiedGameTree playState
 		onCommand (UI.Command.RollBack maybeNPlies)	= let
-			rollBack :: Type.Count.NPlies -> IO (State.PlayState.PlayState pieceSquareValue positionHash x y)
+			rollBack :: Type.Count.NPlies -> IO (State.PlayState.PlayState pieceSquareValue positionHash)
 			rollBack nPlies
 				| (game', _) : _ <- drop (fromIntegral $ pred nPlies) $ Model.Game.rollBack game	= do
 					Control.Monad.when (verbosity == maxBound) . putStrLn $ show2D game'
@@ -304,7 +293,7 @@ readMove positionHashQualifiedMoveTree randomGen runningWatch playState	= let
 
 				return {-to IO-monad-} playState { State.PlayState.getOptions = Input.Options.swapSearchDepth options }
 
-		eventLoop :: IO (State.PlayState.PlayState pieceSquareValue positionHash x y)
+		eventLoop :: IO (State.PlayState.PlayState pieceSquareValue positionHash)
 		eventLoop	= getLine >>= \line -> case Data.List.Extra.trim line of
 			"?"	-> onCommand $ UI.Command.Print UI.PrintObject.Help
 			':' : s	-> (
@@ -375,37 +364,28 @@ readMove positionHashQualifiedMoveTree randomGen runningWatch playState	= let
  ) $ Input.UIOptions.getEitherNativeUIOrCECPOptions uiOptions
 
 -- | Plays the game.
-takeTurns :: forall pieceSquareValue positionHash randomGen x y. (
+takeTurns :: forall pieceSquareValue positionHash randomGen. (
 	Control.DeepSeq.NFData		pieceSquareValue,
-	Control.DeepSeq.NFData		x,
-	Control.DeepSeq.NFData		y,
-	Data.Array.IArray.Ix		x,
 #ifdef USE_UNBOXED_ARRAYS
 	Data.Array.Unboxed.IArray	Data.Array.Unboxed.UArray pieceSquareValue,	-- Requires 'FlexibleContexts'. The unboxed representation of the array-element must be defined (& therefore must be of fixed size).
 #endif
 	Data.Bits.Bits			positionHash,
 	Fractional			pieceSquareValue,
-	Integral			x,
-	Integral			y,
 	Ord				positionHash,
-	Read				x,
-	Read				y,
 	Real				pieceSquareValue,
 	Show				pieceSquareValue,
-	Show				x,
-	Show				y,
 	System.Random.RandomGen		randomGen
  )
-	=> ContextualNotation.PositionHashQualifiedMoveTree.PositionHashQualifiedMoveTree x y positionHash
+	=> ContextualNotation.PositionHashQualifiedMoveTree.PositionHashQualifiedMoveTree positionHash
 	-> randomGen
-	-> State.PlayState.PlayState pieceSquareValue positionHash x y
-	-> IO (State.PlayState.PlayState pieceSquareValue positionHash x y)
+	-> State.PlayState.PlayState pieceSquareValue positionHash
+	-> IO (State.PlayState.PlayState pieceSquareValue positionHash)
 {-# SPECIALISE takeTurns
 	:: System.Random.RandomGen randomGen
-	=> ContextualNotation.PositionHashQualifiedMoveTree.PositionHashQualifiedMoveTree Type.Length.X Type.Length.Y Type.Crypto.PositionHash
+	=> ContextualNotation.PositionHashQualifiedMoveTree.PositionHashQualifiedMoveTree Type.Crypto.PositionHash
 	-> randomGen
-	-> State.PlayState.PlayState Type.Mass.PieceSquareValue Type.Crypto.PositionHash Type.Length.X Type.Length.Y
-	-> IO (State.PlayState.PlayState Type.Mass.PieceSquareValue Type.Crypto.PositionHash Type.Length.X Type.Length.Y)
+	-> State.PlayState.PlayState Type.Mass.PieceSquareValue Type.Crypto.PositionHash
+	-> IO (State.PlayState.PlayState Type.Mass.PieceSquareValue Type.Crypto.PositionHash)
  #-}
 takeTurns positionHashQualifiedMoveTree randomGen playState	= let
 	options	= State.PlayState.getOptions playState
@@ -422,7 +402,7 @@ takeTurns positionHashQualifiedMoveTree randomGen playState	= let
 		mVar	<- Control.Concurrent.newEmptyMVar
 
 		let
-			show2D :: Model.Game.Game x y -> String
+			show2D :: Model.Game.Game -> String
 			show2D	= State.MaybePieceByCoordinates.show2D (
 				snd {-columns-} $ Input.NativeUIOptions.getBoardMagnification nativeUIOptions
 			 ) (
@@ -434,11 +414,11 @@ takeTurns positionHashQualifiedMoveTree randomGen playState	= let
 			 ) . State.Board.getMaybePieceByCoordinates . Model.Game.getBoard
 
 			slave
-				:: Maybe (Concurrent.Pondering.Pondering (Component.Move.Move x y))
+				:: Maybe (Concurrent.Pondering.Pondering Component.Move.Move)
 				-> Maybe Type.Count.NPlies
 				-> [randomGen]
-				-> State.PlayState.PlayState pieceSquareValue positionHash x y
-				-> IO (State.PlayState.PlayState pieceSquareValue positionHash x y)
+				-> State.PlayState.PlayState pieceSquareValue positionHash
+				-> IO (State.PlayState.PlayState pieceSquareValue positionHash)
 			slave maybePondering maybeMaximumPlies ~(randomGen' : randomGens) playState'	= let
 				(game', searchOptions')		= State.PlayState.getGame &&& Input.Options.getSearchOptions . State.PlayState.getOptions $ playState'	-- Deconstruct.
 			 in Data.Maybe.maybe (
@@ -504,7 +484,7 @@ takeTurns positionHashQualifiedMoveTree randomGen playState	= let
 															then Property.ShowFloat.showsFloatToN nDecimalDigits (
 																Control.Monad.Reader.runReader (
 																	Evaluation.Fitness.evaluateFitness Nothing game'
-																) $ Input.Options.getEvaluationOptions options	:: Metric.WeightedMeanAndCriterionValues.WeightedMeanAndCriterionValues
+																) $ Input.Options.getEvaluationOptions options
 															) . Search.Search.showsSeparator	-- Prepend the fitness of the original game prior to the new result.
 															else id
 													 ) $ if verbosity > Data.Default.def

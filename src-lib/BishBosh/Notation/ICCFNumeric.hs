@@ -80,16 +80,16 @@ toRank	= zip [1 ..] [
  ]
 
 -- | Defines a /move/, to enable i/o in /ICCF Numeric/-notation.
-data ICCFNumeric x y	= MkICCFNumeric {
-	getMove			:: Component.Move.Move x y,
+data ICCFNumeric	= MkICCFNumeric {
+	getMove			:: Component.Move.Move,
 	getMaybePromotionRank	:: Maybe Attribute.Rank.Rank
 } deriving Eq
 
 -- | Smart constructor.
 mkICCFNumeric
-	:: Component.Move.Move x y
+	:: Component.Move.Move
 	-> Maybe Attribute.Rank.Rank	-- ^ The optional promotion-rank.
-	-> ICCFNumeric x y
+	-> ICCFNumeric
 mkICCFNumeric move maybePromotionRank
 	| Just rank	<- maybePromotionRank
 	, rank `notElem` Attribute.Rank.promotionProspects	= Control.Exception.throw . Data.Exception.mkInvalidDatum . showString "BishBosh.Notation.ICCFNumeric.mkICCFNumeric:\tcan't promote to a " $ shows rank "."
@@ -101,20 +101,20 @@ mkICCFNumeric move maybePromotionRank
 -- | Smart constructor.
 mkICCFNumeric'
 	:: Attribute.Rank.Promotable promotable
-	=> Component.Move.Move x y
+	=> Component.Move.Move
 	-> promotable	-- ^ The datum from which to extract the optional promotion-rank.
-	-> ICCFNumeric x y
+	-> ICCFNumeric
 mkICCFNumeric' move	= mkICCFNumeric move . Attribute.Rank.getMaybePromotionRank
 
 -- | Encodes the ordinate & abscissa.
-encode :: (Enum x, Enum y) => Cartesian.Coordinates.Coordinates x y -> (ShowS, ShowS)
+encode :: Cartesian.Coordinates.Coordinates -> (ShowS, ShowS)
 encode	= showChar . Data.Enum.translate (subtract xOriginOffset) . Cartesian.Coordinates.getX &&& showChar . Data.Enum.translate (subtract yOriginOffset) . Cartesian.Coordinates.getY
 
 -- | Shows the specified /coordinates/.
-showsCoordinates :: (Enum x, Enum y) => Cartesian.Coordinates.Coordinates x y -> ShowS
+showsCoordinates :: Cartesian.Coordinates.Coordinates -> ShowS
 showsCoordinates	= uncurry (.) . encode
 
-instance (Enum x, Enum y) => Show (ICCFNumeric x y) where
+instance Show ICCFNumeric where
 	showsPrec _ MkICCFNumeric {
 		getMove			= move,
 		getMaybePromotionRank	= maybePromotionRank
@@ -127,12 +127,7 @@ instance (Enum x, Enum y) => Show (ICCFNumeric x y) where
 	 ) maybePromotionRank
 
 -- N.B. this merely validates the syntax, leaving any semantic errors to 'Model.Game.validate'.
-instance (
-	Enum	x,
-	Enum	y,
-	Ord	x,
-	Ord	y
- ) => Read (ICCFNumeric x y) where
+instance Read ICCFNumeric where
 	readsPrec _ s	= case Data.List.Extra.trimStart s of
 		x : y : x' : y' : remainder	-> let
 			fromICCFNumeric pair@(cx, cy)
@@ -162,6 +157,6 @@ instance (
 		 ] -- List-comprehension.
 		_				-> []	-- No parse.
 
-instance Attribute.Rank.Promotable (ICCFNumeric x y) where
+instance Attribute.Rank.Promotable ICCFNumeric where
 	getMaybePromotionRank	= getMaybePromotionRank
 

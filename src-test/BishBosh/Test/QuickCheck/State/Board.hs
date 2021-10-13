@@ -24,57 +24,43 @@
 -}
 
 module BishBosh.Test.QuickCheck.State.Board(
--- * Types
--- ** Type-synonyms
-	Board,
 -- * Constants
 	results
 ) where
 
 import			BishBosh.Test.QuickCheck.Attribute.LogicalColour()
-import			BishBosh.Test.QuickCheck.Component.Piece()
+import			BishBosh.Test.QuickCheck.Cartesian.Coordinates()
 import			Control.Arrow((&&&))
 import			Data.Array.IArray((!))
-import qualified	BishBosh.Attribute.LogicalColour			as Attribute.LogicalColour
-import qualified	BishBosh.Attribute.Rank					as Attribute.Rank
-import qualified	BishBosh.Cartesian.Abscissa				as Cartesian.Abscissa
-import qualified	BishBosh.Cartesian.Coordinates				as Cartesian.Coordinates
-import qualified	BishBosh.Component.Move					as Component.Move
-import qualified	BishBosh.Component.Piece				as Component.Piece
-import qualified	BishBosh.Property.Empty					as Property.Empty
-import qualified	BishBosh.Property.FixedMembership			as Property.FixedMembership
-import qualified	BishBosh.Property.ForsythEdwards			as Property.ForsythEdwards
-import qualified	BishBosh.Property.Opposable				as Property.Opposable
-import qualified	BishBosh.Property.Reflectable				as Property.Reflectable
-import qualified	BishBosh.State.Board					as State.Board
-import qualified	BishBosh.State.CoordinatesByRankByLogicalColour		as State.CoordinatesByRankByLogicalColour
-import qualified	BishBosh.State.MaybePieceByCoordinates			as State.MaybePieceByCoordinates
-import qualified	BishBosh.StateProperty.Mutator				as StateProperty.Mutator
-import qualified	BishBosh.StateProperty.Seeker				as StateProperty.Seeker
-import qualified	BishBosh.Test.QuickCheck.Cartesian.Coordinates		as Test.QuickCheck.Cartesian.Coordinates
-import qualified	BishBosh.Type.Length					as Type.Length
+import qualified	BishBosh.Attribute.LogicalColour		as Attribute.LogicalColour
+import qualified	BishBosh.Attribute.Rank				as Attribute.Rank
+import qualified	BishBosh.Cartesian.Abscissa			as Cartesian.Abscissa
+import qualified	BishBosh.Cartesian.Coordinates			as Cartesian.Coordinates
+import qualified	BishBosh.Component.Move				as Component.Move
+import qualified	BishBosh.Component.Piece			as Component.Piece
+import qualified	BishBosh.Property.Empty				as Property.Empty
+import qualified	BishBosh.Property.FixedMembership		as Property.FixedMembership
+import qualified	BishBosh.Property.ForsythEdwards		as Property.ForsythEdwards
+import qualified	BishBosh.Property.Opposable			as Property.Opposable
+import qualified	BishBosh.Property.Reflectable			as Property.Reflectable
+import qualified	BishBosh.State.Board				as State.Board
+import qualified	BishBosh.State.CoordinatesByRankByLogicalColour	as State.CoordinatesByRankByLogicalColour
+import qualified	BishBosh.State.MaybePieceByCoordinates		as State.MaybePieceByCoordinates
+import qualified	BishBosh.StateProperty.Mutator			as StateProperty.Mutator
+import qualified	BishBosh.StateProperty.Seeker			as StateProperty.Seeker
 import qualified	Control.Monad
 import qualified	Data.Foldable
 import qualified	Data.List
-import qualified	Data.Map.Strict						as Map
+import qualified	Data.Map.Strict					as Map
 import qualified	Data.Maybe
 import qualified	Data.Ord
 import qualified	Data.Set
 import qualified	Test.QuickCheck
 import qualified	ToolShed.Test.ReversibleIO
 
--- | Defines a concrete type for testing.
-type Board	= State.Board.Board Type.Length.X Type.Length.Y
-
-instance (
-	Enum	x,
-	Enum	y,
-	Ord	x,
-	Ord	y
- ) => Test.QuickCheck.Arbitrary (State.Board.Board x y) where
-	{-# SPECIALISE instance Test.QuickCheck.Arbitrary Board #-}
+instance Test.QuickCheck.Arbitrary State.Board.Board where
 	arbitrary	= let
-		isKingChecked :: (Enum x, Enum y, Ord x, Ord y) => Attribute.LogicalColour.LogicalColour -> State.Board.Board x y -> Bool
+		isKingChecked :: Attribute.LogicalColour.LogicalColour -> State.Board.Board -> Bool
 		isKingChecked logicalColour board = not . all (
 			null . ($ board) . State.Board.findAttackersOf logicalColour
 		 ) . State.CoordinatesByRankByLogicalColour.dereference logicalColour Attribute.Rank.King $ State.Board.getCoordinatesByRankByLogicalColour board
@@ -98,41 +84,41 @@ instance (
 results :: IO [Test.QuickCheck.Result]
 results	= sequence [
 	let
-		f :: Board -> Test.QuickCheck.Property
+		f :: State.Board.Board -> Test.QuickCheck.Property
 		f	= Test.QuickCheck.label "Board.prop_readPrependedWhiteSpace" . ToolShed.Test.ReversibleIO.readPrependedWhiteSpace
 	in Test.QuickCheck.quickCheckWithResult Test.QuickCheck.stdArgs { Test.QuickCheck.maxSuccess = 256 } f,
 	let
 		f :: String -> Test.QuickCheck.Property
-		f garbage	= Test.QuickCheck.label "Board.prop_read" $ case (reads garbage :: [(Board, String)]) of
+		f garbage	= Test.QuickCheck.label "Board.prop_read" $ case (reads garbage :: [(State.Board.Board, String)]) of
 			[_]	-> True
 			_	-> True	-- Unless the read-implementation throws an exception.
 	in Test.QuickCheck.quickCheckWithResult Test.QuickCheck.stdArgs { Test.QuickCheck.maxSuccess = 256 } f,
 	let
-		f :: Board -> String -> Test.QuickCheck.Property
+		f :: State.Board.Board -> String -> Test.QuickCheck.Property
 		f board	= Test.QuickCheck.label "Board.prop_readTrailingGarbage" . ToolShed.Test.ReversibleIO.readTrailingGarbage (`elem` ('/' : Component.Piece.showPieces ++ concatMap show [1 .. Cartesian.Abscissa.xLength])) board
 	in Test.QuickCheck.quickCheckWithResult Test.QuickCheck.stdArgs { Test.QuickCheck.maxSuccess = 256 } f,
 	let
-		f :: Board -> Test.QuickCheck.Property
+		f :: State.Board.Board -> Test.QuickCheck.Property
 		f board	= Test.QuickCheck.label "Board.prop_fen" $ case Property.ForsythEdwards.readsFEN $ Property.ForsythEdwards.showFEN board of
 			[(board', "")]	-> board' == board
 			_		-> False
 	in Test.QuickCheck.quickCheckWithResult Test.QuickCheck.stdArgs { Test.QuickCheck.maxSuccess = 16 } f,
 	let
-		f :: Test.QuickCheck.Cartesian.Coordinates.Coordinates -> Attribute.LogicalColour.LogicalColour -> Test.QuickCheck.Property
+		f :: Cartesian.Coordinates.Coordinates -> Attribute.LogicalColour.LogicalColour -> Test.QuickCheck.Property
 		f source logicalColour	= Test.QuickCheck.label "Board.prop_bishopsMove/logicalColour" . all (
 			(== Cartesian.Coordinates.getLogicalColourOfSquare source) . Cartesian.Coordinates.getLogicalColourOfSquare . fst {-coordinates-}
 		 ) . State.MaybePieceByCoordinates.listDestinationsFor source piece . State.Board.getMaybePieceByCoordinates $ StateProperty.Mutator.placeFirstPiece piece source where
 			piece	= Component.Piece.mkBishop logicalColour
 	in Test.QuickCheck.quickCheckWithResult Test.QuickCheck.stdArgs { Test.QuickCheck.maxSuccess = 256 } f,
 	let
-		f :: Test.QuickCheck.Cartesian.Coordinates.Coordinates -> Attribute.LogicalColour.LogicalColour -> Test.QuickCheck.Property
+		f :: Cartesian.Coordinates.Coordinates -> Attribute.LogicalColour.LogicalColour -> Test.QuickCheck.Property
 		f source logicalColour	= Test.QuickCheck.label "Board.prop_knightsMove/logicalColour" . all (
 			(/= Cartesian.Coordinates.getLogicalColourOfSquare source) . Cartesian.Coordinates.getLogicalColourOfSquare . fst {-coordinates-}
 		 ) . State.MaybePieceByCoordinates.listDestinationsFor source piece . State.Board.getMaybePieceByCoordinates $ StateProperty.Mutator.placeFirstPiece piece source where
 			piece	= Component.Piece.mkKnight logicalColour
 	in Test.QuickCheck.quickCheckWithResult Test.QuickCheck.stdArgs { Test.QuickCheck.maxSuccess = 256 } f,
 	let
-		f :: Board -> Test.QuickCheck.Property
+		f :: State.Board.Board -> Test.QuickCheck.Property
 		f board	= Test.QuickCheck.label "Board.prop_listDestinationsFor/unique" $ all (
 			\(coordinates, piece) -> uncurry (==) . (
 				length &&& length . Data.List.nub
@@ -141,7 +127,7 @@ results	= sequence [
 			maybePieceByCoordinates	= State.Board.getMaybePieceByCoordinates board
 	in Test.QuickCheck.quickCheckWithResult Test.QuickCheck.stdArgs { Test.QuickCheck.maxSuccess = 256 } f,
 	let
-		f :: Board -> Test.QuickCheck.Property
+		f :: State.Board.Board -> Test.QuickCheck.Property
 		f board	= Test.QuickCheck.label "Board.prop_(findAttacksBy <=> findAttackersOf)" $ all (
 			\(piece, coordinates) -> let
 				logicalColour	= Component.Piece.getLogicalColour piece
@@ -161,7 +147,7 @@ results	= sequence [
 		 ) . State.CoordinatesByRankByLogicalColour.assocs $ State.Board.getCoordinatesByRankByLogicalColour board
 	in Test.QuickCheck.quickCheckWithResult Test.QuickCheck.stdArgs { Test.QuickCheck.maxSuccess = 256 } f,
 	let
-		f :: Board -> Test.QuickCheck.Property
+		f :: State.Board.Board -> Test.QuickCheck.Property
 		f board	= Test.QuickCheck.label "Board.prop_(findBlockingPiece => isObstructed)" $ all (
 			\(source, _) -> let
 				isClear	= ($ maybePieceByCoordinates) . State.MaybePieceByCoordinates.isClear source
@@ -176,21 +162,21 @@ results	= sequence [
 			maybePieceByCoordinates	= State.Board.getMaybePieceByCoordinates board
 	in Test.QuickCheck.quickCheckWithResult Test.QuickCheck.stdArgs { Test.QuickCheck.maxSuccess = 256 } f,
 	let
-		f :: Board -> Test.QuickCheck.Property
+		f :: State.Board.Board -> Test.QuickCheck.Property
 		f = Test.QuickCheck.label "Board.prop_findPieces" . uncurry (==) . (
 			Data.List.sort . StateProperty.Seeker.findAllPieces . State.Board.getCoordinatesByRankByLogicalColour &&& Data.List.sort . StateProperty.Seeker.findAllPieces . State.Board.getMaybePieceByCoordinates
 		 )
 	in Test.QuickCheck.quickCheckWithResult Test.QuickCheck.stdArgs { Test.QuickCheck.maxSuccess = 256 } f,
 	let
-		f :: Board -> Test.QuickCheck.Property
+		f :: State.Board.Board -> Test.QuickCheck.Property
 		f	= Test.QuickCheck.label "Board.prop_reflectOnX" . uncurry (==) . (id &&& Property.Reflectable.reflectOnX . Property.Reflectable.reflectOnX)
 	in Test.QuickCheck.quickCheckWithResult Test.QuickCheck.stdArgs { Test.QuickCheck.maxSuccess = 32 } f,
 	let
-		f :: Board -> Test.QuickCheck.Property
+		f :: State.Board.Board -> Test.QuickCheck.Property
 		f	= Test.QuickCheck.label "Board.prop_reflectOnY" . uncurry (==) . (id &&& Property.Reflectable.reflectOnY . Property.Reflectable.reflectOnY)
 	in Test.QuickCheck.quickCheckWithResult Test.QuickCheck.stdArgs { Test.QuickCheck.maxSuccess = 32 } f,
 	let
-		f :: Board -> Test.QuickCheck.Property
+		f :: State.Board.Board -> Test.QuickCheck.Property
 		f = Test.QuickCheck.label "Board.prop_countPawnsByFileByLogicalColour" . (
 			\coordinatesByRankByLogicalColour -> all (
 				uncurry (==) . (
@@ -204,7 +190,7 @@ results	= sequence [
 		 ) . State.Board.getCoordinatesByRankByLogicalColour
 	in Test.QuickCheck.quickCheckWithResult Test.QuickCheck.stdArgs { Test.QuickCheck.maxSuccess = 256 } f,
 	let
-		f :: Board -> Test.QuickCheck.Property
+		f :: State.Board.Board -> Test.QuickCheck.Property
 		f board	= Test.QuickCheck.label "Board.prop_(exposesKing => isKingChecked)" $ all (
 			\(logicalColour, move)	-> State.Board.isKingChecked logicalColour $ State.Board.movePiece move Nothing board
 		 ) [
@@ -217,7 +203,7 @@ results	= sequence [
 		 ]	-- List-comprehension.
 	in Test.QuickCheck.quickCheckWithResult Test.QuickCheck.stdArgs { Test.QuickCheck.maxSuccess = 1024 } f,
 	let
-		f :: Board -> Test.QuickCheck.Property
+		f :: State.Board.Board -> Test.QuickCheck.Property
 		f board	= Test.QuickCheck.label "Board.prop_findProximateKnights" . all (
 			\(coordinates, piece) -> let
 				logicalColour	= Property.Opposable.getOpposite $ Component.Piece.getLogicalColour piece

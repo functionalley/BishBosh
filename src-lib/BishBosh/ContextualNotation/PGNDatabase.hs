@@ -47,7 +47,6 @@ import qualified	BishBosh.ContextualNotation.PGN			as ContextualNotation.PGN
 import qualified	BishBosh.ContextualNotation.StandardAlgebraic	as ContextualNotation.StandardAlgebraic
 import qualified	BishBosh.Data.Exception				as Data.Exception
 import qualified	BishBosh.Type.Count				as Type.Count
-import qualified	BishBosh.Type.Length				as Type.Length
 import qualified	Control.Exception
 import qualified	Control.Monad
 import qualified	Data.Maybe
@@ -71,56 +70,39 @@ import			Text.ParserCombinators.Parsec((<?>))
 #endif
 
 -- | Self-documentation.
-type PGNDatabase x y	= [ContextualNotation.PGN.PGN x y]
+type PGNDatabase	= [ContextualNotation.PGN.PGN]
 
 -- | Parse a PGN-database.
-parser :: (
-	Enum	x,
-	Enum	y,
-	Ord	x,
-	Ord	y,
-	Show	x,
-	Show	y
- )
-	=> ContextualNotation.PGN.IsStrictlySequential
+parser
+	:: ContextualNotation.PGN.IsStrictlySequential
 	-> ContextualNotation.StandardAlgebraic.ValidateMoves
 	-> [ContextualNotation.PGN.Tag]
 #ifdef USE_POLYPARSE
-	-> Text.Poly.TextParser (PGNDatabase x y)
-{-# SPECIALISE parser :: ContextualNotation.PGN.IsStrictlySequential -> ContextualNotation.StandardAlgebraic.ValidateMoves -> [ContextualNotation.PGN.Tag] -> Text.Poly.TextParser (PGNDatabase Type.Length.X Type.Length.Y) #-}
+	-> Text.Poly.TextParser PGNDatabase
 parser isStrictlySequential validateMoves identificationTags	= Poly.manyFinally' parser' $ Text.Poly.spaces >> Poly.eof
 #else /* Parsec */
-	-> Parsec.Parser (PGNDatabase x y)
-{-# SPECIALISE parser :: ContextualNotation.PGN.IsStrictlySequential -> ContextualNotation.StandardAlgebraic.ValidateMoves -> [ContextualNotation.PGN.Tag] -> Parsec.Parser (PGNDatabase Type.Length.X Type.Length.Y) #-}
+	-> Parsec.Parser PGNDatabase
 parser isStrictlySequential validateMoves identificationTags	= Parsec.manyTill parser' (Parsec.try $ Parsec.spaces >> Parsec.try Parsec.eof)	<?> "PGN-database"
 #endif
 	where
 		parser'	= ContextualNotation.PGN.parser isStrictlySequential validateMoves identificationTags
 
 -- | PGNPredicate used to filter the database.
-type PGNPredicate x y	= ContextualNotation.PGN.PGN x y -> Bool
+type PGNPredicate	= ContextualNotation.PGN.PGN -> Bool
 
 -- | The optional maximum number of games to read.
 type MaybeMaximumGames	= Maybe Type.Count.NGames
 
 -- | Parses a PGN-database from the specified string.
-parse :: (
-	Enum	x,
-	Enum	y,
-	Ord	x,
-	Ord	y,
-	Show	x,
-	Show	y
- )
-	=> String		-- ^ The name of the specified database.
+parse
+	:: String		-- ^ The name of the specified database.
 	-> ContextualNotation.PGN.IsStrictlySequential
 	-> ContextualNotation.StandardAlgebraic.ValidateMoves
 	-> [ContextualNotation.PGN.Tag]
-	-> PGNPredicate x y	-- ^ Used to filter entries from the database.
+	-> PGNPredicate		-- ^ Used to filter entries from the database.
 	-> MaybeMaximumGames	-- ^ Optional maximum number of games to read from the database (after they've been filtered).
 	-> String		-- ^ The database-contents.
-	-> Either String (PGNDatabase x y)
-{-# SPECIALISE parse :: String -> ContextualNotation.PGN.IsStrictlySequential -> ContextualNotation.StandardAlgebraic.ValidateMoves -> [ContextualNotation.PGN.Tag] -> PGNPredicate Type.Length.X Type.Length.Y -> MaybeMaximumGames -> String -> Either String (PGNDatabase Type.Length.X Type.Length.Y) #-}
+	-> Either String PGNDatabase
 #ifdef USE_POLYPARSE
 #	if USE_POLYPARSE == 1
 parse _ isStrictlySequential validateMoves identificationTags pgnPredicate maybeMaximumGames	= Right	-- N.B.: the lazy parser throws an exception rather than returning 'Either', because otherwise it can't choose whether to construct with 'Left' or 'Right' until the input has been fully parsed.
@@ -140,24 +122,16 @@ parse name isStrictlySequential validateMoves identificationTags pgnPredicate ma
 type Decompressor	= String
 
 -- | Reads a PGN-database from the (optionally compressed) file-path & passes it to the parser.
-parseIO :: (
-	Enum	x,
-	Enum	y,
-	Ord	x,
-	Ord	y,
-	Show	x,
-	Show	y
- )
-	=> System.FilePath.FilePath	-- ^ The PGN-file's location.
+parseIO
+	:: System.FilePath.FilePath	-- ^ The PGN-file's location.
 	-> Maybe Decompressor		-- ^ An Optional executable by which to decompress the PGN-file.
 	-> ContextualNotation.PGN.IsStrictlySequential
 	-> ContextualNotation.StandardAlgebraic.ValidateMoves
 	-> System.IO.TextEncoding	-- ^ The conversion-scheme between byte-sequences & Unicode characters.
 	-> [ContextualNotation.PGN.Tag]
-	-> PGNPredicate x y		-- ^ Used to filter entries from the database.
+	-> PGNPredicate			-- ^ Used to filter entries from the database.
 	-> MaybeMaximumGames		-- ^ Optional maximum number of games to read from the database (after they've been filtered).
-	-> IO (Either String (PGNDatabase x y))
-{-# SPECIALISE parseIO :: System.FilePath.FilePath -> Maybe Decompressor -> ContextualNotation.PGN.IsStrictlySequential -> ContextualNotation.StandardAlgebraic.ValidateMoves -> System.IO.TextEncoding -> [ContextualNotation.PGN.Tag] -> PGNPredicate Type.Length.X Type.Length.Y -> MaybeMaximumGames -> IO (Either String (PGNDatabase Type.Length.X Type.Length.Y)) #-}
+	-> IO (Either String PGNDatabase)
 parseIO filePath maybeDecompressionCommand isStrictlySequential validateMoves textEncoding identificationTags pgnPredicate maybeMaximumGames	= parse filePath isStrictlySequential validateMoves identificationTags pgnPredicate maybeMaximumGames `fmap` Data.Maybe.maybe (
 	System.IO.withFile filePath System.IO.ReadMode $ \fileHandle -> do
 		System.IO.hSetEncoding fileHandle textEncoding

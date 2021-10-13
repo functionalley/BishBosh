@@ -57,8 +57,6 @@ import qualified	BishBosh.Property.FixedMembership	as Property.FixedMembership
 import qualified	BishBosh.Property.Reflectable		as Property.Reflectable
 import qualified	BishBosh.Text.ShowList			as Text.ShowList
 import qualified	BishBosh.Type.Count			as Type.Count
-import qualified	BishBosh.Type.Length			as Type.Length
-import qualified	BishBosh.Type.Mass			as Type.Mass
 import qualified	Control.DeepSeq
 import qualified	Data.Array.IArray
 import qualified	Data.Foldable
@@ -75,58 +73,41 @@ nPiecesBounds	= (
  )
 
 -- | Self-documentation.
-type EitherPieceSquareValueByNPiecesByCoordinates x y pieceSquareValue	= Either (
-	Cartesian.Coordinates.ArrayByCoordinates x y pieceSquareValue	-- Uninterpolated.
+type EitherPieceSquareValueByNPiecesByCoordinates pieceSquareValue	= Either (
+	Cartesian.Coordinates.ArrayByCoordinates pieceSquareValue	-- Uninterpolated.
  ) (
-	Cartesian.Coordinates.ArrayByCoordinates x y (PieceSquareValueByNPieces pieceSquareValue)	-- Interpolated.
+	Cartesian.Coordinates.ArrayByCoordinates (PieceSquareValueByNPieces pieceSquareValue)	-- Interpolated.
  )
 
 -- | The value for each type of /piece/ of occupying each coordinate, at each stage in the lifetime of the game.
-newtype PieceSquareByCoordinatesByRank x y pieceSquareValue	= MkPieceSquareByCoordinatesByRank {
-	deconstruct	:: Attribute.Rank.ArrayByRank (EitherPieceSquareValueByNPiecesByCoordinates x y pieceSquareValue)
+newtype PieceSquareByCoordinatesByRank pieceSquareValue	= MkPieceSquareByCoordinatesByRank {
+	deconstruct	:: Attribute.Rank.ArrayByRank (EitherPieceSquareValueByNPiecesByCoordinates pieceSquareValue)
 } deriving (Eq, Show)
 
-instance (
-	Control.DeepSeq.NFData	pieceSquareValue,
-	Control.DeepSeq.NFData	x,
-	Control.DeepSeq.NFData	y
- ) => Control.DeepSeq.NFData (PieceSquareByCoordinatesByRank x y pieceSquareValue) where
+instance Control.DeepSeq.NFData pieceSquareValue => Control.DeepSeq.NFData (PieceSquareByCoordinatesByRank pieceSquareValue) where
 	rnf MkPieceSquareByCoordinatesByRank { deconstruct = byRank }	= Control.DeepSeq.rnf byRank
 
 -- | Constructor.
 mkPieceSquareByCoordinatesByRank
-	:: (Attribute.Rank.Rank -> EitherPieceSquareValueByNPiecesByCoordinates x y pieceSquareValue)	-- ^ Convert a /rank/ into either (a /pieceSquareValue/ or a /pieceSquareValue/ which linearly varies with the number of /piece/s remaining) by /coordinates/.
-	-> PieceSquareByCoordinatesByRank x y pieceSquareValue
+	:: (Attribute.Rank.Rank -> EitherPieceSquareValueByNPiecesByCoordinates pieceSquareValue)	-- ^ Convert a /rank/ into either (a /pieceSquareValue/ or a /pieceSquareValue/ which linearly varies with the number of /piece/s remaining) by /coordinates/.
+	-> PieceSquareByCoordinatesByRank pieceSquareValue
 mkPieceSquareByCoordinatesByRank	= MkPieceSquareByCoordinatesByRank . Attribute.Rank.listArrayByRank . (`map` Property.FixedMembership.members)
 
 -- | The type of a function which can find the required piece-square value.
-type FindPieceSquareValue x y pieceSquareValue
-	= Attribute.LogicalColour.LogicalColour		-- ^ The /piece/'s /logical colour/.
-	-> Attribute.Rank.Rank				-- ^ The /piece/'s /rank/.
-	-> Cartesian.Coordinates.Coordinates x y	-- ^ The /piece/'s location.
+type FindPieceSquareValue pieceSquareValue
+	= Attribute.LogicalColour.LogicalColour	-- ^ The /piece/'s /logical colour/.
+	-> Attribute.Rank.Rank			-- ^ The /piece/'s /rank/.
+	-> Cartesian.Coordinates.Coordinates	-- ^ The /piece/'s location.
 	-> pieceSquareValue
 
 -- | Find the piece-square value, at a stage in the game's lifetime defined by the total number of pieces remaining, for the specified /rank/ & /coordinates/.
-findPieceSquareValue :: (
-	Enum	x,
-	Enum	y,
-	Ord	x,
-	Ord	y
- )
-	=> Type.Count.NPieces				-- ^ The progress through the game.
+findPieceSquareValue
+	:: Type.Count.NPieces				-- ^ The progress through the game.
 	-> Attribute.LogicalColour.LogicalColour	-- ^ The /piece/'s /logical colour/.
 	-> Attribute.Rank.Rank				-- ^ The /piece/'s /rank/.
-	-> Cartesian.Coordinates.Coordinates x y	-- ^ The /piece/'s location.
-	-> PieceSquareByCoordinatesByRank x y pieceSquareValue
+	-> Cartesian.Coordinates.Coordinates		-- ^ The /piece/'s location.
+	-> PieceSquareByCoordinatesByRank pieceSquareValue
 	-> pieceSquareValue
-{-# SPECIALISE findPieceSquareValue
-	:: Type.Count.NPieces
-	-> Attribute.LogicalColour.LogicalColour
-	-> Attribute.Rank.Rank
-	-> Cartesian.Coordinates.Coordinates Type.Length.X Type.Length.Y
-	-> PieceSquareByCoordinatesByRank Type.Length.X Type.Length.Y Type.Mass.PieceSquareValue
-	-> Type.Mass.PieceSquareValue
- #-}
 findPieceSquareValue nPieces logicalColour rank coordinates MkPieceSquareByCoordinatesByRank { deconstruct = byRank }	= (
 	(!) ||| (
 		\byNPiecesByCoordinates	-> (! nPieces) . (byNPiecesByCoordinates !)
@@ -138,33 +119,20 @@ findPieceSquareValue nPieces logicalColour rank coordinates MkPieceSquareByCoord
  ) coordinates
 
 -- | The type of a function which can find the required piece-square values.
-type FindPieceSquareValues x y pieceSquareValue
-	= Attribute.LogicalColour.LogicalColour		-- ^ The /piece/'s /logical colour/.
-	-> Attribute.Rank.Rank				-- ^ The /piece/'s /rank/.
-	-> [Cartesian.Coordinates.Coordinates x y]	-- ^ The locations of interest for the /piece/.
+type FindPieceSquareValues pieceSquareValue
+	= Attribute.LogicalColour.LogicalColour	-- ^ The /piece/'s /logical colour/.
+	-> Attribute.Rank.Rank			-- ^ The /piece/'s /rank/.
+	-> [Cartesian.Coordinates.Coordinates]	-- ^ The locations of interest for the /piece/.
 	-> [pieceSquareValue]
 
 -- | Find the piece-square values, at a stage in the game's lifetime defined by the total number of pieces remaining, for the specified /rank/ & list of /coordinates/.
-findPieceSquareValues :: (
-	Enum	x,
-	Enum	y,
-	Ord	x,
-	Ord	y
- )
-	=> Type.Count.NPieces				-- ^ The progress through the game.
+findPieceSquareValues
+	:: Type.Count.NPieces				-- ^ The progress through the game.
 	-> Attribute.LogicalColour.LogicalColour	-- ^ The /piece/'s /logical colour/.
 	-> Attribute.Rank.Rank				-- ^ The /piece/'s /rank/.
-	-> [Cartesian.Coordinates.Coordinates x y]	-- ^ The locations of interest for the specified /piece/.
-	-> PieceSquareByCoordinatesByRank x y pieceSquareValue
+	-> [Cartesian.Coordinates.Coordinates]		-- ^ The locations of interest for the specified /piece/.
+	-> PieceSquareByCoordinatesByRank pieceSquareValue
 	-> [pieceSquareValue]
-{-# SPECIALISE findPieceSquareValues
-	:: Type.Count.NPieces
-	-> Attribute.LogicalColour.LogicalColour
-	-> Attribute.Rank.Rank
-	-> [Cartesian.Coordinates.Coordinates Type.Length.X Type.Length.Y]
-	-> PieceSquareByCoordinatesByRank Type.Length.X Type.Length.Y Type.Mass.PieceSquareValue
-	-> [Type.Mass.PieceSquareValue]
- #-}
 findPieceSquareValues nPieces logicalColour rank coordinatesList MkPieceSquareByCoordinatesByRank { deconstruct = byRank }	= (
 	(!) ||| (
 		\byNPiecesByCoordinates	-> (! nPieces) . (byNPiecesByCoordinates !)
@@ -202,7 +170,7 @@ formatForGNUPlot
 	:: (pieceSquareValue -> ShowS)						-- ^ Format a /pieceSquareValue/.
 	-> ShowS								-- ^ The column-delimiter.
 	-> (PieceSquareValueByNPieces pieceSquareValue -> pieceSquareValue)	-- ^ Select one /pieceSquareValue/ from interpolated values.
-	-> PieceSquareByCoordinatesByRank x y pieceSquareValue
+	-> PieceSquareByCoordinatesByRank pieceSquareValue
 	-> ShowS
 formatForGNUPlot pieceSquareValueFormatter columnDelimiter selector MkPieceSquareByCoordinatesByRank { deconstruct = byRank }	= (
 	showsRow (
@@ -219,7 +187,7 @@ formatForGNUPlot pieceSquareValueFormatter columnDelimiter selector MkPieceSquar
 			else id
 	) . showS
  ) id . zip (
-	Property.FixedMembership.members	:: [Cartesian.Coordinates.Coordinates Type.Length.X Type.Length.Y]
+	Property.FixedMembership.members	:: [Cartesian.Coordinates.Coordinates]
  ) . Data.List.transpose . map (
 	Data.Foldable.toList ||| map selector {-select one pieceSquareValue from interpolated values-} . Data.Foldable.toList {-ByCoordinates-}
  ) $ Data.Foldable.toList {-ByRank-} byRank where

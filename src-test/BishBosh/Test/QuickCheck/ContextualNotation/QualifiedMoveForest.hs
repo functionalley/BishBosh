@@ -24,9 +24,6 @@
 -}
 
 module BishBosh.Test.QuickCheck.ContextualNotation.QualifiedMoveForest(
--- * Types
--- ** Type-synonyms
-	QualifiedMoveForest,
 -- * Constants
 	results
 ) where
@@ -38,31 +35,19 @@ import qualified	BishBosh.Model.Game				as Model.Game
 import qualified	BishBosh.Model.GameTree				as Model.GameTree
 import qualified	BishBosh.Property.Null				as Property.Null
 import qualified	BishBosh.State.Board				as State.Board
-import qualified	BishBosh.Type.Length				as Type.Length
 import qualified	Data.Foldable
 import qualified	Data.Tree
 import qualified	Test.QuickCheck
 import			Test.QuickCheck((==>))
 
-instance (
-	Enum	x,
-	Enum	y,
-	Ord	x,
-	Ord	y,
-	Show	x,
-	Show	y
- ) => Test.QuickCheck.Arbitrary (ContextualNotation.QualifiedMoveForest.QualifiedMoveForest x y) where
-	{-# SPECIALISE instance Test.QuickCheck.Arbitrary QualifiedMoveForest #-}
+instance Test.QuickCheck.Arbitrary ContextualNotation.QualifiedMoveForest.QualifiedMoveForest where
 	arbitrary	= fmap ContextualNotation.QualifiedMoveForest.fromPGNDatabase Test.QuickCheck.arbitrary
-
--- | Defines a concrete type for testing.
-type QualifiedMoveForest	= ContextualNotation.QualifiedMoveForest.QualifiedMoveForest Type.Length.X Type.Length.Y
 
 -- | The constant test-results for this data-type.
 results :: IO [Test.QuickCheck.Result]
 results	= sequence [
 	let
-		f :: QualifiedMoveForest -> Test.QuickCheck.Property
+		f :: ContextualNotation.QualifiedMoveForest.QualifiedMoveForest -> Test.QuickCheck.Property
 		f = Test.QuickCheck.label "QualifiedMoveForest.prop_findMinimumPieces" . uncurry (==) . (
 			ContextualNotation.QualifiedMoveForest.findMinimumPieces &&& Data.Foldable.minimum . fmap (
 				State.Board.getNPieces . Model.Game.getBoard
@@ -70,7 +55,7 @@ results	= sequence [
 		 )
 	in Test.QuickCheck.quickCheckWithResult Test.QuickCheck.stdArgs { Test.QuickCheck.maxSuccess = 256 } f,
 	let
-		f :: QualifiedMoveForest -> Test.QuickCheck.Property
+		f :: ContextualNotation.QualifiedMoveForest.QualifiedMoveForest -> Test.QuickCheck.Property
 		f qualifiedMoveForest	= not (Property.Null.isNull qualifiedMoveForest) ==> Test.QuickCheck.label "QualifiedMoveForest.prop_count" . uncurry (==) $ (
 			snd {-nPositions-} . ContextualNotation.QualifiedMoveForest.count &&& fromIntegral . length . tail {-remove the apex-} . Data.Tree.flatten . Model.GameTree.deconstruct . ContextualNotation.QualifiedMoveForest.toGameTree
 		 ) qualifiedMoveForest

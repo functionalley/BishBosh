@@ -42,9 +42,7 @@ import qualified	BishBosh.Property.Empty		as Property.Empty
 import qualified	BishBosh.Text.ShowList		as Text.ShowList
 import qualified	BishBosh.Type.Count		as Type.Count
 import qualified	BishBosh.Type.Crypto		as Type.Crypto
-import qualified	BishBosh.Type.Length		as Type.Length
 import qualified	Control.Exception
-import qualified	Data.Array.IArray
 import qualified	Data.Bits
 import qualified	Data.Default
 import qualified	Data.List
@@ -64,20 +62,15 @@ instance (
 	Data.Bits.FiniteBits	positionHash,
 	System.Random.Random	positionHash
  ) => Data.Default.Default (PositionHashTree positionHash) where
-	def	= mkPositionHashTree Data.Default.def (Data.Default.def :: Model.GameTree.GameTree Type.Length.X Type.Length.Y)
+	def	= mkPositionHashTree Data.Default.def (Data.Default.def :: Model.GameTree.GameTree)
 
 -- | Hash the specified 'game-tree/.
-mkPositionHashTree :: (
-	Data.Array.IArray.Ix	x,
-	Data.Bits.Bits		positionHash,
-	Enum			x,
-	Enum			y,
-	Ord			y
- )
-	=> Component.Zobrist.Zobrist x y positionHash
-	-> Model.GameTree.GameTree x y
+mkPositionHashTree
+	:: Data.Bits.Bits positionHash
+	=> Component.Zobrist.Zobrist positionHash
+	-> Model.GameTree.GameTree
 	-> PositionHashTree positionHash
-mkPositionHashTree zobrist	= MkPositionHashTree . fmap (`Component.Zobrist.hash2D` zobrist) . Model.GameTree.deconstruct
+mkPositionHashTree zobrist	= MkPositionHashTree . fmap (`Component.Zobrist.hash` zobrist) . Model.GameTree.deconstruct
 
 -- | Count the number of distinct positions, irrespective of the sequence of moves taken to reach that terminal state.
 countDistinctPositions

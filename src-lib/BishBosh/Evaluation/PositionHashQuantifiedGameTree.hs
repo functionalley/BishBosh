@@ -82,11 +82,9 @@ import qualified	BishBosh.Notation.MoveNotation			as Notation.MoveNotation
 import qualified	BishBosh.Property.Arboreal			as Property.Arboreal
 import qualified	BishBosh.Property.Null				as Property.Null
 import qualified	BishBosh.Type.Crypto				as Type.Crypto
-import qualified	BishBosh.Type.Length				as Type.Length
 import qualified	BishBosh.Type.Mass				as Type.Mass
 import qualified	Control.Arrow
 import qualified	Control.Monad.Reader
-import qualified	Data.Array.IArray
 import qualified	Data.Bits
 import qualified	Data.Maybe
 import qualified	Data.Tree
@@ -96,43 +94,43 @@ import qualified	Data.Array.Unboxed
 #endif
 
 -- | Define a node in the tree to contain the hash of a /game/ & an evaluation of the fitness of that /game/.
-data NodeLabel x y positionHash	= MkNodeLabel {
+data NodeLabel positionHash	= MkNodeLabel {
 	getPositionHash		:: positionHash,	-- ^ The hash of the /game/ contained in 'getQuantifiedGame'.
-	getQuantifiedGame	:: Evaluation.QuantifiedGame.QuantifiedGame x y
+	getQuantifiedGame	:: Evaluation.QuantifiedGame.QuantifiedGame
 } deriving (Eq, Show)
 
-instance (Enum x, Enum y) => Notation.MoveNotation.ShowNotationFloat (NodeLabel x y positionHash) where
+instance Notation.MoveNotation.ShowNotationFloat (NodeLabel positionHash) where
 	showsNotationFloat moveNotation showsDouble MkNodeLabel { getQuantifiedGame = quantifiedGame }	= Notation.MoveNotation.showsNotation moveNotation (
 		Evaluation.QuantifiedGame.getLastTurn quantifiedGame
 	 ) . showString "\t=> " . showsDouble (
 		realToFrac . Metric.WeightedMeanAndCriterionValues.getWeightedMean $ Evaluation.QuantifiedGame.getWeightedMeanAndCriterionValues quantifiedGame
 	 )
 
-instance Property.Null.Null (NodeLabel x y positionHash) where
+instance Property.Null.Null (NodeLabel positionHash) where
 	isNull MkNodeLabel { getQuantifiedGame = quantifiedGame }	= Property.Null.isNull quantifiedGame
 
 -- | Whether the last qualifiedMove of the /game/ in a node, matches a specified /QualifiedMove/.
-equalsLastQualifiedMove :: (Eq x, Eq y) => Component.QualifiedMove.QualifiedMove x y -> Data.RoseTree.IsMatch (NodeLabel x y positionHash)
+equalsLastQualifiedMove :: Component.QualifiedMove.QualifiedMove -> Data.RoseTree.IsMatch (NodeLabel positionHash)
 equalsLastQualifiedMove qualifiedMove MkNodeLabel { getQuantifiedGame = quantifiedGame }	= (== qualifiedMove) . Component.Turn.getQualifiedMove $ Evaluation.QuantifiedGame.getLastTurn quantifiedGame
 
 -- | The tree resulting from each possible move-choice applied to a /game/, including a position-hash & an evaluation of the resulting fitness.
-type BarePositionHashQuantifiedGameTree x y positionHash	= Data.Tree.Tree (NodeLabel x y positionHash)
+type BarePositionHashQuantifiedGameTree positionHash	= Data.Tree.Tree (NodeLabel positionHash)
 
 -- | Accessor.
-getRootQuantifiedGame' :: BarePositionHashQuantifiedGameTree x y positionHash -> Evaluation.QuantifiedGame.QuantifiedGame x y
+getRootQuantifiedGame' :: BarePositionHashQuantifiedGameTree positionHash -> Evaluation.QuantifiedGame.QuantifiedGame
 getRootQuantifiedGame' Data.Tree.Node {
 	Data.Tree.rootLabel	= MkNodeLabel { getQuantifiedGame = quantifiedGame }
 } = quantifiedGame
 
 -- | Wrap the bare tree.
-newtype PositionHashQuantifiedGameTree x y positionHash	= MkPositionHashQuantifiedGameTree {
-	deconstruct	:: BarePositionHashQuantifiedGameTree x y positionHash
+newtype PositionHashQuantifiedGameTree positionHash	= MkPositionHashQuantifiedGameTree {
+	deconstruct	:: BarePositionHashQuantifiedGameTree positionHash
 } deriving Eq
 
-instance Property.Arboreal.Prunable (PositionHashQuantifiedGameTree x y positionHash) where
+instance Property.Arboreal.Prunable (PositionHashQuantifiedGameTree positionHash) where
 	prune depth MkPositionHashQuantifiedGameTree { deconstruct = barePositionHashQuantifiedGameTree }	= MkPositionHashQuantifiedGameTree $ Property.Arboreal.prune depth barePositionHashQuantifiedGameTree
 
-instance (Enum x, Enum y) => Notation.MoveNotation.ShowNotationFloat (PositionHashQuantifiedGameTree x y positionHash) where
+instance Notation.MoveNotation.ShowNotationFloat (PositionHashQuantifiedGameTree positionHash) where
 	showsNotationFloat moveNotation showsDouble MkPositionHashQuantifiedGameTree { deconstruct = barePositionHashQuantifiedGameTree } = showString $ (
 		if Property.Null.isNull . Data.Tree.rootLabel $ barePositionHashQuantifiedGameTree
 			then Data.RoseTree.drawForest toString . Data.Tree.subForest
@@ -141,41 +139,36 @@ instance (Enum x, Enum y) => Notation.MoveNotation.ShowNotationFloat (PositionHa
 		toString nodeLabel	= Notation.MoveNotation.showsNotationFloat moveNotation showsDouble nodeLabel ""
 
 -- | Constructor.
-fromBarePositionHashQuantifiedGameTree :: BarePositionHashQuantifiedGameTree x y positionHash -> PositionHashQuantifiedGameTree x y positionHash
+fromBarePositionHashQuantifiedGameTree :: BarePositionHashQuantifiedGameTree positionHash -> PositionHashQuantifiedGameTree positionHash
 fromBarePositionHashQuantifiedGameTree	= MkPositionHashQuantifiedGameTree
 
 -- | Constructor.
 mkPositionHashQuantifiedGameTree :: (
-	Data.Array.IArray.Ix		x,
 #ifdef USE_UNBOXED_ARRAYS
 	Data.Array.Unboxed.IArray	Data.Array.Unboxed.UArray pieceSquareValue,	-- Requires 'FlexibleContexts'. The unboxed representation of the array-element must be defined (& therefore must be of fixed size).
 #endif
 	Data.Bits.Bits			positionHash,
 	Fractional			pieceSquareValue,
-	Integral			x,
-	Integral			y,
-	Real				pieceSquareValue,
-	Show				x,
-	Show				y
+	Real				pieceSquareValue
  )
-	=> Input.EvaluationOptions.EvaluationOptions pieceSquareValue x y
+	=> Input.EvaluationOptions.EvaluationOptions pieceSquareValue
 	-> Input.SearchOptions.SearchOptions
-	-> Component.Zobrist.Zobrist x y positionHash
-	-> Model.GameTree.MoveFrequency x y
-	-> Model.Game.Game x y	-- ^ The current state of the /game/.
-	-> PositionHashQuantifiedGameTree x y positionHash
+	-> Component.Zobrist.Zobrist positionHash
+	-> Model.GameTree.MoveFrequency
+	-> Model.Game.Game	-- ^ The current state of the /game/.
+	-> PositionHashQuantifiedGameTree positionHash
 {-# SPECIALISE mkPositionHashQuantifiedGameTree
-	:: Input.EvaluationOptions.EvaluationOptions Type.Mass.PieceSquareValue Type.Length.X Type.Length.Y
+	:: Input.EvaluationOptions.EvaluationOptions Type.Mass.PieceSquareValue
 	-> Input.SearchOptions.SearchOptions
-	-> Component.Zobrist.Zobrist Type.Length.X Type.Length.Y Type.Crypto.PositionHash
-	-> Model.GameTree.MoveFrequency Type.Length.X Type.Length.Y
-	-> Model.Game.Game Type.Length.X Type.Length.Y
-	-> PositionHashQuantifiedGameTree Type.Length.X Type.Length.Y Type.Crypto.PositionHash
+	-> Component.Zobrist.Zobrist Type.Crypto.PositionHash
+	-> Model.GameTree.MoveFrequency
+	-> Model.Game.Game
+	-> PositionHashQuantifiedGameTree Type.Crypto.PositionHash
  #-}
 mkPositionHashQuantifiedGameTree evaluationOptions searchOptions zobrist moveFrequency seedGame	= MkPositionHashQuantifiedGameTree (
 	if Input.EvaluationOptions.getIncrementalEvaluation evaluationOptions
 		then let
-			apexPositionHash	= Component.Zobrist.hash2D seedGame zobrist
+			apexPositionHash	= Component.Zobrist.hash seedGame zobrist
 		in Data.Tree.Node {
 			Data.Tree.rootLabel	= MkNodeLabel apexPositionHash $ Control.Monad.Reader.runReader (
 				Evaluation.QuantifiedGame.fromGame Nothing seedGame
@@ -215,7 +208,7 @@ mkPositionHashQuantifiedGameTree evaluationOptions searchOptions zobrist moveFre
 		}
 		else fmap (
 			uncurry MkNodeLabel . (
-				(`Component.Zobrist.hash2D` zobrist) &&& (`Control.Monad.Reader.runReader` evaluationOptions) . Evaluation.QuantifiedGame.fromGame Nothing
+				(`Component.Zobrist.hash` zobrist) &&& (`Control.Monad.Reader.runReader` evaluationOptions) . Evaluation.QuantifiedGame.fromGame Nothing
 			)
 		) bareGameTree
  ) where
@@ -226,7 +219,7 @@ mkPositionHashQuantifiedGameTree evaluationOptions searchOptions zobrist moveFre
 	 ) moveFrequency $ Model.GameTree.fromGame seedGame
 
 -- | Accessor.
-getRootPositionHash :: PositionHashQuantifiedGameTree x y positionHash -> positionHash
+getRootPositionHash :: PositionHashQuantifiedGameTree positionHash -> positionHash
 getRootPositionHash MkPositionHashQuantifiedGameTree {
 	deconstruct = Data.Tree.Node {
 		Data.Tree.rootLabel	= MkNodeLabel { getPositionHash = positionHash }
@@ -234,7 +227,7 @@ getRootPositionHash MkPositionHashQuantifiedGameTree {
 } = positionHash
 
 -- | Accessor.
-getRootQuantifiedGame :: PositionHashQuantifiedGameTree x y positionHash -> Evaluation.QuantifiedGame.QuantifiedGame x y
+getRootQuantifiedGame :: PositionHashQuantifiedGameTree positionHash -> Evaluation.QuantifiedGame.QuantifiedGame
 getRootQuantifiedGame MkPositionHashQuantifiedGameTree {
 	deconstruct = Data.Tree.Node {
 		Data.Tree.rootLabel	= MkNodeLabel { getQuantifiedGame = quantifiedGame }
@@ -243,29 +236,28 @@ getRootQuantifiedGame MkPositionHashQuantifiedGameTree {
 
 -- | Forward request.
 reduce
-	:: Data.RoseTree.IsMatch (NodeLabel x y positionHash)
-	-> PositionHashQuantifiedGameTree x y positionHash
-	-> Maybe (PositionHashQuantifiedGameTree x y positionHash)
+	:: Data.RoseTree.IsMatch (NodeLabel positionHash)
+	-> PositionHashQuantifiedGameTree positionHash
+	-> Maybe (PositionHashQuantifiedGameTree positionHash)
 reduce isMatch MkPositionHashQuantifiedGameTree { deconstruct = barePositionHashQuantifiedGameTree }	= MkPositionHashQuantifiedGameTree `fmap` Data.RoseTree.reduce isMatch barePositionHashQuantifiedGameTree
 
 -- | Forward request.
 traceRoute
-	:: (Component.Turn.Turn x y -> Data.RoseTree.IsMatch (NodeLabel x y positionHash))
-	-> PositionHashQuantifiedGameTree x y positionHash
-	-> [Component.Turn.Turn x y]
-	-> Maybe [NodeLabel x y positionHash]
+	:: (Component.Turn.Turn -> Data.RoseTree.IsMatch (NodeLabel positionHash))
+	-> PositionHashQuantifiedGameTree positionHash
+	-> [Component.Turn.Turn]
+	-> Maybe [NodeLabel positionHash]
 traceRoute isMatch MkPositionHashQuantifiedGameTree { deconstruct = barePositionHashQuantifiedGameTree }	= Data.RoseTree.traceRoute isMatch barePositionHashQuantifiedGameTree
 
 -- | Follow the specified move-sequence down the /positionHashQuantifiedGameTree/.
 traceMatchingMoves
-	:: (Eq x, Eq y)
-	=> PositionHashQuantifiedGameTree x y positionHash
-	-> [Component.QualifiedMove.QualifiedMove x y]
-	-> Maybe [NodeLabel x y positionHash]	-- ^ Returns 'Nothing', on failure to match a move.
+	:: PositionHashQuantifiedGameTree positionHash
+	-> [Component.QualifiedMove.QualifiedMove]
+	-> Maybe [NodeLabel positionHash]	-- ^ Returns 'Nothing', on failure to match a move.
 traceMatchingMoves MkPositionHashQuantifiedGameTree { deconstruct = barePositionHashQuantifiedGameTree }	= Data.RoseTree.traceRoute equalsLastQualifiedMove barePositionHashQuantifiedGameTree
 
 -- | Amend the apex-game to reflect the resignation of the next player.
-resign :: PositionHashQuantifiedGameTree x y positionHash -> PositionHashQuantifiedGameTree x y positionHash
+resign :: PositionHashQuantifiedGameTree positionHash -> PositionHashQuantifiedGameTree positionHash
 resign MkPositionHashQuantifiedGameTree {
 	deconstruct	= barePositionHashQuantifiedGameTree@Data.Tree.Node {
 		Data.Tree.rootLabel	= nodeLabel@MkNodeLabel { getQuantifiedGame = quantifiedGame }
@@ -277,7 +269,7 @@ resign MkPositionHashQuantifiedGameTree {
 }
 
 -- | Self-documentation.
-type Forest x y positionHash	= [BarePositionHashQuantifiedGameTree x y positionHash]
+type Forest positionHash	= [BarePositionHashQuantifiedGameTree positionHash]
 
 {- |
 	* Promotes the first matching /move/ to the head of the forest, then descends & recursively promotes the next matching move in the sub-forest.
@@ -285,10 +277,9 @@ type Forest x y positionHash	= [BarePositionHashQuantifiedGameTree x y positionH
 	* N.B.: this can be used to dynamically re-order the forest when a transposition is detected.
 -}
 promoteMatchingMoves
-	:: (Eq x, Eq y)
-	=> [Component.QualifiedMove.QualifiedMove x y]	-- ^ The list of qualifiedMoves, which should be promoted at successively deeper levels in the tree.
-	-> Forest x y positionHash
-	-> Maybe (Forest x y positionHash)		-- ^ Returns 'Nothing' on failure to match a move.
+	:: [Component.QualifiedMove.QualifiedMove]	-- ^ The list of qualifiedMoves, which should be promoted at successively deeper levels in the tree.
+	-> Forest positionHash
+	-> Maybe (Forest positionHash)		-- ^ Returns 'Nothing' on failure to match a move.
 promoteMatchingMoves	= Data.RoseTree.promote equalsLastQualifiedMove
 
 {- |
@@ -297,9 +288,9 @@ promoteMatchingMoves	= Data.RoseTree.promote equalsLastQualifiedMove
 	* N.B.: this can be used to dynamically re-order the forest using the killer heuristic.
 -}
 sortNonCaptureMoves
-	:: (Forest x y positionHash -> Forest x y positionHash)
-	-> Forest x y positionHash
-	-> Forest x y positionHash
+	:: (Forest positionHash -> Forest positionHash)
+	-> Forest positionHash
+	-> Forest positionHash
 sortNonCaptureMoves sortForest	= uncurry (++) . Control.Arrow.second sortForest . span (
 	Component.Turn.isCapture . Evaluation.QuantifiedGame.getLastTurn . getRootQuantifiedGame'	-- Shield any capture-moves, which were previously advanced by static sorting, from the sort.
  )

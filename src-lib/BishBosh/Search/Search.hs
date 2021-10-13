@@ -54,27 +54,26 @@ import qualified	BishBosh.State.TurnsByLogicalColour			as State.TurnsByLogicalCo
 import qualified	BishBosh.Text.ShowList					as Text.ShowList
 import qualified	BishBosh.Type.Count					as Type.Count
 import qualified	BishBosh.Type.Crypto					as Type.Crypto
-import qualified	BishBosh.Type.Length					as Type.Length
 import qualified	Control.DeepSeq
 import qualified	Control.Exception
 import qualified	Control.Monad.Reader
 import qualified	Data.Maybe
 
 -- | The type returned by 'search'.
-data Result x y positionHash	= MkResult {
-	getSearchState		:: Search.SearchState.SearchState x y positionHash,
-	getQuantifiedGames	:: [Evaluation.QuantifiedGame.QuantifiedGame x y],	-- ^ The optimal path down the /positionHashQuantifiedGameTree/.
-	getNPositionsEvaluated	:: Type.Count.NPositions				-- ^ The total number of nodes in the /positionHashQuantifiedGameTree/ which were analysed.
+data Result positionHash	= MkResult {
+	getSearchState		:: Search.SearchState.SearchState positionHash,
+	getQuantifiedGames	:: [Evaluation.QuantifiedGame.QuantifiedGame],	-- ^ The optimal path down the /positionHashQuantifiedGameTree/.
+	getNPositionsEvaluated	:: Type.Count.NPositions			-- ^ The total number of nodes in the /positionHashQuantifiedGameTree/ which were analysed.
 }
 
-instance Control.DeepSeq.NFData (Result x y positionHash) where
+instance Control.DeepSeq.NFData (Result positionHash) where
 	rnf MkResult { getQuantifiedGames = quantifiedGames }	= Control.DeepSeq.rnf quantifiedGames	-- CAVEAT: don't evaluate the search-state, since this contains the PositionHashQuantifiedGameTree !
 
 -- | Used to format output.
 showsSeparator :: ShowS
 showsSeparator	= showString " -> "
 
-instance (Enum x, Enum y) => Notation.MoveNotation.ShowNotationFloat (Result x y positionHash) where
+instance Notation.MoveNotation.ShowNotationFloat (Result positionHash) where
 	showsNotationFloat moveNotation showsDouble result@MkResult {
 		getQuantifiedGames	= quantifiedGames,
 		getNPositionsEvaluated	= nPositionsEvaluated
@@ -87,18 +86,11 @@ instance (Enum x, Enum y) => Notation.MoveNotation.ShowNotationFloat (Result x y
 	 )
 
 -- | Smart constructor.
-mkResult :: (
-	Enum	x,
-	Enum	y,
-	Ord	x,
-	Ord	y,
-	Show	x,
-	Show	y
- )
-	=> Search.SearchState.SearchState x y positionHash
-	-> [Evaluation.QuantifiedGame.QuantifiedGame x y]
+mkResult
+	:: Search.SearchState.SearchState positionHash
+	-> [Evaluation.QuantifiedGame.QuantifiedGame]
 	-> Type.Count.NPositions
-	-> Result x y positionHash
+	-> Result positionHash
 mkResult searchState quantifiedGames nPositionsEvaluated
 	| null quantifiedGames	= Control.Exception.throw . Data.Exception.mkNullDatum . showString "BishBosh.Search.Search.mkResult:\tnull quantifiedGames; " $ shows game "."
 	| nPositionsEvaluated < 0	= Control.Exception.throw . Data.Exception.mkOutOfBounds . showString "BishBosh.Search.Search.mkResult:\tnPositionsEvaluated=" . shows nPositionsEvaluated . showString " mustn't be negative; " $ shows game "."
@@ -111,19 +103,12 @@ mkResult searchState quantifiedGames nPositionsEvaluated
 		game	= Evaluation.QuantifiedGame.getGame . Evaluation.PositionHashQuantifiedGameTree.getRootQuantifiedGame $ Search.SearchState.getPositionHashQuantifiedGameTree searchState
 
 -- | Initiates the recursive function 'Search.AlphaBeta.negaMax', then unpacks the results.
-search :: (
-	Enum	x,
-	Enum	y,
-	Ord	positionHash,
-	Ord	x,
-	Ord	y,
-	Show	x,
-	Show	y
- )
+search
+	:: Ord positionHash
 	=> Type.Count.NPlies	-- ^ How deep down the tree to search.
-	-> Search.SearchState.SearchState x y positionHash
-	-> Input.SearchOptions.Reader (Result x y positionHash)
-{-# SPECIALISE search :: Type.Count.NPlies -> Search.SearchState.SearchState Type.Length.X Type.Length.Y Type.Crypto.PositionHash -> Input.SearchOptions.Reader (Result Type.Length.X Type.Length.Y Type.Crypto.PositionHash) #-}
+	-> Search.SearchState.SearchState positionHash
+	-> Input.SearchOptions.Reader (Result positionHash)
+{-# SPECIALISE search :: Type.Count.NPlies -> Search.SearchState.SearchState Type.Crypto.PositionHash -> Input.SearchOptions.Reader (Result Type.Crypto.PositionHash) #-}
 search 0 _	= Control.Exception.throw . Data.Exception.mkOutOfBounds . showString "BishBosh.Search.Search.search:\t" . shows Input.SearchOptions.searchDepthTag . showString " must be at least " $ shows Input.SearchOptions.minimumSearchDepth "."
 search searchDepth searchState
 	| Just terminationReason <- Model.Game.getMaybeTerminationReason game	= Control.Exception.throw . Data.Exception.mkInvalidDatum . showString "BishBosh.Search.Search.search:\tthe game has already terminated; " $ shows terminationReason "."
@@ -154,7 +139,7 @@ search searchDepth searchState
 		game				= Evaluation.QuantifiedGame.getGame $ Evaluation.PositionHashQuantifiedGameTree.getRootQuantifiedGame positionHashQuantifiedGameTree
 
 -- | Calculate the geometric-mean of the number of plies evaluated at each node.
-calculateBranchingFactor :: Floating branchingFactor => Result x y positionHash -> branchingFactor
+calculateBranchingFactor :: Floating branchingFactor => Result positionHash -> branchingFactor
 calculateBranchingFactor MkResult {
 	getQuantifiedGames	= quantifiedGames,
 	getNPositionsEvaluated	= nPositionsEvaluated

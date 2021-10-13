@@ -1,4 +1,4 @@
-{-# LANGUAGE CPP, FlexibleContexts, ScopedTypeVariables #-}
+{-# LANGUAGE CPP, FlexibleContexts #-}
 {-
 	Copyright (C) 2018 Dr. Alistair Ward
 
@@ -70,7 +70,6 @@ import qualified	BishBosh.Rule.GameTerminationReason			as Rule.GameTerminationRe
 import qualified	BishBosh.State.Board					as State.Board
 import qualified	BishBosh.State.CastleableRooksByLogicalColour		as State.CastleableRooksByLogicalColour
 import qualified	BishBosh.Type.Count					as Type.Count
-import qualified	BishBosh.Type.Length					as Type.Length
 import qualified	BishBosh.Type.Mass					as Type.Mass
 import qualified	Control.Monad.Reader
 import qualified	Data.Array.IArray
@@ -94,16 +93,12 @@ measurePieceSquareValue :: (
 #ifdef USE_UNBOXED_ARRAYS
 	Data.Array.Unboxed.IArray	Data.Array.Unboxed.UArray pieceSquareValue,	-- Requires 'FlexibleContexts'. The unboxed representation of the array-element must be defined (& therefore must be of fixed size).
 #endif
-	Enum				x,
-	Enum				y,
-	Num				pieceSquareValue,
-	Ord				x,
-	Ord				y
+	Num				pieceSquareValue
  )
-	=> Component.PieceSquareByCoordinatesByRank.PieceSquareByCoordinatesByRank x y pieceSquareValue
-	-> Model.Game.Game x y
+	=> Component.PieceSquareByCoordinatesByRank.PieceSquareByCoordinatesByRank pieceSquareValue
+	-> Model.Game.Game
 	-> pieceSquareValue
-{-# SPECIALISE measurePieceSquareValue :: Component.PieceSquareByCoordinatesByRank.PieceSquareByCoordinatesByRank Type.Length.X Type.Length.Y Type.Mass.PieceSquareValue -> Model.Game.Game Type.Length.X Type.Length.Y -> Type.Mass.PieceSquareValue #-}
+{-# SPECIALISE measurePieceSquareValue :: Component.PieceSquareByCoordinatesByRank.PieceSquareByCoordinatesByRank Type.Mass.PieceSquareValue -> Model.Game.Game -> Type.Mass.PieceSquareValue #-}
 measurePieceSquareValue pieceSquareByCoordinatesByRank game
 	| Attribute.LogicalColour.isBlack $ Model.Game.getNextLogicalColour game	= difference
 	| otherwise									= negate difference	-- Represent the piece-square value from Black's perspective.
@@ -122,17 +117,13 @@ measurePieceSquareValueIncrementally :: (
 #ifdef USE_UNBOXED_ARRAYS
 	Data.Array.Unboxed.IArray	Data.Array.Unboxed.UArray pieceSquareValue,	-- Requires 'FlexibleContexts'. The unboxed representation of the array-element must be defined (& therefore must be of fixed size).
 #endif
-	Enum				x,
-	Enum				y,
-	Num				pieceSquareValue,
-	Ord				x,
-	Ord				y
+	Num				pieceSquareValue
  )
 	=> pieceSquareValue	-- ^ The value before the last move was applied, & therefore also from the perspective of the previous player.
-	-> Component.PieceSquareByCoordinatesByRank.PieceSquareByCoordinatesByRank x y pieceSquareValue
-	-> Model.Game.Game x y
+	-> Component.PieceSquareByCoordinatesByRank.PieceSquareByCoordinatesByRank pieceSquareValue
+	-> Model.Game.Game
 	-> pieceSquareValue
-{-# SPECIALISE measurePieceSquareValueIncrementally :: Type.Mass.PieceSquareValue -> Component.PieceSquareByCoordinatesByRank.PieceSquareByCoordinatesByRank Type.Length.X Type.Length.Y Type.Mass.PieceSquareValue -> Model.Game.Game Type.Length.X Type.Length.Y -> Type.Mass.PieceSquareValue #-}
+{-# SPECIALISE measurePieceSquareValueIncrementally :: Type.Mass.PieceSquareValue -> Component.PieceSquareByCoordinatesByRank.PieceSquareByCoordinatesByRank Type.Mass.PieceSquareValue -> Model.Game.Game -> Type.Mass.PieceSquareValue #-}
 measurePieceSquareValueIncrementally previousPieceSquareValue pieceSquareByCoordinatesByRank game
 	| Attribute.MoveType.isQuiet $ Component.QualifiedMove.getMoveType qualifiedMove	= let
 		findPieceSquareValues coordinatesList	= Component.PieceSquareByCoordinatesByRank.findPieceSquareValues (
@@ -155,9 +146,8 @@ measurePieceSquareValueIncrementally previousPieceSquareValue pieceSquareByCoord
 measureValueOfMaterial
 	:: Input.RankValues.RankValues
 	-> Type.Mass.RankValue	-- ^ Maximum total rank-value.
-	-> Model.Game.Game x y
+	-> Model.Game.Game
 	-> Metric.CriterionValue.CriterionValue
--- {-# SPECIALISE measureValueOfMaterial :: Input.RankValues.RankValues -> Type.Mass.RankValue -> Model.Game.Game Type.Length.X Type.Length.Y -> Metric.CriterionValue.CriterionValue #-}
 measureValueOfMaterial rankValues maximumTotalRankValue game	= fromRational . (
 	/ toRational maximumTotalRankValue -- Normalise.
  ) . (
@@ -192,23 +182,14 @@ measureValueOfMaterial rankValues maximumTotalRankValue game	= fromRational . (
 
 	This presents a paradox !
 -}
-measureValueOfMobility :: (
-	Enum	x,
-	Enum	y,
-	Ord	x,
-	Ord	y,
-	Show	x,
-	Show	y
- ) => Model.Game.Game x y -> Metric.CriterionValue.CriterionValue
-{-# SPECIALISE measureValueOfMobility :: Model.Game.Game Type.Length.X Type.Length.Y -> Metric.CriterionValue.CriterionValue #-}
+measureValueOfMobility :: Model.Game.Game -> Metric.CriterionValue.CriterionValue
 measureValueOfMobility game	= fromRational . uncurry (-) . (
 	measureConstriction &&& measureConstriction . Property.Opposable.getOpposite {-recent mover-}
  ) $ Model.Game.getNextLogicalColour game where
 	measureConstriction logicalColour	= recip . fromIntegral {-NPlies-} . succ {-avoid divide-by-zero-} $ Model.Game.countPliesAvailableTo logicalColour game
 
 -- | Measure the arithmetic difference between the potential to /Castle/, on either side.
-measureValueOfCastlingPotential :: Model.Game.Game x y -> Metric.CriterionValue.CriterionValue
--- {-# SPECIALISE measureValueOfCastlingPotential :: Model.Game.Game Type.Length.X Type.Length.Y -> Metric.CriterionValue.CriterionValue #-}
+measureValueOfCastlingPotential :: Model.Game.Game -> Metric.CriterionValue.CriterionValue
 measureValueOfCastlingPotential game	= fromRational . uncurry (-) . (
 	castlingPotential . Property.Opposable.getOpposite {-recent mover-} &&& castlingPotential
  ) $ Model.Game.getNextLogicalColour game where
@@ -225,8 +206,7 @@ measureValueOfCastlingPotential game	= fromRational . uncurry (-) . (
 
 	* CAVEAT: this is a negative attribute, so the weighted normalised value shouldn't exceed the reduction due to 'measureValueOfMaterial' resulting from a @Pawn@-sacrifice.
 -}
-measureValueOfDoubledPawns :: Model.Game.Game x y -> Metric.CriterionValue.CriterionValue
--- {-# SPECIALISE measureValueOfDoubledPawns :: Model.Game.Game Type.Length.X Type.Length.Y -> Metric.CriterionValue.CriterionValue #-}
+measureValueOfDoubledPawns :: Model.Game.Game -> Metric.CriterionValue.CriterionValue
 measureValueOfDoubledPawns game	= fromRational . (
 	/ 6	-- Normalise to [-1 .. 1]; the optimal scenario is all files containing one Pawn; the worst scenario is two files each containing four Pawns, all but one per file of which are counted as doubled.
  ) . fromIntegral {-NPieces-} . uncurry (-) . (
@@ -241,8 +221,7 @@ measureValueOfDoubledPawns game	= fromRational . (
 
 	* CAVEAT: this is a negative attribute, so the weighted normalised value shouldn't exceed the reduction due to 'measureValueOfMaterial' resulting from a @Pawn@-sacrifice.
 -}
-measureValueOfIsolatedPawns :: (Enum x, Ord x) => Model.Game.Game x y -> Metric.CriterionValue.CriterionValue
-{-# SPECIALISE measureValueOfIsolatedPawns :: Model.Game.Game Type.Length.X Type.Length.Y -> Metric.CriterionValue.CriterionValue #-}
+measureValueOfIsolatedPawns :: Model.Game.Game -> Metric.CriterionValue.CriterionValue
 measureValueOfIsolatedPawns game	= fromRational . (
 	/ fromIntegral {-Int-} Cartesian.Abscissa.xLength	-- Normalise to [-1 .. 1]; the optimal scenario is eight files each containing one Pawn & the worst scenario is all Pawns isolated (e.g. 4 alternate files of 2, 2 separate files or 4, ...).
  ) . fromIntegral {-NPieces-} . uncurry (-) . (
@@ -259,8 +238,7 @@ measureValueOfIsolatedPawns game	= fromRational . (
 		nPawnsByFile	= State.Board.getNPawnsByFileByLogicalColour (Model.Game.getBoard game) ! logicalColour
 
 -- | Measure the arithmetic difference between the number of /passed/ @Pawn@s on either side; <https://www.chessprogramming.org/Passed_Pawn>.
-measureValueOfPassedPawns :: forall x y. Enum y => Model.Game.Game x y -> Metric.CriterionValue.CriterionValue
-{-# SPECIALISE measureValueOfPassedPawns :: Model.Game.Game Type.Length.X Type.Length.Y -> Metric.CriterionValue.CriterionValue #-}
+measureValueOfPassedPawns :: Model.Game.Game -> Metric.CriterionValue.CriterionValue
 measureValueOfPassedPawns game	= fromRational . (
 	/ fromIntegral {-Int-} Cartesian.Abscissa.xLength	-- Normalise to [-1 .. 1].
  ) . uncurry (-) . (
@@ -268,9 +246,7 @@ measureValueOfPassedPawns game	= fromRational . (
  ) $ Model.Game.getNextLogicalColour game where
 	valuePassedPawns logicalColour	= Data.List.foldl' (
 		\acc -> (acc +) . recip {-value increases exponentially as distance to promotion decreases-} . fromIntegral {-Int-} . abs . subtract (
-			fromEnum (
-				Cartesian.Ordinate.lastRank logicalColour	:: y	-- N.B.: ScopedTypeVariables.
-			)
+			fromEnum $ Cartesian.Ordinate.lastRank logicalColour
 		) . fromEnum . Cartesian.Coordinates.getY	-- Measure the distance to promotion.
 	 ) 0 $ State.Board.getPassedPawnCoordinatesByLogicalColour (Model.Game.getBoard game) ! logicalColour
 
@@ -302,8 +278,7 @@ maximumDefended	= 70
 
 	* CAVEAT: this criterion competes with /mobility/, since each defended /piece/ blocks the path of the defender.
 -}
-measureValueOfDefence :: Model.Game.Game x y -> Metric.CriterionValue.CriterionValue
--- {-# SPECIALISE measureValueOfDefence :: Model.Game.Game Type.Length.X Type.Length.Y -> Metric.CriterionValue.CriterionValue #-}
+measureValueOfDefence :: Model.Game.Game -> Metric.CriterionValue.CriterionValue
 measureValueOfDefence game	= fromRational . (
 	/ fromIntegral {-NPieces-} maximumDefended	-- Normalise.
  ) . fromIntegral {-NPieces-} . uncurry (-) . (
@@ -326,19 +301,13 @@ evaluateFitness :: (
 #ifdef USE_UNBOXED_ARRAYS
 	Data.Array.Unboxed.IArray	Data.Array.Unboxed.UArray pieceSquareValue,	-- Requires 'FlexibleContexts'. The unboxed representation of the array-element must be defined (& therefore must be of fixed size).
 #endif
-	Enum				x,
-	Enum				y,
 	Fractional			pieceSquareValue,
-	Ord				x,
-	Ord				y,
-	Real				pieceSquareValue,
-	Show				x,
-	Show				y
+	Real				pieceSquareValue
  )
 	=> Maybe pieceSquareValue	-- ^ An optional value for the specified game.
-	-> Model.Game.Game x y
-	-> Input.EvaluationOptions.Reader pieceSquareValue x y Metric.WeightedMeanAndCriterionValues.WeightedMeanAndCriterionValues
-{-# SPECIALISE evaluateFitness :: Maybe Type.Mass.PieceSquareValue -> Model.Game.Game Type.Length.X Type.Length.Y -> Input.EvaluationOptions.Reader Type.Mass.PieceSquareValue Type.Length.X Type.Length.Y Metric.WeightedMeanAndCriterionValues.WeightedMeanAndCriterionValues #-}
+	-> Model.Game.Game
+	-> Input.EvaluationOptions.Reader pieceSquareValue Metric.WeightedMeanAndCriterionValues.WeightedMeanAndCriterionValues
+{-# SPECIALISE evaluateFitness :: Maybe Type.Mass.PieceSquareValue -> Model.Game.Game -> Input.EvaluationOptions.Reader Type.Mass.PieceSquareValue Metric.WeightedMeanAndCriterionValues.WeightedMeanAndCriterionValues #-}
 evaluateFitness maybePieceSquareValue game
 	| Just gameTerminationReason <- Model.Game.getMaybeTerminationReason game	= return {-to Reader-monad-} $ Metric.WeightedMeanAndCriterionValues.mkWeightedMeanAndCriterionValues (
 		if Rule.GameTerminationReason.isCheckMate gameTerminationReason

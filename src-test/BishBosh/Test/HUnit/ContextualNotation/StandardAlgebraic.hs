@@ -38,7 +38,6 @@ import qualified	BishBosh.Data.Exception				as Data.Exception
 import qualified	BishBosh.Model.Game				as Model.Game
 import qualified	BishBosh.Notation.MoveNotation			as Notation.MoveNotation
 import qualified	BishBosh.Property.Empty				as Property.Empty
-import qualified	BishBosh.Test.HUnit.Model.Game			as Test.HUnit.Model.Game
 import qualified	BishBosh.Text.ShowList				as Text.ShowList
 import qualified	Control.Exception
 import qualified	Data.Default
@@ -76,7 +75,7 @@ testCases	= Test.HUnit.test $ map (
 #endif
  ) $ map (
 	\s -> let
-		game :: Test.HUnit.Model.Game.Game
+		game :: Model.Game.Game
 		game	= Data.Default.def
 	 in case Notation.MoveNotation.readsQualifiedMove Data.Default.def s of
 		[(eitherQualifiedMove, "")]	-> let

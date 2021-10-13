@@ -24,9 +24,6 @@
 -}
 
 module BishBosh.Test.QuickCheck.Notation.Smith(
--- * Types
--- ** Type-synonyms
---	Smith,
 -- * Constants
 	results
 ) where
@@ -34,39 +31,29 @@ module BishBosh.Test.QuickCheck.Notation.Smith(
 import			BishBosh.Test.QuickCheck.Component.QualifiedMove()
 import qualified	BishBosh.Component.Piece	as Component.Piece
 import qualified	BishBosh.Notation.Smith		as Notation.Smith
-import qualified	BishBosh.Type.Length		as Type.Length
 import qualified	Test.QuickCheck
 import qualified	ToolShed.Test.ReversibleIO
 
--- | Defines a concrete type for testing.
-type Smith	= Notation.Smith.Smith Type.Length.X Type.Length.Y
-
-instance (
-	Enum	x,
-	Enum	y,
-	Ord	x,
-	Ord	y
- ) => Test.QuickCheck.Arbitrary (Notation.Smith.Smith x y) where
---	{-# SPECIALISE instance Test.QuickCheck.Arbitrary Smith #-}
+instance Test.QuickCheck.Arbitrary Notation.Smith.Smith where
 	arbitrary	= fmap Notation.Smith.fromQualifiedMove Test.QuickCheck.arbitrary
 
 -- | The constant test-results for this data-type.
 results :: IO [Test.QuickCheck.Result]
 results	= sequence [
 	let
-		f :: Smith -> Test.QuickCheck.Property
+		f :: Notation.Smith.Smith -> Test.QuickCheck.Property
 		f	= Test.QuickCheck.label "Smith.prop_readPrependedWhiteSpace" . ToolShed.Test.ReversibleIO.readPrependedWhiteSpace
 	in Test.QuickCheck.quickCheckWithResult Test.QuickCheck.stdArgs { Test.QuickCheck.maxSuccess = 1024 } f,
 	let
 		f :: String -> Test.QuickCheck.Property
 		f garbage	= Test.QuickCheck.label "Smith.prop_read" $ case (
-			reads garbage :: [(Smith, String)]
+			reads garbage :: [(Notation.Smith.Smith, String)]
 		 ) of
 			[_]	-> True
 			_	-> True	-- Unless the read-implementation throws an exception.
 	in Test.QuickCheck.quickCheckWithResult Test.QuickCheck.stdArgs { Test.QuickCheck.maxSuccess = 256 } f,
 	let
-		f :: Smith -> String -> Test.QuickCheck.Property
+		f :: Notation.Smith.Smith -> String -> Test.QuickCheck.Property
 		f smith	= Test.QuickCheck.label "Smith.prop_readTrailingGarbage" . ToolShed.Test.ReversibleIO.readTrailingGarbage (`elem` ("cCE" ++ Component.Piece.showPieces)) smith
 	in Test.QuickCheck.quickCheckWithResult Test.QuickCheck.stdArgs { Test.QuickCheck.maxSuccess = 512 } f
  ]

@@ -35,21 +35,21 @@ import qualified	BishBosh.Cartesian.Coordinates		as Cartesian.Coordinates
 import qualified	BishBosh.Component.Piece		as Component.Piece
 
 -- | An interface which may be implemented by data which can search the board.
-class Seeker seeker x y where
+class Seeker seeker where
 	-- | Locate any @Knight@s capable of taking a piece at the specified coordinates.
 	findProximateKnights
 		:: Attribute.LogicalColour.LogicalColour	-- ^ The /logical colour/ of the @Knight@ for which to search.
-		-> Cartesian.Coordinates.Coordinates x y	-- ^ The destination to which the @Knight@ is required to be capable of jumping.
-		-> seeker x y
-		-> [Cartesian.Coordinates.Coordinates x y]
+		-> Cartesian.Coordinates.Coordinates		-- ^ The destination to which the @Knight@ is required to be capable of jumping.
+		-> seeker
+		-> [Cartesian.Coordinates.Coordinates]
 
 	-- | Locate any /piece/s satisfying the specified predicate.
 	findPieces
 		:: (Component.Piece.Piece -> Bool)	-- ^ Predicate.
-		-> seeker x y
-		-> [Component.Piece.LocatedPiece x y]
+		-> seeker
+		-> [Component.Piece.LocatedPiece]
 
 -- | Locate all /piece/s on the board.
-findAllPieces :: Seeker seeker x y => seeker x y -> [Component.Piece.LocatedPiece x y]
+findAllPieces :: Seeker seeker => seeker -> [Component.Piece.LocatedPiece]
 findAllPieces	= findPieces $ const True
 

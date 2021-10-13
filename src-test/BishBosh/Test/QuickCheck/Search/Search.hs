@@ -1,3 +1,4 @@
+{-# LANGUAGE CPP #-}
 {-
 	Copyright (C) 2018 Dr. Alistair Ward
 
@@ -34,10 +35,15 @@ import qualified	BishBosh.Model.Game					as Model.Game
 import qualified	BishBosh.Search.Search					as Search.Search
 import qualified	BishBosh.Search.SearchState				as Search.SearchState
 import qualified	BishBosh.Test.QuickCheck.Search.SearchState		as Test.QuickCheck.Search.SearchState
+import qualified	BishBosh.Type.Count					as Type.Count
 import qualified	Control.Monad.Reader
 import qualified	Data.Default
 import qualified	Test.QuickCheck
 import			Test.QuickCheck((==>))
+
+#ifdef USE_NEWTYPE_WRAPPERS
+import			BishBosh.Test.QuickCheck.Type.Count()
+#endif
 
 -- | The constant test-results.
 results :: IO [Test.QuickCheck.Result]
@@ -50,7 +56,7 @@ results	= sequence [
 	let
 		f
 			:: Input.SearchOptions.SearchOptions
-			-> Int	-- ^ Search-depth.
+			-> Type.Count.NPlies	-- ^ Search-depth.
 			-> Test.QuickCheck.Search.SearchState.SearchState
 			-> Test.QuickCheck.Property
 		f searchOptions searchDepth searchState	= searchOptions /= Data.Default.def && not (

@@ -49,16 +49,16 @@ import qualified	BishBosh.Attribute.Rank		as Attribute.Rank
 import qualified	BishBosh.Component.Move		as Component.Move
 
 -- | As returned by 'Notation.MoveNotation.readsQualifiedMove'.
-data EitherQualifiedMove x y	= MkEitherQualifiedMove {
-	getMove				:: Component.Move.Move x y,
+data EitherQualifiedMove	= MkEitherQualifiedMove {
+	getMove				:: Component.Move.Move,
 	getPromotionRankOrMoveType	:: Either (Maybe Attribute.Rank.Rank) Attribute.MoveType.MoveType	-- ^ Either the optional /rank/ to which a @Pawn@ should be promoted, or the complete /move-type/.
 }
 
 -- | Constructor for notations which don't encode sufficient information to reliably re-construct the /move-type/, but merely the /rank/ to which a @Pawn@ is to be promoted.
-mkPartiallyQualifiedMove :: Component.Move.Move x y -> Maybe Attribute.Rank.Rank -> EitherQualifiedMove x y
+mkPartiallyQualifiedMove :: Component.Move.Move -> Maybe Attribute.Rank.Rank -> EitherQualifiedMove
 mkPartiallyQualifiedMove move	= MkEitherQualifiedMove move . Left
 
 -- | Constructor for notations which encode sufficient information to reliably re-construct the /move-type/.
-mkFullyQualifiedMove :: Component.Move.Move x y -> Attribute.MoveType.MoveType -> EitherQualifiedMove x y
+mkFullyQualifiedMove :: Component.Move.Move -> Attribute.MoveType.MoveType -> EitherQualifiedMove
 mkFullyQualifiedMove move	= MkEitherQualifiedMove move . Right
 

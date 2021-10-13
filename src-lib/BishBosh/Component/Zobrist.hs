@@ -1,4 +1,3 @@
-{-# LANGUAGE MultiParamTypeClasses #-}
 {-
 	Copyright (C) 2018 Dr. Alistair Ward
 
@@ -31,8 +30,7 @@
 
 module BishBosh.Component.Zobrist(
 -- * Type-classes
-	Hashable1D(..),
-	Hashable2D(..),
+	Hashable(..),
 -- * Types
 -- ** Type-synonyms
 --	Index,
@@ -51,7 +49,7 @@ module BishBosh.Component.Zobrist(
 	dereferenceRandomByCoordinatesByRankByLogicalColour,
 	dereferenceRandomByCastleableRooksXByLogicalColour,
 	dereferenceRandomByEnPassantAbscissa,
-	hash2D,
+	hash,
 	combine,
 -- ** Constructors
 	mkZobrist
@@ -64,6 +62,7 @@ import qualified	BishBosh.Attribute.Rank			as Attribute.Rank
 import qualified	BishBosh.Cartesian.Abscissa		as Cartesian.Abscissa
 import qualified	BishBosh.Cartesian.Coordinates		as Cartesian.Coordinates
 import qualified	BishBosh.Data.Exception			as Data.Exception
+import qualified	BishBosh.Type.Length			as Type.Length
 import qualified	Control.Exception
 import qualified	Data.Array.IArray
 import qualified	Data.Bits
@@ -74,18 +73,18 @@ import qualified	System.Random
 import qualified	ToolShed.System.Random
 
 -- | Used as an index into 'getRandomByCoordinatesByRankByLogicalColour'.
-type Index x y	= (Attribute.LogicalColour.LogicalColour, Attribute.Rank.Rank, Cartesian.Coordinates.Coordinates x y)
+type Index	= (Attribute.LogicalColour.LogicalColour, Attribute.Rank.Rank, Cartesian.Coordinates.Coordinates)
 
 -- | The random numbers used to generate a hash, which almost uniquely represent a /position/.
-data Zobrist x y positionHash	= MkZobrist {
-	getRandomForBlacksMove				:: positionHash,							-- ^ Defines a random number to apply when the next move is @Black@'s.
-	getRandomByCoordinatesByRankByLogicalColour	:: Data.Array.IArray.Array {-Boxed-} (Index x y) positionHash,		-- ^ Defines random numbers to represent all combinations of each piece at each coordinate; though @Pawn@s can't exist on the terminal ranks. N.B.: regrettably the array can't be unboxed, because 'Data.Array.Unboxed.UArray' isn't 'Foldable'; cf. 'Data.Array.IArray.Array'.
+data Zobrist positionHash	= MkZobrist {
+	getRandomForBlacksMove				:: positionHash,									-- ^ Defines a random number to apply when the next move is @Black@'s.
+	getRandomByCoordinatesByRankByLogicalColour	:: Data.Array.IArray.Array {-Boxed-} Index positionHash,				-- ^ Defines random numbers to represent all combinations of each piece at each coordinate; though @Pawn@s can't exist on the terminal ranks. N.B.: regrettably the array can't be unboxed, because 'Data.Array.Unboxed.UArray' isn't 'Foldable'; cf. 'Data.Array.IArray.Array'.
 
-	getRandomByCastleableRooksXByLogicalColour	:: Attribute.LogicalColour.ArrayByLogicalColour [(x, positionHash)],	-- ^ Defines random numbers to represent all combinations of castleable @Rook@s.
-	getRandomByEnPassantAbscissa			:: Data.Array.IArray.Array x positionHash				-- ^ Defines random numbers to represent any file on which capture en-passant might be available.
+	getRandomByCastleableRooksXByLogicalColour	:: Attribute.LogicalColour.ArrayByLogicalColour [(Type.Length.X, positionHash)],	-- ^ Defines random numbers to represent all combinations of castleable @Rook@s.
+	getRandomByEnPassantAbscissa			:: Data.Array.IArray.Array Type.Length.X positionHash					-- ^ Defines random numbers to represent any file on which capture en-passant might be available.
 } deriving Show
 
-instance Foldable (Zobrist x y) where
+instance Foldable Zobrist where
 	foldr f i MkZobrist {
 		getRandomForBlacksMove				= randomForBlacksMove,
 		getRandomByCoordinatesByRankByLogicalColour	= randomByCoordinatesByRankByLogicalColour,
@@ -102,13 +101,9 @@ instance Foldable (Zobrist x y) where
 	 ) randomByEnPassantAbscissa
 
 instance (
-	Data.Array.IArray.Ix	x,
 	Data.Bits.FiniteBits	positionHash,
-	Enum			x,
-	Enum			y,
-	Ord			y,
 	System.Random.Random	positionHash
- ) => Data.Default.Default (Zobrist x y positionHash) where
+ ) => Data.Default.Default (Zobrist positionHash) where
 	def	= mkZobrist Nothing $ System.Random.mkStdGen 0
 
 {- |
@@ -118,7 +113,7 @@ instance (
 
 	* CAVEAT: <https://en.wikipedia.org/wiki/Linear_independence> a better measure of the suitability of the selected random numbers
 -}
-measureHammingDistances :: Data.Bits.Bits positionHash => Zobrist x y positionHash -> [Int]
+measureHammingDistances :: Data.Bits.Bits positionHash => Zobrist positionHash -> [Int]
 measureHammingDistances	= map (Data.Bits.popCount . uncurry Data.Bits.xor) . getCombinations . Data.Foldable.toList where
 	getCombinations :: [a] -> [(a, a)]
 	getCombinations (x : remainder)	= map ((,) x) remainder ++ getCombinations remainder	-- CAVEAT: O(n^2) time-complexity.
@@ -126,17 +121,13 @@ measureHammingDistances	= map (Data.Bits.popCount . uncurry Data.Bits.xor) . get
 
 -- | Smart constructor.
 mkZobrist :: (
-	Data.Array.IArray.Ix	x,
 	Data.Bits.FiniteBits	positionHash,
-	Enum			x,
-	Enum			y,
-	Ord			y,
 	System.Random.RandomGen randomGen,
 	System.Random.Random	positionHash
  )
 	=> Maybe Int	-- ^ The optional minimum acceptable Hamming-distance between any two of the selected random numbers.
 	-> randomGen
-	-> Zobrist x y positionHash
+	-> Zobrist positionHash
 mkZobrist maybeMinimumHammingDistance randomGen
 	| Just minimumHammingDistance <- maybeMinimumHammingDistance
 	, let minimumHammingDistance'	= minimum $ measureHammingDistances zobrist
@@ -163,55 +154,38 @@ mkZobrist maybeMinimumHammingDistance randomGen
 		}
 
 -- | Dereferences 'getRandomByCoordinatesByRankByLogicalColour' using the specified index.
-dereferenceRandomByCoordinatesByRankByLogicalColour :: (
-	Enum	x,
-	Enum	y,
-	Ord	x,
-	Ord	y
- )
-	=> Index x y
-	-> Zobrist x y positionHash
-	-> positionHash
+dereferenceRandomByCoordinatesByRankByLogicalColour :: Index -> Zobrist positionHash -> positionHash
 dereferenceRandomByCoordinatesByRankByLogicalColour index MkZobrist { getRandomByCoordinatesByRankByLogicalColour = randomByCoordinatesByRankByLogicalColour }	= randomByCoordinatesByRankByLogicalColour ! index
 
 -- | Dereferences 'getRandomByCastleableRooksXByLogicalColour' using the specified abscissa.
 dereferenceRandomByCastleableRooksXByLogicalColour
-	:: Eq x
-	=> Attribute.LogicalColour.LogicalColour
-	-> x
-	-> Zobrist x y positionHash
+	:: Attribute.LogicalColour.LogicalColour
+	-> Type.Length.X
+	-> Zobrist positionHash
 	-> Maybe positionHash	-- ^ The existence of a result depends on whether there remain any Rooks which can castle.
 dereferenceRandomByCastleableRooksXByLogicalColour logicalColour x MkZobrist { getRandomByCastleableRooksXByLogicalColour = randomByCastleableRooksXByLogicalColour }	= lookup x $ randomByCastleableRooksXByLogicalColour ! logicalColour
 
 -- | Dereferences 'getRandomByEnPassantAbscissa' using the specified abscissa.
-dereferenceRandomByEnPassantAbscissa
-	:: Data.Array.IArray.Ix x
-	=> x
-	-> Zobrist x y positionHash
-	-> positionHash
+dereferenceRandomByEnPassantAbscissa :: Type.Length.X -> Zobrist positionHash -> positionHash
 dereferenceRandomByEnPassantAbscissa x MkZobrist { getRandomByEnPassantAbscissa = randomByEnPassantAbscissa }	= randomByEnPassantAbscissa ! x
 
--- | An interface to which 1-D hashable data can conform.
-class Hashable1D hashable x {-CAVEAT: MultiParamTypeClasses-} where
-	listRandoms1D	:: hashable x -> Zobrist x y positionHash -> [positionHash]
-
--- | An interface to which 2-D hashable data can conform.
-class Hashable2D hashable x y {-CAVEAT: MultiParamTypeClasses-} where
-	listRandoms2D	:: hashable x y -> Zobrist x y positionHash -> [positionHash]
+-- | An interface to which hashable data can conform.
+class Hashable hashable where
+	listRandoms	:: hashable -> Zobrist positionHash -> [positionHash]
 
 -- | The operator used when combining random numbers to compose a hash.
 combiningOp :: Data.Bits.Bits positionHash => positionHash -> positionHash -> positionHash
 combiningOp	= Data.Bits.xor
 
 -- | Resolve a hashable into a hash.
-hash2D :: (
+hash :: (
 	Data.Bits.Bits	positionHash,
-	Hashable2D	hashable x y
+	Hashable	hashable
  )
-	=> hashable x y
-	-> Zobrist x y positionHash
+	=> hashable
+	-> Zobrist positionHash
 	-> positionHash
-hash2D hashable	= Data.List.foldl1' combiningOp . listRandoms2D hashable
+hash hashable	= Data.List.foldl1' combiningOp . listRandoms hashable
 
 -- | Include a list of random numbers in the hash.
 combine :: Data.Bits.Bits positionHash => positionHash -> [positionHash] -> positionHash

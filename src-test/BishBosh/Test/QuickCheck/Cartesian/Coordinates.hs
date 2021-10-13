@@ -24,13 +24,8 @@
 -}
 
 module BishBosh.Test.QuickCheck.Cartesian.Coordinates(
--- * Types
--- ** Type-synonyms
-	Coordinates,
 -- * Constants
-	results,
--- * Functions
-	translate
+	results
 ) where
 
 import			BishBosh.Test.QuickCheck.Attribute.Direction()
@@ -42,7 +37,6 @@ import qualified	BishBosh.Property.FixedMembership	as Property.FixedMembership
 import qualified	BishBosh.Property.Orientated		as Property.Orientated
 import qualified	BishBosh.Property.Reflectable		as Property.Reflectable
 import qualified	BishBosh.Property.Rotatable		as Property.Rotatable
-import qualified	BishBosh.Type.Length			as Type.Length
 import qualified	Data.Array.IArray
 import qualified	Data.List
 import qualified	Data.List.Extra
@@ -51,37 +45,11 @@ import qualified	ToolShed.Test.Ix
 import qualified	ToolShed.Test.ReversibleIO
 import			Test.QuickCheck((==>))
 
--- | Defines a concrete type for testing.
-type Coordinates	= Cartesian.Coordinates.Coordinates Type.Length.X Type.Length.Y
-
-instance (Enum x, Enum y) => Test.QuickCheck.Arbitrary (Cartesian.Coordinates.Coordinates x y) where
---	{-# SPECIALISE instance Test.QuickCheck.Arbitrary Coordinates #-}
+instance Test.QuickCheck.Arbitrary Cartesian.Coordinates.Coordinates where
 	arbitrary	= Test.QuickCheck.elements Property.FixedMembership.members
 
--- | Re-cast the specified coordinates.
-translate :: (
-	Integral	x,
-	Integral	y,
-	Num		p,
-	Num		q
- )
-	=> Cartesian.Coordinates.Coordinates x y
-	-> Cartesian.Coordinates.Coordinates p q
-translate coordinates	= coordinates {
-	Cartesian.Coordinates.getX	= fromIntegral $ Cartesian.Coordinates.getX coordinates,
-	Cartesian.Coordinates.getY	= fromIntegral $ Cartesian.Coordinates.getY coordinates
-}
-
 -- Check that one can interpolate between the coordinates.
-isValidMove :: (
-	Enum	x,
-	Enum	y,
-	Eq	x,
-	Eq	y
- )
-	=> Cartesian.Coordinates.Coordinates x y
-	-> Cartesian.Coordinates.Coordinates x y
-	-> Bool
+isValidMove :: Cartesian.Coordinates.Coordinates -> Cartesian.Coordinates.Coordinates -> Bool
 isValidMove source destination	= source /= destination && Property.Orientated.isStraight (
 	Cartesian.Vector.measureDistance source destination	:: Cartesian.Vector.VectorInt
  )
@@ -90,43 +58,43 @@ isValidMove source destination	= source /= destination && Property.Orientated.is
 results :: IO [Test.QuickCheck.Result]
 results = sequence [
 	let
-		f :: Coordinates -> Test.QuickCheck.Property
+		f :: Cartesian.Coordinates.Coordinates -> Test.QuickCheck.Property
 		f	= Test.QuickCheck.label "Coordinates.prop_readPrependedWhiteSpace" . ToolShed.Test.ReversibleIO.readPrependedWhiteSpace
 	in Test.QuickCheck.quickCheckWithResult Test.QuickCheck.stdArgs { Test.QuickCheck.maxSuccess = 64 } f,
 	let
 		f :: String -> Test.QuickCheck.Property
 		f garbage	= Test.QuickCheck.label "Coordinates.prop_read" $ case (
-			reads garbage	:: [(Coordinates, String)]
+			reads garbage	:: [(Cartesian.Coordinates.Coordinates, String)]
 		 ) of
 			[_]	-> True
 			_	-> True	-- Unless the read-implementation throws an exception.
 	in Test.QuickCheck.quickCheckWithResult Test.QuickCheck.stdArgs { Test.QuickCheck.maxSuccess = 64 } f,
 	let
-		f :: Coordinates -> String -> Test.QuickCheck.Property
+		f :: Cartesian.Coordinates.Coordinates -> String -> Test.QuickCheck.Property
 		f coordinates	= Test.QuickCheck.label "Coordinates.prop_readTrailingGarbage" . ToolShed.Test.ReversibleIO.readTrailingGarbage (const False) coordinates
 	in Test.QuickCheck.quickCheckWithResult Test.QuickCheck.stdArgs { Test.QuickCheck.maxSuccess = 64 } f,
 	let
-		f :: Coordinates -> Test.QuickCheck.Property
+		f :: Cartesian.Coordinates.Coordinates -> Test.QuickCheck.Property
 		f	= Test.QuickCheck.label "Coordinates.prop_ix" . ToolShed.Test.Ix.index
 	in Test.QuickCheck.quickCheckWithResult Test.QuickCheck.stdArgs { Test.QuickCheck.maxSuccess = 64 } f,
 	let
-		f :: Coordinates -> Test.QuickCheck.Property
+		f :: Cartesian.Coordinates.Coordinates -> Test.QuickCheck.Property
 		f coordinates	= Test.QuickCheck.label "Coordinates.prop_fromIx" $ Cartesian.Coordinates.fromIx (Data.Array.IArray.index (minBound, maxBound) coordinates) == coordinates
 	in Test.QuickCheck.quickCheckWithResult Test.QuickCheck.stdArgs { Test.QuickCheck.maxSuccess = 64 } f,
 	let
-		f	:: Coordinates -> Test.QuickCheck.Property
+		f	:: Cartesian.Coordinates.Coordinates -> Test.QuickCheck.Property
 		f	= Test.QuickCheck.label "Coordinates.prop_reflectOnX" . uncurry (==) . (id &&& Property.Reflectable.reflectOnX . Property.Reflectable.reflectOnX)
 	in Test.QuickCheck.quickCheckWithResult Test.QuickCheck.stdArgs { Test.QuickCheck.maxSuccess = 64 } f,
 	let
-		f :: Coordinates -> Test.QuickCheck.Property
+		f :: Cartesian.Coordinates.Coordinates -> Test.QuickCheck.Property
 		f	= Test.QuickCheck.label "Coordinates.prop_reflectOnY" . uncurry (==) . (id &&& Property.Reflectable.reflectOnY . Property.Reflectable.reflectOnY)
 	in Test.QuickCheck.quickCheckWithResult Test.QuickCheck.stdArgs { Test.QuickCheck.maxSuccess = 64 } f,
 	let
-		f :: Coordinates -> Test.QuickCheck.Property
+		f :: Cartesian.Coordinates.Coordinates -> Test.QuickCheck.Property
 		f	= Test.QuickCheck.label "Coordinates.prop_rotate180" . uncurry (==) . (Property.Rotatable.rotate180 &&& Property.Rotatable.rotate180)
 	in Test.QuickCheck.quickCheckWithResult Test.QuickCheck.stdArgs { Test.QuickCheck.maxSuccess = 64 } f,
 	let
-		f :: Coordinates -> Test.QuickCheck.Property
+		f :: Cartesian.Coordinates.Coordinates -> Test.QuickCheck.Property
 		f coordinates	= Test.QuickCheck.label "Coordinates.prop_rotateIdentity" $ all ((== coordinates) . ($ coordinates)) [
 			Property.Rotatable.rotate90 . Property.Rotatable.rotate90 . Property.Rotatable.rotate90 . Property.Rotatable.rotate90,
 			Property.Rotatable.rotate180 . Property.Rotatable.rotate180,
@@ -134,7 +102,7 @@ results = sequence [
 		 ]
 	in Test.QuickCheck.quickCheckWithResult Test.QuickCheck.stdArgs { Test.QuickCheck.maxSuccess = 64 } f,
 	let
-		f :: Coordinates -> Test.QuickCheck.Property
+		f :: Cartesian.Coordinates.Coordinates -> Test.QuickCheck.Property
 		f coordinates	= Test.QuickCheck.label "Coordinates.prop_rotate180/identity" . Data.List.Extra.allSame $ map ($ coordinates) [
 			Property.Rotatable.rotate180,
 			Property.Rotatable.rotate90 . Property.Rotatable.rotate90,
@@ -142,25 +110,7 @@ results = sequence [
 		 ]
 	in Test.QuickCheck.quickCheckWithResult Test.QuickCheck.stdArgs { Test.QuickCheck.maxSuccess = 64 } f,
 	let
-		f :: Coordinates -> Coordinates -> Test.QuickCheck.Property
-		f source destination	= isValidMove source destination ==> Test.QuickCheck.label "Coordinates.prop_interpolateInt" $ Cartesian.Coordinates.interpolate source destination == map translate (
-			Cartesian.Coordinates.interpolate (
-				translate source	:: Cartesian.Coordinates.Coordinates Integer Integer	-- Force use of unspecialised instance.
-			) (
-				translate destination
-			)
-		 )
-	in Test.QuickCheck.quickCheckWithResult Test.QuickCheck.stdArgs { Test.QuickCheck.maxSuccess = 64 } f,
-	let
-		f :: Attribute.Direction.Direction -> Coordinates -> Test.QuickCheck.Property
-		f direction source	= Test.QuickCheck.label "Coordinates.prop_extrapolateInt" $ Cartesian.Coordinates.extrapolate direction source == map translate (
-			Cartesian.Coordinates.extrapolate direction (
-				translate source	:: Cartesian.Coordinates.Coordinates Integer Integer	-- Force use of unspecialised instance.
-			)
-		 )
-	in Test.QuickCheck.quickCheckWithResult Test.QuickCheck.stdArgs { Test.QuickCheck.maxSuccess = 64 } f,
-	let
-		f :: Attribute.Direction.Direction -> Coordinates -> Test.QuickCheck.Property
+		f :: Attribute.Direction.Direction -> Cartesian.Coordinates.Coordinates -> Test.QuickCheck.Property
 		f direction source	= Test.QuickCheck.label "Coordinates.prop_extrapolate" . (
 			\extrapolation -> let
 				destination
@@ -172,13 +122,13 @@ results = sequence [
 		 ) $ Cartesian.Coordinates.extrapolate direction source
 	in Test.QuickCheck.quickCheckWithResult Test.QuickCheck.stdArgs { Test.QuickCheck.maxSuccess = 64 } f,
 	let
-		f :: Coordinates -> Coordinates -> Test.QuickCheck.Property
+		f :: Cartesian.Coordinates.Coordinates -> Cartesian.Coordinates.Coordinates -> Test.QuickCheck.Property
 		f source destination	= isValidMove source destination ==> Test.QuickCheck.label "Coordinates.prop_interpolate" $ source : Cartesian.Coordinates.interpolate source destination == reverse (
 			destination : Cartesian.Coordinates.interpolate destination source
 		 )
 	in Test.QuickCheck.quickCheckWithResult Test.QuickCheck.stdArgs { Test.QuickCheck.maxSuccess = 64 } f,
 	let
-		f :: [Coordinates] -> Test.QuickCheck.Property
+		f :: [Cartesian.Coordinates.Coordinates] -> Test.QuickCheck.Property
 		f	= Test.QuickCheck.label "Coordinates.prop_areSquaresIsochromatic" . uncurry (==) . (
 			Cartesian.Coordinates.areSquaresIsochromatic &&& uncurry (||) . (
 				null &&& (== 1) . length . Data.List.nub . map Cartesian.Coordinates.getLogicalColourOfSquare

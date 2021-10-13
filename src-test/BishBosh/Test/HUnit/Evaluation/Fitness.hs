@@ -40,7 +40,6 @@ import qualified	BishBosh.State.Board			as State.Board
 import qualified	BishBosh.StateProperty.Mutator		as StateProperty.Mutator
 import qualified	BishBosh.StateProperty.Seeker		as StateProperty.Seeker
 import qualified	BishBosh.Test.HUnit.Model.Game		as Test.HUnit.Model.Game
-import qualified	BishBosh.Test.HUnit.State.Board		as Test.HUnit.State.Board
 import qualified	BishBosh.Text.ShowList			as Text.ShowList
 import qualified	Control.Exception
 import qualified	Data.Default
@@ -53,7 +52,7 @@ testCases	= Test.HUnit.test [
 	"'BishBosh.Evaluation.Fitness.measureValueOfCastlingPotential' failed after moving King." ~: case Notation.MoveNotation.readsQualifiedMove Data.Default.def "e1e3" {-move King (illegally)-} of
 		[(eitherQualifiedMove, "")]	-> Evaluation.Fitness.measureValueOfCastlingPotential (
 			Model.Game.applyEitherQualifiedMove eitherQualifiedMove (
-				Data.Default.def	:: Test.HUnit.Model.Game.Game
+				Data.Default.def	:: Model.Game.Game
 			)
 		 ) ~?= negate 1
 		_				-> Control.Exception.throw $ Data.Exception.mkParseFailure "BishBosh.Test.HUnit.Evaluation.Fitness.testCases:\tfailed to parse move.",
@@ -65,13 +64,13 @@ testCases	= Test.HUnit.test [
 				) sourceCoordinates	-- Construct two White moves.
 			) Data.Default.def {-moveType-}
 		) (
-			Data.Default.def	:: Test.HUnit.State.Board.Board
+			Data.Default.def	:: State.Board.Board
 		) $ Cartesian.Coordinates.rooksStartingCoordinates Attribute.LogicalColour.White
 	) ~?= 1,
 	"'BishBosh.Evaluation.Fitness.measureValueOfCastlingPotential' failed after moving White Queen's Rook." ~: case Notation.MoveNotation.readsQualifiedMove Data.Default.def "a1a3" {-move Queen's Rook (illegally)-} of
 		[(eitherQualifiedMove, "")]	-> Evaluation.Fitness.measureValueOfCastlingPotential (
 			Model.Game.applyEitherQualifiedMove eitherQualifiedMove (
-				Data.Default.def	:: Test.HUnit.Model.Game.Game
+				Data.Default.def	:: Model.Game.Game
 			)
 		 ) ~?= negate (
 			fromRational $ recip 2	-- Moving Queen's Rook still permits castling on the King's side.
@@ -80,7 +79,7 @@ testCases	= Test.HUnit.test [
 	"'BishBosh.Evaluation.Fitness.measureValueOfCastlingPotential' failed after taking Black Queen's Rook." ~: case Notation.MoveNotation.readsQualifiedMove Data.Default.def "a2a8" {-take Queen's Rook (illegally)-} of
 		[(eitherQualifiedMove, "")]	-> Evaluation.Fitness.measureValueOfCastlingPotential (
 			Model.Game.applyEitherQualifiedMove eitherQualifiedMove (
-				Data.Default.def	:: Test.HUnit.Model.Game.Game
+				Data.Default.def	:: Model.Game.Game
 			)
 		 ) ~?= fromRational (
 			recip 2	-- Taking Queen's Rook still permits castling on the King's side.
@@ -98,27 +97,27 @@ testCases	= Test.HUnit.test [
 	],
 	"'BishBosh.Evaluation.Fitness.measureValueOfDoubledPawns' failed." ~: Evaluation.Fitness.measureValueOfDoubledPawns (
 		Model.Game.fromBoard (
-			read "4k3/p6p/8/3PP3/3PP3/3PP3/3PP3/4K3"	:: Test.HUnit.State.Board.Board
+			read "4k3/p6p/8/3PP3/3PP3/3PP3/3PP3/4K3"	:: State.Board.Board
 		)
 	) ~?= 1,	-- White is the next player, so Black is assumed to have just moved to an optimal position.
 	"'BishBosh.Evaluation.Fitness.measureValueOfIsolatedPawns' failed for four columns of two rows of Pawns." ~: Evaluation.Fitness.measureValueOfIsolatedPawns (
 		Model.Game.fromBoard (
-			read "4k3/pppppppp/8/8/P1P1P1P1/8/P1P1P1P1/4K3"	:: Test.HUnit.State.Board.Board
+			read "4k3/pppppppp/8/8/P1P1P1P1/8/P1P1P1P1/4K3"	:: State.Board.Board
 		)
 	) ~?= 1,	-- White is the next player, so Black is assumed to have just moved to an optimal position.
 	"'BishBosh.Evaluation.Fitness.measureValueOfIsolatedPawns' failed for two columns of two four of Pawns." ~: Evaluation.Fitness.measureValueOfIsolatedPawns (
 		Model.Game.fromBoard (
-			read "4k3/pppppppp/8/2P2P2/2P2P2/2P2P2/2P2P2/4K3"	:: Test.HUnit.State.Board.Board
+			read "4k3/pppppppp/8/2P2P2/2P2P2/2P2P2/2P2P2/4K3"	:: State.Board.Board
 		)
 	) ~?= 1,	-- White is the next player, so Black is assumed to have just moved to an optimal position.
 	"'BishBosh.Evaluation.Fitness.measureValueOfPassedPawns' failed." ~: Evaluation.Fitness.measureValueOfPassedPawns (
 		Model.Game.fromBoard (
-			read "4k3/8/8/8/8/8/pppppppp/4K3"	:: Test.HUnit.State.Board.Board
+			read "4k3/8/8/8/8/8/pppppppp/4K3"	:: State.Board.Board
 		)
 	) ~?= 1,	-- White is the next player, so Black is assumed to have just moved to an optimal position.
 	"'BishBosh.Evaluation.Fitness.measureValueOfPassedPawns' failed." ~: Evaluation.Fitness.measureValueOfPassedPawns (
 		Model.Game.fromBoard (
-			read "8/PPPPPPPP/8/8/8/8/8/k3K3"	:: Test.HUnit.State.Board.Board
+			read "8/PPPPPPPP/8/8/8/8/8/k3K3"	:: State.Board.Board
 		)
 	) ~?= negate 1,	-- White is the next player, so Black is assumed to have just moved to the worst possible position.
 	"'BishBosh.Evaluation.Fitness.measureValueOfDefence' failed for default board." ~: Evaluation.Fitness.measureValueOfDefence (
@@ -129,7 +128,7 @@ testCases	= Test.HUnit.test [
 				not . uncurry (||) . (Component.Piece.isBlack &&& Component.Piece.isKing)
 			) . State.Board.getCoordinatesByRankByLogicalColour
 		) (
-			Data.Default.def	:: Test.HUnit.State.Board.Board
+			Data.Default.def	:: State.Board.Board
 		)
 	) ~?= fromRational (
 		19 / fromIntegral {-NPieces-} Evaluation.Fitness.maximumDefended
@@ -137,7 +136,7 @@ testCases	= Test.HUnit.test [
 	"'BishBosh.Evaluation.Fitness.measureValueOfDefence' failed after Pawn-advance." ~: case Notation.MoveNotation.readsQualifiedMove Data.Default.def "g2g3" {-advance King's Knight's Pawn-} of
 		[(eitherQualifiedMove, "")]	-> Evaluation.Fitness.measureValueOfDefence (
 			Model.Game.applyEitherQualifiedMove eitherQualifiedMove (
-				Data.Default.def	:: Test.HUnit.Model.Game.Game
+				Data.Default.def	:: Model.Game.Game
 			)
 		 ) ~?= fromRational (
 			recip $ fromIntegral {-NPieces-} Evaluation.Fitness.maximumDefended
@@ -155,7 +154,7 @@ testCases	= Test.HUnit.test [
 	],
 	"'BishBosh.Evaluation.Fitness.measureValueOfDefence' failed." ~: Evaluation.Fitness.measureValueOfDefence (
 		Model.Game.fromBoard (
-			read "k7/8/2p5/8/4RQQB/4QQQN/4NQQK/4BQQR"	:: Test.HUnit.State.Board.Board
+			read "k7/8/2p5/8/4RQQB/4QQQN/4NQQK/4BQQR"	:: State.Board.Board
 		)
 	) ~?= negate 1	-- White is the next player.
  ]

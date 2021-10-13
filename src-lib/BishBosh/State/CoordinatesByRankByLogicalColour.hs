@@ -1,4 +1,3 @@
-{-# LANGUAGE FlexibleInstances, MultiParamTypeClasses #-}
 {-
 	Copyright (C) 2018 Dr. Alistair Ward
 
@@ -88,24 +87,21 @@ import qualified	Data.Map.Strict						as Map
 import qualified	Data.Maybe
 
 -- | The /coordinate/s of all the pieces of one /rank/.
-type CoordinatesByRank x y	= Attribute.Rank.ArrayByRank [Cartesian.Coordinates.Coordinates x y]
+type CoordinatesByRank	= Attribute.Rank.ArrayByRank [Cartesian.Coordinates.Coordinates]
 
 {- |
 	* This structure allows one to determine the set of /coordinates/ where a type of /piece/ is located.
 
 	* CAVEAT: the list of /coordinates/ is unordered, so test for equality using @ deconstruct . sortCoordinates @.
 -}
-newtype CoordinatesByRankByLogicalColour x y	= MkCoordinatesByRankByLogicalColour {
-	deconstruct	:: Attribute.LogicalColour.ArrayByLogicalColour (CoordinatesByRank x y)
+newtype CoordinatesByRankByLogicalColour	= MkCoordinatesByRankByLogicalColour {
+	deconstruct	:: Attribute.LogicalColour.ArrayByLogicalColour CoordinatesByRank
 }
 
-instance (
-	Control.DeepSeq.NFData	x,
-	Control.DeepSeq.NFData	y
- ) => Control.DeepSeq.NFData (CoordinatesByRankByLogicalColour x y) where
+instance Control.DeepSeq.NFData CoordinatesByRankByLogicalColour where
 	rnf MkCoordinatesByRankByLogicalColour { deconstruct = byLogicalColour }	= Control.DeepSeq.rnf byLogicalColour
 
-instance (Enum x, Enum y) => StateProperty.Censor.Censor (CoordinatesByRankByLogicalColour x y) where
+instance StateProperty.Censor.Censor CoordinatesByRankByLogicalColour where
 	countPiecesByLogicalColour MkCoordinatesByRankByLogicalColour { deconstruct = byLogicalColour }	= ($ Attribute.LogicalColour.Black) &&& ($ Attribute.LogicalColour.White) $ Data.List.foldl' (\acc -> (+ acc) . fromIntegral . length) 0 . (byLogicalColour !)
 
 	countPieces MkCoordinatesByRankByLogicalColour { deconstruct = byLogicalColour }	= Data.Foldable.foldl' (
@@ -137,8 +133,8 @@ instance (Enum x, Enum y) => StateProperty.Censor.Censor (CoordinatesByRankByLog
 
 	hasBothKings MkCoordinatesByRankByLogicalColour { deconstruct = byLogicalColour }	= not $ Data.Foldable.any (null . (! Attribute.Rank.King)) byLogicalColour	-- CAVEAT: true for more than one King per side also.
 
-instance (Enum x, Enum y, Ord x, Ord y) => Component.Zobrist.Hashable2D CoordinatesByRankByLogicalColour x y {-CAVEAT: FlexibleInstances, MultiParamTypeClasses-} where
-	listRandoms2D MkCoordinatesByRankByLogicalColour { deconstruct = byLogicalColour } zobrist	= [
+instance Component.Zobrist.Hashable CoordinatesByRankByLogicalColour where
+	listRandoms MkCoordinatesByRankByLogicalColour { deconstruct = byLogicalColour } zobrist	= [
 		Component.Zobrist.dereferenceRandomByCoordinatesByRankByLogicalColour (logicalColour, rank, coordinates) zobrist |
 			(logicalColour, byRank)	<- Data.Array.IArray.assocs byLogicalColour,
 			(rank, coordinatesList)	<- Data.Array.IArray.assocs byRank,
@@ -150,13 +146,7 @@ instance (Enum x, Enum y, Ord x, Ord y) => Component.Zobrist.Hashable2D Coordina
 
 	* CAVEAT: nothing is said about whether any /piece/ at the specified /coordinates/ belongs to the opponent, as one might expect.
 -}
-instance (
-	Enum	x,
-	Enum	y,
-	Ord	x,
-	Ord	y
- ) => StateProperty.Seeker.Seeker CoordinatesByRankByLogicalColour x y {-CAVEAT: MultiParamTypeClasses-} where
-	{-# SPECIALISE instance StateProperty.Seeker.Seeker CoordinatesByRankByLogicalColour Type.Length.X Type.Length.Y #-}
+instance StateProperty.Seeker.Seeker CoordinatesByRankByLogicalColour {-CAVEAT: MultiParamTypeClasses-} where
 	findProximateKnights logicalColour destination MkCoordinatesByRankByLogicalColour { deconstruct = byLogicalColour }	= filter (
 		\source -> source /= destination {-guard against attempting to constructing a null vector-} && Cartesian.Vector.isKnightsMove (
 			Cartesian.Vector.measureDistance source destination	:: Cartesian.Vector.VectorInt
@@ -173,12 +163,7 @@ instance (
 	 ] -- List-comprehension.
 
 -- | Constructor.
-fromMaybePieceByCoordinates :: (
-	Enum	x,
-	Enum	y,
-	Ord	x,
-	Ord	y
- ) => State.MaybePieceByCoordinates.MaybePieceByCoordinates x y -> CoordinatesByRankByLogicalColour x y
+fromMaybePieceByCoordinates :: State.MaybePieceByCoordinates.MaybePieceByCoordinates -> CoordinatesByRankByLogicalColour
 fromMaybePieceByCoordinates maybePieceByCoordinates	= MkCoordinatesByRankByLogicalColour . (
 	\(b, w) -> Attribute.LogicalColour.listArrayByLogicalColour $ map (
 		Data.Array.IArray.accumArray (++) [] (minBound, maxBound) . map (Control.Arrow.first Component.Piece.getRank)
@@ -194,13 +179,13 @@ fromMaybePieceByCoordinates maybePieceByCoordinates	= MkCoordinatesByRankByLogic
 dereference
 	:: Attribute.LogicalColour.LogicalColour
 	-> Attribute.Rank.Rank
-	-> CoordinatesByRankByLogicalColour x y
-	-> [Cartesian.Coordinates.Coordinates x y]
+	-> CoordinatesByRankByLogicalColour
+	-> [Cartesian.Coordinates.Coordinates]
 {-# INLINE dereference #-}
 dereference logicalColour rank MkCoordinatesByRankByLogicalColour { deconstruct = byLogicalColour }	= byLogicalColour ! logicalColour ! rank
 
 -- | Build an association-list.
-assocs :: CoordinatesByRankByLogicalColour x y -> [(Component.Piece.Piece, [Cartesian.Coordinates.Coordinates x y])]
+assocs :: CoordinatesByRankByLogicalColour -> [(Component.Piece.Piece, [Cartesian.Coordinates.Coordinates])]
 assocs MkCoordinatesByRankByLogicalColour { deconstruct = byLogicalColour }	= [
 	(Component.Piece.mkPiece logicalColour rank, coordinatesList) |
 		(logicalColour, byRank)	<- Data.Array.IArray.assocs byLogicalColour,
@@ -208,7 +193,7 @@ assocs MkCoordinatesByRankByLogicalColour { deconstruct = byLogicalColour }	= [
  ] -- List-comprehension.
 
 -- | Access the coordinate-lists.
-listCoordinates :: CoordinatesByRankByLogicalColour x y -> [Cartesian.Coordinates.Coordinates x y]
+listCoordinates :: CoordinatesByRankByLogicalColour -> [Cartesian.Coordinates.Coordinates]
 listCoordinates MkCoordinatesByRankByLogicalColour { deconstruct = byLogicalColour }	= [
 	coordinates |
 		byRank		<- Data.Foldable.toList byLogicalColour,
@@ -219,21 +204,21 @@ listCoordinates MkCoordinatesByRankByLogicalColour { deconstruct = byLogicalColo
 -- | Get the /coordinates/ of the @King@ of the specified /logical colour/.
 getKingsCoordinates
 	:: Attribute.LogicalColour.LogicalColour	-- ^ The /logical colour/ of the @King@ to find.
-	-> CoordinatesByRankByLogicalColour x y
-	-> Cartesian.Coordinates.Coordinates x y
+	-> CoordinatesByRankByLogicalColour
+	-> Cartesian.Coordinates.Coordinates
 {-# INLINE getKingsCoordinates #-}
 getKingsCoordinates logicalColour MkCoordinatesByRankByLogicalColour { deconstruct = byLogicalColour }	= Control.Exception.assert (not $ null coordinates) $ head coordinates {-there should be exactly one-} where
 	coordinates	= byLogicalColour ! logicalColour ! Attribute.Rank.King
 
 -- | The number of /piece/s in each file, for each /logical colour/.
-type NPiecesByFileByLogicalColour x	= Attribute.LogicalColour.ArrayByLogicalColour (Map.Map x Type.Count.NPieces)
+type NPiecesByFileByLogicalColour	= Attribute.LogicalColour.ArrayByLogicalColour (Map.Map Type.Length.X Type.Count.NPieces)
 
 {- |
 	* Counts the number of @Pawn@s of each /logical colour/ with similar /x/-coordinates; their /y/-coordinate is irrelevant.
 
 	* N.B.: files lacking any @Pawn@, don't feature in the results.
 -}
-countPawnsByFileByLogicalColour :: Ord x => CoordinatesByRankByLogicalColour x y -> NPiecesByFileByLogicalColour x
+countPawnsByFileByLogicalColour :: CoordinatesByRankByLogicalColour -> NPiecesByFileByLogicalColour
 {-# INLINABLE countPawnsByFileByLogicalColour #-}
 countPawnsByFileByLogicalColour MkCoordinatesByRankByLogicalColour { deconstruct = byLogicalColour }	= Data.Array.IArray.amap (
 	Data.List.foldl' (
@@ -244,8 +229,8 @@ countPawnsByFileByLogicalColour MkCoordinatesByRankByLogicalColour { deconstruct
 -- | Locate all /piece/s of the specified /logical colour/.
 findPiecesOfColour
 	:: Attribute.LogicalColour.LogicalColour	-- ^ The /logical colour/ of the /piece/s to find.
-	-> CoordinatesByRankByLogicalColour x y
-	-> [Component.Piece.LocatedPiece x y]
+	-> CoordinatesByRankByLogicalColour
+	-> [Component.Piece.LocatedPiece]
 findPiecesOfColour logicalColour MkCoordinatesByRankByLogicalColour { deconstruct = byLogicalColour }	= [
 	(coordinates, Component.Piece.mkPiece logicalColour rank) |
 		(rank, coordinatesList)	<- Data.Array.IArray.assocs $ byLogicalColour ! logicalColour,
@@ -253,15 +238,10 @@ findPiecesOfColour logicalColour MkCoordinatesByRankByLogicalColour { deconstruc
  ] -- List-comprehension.
 
 -- | A list of /coordinates/ for each /logical colour/.
-type CoordinatesByLogicalColour x y	= Attribute.LogicalColour.ArrayByLogicalColour [Cartesian.Coordinates.Coordinates x y]
+type CoordinatesByLogicalColour	= Attribute.LogicalColour.ArrayByLogicalColour [Cartesian.Coordinates.Coordinates]
 
 -- | For each /logical colour/, find the /coordinates/ of any passed @Pawn@s (<https://en.wikipedia.org/wiki/Passed_pawn>).
-findPassedPawnCoordinatesByLogicalColour :: (
-	Enum	x,
-	Ord	x,
-	Ord	y
- ) => CoordinatesByRankByLogicalColour x y -> CoordinatesByLogicalColour x y
-{-# SPECIALISE findPassedPawnCoordinatesByLogicalColour :: CoordinatesByRankByLogicalColour Type.Length.X Type.Length.Y -> CoordinatesByLogicalColour Type.Length.X Type.Length.Y #-}
+findPassedPawnCoordinatesByLogicalColour :: CoordinatesByRankByLogicalColour -> CoordinatesByLogicalColour
 findPassedPawnCoordinatesByLogicalColour MkCoordinatesByRankByLogicalColour { deconstruct = byLogicalColour }	= Attribute.LogicalColour.listArrayByLogicalColour $ map (
 	\logicalColour	-> let
 		opponentsLogicalColour	= Property.Opposable.getOpposite logicalColour
@@ -292,11 +272,11 @@ findPassedPawnCoordinatesByLogicalColour MkCoordinatesByRankByLogicalColour { de
 
 -- | Calculate the total value of the /coordinates/ occupied by the /piece/s of either side.
 sumPieceSquareValueByLogicalColour
-	:: (Num pieceSquareValue)
-	=> Component.PieceSquareByCoordinatesByRank.FindPieceSquareValues x y pieceSquareValue
-	-> CoordinatesByRankByLogicalColour x y
+	:: Num pieceSquareValue
+	=> Component.PieceSquareByCoordinatesByRank.FindPieceSquareValues pieceSquareValue
+	-> CoordinatesByRankByLogicalColour
 	-> [pieceSquareValue]
-{-# SPECIALISE sumPieceSquareValueByLogicalColour :: Component.PieceSquareByCoordinatesByRank.FindPieceSquareValues Type.Length.X Type.Length.Y Type.Mass.PieceSquareValue -> CoordinatesByRankByLogicalColour Type.Length.X Type.Length.Y -> [Type.Mass.PieceSquareValue] #-}
+{-# SPECIALISE sumPieceSquareValueByLogicalColour :: Component.PieceSquareByCoordinatesByRank.FindPieceSquareValues Type.Mass.PieceSquareValue -> CoordinatesByRankByLogicalColour -> [Type.Mass.PieceSquareValue] #-}
 sumPieceSquareValueByLogicalColour findPieceSquareValues MkCoordinatesByRankByLogicalColour { deconstruct = byLogicalColour }	= map (
 	\(logicalColour, byRank) -> Data.List.foldl' (
 		\acc	-> Data.List.foldl' (+) acc . uncurry (findPieceSquareValues logicalColour)
@@ -304,25 +284,23 @@ sumPieceSquareValueByLogicalColour findPieceSquareValues MkCoordinatesByRankByLo
  ) $ Data.Array.IArray.assocs byLogicalColour
 
 -- | Self-documentation.
-type Transformation x y	= CoordinatesByRankByLogicalColour x y -> CoordinatesByRankByLogicalColour x y
+type Transformation	= CoordinatesByRankByLogicalColour -> CoordinatesByRankByLogicalColour
 
 -- | Remove the specified /coordinates/ from those recorded for the specified /rank/.
 deleteCoordinates
-	:: (Eq x, Eq y)
-	=> Cartesian.Coordinates.Coordinates x y
+	:: Cartesian.Coordinates.Coordinates
 	-> Attribute.Rank.Rank
-	-> CoordinatesByRank x y
-	-> CoordinatesByRank x y
+	-> CoordinatesByRank
+	-> CoordinatesByRank
 deleteCoordinates coordinates rank byRank	= byRank // [(rank, Data.List.delete coordinates $ byRank ! rank)]
 
 -- | Adjust the array to reflect a new /move/.
 movePiece
-	:: (Eq x, Eq y)
-	=> Component.Move.Move x y
-	-> Component.Piece.Piece							-- ^ The piece which moved.
-	-> Maybe Attribute.Rank.Rank							-- ^ The (possibly promoted) rank to place at the destination.
-	-> Either (Cartesian.Coordinates.Coordinates x y) (Maybe Attribute.Rank.Rank)	-- ^ Either the destination of any passed @Pawn@, or the /rank/ of any /piece/ taken.
-	-> Transformation x y
+	:: Component.Move.Move
+	-> Component.Piece.Piece						-- ^ The piece which moved.
+	-> Maybe Attribute.Rank.Rank						-- ^ The (possibly promoted) rank to place at the destination.
+	-> Either Cartesian.Coordinates.Coordinates (Maybe Attribute.Rank.Rank)	-- ^ Either the destination of any passed @Pawn@, or the /rank/ of any /piece/ taken.
+	-> Transformation
 movePiece move sourcePiece maybePromotionRank eitherPassingPawnsDestinationOrMaybeTakenRank MkCoordinatesByRankByLogicalColour { deconstruct = byLogicalColour }	= MkCoordinatesByRankByLogicalColour $ byLogicalColour // (
 	(:) . (`deleteOpponentsCoordinates` Attribute.Rank.Pawn) ||| Data.Maybe.maybe id {-quiet move-} (
 		(:) . deleteOpponentsCoordinates destination
@@ -349,6 +327,6 @@ movePiece move sourcePiece maybePromotionRank eitherPassingPawnsDestinationOrMay
 	deleteOpponentsCoordinates coordinates rank	= id &&& deleteCoordinates coordinates rank . (byLogicalColour !) $ Property.Opposable.getOpposite logicalColour
 
 -- | Independently sort each list of /coordinates/.
-sortCoordinates :: (Ord x, Ord y) => Transformation x y
+sortCoordinates :: Transformation
 sortCoordinates MkCoordinatesByRankByLogicalColour { deconstruct = byLogicalColour }	= MkCoordinatesByRankByLogicalColour $ Data.Array.IArray.amap (Data.Array.IArray.amap Data.List.sort) byLogicalColour
 

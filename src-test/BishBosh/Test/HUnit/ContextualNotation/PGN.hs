@@ -24,15 +24,11 @@
 -}
 
 module BishBosh.Test.HUnit.ContextualNotation.PGN(
--- * Types
--- ** Type-synonyms
---	PGN,
 -- * Constants
 	testCases
 ) where
 
 import qualified	BishBosh.ContextualNotation.PGN		as ContextualNotation.PGN
-import qualified	BishBosh.Type.Length			as Type.Length
 import qualified	Test.HUnit
 import			Test.HUnit((~?))
 
@@ -55,9 +51,6 @@ import qualified	BishBosh.Data.Exception			as Data.Exception
 import qualified	Control.Exception
 #endif
 
--- | Test-subject.
-type PGN	= ContextualNotation.PGN.PGN Type.Length.X Type.Length.Y
-
 -- | Check the sanity of the implementation, by validating a list of static test-cases.
 testCases :: Test.HUnit.Test
 testCases	= Test.HUnit.test $ map (
@@ -75,13 +68,13 @@ testCases	= Test.HUnit.test $ map (
 	) . fst
 #	endif
 	$ Poly.runParser (
-		ContextualNotation.PGN.parser isStrictlySequential validateMoves []	:: Text.Poly.TextParser PGN
+		ContextualNotation.PGN.parser isStrictlySequential validateMoves []	:: Text.Poly.TextParser ContextualNotation.PGN.PGN
 	)
 #else /* Parsec */
 	Control.Exception.throw . Data.Exception.mkParseFailure . showString "BishBosh.Test.HUnit.ContextualNotation.PGN.testCases:\tfailed: " . show ||| const (
 		True ~? ""
 	) $ Parsec.parse (
-		ContextualNotation.PGN.parser isStrictlySequential validateMoves []	:: Parsec.Parser PGN
+		ContextualNotation.PGN.parser isStrictlySequential validateMoves []	:: Parsec.Parser ContextualNotation.PGN.PGN
 	) "PGN-parser"
 #endif
 	s

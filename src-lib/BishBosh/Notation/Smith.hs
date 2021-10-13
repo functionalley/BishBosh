@@ -73,23 +73,23 @@ regexSyntax	= showString "([a-h][1-8]){2}[" . showString (
  ) "]?"
 
 -- | Defines a /move/, to enable i/o in /Smith/-notation.
-newtype Smith x y	= MkSmith {
-	getQualifiedMove	:: Component.QualifiedMove.QualifiedMove x y
+newtype Smith	= MkSmith {
+	getQualifiedMove	:: Component.QualifiedMove.QualifiedMove
 } deriving Eq
 
 -- | Constructor.
-fromQualifiedMove :: Component.QualifiedMove.QualifiedMove x y -> Smith x y
+fromQualifiedMove :: Component.QualifiedMove.QualifiedMove -> Smith
 fromQualifiedMove	= MkSmith
 
 -- | Encodes the ordinate & abscissa.
-encode :: (Enum x, Enum y) => Cartesian.Coordinates.Coordinates x y -> (ShowS, ShowS)
+encode :: Cartesian.Coordinates.Coordinates -> (ShowS, ShowS)
 encode	= showChar . Data.Enum.translate (subtract xOriginOffset) . Cartesian.Coordinates.getX &&& showChar . Data.Enum.translate (subtract yOriginOffset) . Cartesian.Coordinates.getY
 
 -- | Shows the specified /coordinates/.
-showsCoordinates :: (Enum x, Enum y) => Cartesian.Coordinates.Coordinates x y -> ShowS
+showsCoordinates :: Cartesian.Coordinates.Coordinates -> ShowS
 showsCoordinates	= uncurry (.) . encode
 
-instance (Enum x, Enum y) => Show (Smith x y) where
+instance Show Smith where
 	showsPrec _ MkSmith { getQualifiedMove = qualifiedMove }	= let
 		(move, moveType)	= Component.QualifiedMove.getMove &&& Component.QualifiedMove.getMoveType $ qualifiedMove
 	 in showsCoordinates (
@@ -112,12 +112,7 @@ instance (Enum x, Enum y) => Show (Smith x y) where
 	 )
 
 -- N.B. this merely validates the syntax, leaving any semantic errors to 'Model.Game.validate'.
-instance (
-	Enum	x,
-	Enum	y,
-	Ord	x,
-	Ord	y
- ) => Read (Smith x y) where
+instance Read Smith where
 	readsPrec _ s	= case Data.List.Extra.trimStart s of
 		x : y : x' : y' : remainder	-> let
 			fromSmith pair@(cx, cy)
@@ -164,6 +159,6 @@ instance (
 		 ] -- List-comprehension.
 		_				-> []	-- No parse.
 
-instance Attribute.Rank.Promotable (Smith x y) where
+instance Attribute.Rank.Promotable Smith where
 	getMaybePromotionRank MkSmith { getQualifiedMove = qualifiedMove }	= Attribute.Rank.getMaybePromotionRank $ Component.QualifiedMove.getMoveType qualifiedMove
 

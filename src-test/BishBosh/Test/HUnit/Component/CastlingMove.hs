@@ -33,7 +33,6 @@ import qualified	BishBosh.Cartesian.Vector		as Cartesian.Vector
 import qualified	BishBosh.Component.CastlingMove		as Component.CastlingMove
 import qualified	BishBosh.Component.Move			as Component.Move
 import qualified	BishBosh.Property.FixedMembership	as Property.FixedMembership
-import qualified	BishBosh.Test.HUnit.Component.Move	as Test.HUnit.Component.Move
 import qualified	BishBosh.Type.Length			as Type.Length
 import qualified	Data.List
 import qualified	Test.HUnit
@@ -49,7 +48,7 @@ testCases	= Test.HUnit.test [
 	and [
 		(== 1) . length . Data.List.nub $ map (
 			map (
-				\castlingMove	-> getAbscissa (getMove castlingMove :: Test.HUnit.Component.Move.Move)
+				\castlingMove	-> getAbscissa (getMove castlingMove :: Component.Move.Move)
 			) . Component.CastlingMove.getCastlingMoves
 		) Property.FixedMembership.members |
 			getMove		<- [Component.CastlingMove.getKingsMove, Component.CastlingMove.getRooksMove],
@@ -58,7 +57,7 @@ testCases	= Test.HUnit.test [
 	] ~? "'BishBosh.Component.CastlingMove':\tdistance spanned by castling-moves should be independent of logical colour.",
 	all (
 		\logicalColour	-> (== 1) . length $ Data.List.nub [
-			Cartesian.Coordinates.getY $ getTerminus (getMove castlingMove :: Test.HUnit.Component.Move.Move) |
+			Cartesian.Coordinates.getY $ getTerminus (getMove castlingMove :: Component.Move.Move) |
 				castlingMove	<- Component.CastlingMove.getCastlingMoves logicalColour,
 				getMove		<- [Component.CastlingMove.getKingsMove, Component.CastlingMove.getRooksMove],
 				getTerminus	<- [Component.Move.getSource, Component.Move.getDestination]
@@ -67,7 +66,7 @@ testCases	= Test.HUnit.test [
 	and [
 		abs (
 			Cartesian.Vector.getXDistance $ Component.Move.measureDistance (
-				Component.CastlingMove.getKingsMove castlingMove	:: Test.HUnit.Component.Move.Move
+				Component.CastlingMove.getKingsMove castlingMove	:: Component.Move.Move
 			)
 		) == kingsMoveLength |
 			logicalColour	<- Property.FixedMembership.members,

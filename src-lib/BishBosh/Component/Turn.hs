@@ -58,13 +58,13 @@ import qualified	Data.Ord
 
 	* Additional data is recorded to facilitate both rollback & recording of the /move/ in various conventional notations.
 -}
-data Turn x y	= MkTurn {
-	getQualifiedMove	:: Component.QualifiedMove.QualifiedMove x y,
+data Turn	= MkTurn {
+	getQualifiedMove	:: Component.QualifiedMove.QualifiedMove,
 	getRank			:: Attribute.Rank.Rank,	-- ^ The /rank/ of /piece/ that was moved, prior to any promotion.
 	getIsRepeatableMove	:: Bool			-- ^ Whether this move can ever recur; without rolling-back.
 }
 
-instance (Eq x, Eq y) => Eq (Turn x y) where
+instance Eq Turn where
 	MkTurn {
 		getQualifiedMove	= qualifiedMove,
 		getRank			= rank
@@ -73,14 +73,14 @@ instance (Eq x, Eq y) => Eq (Turn x y) where
 		getRank			= rank'
 	} = (qualifiedMove, rank) == (qualifiedMove', rank')	-- 'getIsRepeatableMove' can be derived.
 
-instance (Control.DeepSeq.NFData x, Control.DeepSeq.NFData y) => Control.DeepSeq.NFData (Turn x y) where
+instance Control.DeepSeq.NFData Turn where
 	rnf MkTurn {
 		getQualifiedMove	= qualifiedMove,
 		getRank			= rank,
 		getIsRepeatableMove	= isRepeatableMove
 	} = Control.DeepSeq.rnf (qualifiedMove, rank, isRepeatableMove)
 
-instance (Show x, Show y) => Show (Turn x y) where
+instance Show Turn where
 	showsPrec precedence MkTurn {
 		getQualifiedMove	= qualifiedMove,
 		getRank			= rank
@@ -91,24 +91,17 @@ instance (Show x, Show y) => Show (Turn x y) where
 --		isRepeatableMove	-- Derived.
 	 ) -- Represent as a tuple.
 
-instance (
-	Enum	x,
-	Enum	y,
-	Ord	x,
-	Ord	y,
-	Read	x,
-	Read	y
- ) => Read (Turn x y) where
+instance Read Turn where
 	readsPrec precedence	= map (Control.Arrow.first $ uncurry mkTurn) . readsPrec precedence
 
-instance Enum y => Property.Reflectable.ReflectableOnX (Turn x y) where
+instance Property.Reflectable.ReflectableOnX Turn where
 	reflectOnX turn@MkTurn { getQualifiedMove = qualifiedMove } = turn { getQualifiedMove = Property.Reflectable.reflectOnX qualifiedMove }
 
 -- | Smart constructor.
 mkTurn
-	:: Component.QualifiedMove.QualifiedMove x y
+	:: Component.QualifiedMove.QualifiedMove
 	-> Attribute.Rank.Rank
-	-> Turn x y
+	-> Turn
 mkTurn qualifiedMove rank = MkTurn {
 	getQualifiedMove	= qualifiedMove,
 	getRank			= rank,
@@ -118,17 +111,13 @@ mkTurn qualifiedMove rank = MkTurn {
 }
 
 -- | Convenience.
-isCapture :: Turn x y -> Bool
+isCapture :: Turn -> Bool
 isCapture MkTurn { getQualifiedMove = qualifiedMove }	= Attribute.MoveType.isCapture $ Component.QualifiedMove.getMoveType qualifiedMove
 
 -- | Whether the /turn/ represents a @Pawn@'s initial two-square advance.
-isPawnDoubleAdvance :: (
-	Enum	x,
-	Enum	y,
-	Eq	y
- )
-	=> Attribute.LogicalColour.LogicalColour	-- Defines the side whose /turn/ is referenced.
-	-> Turn x y
+isPawnDoubleAdvance
+	:: Attribute.LogicalColour.LogicalColour	-- ^ Defines the side whose /turn/ is referenced.
+	-> Turn
 	-> Bool
 isPawnDoubleAdvance logicalColour MkTurn {
 	getRank			= Attribute.Rank.Pawn,
@@ -139,8 +128,8 @@ isPawnDoubleAdvance _ _	= False
 -- | Forwards the request to 'Attribute.Rank.compareByLVA'.
 compareByLVA
 	:: Attribute.Rank.EvaluateRank
-	-> Turn x y
-	-> Turn x y
+	-> Turn
+	-> Turn
 	-> Ordering
 compareByLVA evaluateRank MkTurn { getRank = rankL } MkTurn { getRank = rankR }	= Attribute.Rank.compareByLVA evaluateRank rankL rankR
 
@@ -155,8 +144,8 @@ compareByLVA evaluateRank MkTurn { getRank = rankL } MkTurn { getRank = rankR }	
 -}
 compareByMVVLVA
 	:: Attribute.Rank.EvaluateRank
-	-> Turn x y
-	-> Turn x y
+	-> Turn
+	-> Turn
 	-> Ordering
 compareByMVVLVA evaluateRank turnL@MkTurn {
 	getQualifiedMove	= qualifiedMoveL

@@ -23,7 +23,9 @@
 
  [@DESCRIPTION@]
 
-	* Defines suitable concrete types with which to specialise length-related type-parameters.
+	* Defines distinct types for various conceptually different length-related quantities to prevent accidental conflation.
+
+	* Nothing but the type is exported, facilitating reversion to unwrapped types.
 
 	* CAVEAT: use of narrow numeric types, results in marginally slower performance without any reduction in space-requirements.
 -}
@@ -33,10 +35,11 @@ module BishBosh.Type.Length(
 -- ** Type-synonyms
 --	Base,
 	Distance,
+-- ** Data-types
 	X,
 	Y,
-	Row(),
-	Column()
+	Row,
+	Column
 ) where
 
 #if defined(USE_NARROW_NUMBERS) || defined(USE_NEWTYPE_WRAPPERS)
@@ -45,12 +48,14 @@ import qualified	Data.Int
 #	endif
 
 #	ifdef USE_NEWTYPE_WRAPPERS
+import qualified	Control.Arrow
 import qualified	Control.DeepSeq
+import qualified	Data.Array.IArray
 #	endif
 import qualified	Text.XML.HXT.Arrow.Pickle	as HXT
 #endif
 
--- | The preferred type by which to represent the abscissa. CAVEAT: while conceptually unsigned, various unguarded calls to 'pred' prevent this.
+-- | The private type which is wrapped by various length-related data-types.
 type Base	=
 #ifdef USE_NARROW_NUMBERS
 	Data.Int.Int8
@@ -62,35 +67,55 @@ instance HXT.XmlPickler Data.Int.Int8 where
 #endif
 
 {- |
-	* The preferred type by which to represent the signed distance of a move.
+	* The signed distance of a move.
 
 	* N.B.: since /distance/ is used to represent only the horizontal or vertical component of a move, rather than a diagonal length, it can be represented by an integral value.
 -}
 type Distance	= Base	-- N.B.: conceptually independent of both 'X' & 'Y' which could be unsigned.
 
--- | The distance along the abscissa.
-type X	= Base
+-- | The board-abscissa.
+#ifdef USE_NEWTYPE_WRAPPERS
+newtype X	= MkX Base deriving (Control.DeepSeq.NFData, Data.Array.IArray.Ix, Enum, Eq, Integral, Num, Ord, Real)
 
--- | The distance along the ordinate.
-type Y	= Base	-- N.B.: it can be independent of 'X'.
+instance Read X where
+	readsPrec precision	= map (Control.Arrow.first MkX) . readsPrec precision
+
+instance Show X where
+	showsPrec precision (MkX x)	= showsPrec precision x
+#else
+type X		= Base
+#endif
+
+-- | The board-ordinate; independent of /X/.
+#ifdef USE_NEWTYPE_WRAPPERS
+newtype Y	= MkY Base deriving (Control.DeepSeq.NFData, Enum, Eq, Integral, Num, Ord, Real)
+
+instance Read Y where
+	readsPrec precision	= map (Control.Arrow.first MkY) . readsPrec precision
+
+instance Show Y where
+	showsPrec precision (MkY y)	= showsPrec precision y
+#else
+type Y		= Base
+#endif
 
 -- | Indexes screen-coordinates in the vertical direction.
 #ifdef USE_NEWTYPE_WRAPPERS
-newtype Row	= MkRow Y deriving (Control.DeepSeq.NFData, Enum, Eq, HXT.XmlPickler, Integral, Num, Ord, Real)
+newtype Row	= MkRow Base deriving (Control.DeepSeq.NFData, Enum, Eq, HXT.XmlPickler, Integral, Num, Ord, Real)
 
 instance Show Row where
 	showsPrec precision (MkRow row)	= showsPrec precision row
 #else
-type Row	= Y
+type Row	= Base
 #endif
 
 -- | Indexes screen-coordinates in the horizontal direction.
 #ifdef USE_NEWTYPE_WRAPPERS
-newtype Column	= MkColumn X deriving (Control.DeepSeq.NFData, Enum, Eq, HXT.XmlPickler, Integral, Num, Ord, Real)
+newtype Column	= MkColumn Base deriving (Control.DeepSeq.NFData, Enum, Eq, HXT.XmlPickler, Integral, Num, Ord, Real)
 
 instance Show Column where
 	showsPrec precision (MkColumn column)	= showsPrec precision column
 #else
-type Column	= X
+type Column	= Base
 #endif
 

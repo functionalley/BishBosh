@@ -28,15 +28,15 @@ module BishBosh.Test.HUnit.Component.Piece(
 ) where
 
 import			Control.Arrow((&&&))
-import qualified	BishBosh.Attribute.LogicalColour		as Attribute.LogicalColour
-import qualified	BishBosh.Attribute.Rank				as Attribute.Rank
-import qualified	BishBosh.Cartesian.Vector			as Cartesian.Vector
-import qualified	BishBosh.Component.Move				as Component.Move
-import qualified	BishBosh.Component.Piece			as Component.Piece
-import qualified	BishBosh.Component.QualifiedMove		as Component.QualifiedMove
-import qualified	BishBosh.Notation.Smith				as Notation.Smith
-import qualified	BishBosh.Property.FixedMembership		as Property.FixedMembership
-import qualified	BishBosh.Test.HUnit.Cartesian.Coordinates	as Test.HUnit.Cartesian.Coordinates
+import qualified	BishBosh.Attribute.LogicalColour	as Attribute.LogicalColour
+import qualified	BishBosh.Attribute.Rank			as Attribute.Rank
+import qualified	BishBosh.Cartesian.Coordinates		as Cartesian.Coordinates
+import qualified	BishBosh.Cartesian.Vector		as Cartesian.Vector
+import qualified	BishBosh.Component.Move			as Component.Move
+import qualified	BishBosh.Component.Piece		as Component.Piece
+import qualified	BishBosh.Component.QualifiedMove	as Component.QualifiedMove
+import qualified	BishBosh.Notation.Smith			as Notation.Smith
+import qualified	BishBosh.Property.FixedMembership	as Property.FixedMembership
 import qualified	Data.List
 import qualified	Test.HUnit
 import			Test.HUnit((~?), (~?=), (~:))
@@ -61,7 +61,7 @@ testCases	= Test.HUnit.test [
 	) ~?= Property.FixedMembership.members,
 	all (
 		\((s, logicalColour), rank) -> let
-			source, destination :: Test.HUnit.Cartesian.Coordinates.Coordinates
+			source, destination :: Cartesian.Coordinates.Coordinates
 			(source, destination)	= (Component.Move.getSource &&& Component.Move.getDestination) . Component.QualifiedMove.getMove . Notation.Smith.getQualifiedMove $ read s
 		in Component.Piece.canAttackAlong source destination $ Component.Piece.mkPiece logicalColour rank
 	) (
@@ -116,7 +116,7 @@ testCases	= Test.HUnit.test [
 	not (
 		any (
 			\((s, logicalColour), rank) -> let
-				source, destination :: Test.HUnit.Cartesian.Coordinates.Coordinates
+				source, destination :: Cartesian.Coordinates.Coordinates
 				(source, destination)	= (Component.Move.getSource &&& Component.Move.getDestination) . Component.QualifiedMove.getMove . Notation.Smith.getQualifiedMove $ read s
 			in Component.Piece.canAttackAlong source destination $ Component.Piece.mkPiece logicalColour rank
 		) $ concat [

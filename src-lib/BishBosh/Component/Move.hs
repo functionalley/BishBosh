@@ -49,7 +49,6 @@ import qualified	BishBosh.Property.Opposable		as Property.Opposable
 import qualified	BishBosh.Property.Orientated		as Property.Orientated
 import qualified	BishBosh.Property.Reflectable		as Property.Reflectable
 import qualified	BishBosh.Type.Count			as Type.Count
-import qualified	BishBosh.Type.Length			as Type.Length
 import qualified	Control.Arrow
 import qualified	Control.DeepSeq
 import qualified	Control.Exception
@@ -68,50 +67,42 @@ nPliesPerMove	= 2
 
 	* Most modern chess-notations (except Standard Algebraic) start with similar information, but also define ancillary information which is captured in /MoveType/.
 -}
-data Move x y	= MkMove {
-	getSource	:: Cartesian.Coordinates.Coordinates x y,
-	getDestination	:: Cartesian.Coordinates.Coordinates x y
+data Move	= MkMove {
+	getSource	:: Cartesian.Coordinates.Coordinates,
+	getDestination	:: Cartesian.Coordinates.Coordinates
 } deriving Eq
 
-instance (Ord x, Ord y) => Ord (Move x y) where
-	{-# SPECIALISE instance Ord (Move Type.Length.X Type.Length.Y) #-}
+instance Ord Move where
 	move@MkMove { getSource = source } `compare` move'@MkMove { getSource = source' }	= case source `compare` source' of
 		EQ		-> Data.Ord.comparing getDestination move move'
 		ordering	-> ordering
 
-instance (Control.DeepSeq.NFData x, Control.DeepSeq.NFData y) => Control.DeepSeq.NFData (Move x y) where
+instance Control.DeepSeq.NFData Move where
 	rnf MkMove {
 		getSource	= source,
 		getDestination	= destination
 	} = Control.DeepSeq.rnf (source, destination)
 
-instance (Show x, Show y) => Show (Move x y) where
+instance Show Move where
 	showsPrec precedence MkMove {
 		getSource	= source,
 		getDestination	= destination
 	} = showsPrec precedence (source, destination)
 
-instance (
-	Enum	x,
-	Enum	y,
-	Ord	x,
-	Ord	y,
-	Read	x,
-	Read	y
- ) => Read (Move x y) where
+instance Read Move where
 	readsPrec precedence	= map (Control.Arrow.first $ uncurry mkMove) . readsPrec precedence
 
-instance Property.Opposable.Opposable (Move x y) where
+instance Property.Opposable.Opposable Move where
 	getOpposite (MkMove source destination)	= MkMove {
 		getSource	= destination,
 		getDestination	= source
 	}
 
-instance (Enum x, Enum y) => Property.Orientated.Orientated (Move x y) where
+instance Property.Orientated.Orientated Move where
 	isDiagonal	= (Property.Orientated.isDiagonal :: Cartesian.Vector.VectorInt -> Bool) . measureDistance
 	isParallel	= (Property.Orientated.isParallel :: Cartesian.Vector.VectorInt -> Bool) . measureDistance
 
-instance Enum y => Property.Reflectable.ReflectableOnX (Move x y) where
+instance Property.Reflectable.ReflectableOnX Move where
 	reflectOnX MkMove {
 		getSource	= source,
 		getDestination	= destination
@@ -120,7 +111,7 @@ instance Enum y => Property.Reflectable.ReflectableOnX (Move x y) where
 		getDestination	= Property.Reflectable.reflectOnX destination
 	}
 
-instance Enum x => Property.Reflectable.ReflectableOnY (Move x y) where
+instance Property.Reflectable.ReflectableOnY Move where
 	reflectOnY MkMove {
 		getSource	= source,
 		getDestination	= destination
@@ -131,10 +122,9 @@ instance Enum x => Property.Reflectable.ReflectableOnY (Move x y) where
 
 -- | Smart constructor.
 mkMove
-	:: (Eq x, Eq y)
-	=> Cartesian.Coordinates.Coordinates x y
-	-> Cartesian.Coordinates.Coordinates x y
-	-> Move x y
+	:: Cartesian.Coordinates.Coordinates
+	-> Cartesian.Coordinates.Coordinates
+	-> Move
 {-# INLINE mkMove #-}
 mkMove source destination	= Control.Exception.assert (source /= destination) MkMove {
 	getSource	= source,
@@ -143,25 +133,17 @@ mkMove source destination	= Control.Exception.assert (source /= destination) MkM
 
 -- | Measures the signed distance between the ends of the move.
 measureDistance :: (
-	Enum	x,
-	Enum	y,
 	Num	distance,
 	Ord	distance
- ) => Move x y -> Cartesian.Vector.Vector distance
-{-# SPECIALISE measureDistance :: Move Type.Length.X Type.Length.Y -> Cartesian.Vector.VectorInt #-}
+ ) => Move -> Cartesian.Vector.Vector distance
+{-# SPECIALISE measureDistance :: Move -> Cartesian.Vector.VectorInt #-}
 measureDistance	MkMove {
 	getSource	= source,
 	getDestination	= destination
 } = Cartesian.Vector.measureDistance source destination
 
 -- | Generates a line of /coordinates/ covering the half open interval @(source, destination]@.
-interpolate :: (
-	Enum	x,
-	Enum	y,
-	Ord	x,
-	Ord	y
- ) => Move x y -> [Cartesian.Coordinates.Coordinates x y]
-{-# SPECIALISE interpolate :: Move Type.Length.X Type.Length.Y -> [Cartesian.Coordinates.Coordinates Type.Length.X Type.Length.Y] #-}
+interpolate :: Move -> [Cartesian.Coordinates.Coordinates]
 interpolate move@MkMove {
 	getSource	= source,
 	getDestination	= destination
@@ -174,9 +156,8 @@ interpolate move@MkMove {
 	but passing only guarantees that it is, if it was a @Pawn@ which moved & that the /move/ is valid.
 -}
 isPawnDoubleAdvance
-	:: (Enum x, Enum y, Eq y)
-	=> Attribute.LogicalColour.LogicalColour	-- Defines the side whose move is referenced.
-	-> Move x y
+	:: Attribute.LogicalColour.LogicalColour	-- ^ Defines the side whose move is referenced.
+	-> Move
 	-> Bool
 isPawnDoubleAdvance logicalColour move	= Cartesian.Coordinates.isPawnsFirstRank logicalColour (
 	getSource move

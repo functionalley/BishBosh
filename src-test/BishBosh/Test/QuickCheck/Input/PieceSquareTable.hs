@@ -26,36 +26,30 @@
 module BishBosh.Test.QuickCheck.Input.PieceSquareTable(
 -- * Types
 -- ** Type-synonyms
-	PieceSquareTable,
+--	PieceSquareTable,
 -- * Constants
 	results
 ) where
 
 import			BishBosh.Test.QuickCheck.Attribute.Rank()
-import			BishBosh.Test.QuickCheck.Component.Piece()
 import qualified	BishBosh.Attribute.Rank			as Attribute.Rank
 import qualified	BishBosh.Cartesian.Coordinates		as Cartesian.Coordinates
 import qualified	BishBosh.Input.PieceSquareTable		as Input.PieceSquareTable
 import qualified	BishBosh.Property.FixedMembership	as Property.FixedMembership
-import qualified	BishBosh.Type.Length			as Type.Length
 import qualified	BishBosh.Type.Mass			as Type.Mass
 import qualified	Data.List
 import qualified	Test.QuickCheck
 import			Test.QuickCheck((==>))
 
 -- | Defines a concrete type for testing.
-type PieceSquareTable	= Input.PieceSquareTable.PieceSquareTable Type.Length.X Type.Length.Y Type.Mass.PieceSquareValue
+type PieceSquareTable	= Input.PieceSquareTable.PieceSquareTable Type.Mass.PieceSquareValue
 
 instance (
-	Enum		x,
-	Enum		y,
 	Fractional	pieceSquareValue,
 	Ord		pieceSquareValue,
-	Ord		x,
-	Ord		y,
 	Show		pieceSquareValue
- ) => Test.QuickCheck.Arbitrary (Input.PieceSquareTable.PieceSquareTable x y pieceSquareValue) where
---	{-# SPECIALISE instance Test.QuickCheck.Arbitrary PieceSquareTable #-}
+ ) => Test.QuickCheck.Arbitrary (Input.PieceSquareTable.PieceSquareTable pieceSquareValue) where
+	{-# SPECIALISE instance Test.QuickCheck.Arbitrary PieceSquareTable #-}
 	arbitrary	= do
 		reflectOnY	<- Test.QuickCheck.arbitrary
 

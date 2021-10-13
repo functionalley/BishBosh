@@ -66,7 +66,6 @@ import qualified	BishBosh.Rule.Result			as Rule.Result
 import qualified	BishBosh.State.Board			as State.Board
 import qualified	BishBosh.Text.ShowList			as Text.ShowList
 import qualified	BishBosh.Type.Count			as Type.Count
-import qualified	BishBosh.Type.Length			as Type.Length
 import qualified	Control.Arrow
 import qualified	Data.Default
 import qualified	Data.List
@@ -88,7 +87,7 @@ type OnymousResult	= (Name, Rule.Result.Result)
 
 	* CAVEAT: since zero moves have been made in the default initial game, the move-tree for the whole game of chess has no apex, so a forest is a more natural structure; though sub-trees can exist.
 -}
-type QualifiedMoveTree x y	= Data.Tree.Tree (Component.QualifiedMove.QualifiedMove x y, Maybe OnymousResult)
+type QualifiedMoveTree	= Data.Tree.Tree (Component.QualifiedMove.QualifiedMove, Maybe OnymousResult)
 
 {- |
 	* A representation of a PGN-database, where initial /move/s shared between /game/s are merged into the trunk of a tree from which they each branch.
@@ -97,21 +96,21 @@ type QualifiedMoveTree x y	= Data.Tree.Tree (Component.QualifiedMove.QualifiedMo
 
 	* Since there are many different initial moves, the structure is a flat-topped /forest/ rather than a single apex /tree/.
 -}
-newtype QualifiedMoveForest x y	= MkQualifiedMoveForest {
-	deconstruct	:: [QualifiedMoveTree x y]
+newtype QualifiedMoveForest	= MkQualifiedMoveForest {
+	deconstruct	:: [QualifiedMoveTree]
 } deriving (
 	Eq,
 	Show	-- CAVEAT: required by QuickCheck, but shouldn't actually be called.
  )
 
-instance Property.Empty.Empty (QualifiedMoveForest x y) where
+instance Property.Empty.Empty QualifiedMoveForest where
 	empty	= MkQualifiedMoveForest Property.Empty.empty
 
-instance Property.Null.Null (QualifiedMoveForest x y) where
+instance Property.Null.Null QualifiedMoveForest where
 	isNull MkQualifiedMoveForest { deconstruct = [] }	= True
 	isNull _						= False
 
-instance (Enum x, Enum y) => Notation.MoveNotation.ShowNotation (QualifiedMoveForest x y) where
+instance Notation.MoveNotation.ShowNotation QualifiedMoveForest where
 	showsNotation moveNotation MkQualifiedMoveForest { deconstruct = forest }	= showString $ Data.RoseTree.drawForest (
 		\(qualifiedMove, maybeOnymousResult)	-> Notation.MoveNotation.showsNotation moveNotation qualifiedMove $ Data.Maybe.maybe id (
 			\onymousResult -> showChar ' ' . shows onymousResult
@@ -136,10 +135,9 @@ showsNames maybeMaximumPGNNames names	= Text.ShowList.showsUnterminatedList . ma
 
 -- | Include the specified PGN-database into the /forest/, thus allowing more than one 'ContextualNotation.PGNDatabase.PGNDatabase' to be read.
 mergePGNDatabase
-	:: (Eq x, Eq y)
-	=> ContextualNotation.PGNDatabase.PGNDatabase x y
-	-> QualifiedMoveForest x y
-	-> QualifiedMoveForest x y
+	:: ContextualNotation.PGNDatabase.PGNDatabase
+	-> QualifiedMoveForest
+	-> QualifiedMoveForest
 mergePGNDatabase pgnDatabase MkQualifiedMoveForest { deconstruct = initialForest }	= MkQualifiedMoveForest $ foldr (
 	\pgn -> merge (
 		mkCompositeIdentifier &&& Data.Maybe.maybe (
@@ -149,15 +147,14 @@ mergePGNDatabase pgnDatabase MkQualifiedMoveForest { deconstruct = initialForest
 		map Component.Turn.getQualifiedMove . Model.Game.listTurnsChronologically $ ContextualNotation.PGN.getGame pgn	-- Extract the list of qualified moves defining this game.
 	)
  ) initialForest pgnDatabase where
-	mkCompositeIdentifier :: ContextualNotation.PGN.PGN x y -> Name
+	mkCompositeIdentifier :: ContextualNotation.PGN.PGN -> Name
 	mkCompositeIdentifier	= unwords . map snd {-value-} . ContextualNotation.PGN.getIdentificationTagPairs
 
 	merge
-		:: (Eq x, Eq y)
-		=> OnymousResult				-- ^ The name of this move-sequence, & the result.
-		-> [Component.QualifiedMove.QualifiedMove x y]	-- ^ A chronological sequence of /qualified move/s.
-		-> [QualifiedMoveTree x y]
-		-> [QualifiedMoveTree x y]
+		:: OnymousResult				-- ^ The name of this move-sequence, & the result.
+		-> [Component.QualifiedMove.QualifiedMove]	-- ^ A chronological sequence of /qualified move/s.
+		-> [QualifiedMoveTree]
+		-> [QualifiedMoveTree]
 	merge onymousResult qualifiedMoves@(qualifiedMove : remainingQualifiedMoves) forest	= case span (
 		\Data.Tree.Node { Data.Tree.rootLabel = (qualifiedMove', _) } -> Component.QualifiedMove.getMove qualifiedMove /= Component.QualifiedMove.getMove qualifiedMove'
 	 ) forest of
@@ -175,7 +172,7 @@ mergePGNDatabase pgnDatabase MkQualifiedMoveForest { deconstruct = initialForest
 		_ {-no match-}						-> mkLinkedList onymousResult qualifiedMoves : forest
 	merge _ [] forest					= forest
 
-	mkLinkedList :: OnymousResult -> [Component.QualifiedMove.QualifiedMove x y] -> QualifiedMoveTree x y
+	mkLinkedList :: OnymousResult -> [Component.QualifiedMove.QualifiedMove] -> QualifiedMoveTree
 	mkLinkedList onymousResult ~(qualifiedMove : remainingQualifiedMoves)
 		| null remainingQualifiedMoves	= Data.Tree.Node {
 			Data.Tree.rootLabel	= (qualifiedMove, Just onymousResult),
@@ -187,14 +184,14 @@ mergePGNDatabase pgnDatabase MkQualifiedMoveForest { deconstruct = initialForest
 		}
 
 -- | Constructor.
-fromPGNDatabase :: (Eq x, Eq y) => ContextualNotation.PGNDatabase.PGNDatabase x y -> QualifiedMoveForest x y
+fromPGNDatabase :: ContextualNotation.PGNDatabase.PGNDatabase -> QualifiedMoveForest
 fromPGNDatabase	= (`mergePGNDatabase` Property.Empty.empty {-QualifiedMoveForest-})
 
 -- | Find the minimum number of /piece/s in any of the recorded /game/s.
-findMinimumPieces :: QualifiedMoveForest x y -> Type.Count.NPieces
+findMinimumPieces :: QualifiedMoveForest -> Type.Count.NPieces
 findMinimumPieces	= slave (
 	State.Board.getNPieces (
-		Data.Default.def	:: State.Board.Board Type.Length.X Type.Length.Y	-- CAVEAT: this assumes the game to which the moves in the forest refer.
+		Data.Default.def	:: State.Board.Board	-- CAVEAT: this assumes the game to which the moves in the forest refer.
 	)
  ) . deconstruct where
 	slave nPieces []	= nPieces
@@ -208,7 +205,7 @@ findMinimumPieces	= slave (
 	 ) forest
 
 -- | Count the number of /game/s & distinct /positions/.
-count :: QualifiedMoveForest x y -> (Type.Count.NGames, Type.Count.NPositions)
+count :: QualifiedMoveForest -> (Type.Count.NGames, Type.Count.NPositions)
 count	= slave . deconstruct where
 	slave	= Data.List.foldl' (
 		\(nGames, nPositions) Data.Tree.Node {
@@ -230,15 +227,7 @@ count	= slave . deconstruct where
 
 	* N.B.: to construct a tree from the specified forest, the default initial /game/ is included at the apex.
 -}
-toGameTree :: (
-	Enum	x,
-	Enum	y,
-	Ord	x,
-	Ord	y,
-	Show	x,
-	Show	y
- ) => QualifiedMoveForest x y -> Model.GameTree.GameTree x y
-{-# SPECIALISE toGameTree :: QualifiedMoveForest Type.Length.X Type.Length.Y -> Model.GameTree.GameTree Type.Length.X Type.Length.Y #-}
+toGameTree :: QualifiedMoveForest -> Model.GameTree.GameTree
 toGameTree MkQualifiedMoveForest { deconstruct = qualifiedMoveForest }	= Model.GameTree.fromBareGameTree Data.Tree.Node {
 	Data.Tree.rootLabel	= initialGame,
 	Data.Tree.subForest	= map (slave initialGame) qualifiedMoveForest

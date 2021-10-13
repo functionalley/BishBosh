@@ -38,8 +38,7 @@ module BishBosh.Component.CastlingMove(
 --	defineCastlingMoves,
 	getLongAndShortMoves,
 -- ** Accessors
-	getCastlingMoves,
---	getCastlingMovesInt
+	getCastlingMoves
 ) where
 
 import			Control.Arrow((&&&))
@@ -48,41 +47,35 @@ import qualified	BishBosh.Attribute.LogicalColour	as Attribute.LogicalColour
 import qualified	BishBosh.Attribute.MoveType		as Attribute.MoveType
 import qualified	BishBosh.Cartesian.Coordinates		as Cartesian.Coordinates
 import qualified	BishBosh.Component.Move			as Component.Move
-import qualified	BishBosh.Data.Enum			as Data.Enum
 import qualified	BishBosh.Data.Exception			as Data.Exception
 import qualified	BishBosh.Property.FixedMembership	as Property.FixedMembership
 import qualified	BishBosh.Type.Length			as Type.Length
 import qualified	Control.Exception
 
 -- | Defines a castling-move.
-data CastlingMove x y	= MkCastlingMove {
+data CastlingMove	= MkCastlingMove {
 	getMoveType	:: Attribute.MoveType.MoveType,	-- ^ CAVEAT: should only be a castling-move type.
-	getKingsMove	:: Component.Move.Move x y,
-	getRooksMove	:: Component.Move.Move x y
+	getKingsMove	:: Component.Move.Move,
+	getRooksMove	:: Component.Move.Move
 }
 
--- | The constant number of files over which the King always travels when castling.
-kingsMoveLength :: Num x => x
+-- | The constant number of files over which the @King@ always travels when castling.
+kingsMoveLength :: Type.Length.X
 kingsMoveLength	= 2
 
 -- | Define all possible castling-moves for the specified /logical colour/.
-defineCastlingMoves :: (
-	Enum	x,
-	Enum	y,
-	Eq	y,
-	Ord	x
- ) => Attribute.LogicalColour.LogicalColour -> [CastlingMove x y]
+defineCastlingMoves :: Attribute.LogicalColour.LogicalColour -> [CastlingMove]
 defineCastlingMoves logicalColour	= [
 	MkCastlingMove {
 		getMoveType	= Attribute.MoveType.longCastle,
 		getKingsMove	= kingsMove $ subtract kingsMoveLength,
-		getRooksMove	= uncurry Component.Move.mkMove . (id &&& translateX (+ 3)) $ if isBlack
+		getRooksMove	= uncurry Component.Move.mkMove . (id &&& Cartesian.Coordinates.translateX (+ 3)) $ if isBlack
 			then Cartesian.Coordinates.topLeft
 			else minBound
 	}, MkCastlingMove {
 		getMoveType	= Attribute.MoveType.shortCastle,
 		getKingsMove	= kingsMove (+ kingsMoveLength),
-		getRooksMove	= uncurry Component.Move.mkMove . (id &&& translateX (subtract 2)) $ if isBlack
+		getRooksMove	= uncurry Component.Move.mkMove . (id &&& Cartesian.Coordinates.translateX (subtract 2)) $ if isBlack
 			then maxBound
 			else Cartesian.Coordinates.bottomRight
 	}
@@ -90,19 +83,10 @@ defineCastlingMoves logicalColour	= [
 	isBlack :: Bool
 	isBlack	= Attribute.LogicalColour.isBlack logicalColour
 
-	kingsStartingCoordinates	= Cartesian.Coordinates.kingsStartingCoordinates logicalColour
-	kingsMove translation		= Component.Move.mkMove kingsStartingCoordinates $ translateX translation kingsStartingCoordinates
-
-	translateX :: (Enum x, Ord x) => (Int -> Int) -> Cartesian.Coordinates.Coordinates x y -> Cartesian.Coordinates.Coordinates x y
-	translateX	= Cartesian.Coordinates.translateX . Data.Enum.translate
+	kingsMove translation	= uncurry ($) . (Component.Move.mkMove &&& Cartesian.Coordinates.translateX translation) $ Cartesian.Coordinates.kingsStartingCoordinates logicalColour
 
 -- | Defines by /logical colour/, the constant list of all possible castling-moves.
-castlingMovesByLogicalColour :: (
-	Enum	x,
-	Enum	y,
-	Eq	y,
-	Ord	x
- ) => Attribute.LogicalColour.ArrayByLogicalColour [CastlingMove x y]
+castlingMovesByLogicalColour :: Attribute.LogicalColour.ArrayByLogicalColour [CastlingMove]
 castlingMovesByLogicalColour	= Attribute.LogicalColour.listArrayByLogicalColour $ map defineCastlingMoves Property.FixedMembership.members
 
 {- |
@@ -110,28 +94,11 @@ castlingMovesByLogicalColour	= Attribute.LogicalColour.listArrayByLogicalColour 
 
 	* CAVEAT: the moves are returned in unspecified order.
 -}
-getCastlingMoves :: (
-	Enum	x,
-	Enum	y,
-	Eq	y,
-	Ord	x
- ) => Attribute.LogicalColour.LogicalColour -> [CastlingMove x y]
-{-# NOINLINE getCastlingMoves #-}	-- Ensure the rewrite-rule triggers.
-{-# RULES "getCastlingMoves/Int" getCastlingMoves = getCastlingMovesInt #-}
-getCastlingMoves	= defineCastlingMoves
-
--- | A specialisation of 'getCastlingMoves'.
-getCastlingMovesInt :: Attribute.LogicalColour.LogicalColour -> [CastlingMove Type.Length.X Type.Length.Y]
-getCastlingMovesInt	= (castlingMovesByLogicalColour !)
+getCastlingMoves :: Attribute.LogicalColour.LogicalColour -> [CastlingMove]
+getCastlingMoves	= (castlingMovesByLogicalColour !)
 
 -- | Break-down the two castling-moves for the specified /logical colour/ into a long & a short castling-move.
-getLongAndShortMoves :: (
-	Enum	x,
-	Enum	y,
-	Eq	y,
-	Ord	x
- ) => Attribute.LogicalColour.LogicalColour -> (CastlingMove x y, CastlingMove x y)
-{-# SPECIALISE getLongAndShortMoves :: Attribute.LogicalColour.LogicalColour -> (CastlingMove Type.Length.X Type.Length.Y, CastlingMove Type.Length.X Type.Length.Y) #-}
+getLongAndShortMoves :: Attribute.LogicalColour.LogicalColour -> (CastlingMove, CastlingMove)
 getLongAndShortMoves logicalColour
 	| [longCastlingMove, shortCastlingMove] <- getCastlingMoves logicalColour	= (longCastlingMove, shortCastlingMove)
 	| otherwise									= Control.Exception.throw $ Data.Exception.mkIncompatibleData "BishBosh.Component.CastlingMove.getLongAndShortMoves:\tunexpected list-length."

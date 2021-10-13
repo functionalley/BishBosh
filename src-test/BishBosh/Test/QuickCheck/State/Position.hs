@@ -28,6 +28,7 @@ module BishBosh.Test.QuickCheck.State.Position(
 ) where
 
 import			Control.Arrow((&&&))
+import			BishBosh.Test.QuickCheck.Model.Game()
 import qualified	BishBosh.Attribute.MoveType		as Attribute.MoveType
 import qualified	BishBosh.Cartesian.Coordinates		as Cartesian.Coordinates
 import qualified	BishBosh.Component.Move			as Component.Move
@@ -35,7 +36,6 @@ import qualified	BishBosh.Component.QualifiedMove	as Component.QualifiedMove
 import qualified	BishBosh.Model.Game			as Model.Game
 import qualified	BishBosh.State.EnPassantAbscissa	as State.EnPassantAbscissa
 import qualified	BishBosh.State.Position			as State.Position
-import qualified	BishBosh.Test.QuickCheck.Model.Game	as Test.QuickCheck.Model.Game
 import qualified	Data.List
 import qualified	Test.QuickCheck
 
@@ -43,7 +43,7 @@ import qualified	Test.QuickCheck
 results :: IO [Test.QuickCheck.Result]
 results	= sequence [
 	let
-		f :: Test.QuickCheck.Model.Game.Game -> Test.QuickCheck.Property
+		f :: Model.Game.Game -> Test.QuickCheck.Property
 		f = Test.QuickCheck.label "Position.prop_getMaybeEnPassantAbscissa" . uncurry (==) . (
 			fmap (
 				Cartesian.Coordinates.getX . Component.Move.getDestination . Component.QualifiedMove.getMove	-- Extract the abscissa.

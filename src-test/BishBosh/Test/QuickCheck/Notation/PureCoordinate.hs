@@ -24,9 +24,6 @@
 -}
 
 module BishBosh.Test.QuickCheck.Notation.PureCoordinate(
--- * Types
--- ** Type-synonyms
---	PureCoordinate,
 -- * Constants
 	results
 ) where
@@ -39,21 +36,11 @@ import qualified	BishBosh.Cartesian.Ordinate		as Cartesian.Ordinate
 import qualified	BishBosh.Cartesian.Vector		as Cartesian.Vector
 import qualified	BishBosh.Component.Move			as Component.Move
 import qualified	BishBosh.Notation.PureCoordinate	as Notation.PureCoordinate
-import qualified	BishBosh.Type.Length			as Type.Length
 import qualified	Data.Char
 import qualified	Test.QuickCheck
 import qualified	ToolShed.Test.ReversibleIO
 
--- | Defines a concrete type for testing.
-type PureCoordinate	= Notation.PureCoordinate.PureCoordinate Type.Length.X Type.Length.Y
-
-instance (
-	Enum	x,
-	Enum	y,
-	Ord	x,
-	Ord	y
- ) => Test.QuickCheck.Arbitrary (Notation.PureCoordinate.PureCoordinate x y) where
-	{-# SPECIALISE instance Test.QuickCheck.Arbitrary PureCoordinate #-}
+instance Test.QuickCheck.Arbitrary Notation.PureCoordinate.PureCoordinate where
 	arbitrary	= do
 		move	<- Test.QuickCheck.arbitrary
 
@@ -75,19 +62,19 @@ instance (
 results :: IO [Test.QuickCheck.Result]
 results	= sequence [
 	let
-		f :: PureCoordinate -> Test.QuickCheck.Property
+		f :: Notation.PureCoordinate.PureCoordinate -> Test.QuickCheck.Property
 		f	= Test.QuickCheck.label "PureCoordinate.prop_readPrependedWhiteSpace" . ToolShed.Test.ReversibleIO.readPrependedWhiteSpace
 	in Test.QuickCheck.quickCheckWithResult Test.QuickCheck.stdArgs { Test.QuickCheck.maxSuccess = 256 } f,
 	let
 		f :: String -> Test.QuickCheck.Property
 		f garbage	= Test.QuickCheck.label "PureCoordinate.prop_read" $ case (
-			reads garbage :: [(PureCoordinate, String)]
+			reads garbage :: [(Notation.PureCoordinate.PureCoordinate, String)]
 		 ) of
 			[_]	-> True
 			_	-> True	-- Unless the read-implementation throws an exception.
 	in Test.QuickCheck.quickCheckWithResult Test.QuickCheck.stdArgs { Test.QuickCheck.maxSuccess = 256 } f,
 	let
-		f :: PureCoordinate -> String -> Test.QuickCheck.Property
+		f :: Notation.PureCoordinate.PureCoordinate -> String -> Test.QuickCheck.Property
 		f coordinate	= Test.QuickCheck.label "PureCoordinate.prop_readTrailingGarbage" . ToolShed.Test.ReversibleIO.readTrailingGarbage (
 			(
 				`elem` concatMap show Attribute.Rank.promotionProspects

@@ -26,7 +26,7 @@
 module BishBosh.Test.QuickCheck.Input.Options(
 -- * Types
 -- ** Type-synonyms
-	Options,
+--	Options,
 -- * Constants
 	results
 ) where
@@ -37,23 +37,18 @@ import			BishBosh.Test.QuickCheck.Input.SearchOptions()
 import qualified	BishBosh.Input.IOOptions	as Input.IOOptions
 import qualified	BishBosh.Input.Options		as Input.Options
 import qualified	BishBosh.Input.SearchOptions	as Input.SearchOptions
-import qualified	BishBosh.Type.Length		as Type.Length
 import qualified	BishBosh.Type.Mass		as Type.Mass
 import qualified	Test.QuickCheck
 
 -- | Defines a concrete type for testing.
-type Options	= Input.Options.Options Type.Mass.PieceSquareValue Type.Length.X Type.Length.Y
+type Options	= Input.Options.Options Type.Mass.PieceSquareValue
 
 instance (
-	Enum		x,
-	Enum		y,
 	Fractional	pieceSquareValue,
 	Ord		pieceSquareValue,
-	Ord		x,
-	Ord		y,
 	Show		pieceSquareValue
- ) => Test.QuickCheck.Arbitrary (Input.Options.Options pieceSquareValue x y) where
---	{-# SPECIALISE instance Test.QuickCheck.Arbitrary Options #-}
+ ) => Test.QuickCheck.Arbitrary (Input.Options.Options pieceSquareValue) where
+	{-# SPECIALISE instance Test.QuickCheck.Arbitrary Options #-}
 	arbitrary	= do
 		(maybeMaximumPlies, maybeRandomSeed, evaluationOptions, searchOptions, ioOptions)	<- Test.QuickCheck.arbitrary
 

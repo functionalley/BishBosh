@@ -90,17 +90,17 @@ Module				| Purpose
 ## 0.1.1.0
 ### New Modules:
 ---------------------------------------------------------
-New Module					| Purpose
-------------------------------------------------| -------
-**BishBosh.Time.StopWatch**			| Replaces module **BishBosh.Data.Time** to encapsulate interaction with module **Data.Time.Clock**.
-**BishBosh.Time.GameClock**			| Contains two **BishBosh.Time.StopWatch**es to enable module **Duel.Process.Intermediary** to measure the time used by each player.
-**BishBosh.Property.Switchable**		| Exports a type-class, which both **BishBosh.Time.StopWatch** & **BishBosh.Time.GameClock** implement, to expose their functionality.
-**BishBosh.Property.SelfValidating**		| Exports a type-class, which both **BishBosh.Time.GameClock** & **Duel.Data.Options** implement, to validate themselves.
-**BishBosh.Type.Countable**			| Defines newtypes to enhance type-safety, replacing type-synonyms for **Int**. There is a performance-degradation, so this enhancement can be disabled using a new cabal-flag.
-**BishBosh.Type.Crypto**			| Self-documentation.
-**BishBosh.Type.Length**			| Replaced the polymorphic type-parameters **row** & **column** with newtypes to enhance type-safety.
-**BishBosh.Type.Mass**				| Self-documentation.
-**BishBosh.Metric.RankValue**			| Replaced the polymorphic type-parameter **rankValue**, with a newtype & a smart-constructor to guard permissible bounds.
+New Module				| Purpose
+----------------------------------------| -------
+**BishBosh.Time.StopWatch**		| Replaces module **BishBosh.Data.Time** to encapsulate interaction with module **Data.Time.Clock**.
+**BishBosh.Time.GameClock**		| Contains two **BishBosh.Time.StopWatch**es to enable module **Duel.Process.Intermediary** to measure the time used by each player.
+**BishBosh.Property.Switchable**	| Exports a type-class, which both **BishBosh.Time.StopWatch** & **BishBosh.Time.GameClock** implement, to expose their functionality.
+**BishBosh.Property.SelfValidating**	| Exports a type-class, which both **BishBosh.Time.GameClock** & **Duel.Data.Options** implement, to validate themselves.
+**BishBosh.Type.Countable**		| Defines newtypes to enhance type-safety, replacing type-synonyms for **Int**. There is a performance-degradation, so this enhancement can be disabled using a new cabal-flag.
+**BishBosh.Type.Crypto**		| Self-documentation.
+**BishBosh.Type.Length**		| Replaced the polymorphic type-parameters **row** & **column** with newtypes to enhance type-safety.
+**BishBosh.Type.Mass**			| Self-documentation.
+**BishBosh.Metric.RankValue**		| Replaced the polymorphic type-parameter **rankValue**, with a newtype & a smart-constructor to guard permissible bounds.
 
 ### Duel:
 * Added command-line option **--verifyConfiguration**, to request that the mutual compatibility of the two configuration-files be verified before forwarding each to a forked instance of **bishbosh**.
@@ -119,3 +119,10 @@ New Module					| Purpose
 ## 0.1.2.0
 * Added a Boolean configuration-option **BishBosh.Input.NativeUIOptions.getDepictFigurine** to specify whether the native UI should depict pieces using Unicode figurines rather than merely ASCII letters.
 * Reimplemented function **BishBosh.Cartesian.Abscissa.getAdjacents** to promote memoisation.
+* Avoided potential divide-by-zero @ **BishBosh.Input.CriteriaWeights.getWeightOfMaterial** / **BishBosh.Input.RankValues.calculateMaximumTotalValue** @.
+* Added guards to function **BishBosh.Component.Piece.promote**.
+* Replaced the polymorphic type-parameters **x** & **y** with newtypes to:
+	+ elimination of the fragile **RULE** pragmas required to switch to memoised function-implementations for specific type-parameters,
+	+ elimination of chains of **SPECIALISE** pragmas down the call-stack to hot-spots.
+	+ allow external calls from [**Text.ParserCombinators.Poly.Lazy.runParser**, **Text.ParserCombinators.Parsec.parse**], to access specialised implementations (see previous items),
+	+ permit unification of the similar type-classes **BishBosh.Component.Zobrist.Hashable[12]D**, & to avoid the requirement for the **MultiParameterTypeClasses** pragma.

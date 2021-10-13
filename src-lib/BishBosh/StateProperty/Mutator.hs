@@ -47,12 +47,12 @@ import qualified	BishBosh.Property.Empty		as Property.Empty
 
 	* CAVEAT: this function isn't called during normal play.
 -}
-class Mutator mutator x y where
+class Mutator mutator where
 	defineCoordinates
-		:: Maybe Component.Piece.Piece			-- ^ The optional /piece/ to place (or remove if @Nothing@ is specified).
-		-> Cartesian.Coordinates.Coordinates x y	-- ^ The /coordinates/ to define.
-		-> mutator x y
-		-> mutator x y
+		:: Maybe Component.Piece.Piece		-- ^ The optional /piece/ to place (or remove if @Nothing@ is specified).
+		-> Cartesian.Coordinates.Coordinates	-- ^ The /coordinates/ to define.
+		-> mutator
+		-> mutator
 
 {- |
 	* Place a /piece/ at the specified /coordinates/.
@@ -60,38 +60,38 @@ class Mutator mutator x y where
 	* CAVEAT: any /piece/ previously at the specified /coordinates/ will be obliterated.
 -}
 placePiece
-	:: Mutator mutator x y
+	:: Mutator mutator
 	=> Component.Piece.Piece
-	-> Cartesian.Coordinates.Coordinates x y
-	-> mutator x y
-	-> mutator x y
+	-> Cartesian.Coordinates.Coordinates
+	-> mutator
+	-> mutator
 placePiece piece	= defineCoordinates $ Just piece
 
 -- | Place the first /piece/.
 placeFirstPiece :: (
-	Property.Empty.Empty	(mutator x y),
-	Mutator			mutator x y
+	Property.Empty.Empty	mutator,
+	Mutator			mutator
  )
 	=> Component.Piece.Piece
-	-> Cartesian.Coordinates.Coordinates x y
-	-> mutator x y
+	-> Cartesian.Coordinates.Coordinates
+	-> mutator
 placeFirstPiece piece coordinates	= placePiece piece coordinates Property.Empty.empty
 
 -- | Place /pieces/ from scratch.
 placeAllPieces :: (
-	Property.Empty.Empty	(mutator x y),
-	Mutator			mutator x y
+	Property.Empty.Empty	mutator,
+	Mutator			mutator
  )
-	=> [(Component.Piece.Piece, Cartesian.Coordinates.Coordinates x y)]
-	-> mutator x y
+	=> [(Component.Piece.Piece, Cartesian.Coordinates.Coordinates)]
+	-> mutator
 placeAllPieces	= foldr (uncurry placePiece) Property.Empty.empty
 
 -- | Remove a /piece/ from the /board/.
 removePiece
-	:: Mutator mutator x y
-	=> Cartesian.Coordinates.Coordinates x y
-	-> mutator x y
-	-> mutator x y
+	:: Mutator mutator
+	=> Cartesian.Coordinates.Coordinates
+	-> mutator
+	-> mutator
 removePiece	= defineCoordinates Nothing
 
 

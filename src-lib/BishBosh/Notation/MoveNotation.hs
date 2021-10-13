@@ -101,17 +101,10 @@ pureCoordinate :: MoveNotation
 pureCoordinate	= PureCoordinate
 
 -- | Reads a /move/ & /move-type/ from the specified 'MoveNotation'.
-readsQualifiedMove :: (
-	Enum	x,
-	Enum	y,
-	Ord	x,
-	Ord	y
- )
-	=> MoveNotation
-	-> ReadS (Component.EitherQualifiedMove.EitherQualifiedMove x y)
-readsQualifiedMove ICCFNumeric	= map (Control.Arrow.first $ uncurry Component.EitherQualifiedMove.mkPartiallyQualifiedMove . (Notation.ICCFNumeric.getMove &&& Attribute.Rank.getMaybePromotionRank)) . reads
+readsQualifiedMove :: MoveNotation -> ReadS Component.EitherQualifiedMove.EitherQualifiedMove
+readsQualifiedMove ICCFNumeric		= map (Control.Arrow.first $ uncurry Component.EitherQualifiedMove.mkPartiallyQualifiedMove . (Notation.ICCFNumeric.getMove &&& Attribute.Rank.getMaybePromotionRank)) . reads
 readsQualifiedMove PureCoordinate	= map (Control.Arrow.first $ uncurry Component.EitherQualifiedMove.mkPartiallyQualifiedMove . (Notation.PureCoordinate.getMove &&& Attribute.Rank.getMaybePromotionRank)) . reads
-readsQualifiedMove Smith	= map (Control.Arrow.first $ uncurry Component.EitherQualifiedMove.mkFullyQualifiedMove . (Component.QualifiedMove.getMove &&& Component.QualifiedMove.getMoveType) . Notation.Smith.getQualifiedMove) . reads
+readsQualifiedMove Smith		= map (Control.Arrow.first $ uncurry Component.EitherQualifiedMove.mkFullyQualifiedMove . (Component.QualifiedMove.getMove &&& Component.QualifiedMove.getMoveType) . Notation.Smith.getQualifiedMove) . reads
 
 -- | Show the syntax required by a specific 'MoveNotation'.
 showsMoveSyntax :: MoveNotation -> ShowS
@@ -137,7 +130,7 @@ isPureCoordinate _		= False
 class ShowNotation a where
 	showsNotation	:: MoveNotation -> a -> ShowS
 
-instance (Enum x, Enum y) => ShowNotation (Component.QualifiedMove.QualifiedMove x y) where
+instance ShowNotation Component.QualifiedMove.QualifiedMove where
 	showsNotation moveNotation qualifiedMove	= case moveNotation of
 		ICCFNumeric	-> shows $ Notation.ICCFNumeric.mkICCFNumeric' move moveType
 		PureCoordinate	-> shows $ Notation.PureCoordinate.mkPureCoordinate' move moveType
@@ -145,10 +138,10 @@ instance (Enum x, Enum y) => ShowNotation (Component.QualifiedMove.QualifiedMove
 		where
 			(move, moveType)	= Component.QualifiedMove.getMove &&& Component.QualifiedMove.getMoveType $ qualifiedMove
 
-instance (Enum x, Enum y) => ShowNotation (Component.Turn.Turn x y) where
+instance ShowNotation Component.Turn.Turn where
 	showsNotation moveNotation	= showsNotation moveNotation . Component.Turn.getQualifiedMove
 
-instance (Enum x, Enum y) => ShowNotation (Cartesian.Coordinates.Coordinates x y) where
+instance ShowNotation Cartesian.Coordinates.Coordinates where
 	showsNotation ICCFNumeric	= Notation.ICCFNumeric.showsCoordinates
 	showsNotation PureCoordinate	= Notation.PureCoordinate.showsCoordinates
 	showsNotation Smith		= Notation.Smith.showsCoordinates

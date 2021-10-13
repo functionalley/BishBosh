@@ -23,9 +23,6 @@
 -}
 
 module BishBosh.Test.HUnit.Cartesian.Coordinates(
--- * Types
--- ** Type-synonyms
-	Coordinates,
 -- * Constants
 	testCases
 ) where
@@ -33,31 +30,27 @@ module BishBosh.Test.HUnit.Cartesian.Coordinates(
 import qualified	BishBosh.Attribute.LogicalColourOfSquare	as Attribute.LogicalColourOfSquare
 import qualified	BishBosh.Cartesian.Coordinates			as Cartesian.Coordinates
 import qualified	BishBosh.Property.FixedMembership		as Property.FixedMembership
-import qualified	BishBosh.Type.Length				as Type.Length
 import qualified	Data.Array.IArray
 import qualified	Data.List
 import qualified	Test.HUnit
 import			Test.HUnit((~?), (~?=), (~:))
 
--- | Defines a concrete type for testing.
-type Coordinates	= Cartesian.Coordinates.Coordinates Type.Length.X Type.Length.Y
-
 -- | Check the sanity of the implementation, by validating a list of static test-cases.
 testCases :: Test.HUnit.Test
 testCases	= Test.HUnit.test [
 	all (Attribute.LogicalColourOfSquare.isBlack . Cartesian.Coordinates.getLogicalColourOfSquare) (
-		Cartesian.Coordinates.extrapolate maxBound {-direction-} (minBound :: Coordinates)
+		Cartesian.Coordinates.extrapolate maxBound {-direction-} (minBound :: Cartesian.Coordinates.Coordinates)
 	) ~? "'BishBosh.Cartesian.Coordinates.getLogicalColourOfSquare' failed to find black squares on the main diagonal.",
 	"'BishBosh.Cartesian.Coordinates.getLogicalColourOfSquare' failed to count equal numbers of black & white squares." ~: (
 		\(black, white) -> length black ~?= length white
 	) . Data.List.partition Attribute.LogicalColourOfSquare.isBlack $ map Cartesian.Coordinates.getLogicalColourOfSquare (
-		Property.FixedMembership.members	:: [Coordinates]
+		Property.FixedMembership.members	:: [Cartesian.Coordinates.Coordinates]
 	),
 	"'BishBosh.Cartesian.Coordinates' failed to visit all squares." ~: length (
-		Property.FixedMembership.members	:: [Coordinates]
+		Property.FixedMembership.members	:: [Cartesian.Coordinates.Coordinates]
 	) ~?= Cartesian.Coordinates.nSquares,
 	"instance 'Data.Array.IArray.Ix Coordinates' is incompatible with instance 'Ord Coordinates'." ~: Data.Array.IArray.indices (
-		Cartesian.Coordinates.listArrayByCoordinates [0 .. ]	:: Cartesian.Coordinates.ArrayByCoordinates Type.Length.X Type.Length.Y Int
+		Cartesian.Coordinates.listArrayByCoordinates [0 .. ]	:: Cartesian.Coordinates.ArrayByCoordinates Int
 	) ~?= Property.FixedMembership.members
  ]
 

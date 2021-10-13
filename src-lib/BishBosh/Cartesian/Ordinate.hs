@@ -29,8 +29,6 @@
 -}
 
 module BishBosh.Cartesian.Ordinate(
--- * Types
---	ArrayByOrdinate,
 -- * Constants
 	yOrigin,
 	yLength,
@@ -48,8 +46,6 @@ module BishBosh.Cartesian.Ordinate(
 	reflect,
 	translate,
 	maybeTranslate,
--- ** Constructors
---	listArrayByOrdinate,
 -- ** Predicates
 	inBounds
 ) where
@@ -60,7 +56,6 @@ import qualified	BishBosh.Data.Enum			as Data.Enum
 import qualified	BishBosh.Property.Opposable		as Property.Opposable
 import qualified	BishBosh.Type.Length			as Type.Length
 import qualified	Control.Exception
-import qualified	Data.Array.IArray
 
 -- | The position of the origin on the /y/-axis.
 yOrigin :: Int
@@ -71,84 +66,72 @@ yLength :: Type.Length.Distance
 yLength	= Cartesian.Abscissa.xLength	-- Because the board is square.
 
 -- | The constant lower bound of ordinates.
-yMin :: Enum y => y
+yMin :: Type.Length.Y
 yMin	= toEnum yOrigin
 
 -- | The constant upper bound of ordinates.
-yMax :: Enum y => y
+yMax :: Type.Length.Y
 yMax	= toEnum $ yOrigin + fromIntegral (pred {-fence-post-} yLength)
 
 -- | The constant bounds of ordinates.
-yBounds :: Enum y => (y, y)
+yBounds :: (Type.Length.Y, Type.Length.Y)
 yBounds	= (yMin, yMax)
 
 -- | The constant list of all ordinates.
-yRange :: Enum y => [y]
+yRange :: [Type.Length.Y]
 yRange	= uncurry enumFromTo yBounds
 
 -- | Convert to an array-index.
-toIx :: Enum y => y -> Int
+toIx :: Type.Length.Y -> Int
 {-# INLINE toIx #-}
 toIx	= subtract yOrigin . fromEnum
 
 -- | Convert from an array-index.
-fromIx :: Enum y => Int -> y
+fromIx :: Int -> Type.Length.Y
 {-# INLINE fromIx #-}
 fromIx	= toEnum . (+ yOrigin)
 
 -- | The /rank/ from which /piece/s conventionally start.
-firstRank :: Enum y => Attribute.LogicalColour.LogicalColour -> y
+firstRank :: Attribute.LogicalColour.LogicalColour -> Type.Length.Y
 firstRank Attribute.LogicalColour.Black	= yMax
 firstRank _				= yMin
 
 -- | The final /rank/; i.e. the one on which a @Pawn@ is promoted.
-lastRank :: Enum y => Attribute.LogicalColour.LogicalColour -> y
+lastRank :: Attribute.LogicalColour.LogicalColour -> Type.Length.Y
 lastRank	= firstRank . Property.Opposable.getOpposite
 
 -- | The /rank/ from which @Pawn@s conventionally start.
-pawnsFirstRank :: Enum y => Attribute.LogicalColour.LogicalColour -> y
+pawnsFirstRank :: Attribute.LogicalColour.LogicalColour -> Type.Length.Y
 {-# INLINE pawnsFirstRank #-}
 pawnsFirstRank Attribute.LogicalColour.Black	= pred yMax
 pawnsFirstRank _				= succ yMin
 
 -- | The /rank/ from which a @Pawn@ may capture /en-passant/.
-enPassantRank :: Enum y => Attribute.LogicalColour.LogicalColour -> y
+enPassantRank :: Attribute.LogicalColour.LogicalColour -> Type.Length.Y
 {-# INLINE enPassantRank #-}
-enPassantRank Attribute.LogicalColour.Black	= toEnum $ yOrigin + 3
-enPassantRank _					= toEnum $ yOrigin + 4
+enPassantRank Attribute.LogicalColour.Black	= fromIx 3
+enPassantRank _					= fromIx 4
 
 -- | Reflects about the mid-point of the axis.
-reflect :: Enum y => y -> y
+reflect :: Type.Length.Y -> Type.Length.Y
 reflect	= Data.Enum.translate $ (
 	+ (2 * yOrigin + fromIntegral (pred yLength))
  ) . negate
 
 -- | Predicate.
-inBounds :: (Enum y, Ord y) => y -> Bool
+inBounds :: Type.Length.Y -> Bool
 {-# INLINE inBounds #-}
 inBounds y	= y >= yMin && y <= yMax
 
 -- | Translate the specified ordinate.
-translate :: (Enum y, Ord y) => (y -> y) -> y -> y
+translate :: (Type.Length.Y -> Type.Length.Y) -> Type.Length.Y -> Type.Length.Y
 translate transformation	= (\y -> Control.Exception.assert (inBounds y) y) . transformation
 
 -- | Where legal, translate the specified ordinate.
-maybeTranslate :: (Enum y, Ord y) => (y -> y) -> y -> Maybe y
+maybeTranslate :: (Type.Length.Y -> Type.Length.Y) -> Type.Length.Y -> Maybe Type.Length.Y
 maybeTranslate transformation	= (
 	\y -> if inBounds y
 		then Just y
 		else Nothing
  ) . transformation
-
-
--- | A boxed array indexed by /coordinates/, of arbitrary elements.
-type ArrayByOrdinate y	= Data.Array.IArray.Array {-Boxed-} y
-
--- | Array-constructor.
-listArrayByOrdinate :: (
-	Data.Array.IArray.IArray	a e,
-	Data.Array.IArray.Ix		y,
-	Enum				y
- ) => [e] -> a y e
-listArrayByOrdinate	= Data.Array.IArray.listArray yBounds
 

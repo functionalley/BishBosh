@@ -1,4 +1,3 @@
-{-# LANGUAGE FlexibleInstances, MultiParamTypeClasses #-}
 {-
 	Copyright (C) 2018 Dr. Alistair Ward
 
@@ -112,8 +111,8 @@ import qualified	ToolShed.Data.List.Runlength
 
 	* N.B.: this could be implemented using 'Data.Vector.Vector', which being indexed by 'Int' is no longer polymorphic & permits many unsafe operations; but the result is no faster.
 -}
-newtype MaybePieceByCoordinates x y	= MkMaybePieceByCoordinates {
-	deconstruct	:: Cartesian.Coordinates.ArrayByCoordinates x y (
+newtype MaybePieceByCoordinates	= MkMaybePieceByCoordinates {
+	deconstruct	:: Cartesian.Coordinates.ArrayByCoordinates (
 		Maybe Component.Piece.Piece	-- Each square optionally contains a piece.
 	)
 } deriving (Eq, Ord)
@@ -126,28 +125,13 @@ rankSeparator	= '/'
 listToRaster :: [a] -> [[a]]
 listToRaster	= Data.List.Extra.chunksOf $ fromIntegral Cartesian.Abscissa.xLength {-CAVEAT: this also depends on the raster-order-}
 
-instance (
-	Enum	x,
-	Enum	y,
-	Ord	x,
-	Ord	y
- ) => Read (MaybePieceByCoordinates x y) where
+instance Read MaybePieceByCoordinates where
 	readsPrec _	= Property.ForsythEdwards.readsFEN
 
-instance (
-	Enum	x,
-	Enum	y,
-	Ord	x,
-	Ord	y
- ) => Show (MaybePieceByCoordinates x y) where
+instance Show MaybePieceByCoordinates where
 	showsPrec _	= Property.ForsythEdwards.showsFEN
 
-instance (
-	Enum	x,
-	Enum	y,
-	Ord	x,
-	Ord	y
- ) => Property.ExtendedPositionDescription.ReadsEPD (MaybePieceByCoordinates x y) where
+instance Property.ExtendedPositionDescription.ReadsEPD MaybePieceByCoordinates where
 	readsEPD s
 		| length rows /= fromIntegral Cartesian.Ordinate.yLength || any (
 			(/= fromIntegral Cartesian.Abscissa.xLength) . length
@@ -166,7 +150,7 @@ instance (
 				`elem` rankSeparator : concatMap Property.ExtendedPositionDescription.showEPD Component.Piece.range ++ concatMap show [1 .. Cartesian.Abscissa.xLength]
 			 ) $ Data.List.Extra.trimStart s
 
-instance Property.ExtendedPositionDescription.ShowsEPD (MaybePieceByCoordinates x y) where
+instance Property.ExtendedPositionDescription.ShowsEPD MaybePieceByCoordinates where
 	showsEPD MkMaybePieceByCoordinates { deconstruct = byCoordinates }	= foldr1 (
 		>>>	-- Render the line with the highest y-coordinate first.
 	 ) . Data.List.intersperse (
@@ -181,26 +165,11 @@ instance Property.ExtendedPositionDescription.ShowsEPD (MaybePieceByCoordinates 
 		) . ToolShed.Data.List.Runlength.encode
 	 ) . listToRaster $ Data.Foldable.toList byCoordinates
 
-instance (
-	Enum	x,
-	Enum	y,
-	Ord	x,
-	Ord	y
- ) => Property.ForsythEdwards.ReadsFEN (MaybePieceByCoordinates x y)
+instance Property.ForsythEdwards.ReadsFEN MaybePieceByCoordinates
 
-instance (
-	Enum	x,
-	Enum	y,
-	Ord	x,
-	Ord	y
- ) => Property.ForsythEdwards.ShowsFEN (MaybePieceByCoordinates x y)
+instance Property.ForsythEdwards.ShowsFEN MaybePieceByCoordinates
 
-instance (
-	Enum	x,
-	Enum	y,
-	Ord	x,
-	Ord	y
- ) => Data.Default.Default (MaybePieceByCoordinates x y) where
+instance Data.Default.Default MaybePieceByCoordinates where
 	def = Property.ForsythEdwards.readFEN . Data.List.intercalate [rankSeparator] $ map ($ Attribute.LogicalColour.Black) [
 		showNobility,
 		showPawnRow
@@ -215,44 +184,21 @@ instance (
 		showPawnRow logicalColour	= showPieces . replicate (fromIntegral Cartesian.Abscissa.xLength) $ Component.Piece.mkPawn logicalColour
 		showNobility logicalColour	= showPieces $ map (Component.Piece.mkPiece logicalColour) Attribute.Rank.nobility
 
-instance (
-	Enum	x,
-	Enum	y,
-	Ord	x,
-	Ord	y
- ) => Property.Reflectable.ReflectableOnX (MaybePieceByCoordinates x y) where
+instance Property.Reflectable.ReflectableOnX MaybePieceByCoordinates where
 	reflectOnX MkMaybePieceByCoordinates { deconstruct = byCoordinates }	= MkMaybePieceByCoordinates . Cartesian.Coordinates.arrayByCoordinates . map (
 		Property.Reflectable.reflectOnX *** fmap Property.Opposable.getOpposite
 	 ) $ Data.Array.IArray.assocs byCoordinates
 
-instance (
-	Enum	x,
-	Enum	y,
-	Ord	x,
-	Ord	y
- ) => Property.Reflectable.ReflectableOnY (MaybePieceByCoordinates x y) where
+instance Property.Reflectable.ReflectableOnY MaybePieceByCoordinates where
 	reflectOnY MkMaybePieceByCoordinates { deconstruct = byCoordinates }	= MkMaybePieceByCoordinates $ Data.Array.IArray.ixmap (minBound, maxBound) Property.Reflectable.reflectOnY byCoordinates
 
-instance (
-	Enum	x,
-	Enum	y,
-	Ord	x,
-	Ord	y
- ) => Property.Empty.Empty (MaybePieceByCoordinates x y) where
+instance Property.Empty.Empty MaybePieceByCoordinates where
 	empty	= MkMaybePieceByCoordinates . Cartesian.Coordinates.listArrayByCoordinates $ repeat Property.Empty.empty
 
-instance (
-	Control.DeepSeq.NFData	x,
-	Control.DeepSeq.NFData	y
- ) => Control.DeepSeq.NFData (MaybePieceByCoordinates x y) where
+instance Control.DeepSeq.NFData MaybePieceByCoordinates where
 	rnf MkMaybePieceByCoordinates { deconstruct = byCoordinates }	= Control.DeepSeq.rnf byCoordinates
 
-instance (
-	Enum	x,
-	Enum	y,
-	Ord	x,
-	Ord	y
- ) => StateProperty.Censor.Censor (MaybePieceByCoordinates x y) where
+instance StateProperty.Censor.Censor MaybePieceByCoordinates where
 	countPiecesByLogicalColour	= Data.List.foldl' (
 		\acc piece -> let
 			acc'@(nBlack, nWhite)	= (
@@ -300,13 +246,8 @@ instance (
 		([_], [_])	-> True
 		_		-> False
 
-instance (
-	Enum	x,
-	Enum	y,
-	Ord	x,
-	Ord	y
- ) => Component.Zobrist.Hashable2D MaybePieceByCoordinates x y {-CAVEAT: FlexibleInstances, MultiParamTypeClasses-} where
-	listRandoms2D MkMaybePieceByCoordinates { deconstruct = byCoordinates } zobrist	= [
+instance Component.Zobrist.Hashable MaybePieceByCoordinates where
+	listRandoms MkMaybePieceByCoordinates { deconstruct = byCoordinates } zobrist	= [
 		Component.Zobrist.dereferenceRandomByCoordinatesByRankByLogicalColour (Component.Piece.getLogicalColour piece, Component.Piece.getRank piece, coordinates) zobrist |
 			(coordinates, Just piece)	<- Data.Array.IArray.assocs byCoordinates
 	 ] -- List-comprehension.
@@ -318,13 +259,7 @@ instance (
 
 	* CAVEAT: less efficient than 'State.CoordinatesByRankByLogicalColour.findProximateKnights'.
 -}
-instance (
-	Enum	x,
-	Enum	y,
-	Ord	x,
-	Ord	y
- ) => StateProperty.Seeker.Seeker MaybePieceByCoordinates x y {-CAVEAT: MultiParamTypeClasses-} where
-	{-# SPECIALISE instance StateProperty.Seeker.Seeker MaybePieceByCoordinates Type.Length.X Type.Length.Y #-}
+instance StateProperty.Seeker.Seeker MaybePieceByCoordinates where
 	findProximateKnights logicalColour destination MkMaybePieceByCoordinates { deconstruct = byCoordinates }	= filter (
 		(== Just knight) . (byCoordinates !)
 	 ) $ Component.Piece.findAttackDestinations destination knight where
@@ -336,44 +271,25 @@ instance (
 			predicate piece
 	 ] -- List-comprehension.
 
-instance (
-	Enum	x,
-	Enum	y,
-	Ord	x,
-	Ord	y
- ) => StateProperty.Mutator.Mutator MaybePieceByCoordinates x y {-CAVEAT: MultiParamTypeClasses-} where
-	{-# SPECIALISE instance StateProperty.Mutator.Mutator MaybePieceByCoordinates Type.Length.X Type.Length.Y #-}
+instance StateProperty.Mutator.Mutator MaybePieceByCoordinates where
 	defineCoordinates maybePiece coordinates MkMaybePieceByCoordinates { deconstruct = byCoordinates }	= Control.Exception.assert (
 		Data.Maybe.isJust maybePiece || Data.Maybe.isJust (byCoordinates ! coordinates)
 	 ) . MkMaybePieceByCoordinates $ byCoordinates // [(coordinates, maybePiece)]
 
 -- | Dereference the array.
-dereference :: (
-	Enum	x,
-	Enum	y,
-	Ord	x,
-	Ord	y
- )
-	=> Cartesian.Coordinates.Coordinates x y
-	-> MaybePieceByCoordinates x y
+dereference
+	:: Cartesian.Coordinates.Coordinates
+	-> MaybePieceByCoordinates
 	-> Maybe Component.Piece.Piece
 {-# INLINE dereference #-}
 dereference coordinates MkMaybePieceByCoordinates { deconstruct = byCoordinates }	= byCoordinates ! coordinates
 
 -- | Infer the type of the specified /move/.
-inferMoveType :: (
-	Enum	x,
-	Enum	y,
-	Ord	x,
-	Ord	y,
-	Show	x,
-	Show	y
- )
-	=> Component.Move.Move x y
+inferMoveType
+	:: Component.Move.Move
 	-> Maybe Attribute.Rank.Rank	-- ^ The /rank/ to which a @Pawn@ should be promoted; defaulting to @Queen@.
-	-> MaybePieceByCoordinates x y
+	-> MaybePieceByCoordinates
 	-> Attribute.MoveType.MoveType
-{-# SPECIALISE inferMoveType :: Component.Move.Move Type.Length.X Type.Length.Y -> Maybe Attribute.Rank.Rank -> MaybePieceByCoordinates Type.Length.X Type.Length.Y -> Attribute.MoveType.MoveType #-}
 inferMoveType move maybePromotionRank maybePieceByCoordinates@MkMaybePieceByCoordinates { deconstruct = byCoordinates }
 	| Just sourcePiece <- byCoordinates ! Component.Move.getSource move	= Data.Maybe.maybe (
 		if isEnPassantMove move maybePieceByCoordinates
@@ -405,17 +321,11 @@ inferMoveType move maybePromotionRank maybePieceByCoordinates@MkMaybePieceByCoor
 
 	* CAVEAT: doesn't typically check whether anything (let alone the specified /piece/) exists at the specified source-/coordinates/.
 -}
-listDestinationsFor :: (
-	Enum	x,
-	Enum	y,
-	Ord	x,
-	Ord	y
- )
-	=> Cartesian.Coordinates.Coordinates x y				-- ^ The source for which destinations are required.
+listDestinationsFor
+	:: Cartesian.Coordinates.Coordinates					-- ^ The source for which destinations are required.
 	-> Component.Piece.Piece						-- ^ The /piece/ at the specified source.
-	-> MaybePieceByCoordinates x y
-	-> [(Cartesian.Coordinates.Coordinates x y, Maybe Attribute.Rank.Rank)]	-- ^ The destination & the rank of any piece taken.
-{-# SPECIALISE listDestinationsFor :: Cartesian.Coordinates.Coordinates Type.Length.X Type.Length.Y -> Component.Piece.Piece -> MaybePieceByCoordinates Type.Length.X Type.Length.Y -> [(Cartesian.Coordinates.Coordinates Type.Length.X Type.Length.Y, Maybe Attribute.Rank.Rank)] #-}
+	-> MaybePieceByCoordinates
+	-> [(Cartesian.Coordinates.Coordinates, Maybe Attribute.Rank.Rank)]	-- ^ The destination & the rank of any piece taken.
 listDestinationsFor source piece maybePieceByCoordinates@MkMaybePieceByCoordinates { deconstruct = byCoordinates }	= Control.Exception.assert (
 	byCoordinates ! source == Just piece
  ) $ if Component.Piece.getRank piece `elem` Attribute.Rank.fixedAttackRange
@@ -430,7 +340,7 @@ listDestinationsFor source piece maybePieceByCoordinates@MkMaybePieceByCoordinat
 		then findAttackDestinations (
 			Data.Maybe.maybe False {-unoccupied-} $ (/= logicalColour) . Component.Piece.getLogicalColour
 		) ++ let
-			advance	:: (Enum y, Ord y) => Cartesian.Coordinates.Coordinates x y -> Cartesian.Coordinates.Coordinates x y
+			advance	:: Cartesian.Coordinates.Coordinates -> Cartesian.Coordinates.Coordinates
 			advance	= Cartesian.Coordinates.advance logicalColour
 
 			advancedLocation	= advance source
@@ -464,17 +374,12 @@ listDestinationsFor source piece maybePieceByCoordinates@MkMaybePieceByCoordinat
 		logicalColour	= Component.Piece.getLogicalColour piece
 
 -- | Show the /board/ in two dimensions, with /x/ & /y/ indexes.
-shows2D :: (
-	Enum	x,
-	Enum	y,
-	Ord	x,
-	Ord	y
- )
-	=> Type.Length.Column	-- ^ The column-magnification.
+shows2D
+	:: Type.Length.Column	-- ^ The column-magnification.
 	-> Attribute.ColourScheme.ColourScheme
 	-> Bool			-- ^ Whether to depict pieces as Unicode figurines.
 	-> (Int, Int)		-- ^ The origin from which axes are labelled.
-	-> MaybePieceByCoordinates x y
+	-> MaybePieceByCoordinates
 	-> ShowS		-- ^ Output suitable for display on a terminal.
 shows2D boardColumnMagnification colourScheme depictFigurine (xOrigin, yOrigin) MkMaybePieceByCoordinates { deconstruct = byCoordinates }	= (
 	foldr (
@@ -518,22 +423,17 @@ shows2D boardColumnMagnification colourScheme depictFigurine (xOrigin, yOrigin) 
 	showsReset	= showString $ Attribute.ANSIColourCode.selectGraphicsRendition False Data.Default.def
 
 -- | Show the board using a two-dimensional representation.
-show2D :: (
-	Enum	x,
-	Enum	y,
-	Ord	x,
-	Ord	y
- )
-	=> Type.Length.Column	-- ^ The column-magnification.
+show2D
+	:: Type.Length.Column	-- ^ The column-magnification.
 	-> Attribute.ColourScheme.ColourScheme
 	-> Bool			-- ^ Whether to depict figurines.
 	-> (Int, Int)		-- ^ The origin from which axes are labelled.
-	-> MaybePieceByCoordinates x y
+	-> MaybePieceByCoordinates
 	-> String		-- ^ The output suitable for display on a terminal.
 show2D boardColumnMagnification colourScheme depictFigurine (xOrigin, yOrigin) maybePieceByCoordinates	= shows2D boardColumnMagnification colourScheme depictFigurine (xOrigin, yOrigin) maybePieceByCoordinates ""
 
 -- | Extract the pieces from the board, discarding their coordinates.
-getPieces :: MaybePieceByCoordinates x y -> [Component.Piece.Piece]
+getPieces :: MaybePieceByCoordinates -> [Component.Piece.Piece]
 getPieces MkMaybePieceByCoordinates { deconstruct = byCoordinates }	= Data.Maybe.catMaybes $ Data.Foldable.toList byCoordinates
 
 {- |
@@ -541,35 +441,11 @@ getPieces MkMaybePieceByCoordinates { deconstruct = byCoordinates }	= Data.Maybe
 
 	* CAVEAT: this is a performance-hotspot.
 -}
-findBlockingPiece :: (
-	Enum	x,
-	Enum	y,
-	Ord	x,
-	Ord	y
- )
-	=> Attribute.Direction.Direction		-- ^ The direction in which to search.
-	-> Cartesian.Coordinates.Coordinates x y	-- ^ The starting point.
-	-> MaybePieceByCoordinates x y
-	-> Maybe (Component.Piece.LocatedPiece x y)
-{-# SPECIALISE findBlockingPiece :: Attribute.Direction.Direction -> Cartesian.Coordinates.Coordinates Type.Length.X Type.Length.Y -> MaybePieceByCoordinates Type.Length.X Type.Length.Y -> Maybe (Component.Piece.LocatedPiece Type.Length.X Type.Length.Y) #-}
-{- CAVEAT: too slow.
-findBlockingPiece direction source MkMaybePieceByCoordinates { deconstruct = byCoordinates }	= Data.Maybe.listToMaybe . Data.Maybe.mapMaybe (
-	uncurry fmap . ((,) &&& (byCoordinates !))
- ) $ Cartesian.Coordinates.extrapolate direction source
-findBlockingPiece direction source maybePieceByCoordinates	= fmap (
-	id &&& Data.Maybe.fromJust . (deconstruct maybePieceByCoordinates !)
- ) . Data.List.find (`isOccupied` maybePieceByCoordinates) $ Cartesian.Coordinates.extrapolate direction source
-findBlockingPiece direction source MkMaybePieceByCoordinates { deconstruct = byCoordinates }	= slave $ Cartesian.Coordinates.extrapolate direction source where
-	slave (coordinates : remainder)	= case byCoordinates ! coordinates of
-		Nothing		-> slave remainder	-- Recurse.
-		Just piece	-> Just (coordinates, piece)
-	slave _				= Nothing
-findBlockingPiece direction source MkMaybePieceByCoordinates { deconstruct = byCoordinates }	= Data.Maybe.listToMaybe [
-	(coordinates, piece) |
-		coordinates	<- Cartesian.Coordinates.extrapolate direction source,
-		piece		<- Data.Maybe.maybeToList $ byCoordinates ! coordinates
- ] -- List-comprehension.
--}
+findBlockingPiece
+	:: Attribute.Direction.Direction	-- ^ The direction in which to search.
+	-> Cartesian.Coordinates.Coordinates	-- ^ The starting point.
+	-> MaybePieceByCoordinates
+	-> Maybe Component.Piece.LocatedPiece
 findBlockingPiece direction source MkMaybePieceByCoordinates { deconstruct = byCoordinates }	= Data.Maybe.listToMaybe [
 	(coordinates, piece) |
 		(coordinates, Just piece)	<- map (id &&& (byCoordinates !)) $ Cartesian.Coordinates.extrapolate direction source
@@ -580,18 +456,12 @@ findBlockingPiece direction source MkMaybePieceByCoordinates { deconstruct = byC
 
 	* N.B.: there no requirement for there to actually be a /piece/ to attack at the specified target.
 -}
-findAttackerInDirection :: (
-	Enum	x,
-	Enum	y,
-	Ord	x,
-	Ord	y
- )
-	=> Attribute.LogicalColour.LogicalColour				-- ^ The defender's /logical colour/.
+findAttackerInDirection
+	:: Attribute.LogicalColour.LogicalColour				-- ^ The defender's /logical colour/.
 	-> Attribute.Direction.Direction					-- ^ The /direction/ from the /coordinates/ of concern; the opposite /direction/ from which an attacker might strike.
-	-> Cartesian.Coordinates.Coordinates x y				-- ^ The defender's square.
-	-> MaybePieceByCoordinates x y
-	-> Maybe (Cartesian.Coordinates.Coordinates x y, Attribute.Rank.Rank)	-- ^ Any opposing /piece/ which can attack the specified square from the specified /direction/.
-{-# SPECIALISE findAttackerInDirection :: Attribute.LogicalColour.LogicalColour -> Attribute.Direction.Direction -> Cartesian.Coordinates.Coordinates Type.Length.X Type.Length.Y -> MaybePieceByCoordinates Type.Length.X Type.Length.Y -> Maybe (Cartesian.Coordinates.Coordinates Type.Length.X Type.Length.Y, Attribute.Rank.Rank) #-}
+	-> Cartesian.Coordinates.Coordinates					-- ^ The defender's square.
+	-> MaybePieceByCoordinates
+	-> Maybe (Cartesian.Coordinates.Coordinates, Attribute.Rank.Rank)	-- ^ Any opposing /piece/ which can attack the specified square from the specified /direction/.
 findAttackerInDirection destinationLogicalColour direction destination	= (=<<) (
 	\(source, sourcePiece) -> if Component.Piece.getLogicalColour sourcePiece /= destinationLogicalColour && Component.Piece.canAttackAlong source destination sourcePiece
 		then Just (source, Component.Piece.getRank sourcePiece)
@@ -599,27 +469,17 @@ findAttackerInDirection destinationLogicalColour direction destination	= (=<<) (
  ) . findBlockingPiece direction destination
 
 -- | Whether the specified /coordinates/ are unoccupied.
-isVacant :: (
-	Enum	x,
-	Enum	y,
-	Ord	x,
-	Ord	y
- )
-	=> Cartesian.Coordinates.Coordinates x y
-	-> MaybePieceByCoordinates x y
+isVacant
+	:: Cartesian.Coordinates.Coordinates
+	-> MaybePieceByCoordinates
 	-> Bool
 {-# INLINE isVacant #-}
 isVacant coordinates MkMaybePieceByCoordinates { deconstruct = byCoordinates }	= Data.Maybe.isNothing $ byCoordinates ! coordinates
 
 -- | Whether the specified /coordinates/ are occupied.
-isOccupied :: (
-	Enum	x,
-	Enum	y,
-	Ord	x,
-	Ord	y
- )
-	=> Cartesian.Coordinates.Coordinates x y
-	-> MaybePieceByCoordinates x y
+isOccupied
+	:: Cartesian.Coordinates.Coordinates
+	-> MaybePieceByCoordinates
 	-> Bool
 {-# INLINE isOccupied #-}
 isOccupied coordinates	= not . isVacant coordinates
@@ -631,34 +491,22 @@ isOccupied coordinates	= not . isVacant coordinates
 
 	* N.B.: the specified end-points are uninspected.
 -}
-isClear :: (
-	Enum	x,
-	Enum	y,
-	Ord	x,
-	Ord	y
- )
-	=> Cartesian.Coordinates.Coordinates x y	-- ^ Source.
-	-> Cartesian.Coordinates.Coordinates x y	-- ^ Destination.
-	-> MaybePieceByCoordinates x y
+isClear
+	:: Cartesian.Coordinates.Coordinates	-- ^ Source.
+	-> Cartesian.Coordinates.Coordinates	-- ^ Destination.
+	-> MaybePieceByCoordinates
 	-> Bool
 {-# INLINABLE isClear #-}	-- N.B.: required to ensure specialisation of 'Cartesian.Coordinates.interpolate'.
-{-# SPECIALISE isClear :: Cartesian.Coordinates.Coordinates Type.Length.X Type.Length.Y -> Cartesian.Coordinates.Coordinates Type.Length.X Type.Length.Y -> MaybePieceByCoordinates Type.Length.X Type.Length.Y -> Bool #-}
 isClear source destination maybePieceByCoordinates	= Control.Exception.assert (
 	source /= destination && Property.Orientated.isStraight (Component.Move.mkMove source destination)
  ) . all (`isVacant` maybePieceByCoordinates) . init {-discard the destination-} $ Cartesian.Coordinates.interpolate source destination
 
 -- | Whether there's a blockage between a /piece/ presumed to exist at the specified source, & a /piece/ presumed to exist @ the specified destination.
-isObstructed :: (
-	Enum	x,
-	Enum	y,
-	Ord	x,
-	Ord	y
- )
-	=> Cartesian.Coordinates.Coordinates x y	-- ^ Source.
-	-> Cartesian.Coordinates.Coordinates x y	-- ^ Destination.
-	-> MaybePieceByCoordinates x y
+isObstructed
+	:: Cartesian.Coordinates.Coordinates	-- ^ Source.
+	-> Cartesian.Coordinates.Coordinates	-- ^ Destination.
+	-> MaybePieceByCoordinates
 	-> Bool
-{-# SPECIALISE isObstructed :: Cartesian.Coordinates.Coordinates Type.Length.X Type.Length.Y -> Cartesian.Coordinates.Coordinates Type.Length.X Type.Length.Y -> MaybePieceByCoordinates Type.Length.X Type.Length.Y -> Bool #-}
 isObstructed source destination	= not . isClear source destination
 
 {- |
@@ -667,16 +515,10 @@ isObstructed source destination	= not . isClear source destination
 	* CAVEAT: assumes that the /move/ is valid;
 	otherwise one would also need to confirm that the opponent's @Pawn@ had just double-advanced into the appropriate position.
 -}
-isEnPassantMove :: (
-	Enum	x,
-	Enum	y,
-	Ord	x,
-	Ord	y
- )
-	=> Component.Move.Move x y
-	-> MaybePieceByCoordinates x y
+isEnPassantMove
+	:: Component.Move.Move
+	-> MaybePieceByCoordinates
 	-> Bool
-{-# SPECIALISE isEnPassantMove :: Component.Move.Move Type.Length.X Type.Length.Y -> MaybePieceByCoordinates Type.Length.X Type.Length.Y -> Bool #-}
 isEnPassantMove move maybePieceByCoordinates@MkMaybePieceByCoordinates { deconstruct = byCoordinates }
 	| Just piece	<- byCoordinates ! source
 	, let logicalColour	= Component.Piece.getLogicalColour piece
@@ -686,24 +528,18 @@ isEnPassantMove move maybePieceByCoordinates@MkMaybePieceByCoordinates { deconst
 		(source, destination)	= Component.Move.getSource &&& Component.Move.getDestination $ move
 
 -- | Self-documentation.
-type Transformation x y	= MaybePieceByCoordinates x y -> MaybePieceByCoordinates x y
+type Transformation	= MaybePieceByCoordinates -> MaybePieceByCoordinates
 
 {- |
 	* Adjust the array to reflect a move.
 
 	* CAVEAT: regrettably this allocates an entire array.
 -}
-movePiece :: (
-	Enum	x,
-	Enum	y,
-	Ord	x,
-	Ord	y
- )
-	=> Component.Move.Move x y
-	-> Component.Piece.Piece				-- ^ The (possibly promoted) piece to place at the destination.
-	-> Maybe (Cartesian.Coordinates.Coordinates x y)	-- ^ Destination of any En-passant @Pawn@.
-	-> Transformation x y
-{-# SPECIALISE movePiece :: Component.Move.Move Type.Length.X Type.Length.Y -> Component.Piece.Piece -> Maybe (Cartesian.Coordinates.Coordinates Type.Length.X Type.Length.Y) -> Transformation Type.Length.X Type.Length.Y #-}
+movePiece
+	:: Component.Move.Move
+	-> Component.Piece.Piece			-- ^ The (possibly promoted) piece to place at the destination.
+	-> Maybe Cartesian.Coordinates.Coordinates	-- ^ Destination of any En-passant @Pawn@.
+	-> Transformation
 movePiece move destinationPiece maybeEnPassantDestination MkMaybePieceByCoordinates { deconstruct = byCoordinates }	= MkMaybePieceByCoordinates $ byCoordinates // Data.Maybe.maybe id (
 	(:) . flip (,) Nothing	-- Take the Pawn en-passant.
  ) maybeEnPassantDestination [
@@ -717,17 +553,12 @@ movePiece move destinationPiece maybeEnPassantDestination MkMaybePieceByCoordina
  ]
 
 -- | Calculate the total value of the /coordinates/ occupied by the /piece/s of either side.
-sumPieceSquareValueByLogicalColour :: (
-	Enum	x,
-	Enum	y,
-	Num	pieceSquareValue,
-	Ord	x,
-	Ord	y
- )
-	=> Component.PieceSquareByCoordinatesByRank.FindPieceSquareValue x y pieceSquareValue
-	-> MaybePieceByCoordinates x y
+sumPieceSquareValueByLogicalColour
+	:: Num pieceSquareValue
+	=> Component.PieceSquareByCoordinatesByRank.FindPieceSquareValue pieceSquareValue
+	-> MaybePieceByCoordinates
 	-> [pieceSquareValue]
-{-# SPECIALISE sumPieceSquareValueByLogicalColour :: Component.PieceSquareByCoordinatesByRank.FindPieceSquareValue Type.Length.X Type.Length.Y Type.Mass.PieceSquareValue -> MaybePieceByCoordinates Type.Length.X Type.Length.Y -> [Type.Mass.PieceSquareValue] #-}
+{-# SPECIALISE sumPieceSquareValueByLogicalColour :: Component.PieceSquareByCoordinatesByRank.FindPieceSquareValue Type.Mass.PieceSquareValue -> MaybePieceByCoordinates -> [Type.Mass.PieceSquareValue] #-}
 sumPieceSquareValueByLogicalColour findPieceSquareValue	= (
 	\(b, w) -> [b, w]
  ) . Data.List.foldl' (

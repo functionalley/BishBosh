@@ -1,5 +1,6 @@
+{-# OPTIONS_GHC -fno-warn-orphans #-}
 {-
-	Copyright (C) 2018 Dr. Alistair Ward
+	Copyright (C) 2021 Dr. Alistair Ward
 
 	This file is part of BishBosh.
 
@@ -19,19 +20,14 @@
 {- |
  [@AUTHOR@]	Dr. Alistair Ward
 
- [@DESCRIPTION@]
-
-	* An interface for data which can support the concept of being null.
+ [@DESCRIPTION@]	Implements 'Test.QuickCheck.Arbitrary'
 -}
 
-module BishBosh.Property.Null(
--- * Type-classes
-	Null(..)
-) where
+module BishBosh.Test.QuickCheck.Type.Count() where
 
-import	Prelude(Bool)
+import qualified	BishBosh.Type.Count	as Type.Count
+import qualified	Test.QuickCheck
 
--- | An interface for data which can support the concept of being null.
-class Null a where
-	isNull	:: a -> Bool	-- ^ Predicate. N.B.: similar to 'Data.Foldable.null', but for unfoldable types.
+instance Test.QuickCheck.Arbitrary Type.Count.NPlies where
+	arbitrary	= toEnum <$> Test.QuickCheck.elements [0 .. 9]
 

@@ -64,14 +64,6 @@ flag llvm
     Default:		False
 
 -- Automatically disabled when the required package isn't available.
--- To access Parsec's more precise error-messages, manually disable using one of:
---	runhaskell Setup configure -f -polyparse --verbose;
---	stack build --flag 'bishbosh:-polyparse' --cabal-verbose;
-flag polyparse
-    Description:	Link with package "polyparse" when available, rather than "parsec".
-    Default:		True
-
--- Automatically disabled when the required package isn't available.
 -- To force validation of the XML-configuration against the packaged DTD, manually disable using one of:
 --	runhaskell Setup configure -f -hxtrelaxng --verbose;
 --	stack build --flag 'bishbosh:-hxtrelaxng' --cabal-verbose;
@@ -90,6 +82,14 @@ flag newtypewrappers
     Description:	Wrap common types in newtype for increased type-safety.
     Manual:		True
     Default:		False
+
+-- Automatically disabled when the required package isn't available.
+-- To access Parsec's more precise error-messages, manually disable using one of:
+--	runhaskell Setup configure -f -polyparse --verbose;
+--	stack build --flag 'bishbosh:-polyparse' --cabal-verbose;
+flag polyparse
+    Description:	Link with package "polyparse" when available, rather than "parsec".
+    Default:		True
 
 -- Concurrency is used to implement Pondering, & parallelism is used when searching through archived games.
 flag threaded
@@ -266,18 +266,18 @@ Library
         else
             GHC-prof-options:	-auto-all -caf-all
 
+    if flag(narrownumbers)
+        CPP-Options:		-DUSE_NARROW_NUMBERS
+
+    if flag(newtypewrappers)
+        CPP-Options:		-DUSE_NEWTYPE_WRAPPERS
+
     if flag(polyparse)
         Build-depends:		polyparse
         CPP-Options:		-DUSE_POLYPARSE=2
         Exposed-modules:	BishBosh.Text.Poly
     else
         Build-depends:		parsec
-
-    if flag(narrownumbers)
-        CPP-Options:		-DUSE_NARROW_NUMBERS
-
-    if flag(newtypewrappers)
-        CPP-Options:		-DUSE_NEWTYPE_WRAPPERS
 
     if flag(threaded)
         Build-depends:		parallel >= 3.0
@@ -521,6 +521,9 @@ Test-Suite quickcheck-tests
         BishBosh.Test.QuickCheck.UI.ReportObject
         BishBosh.Test.QuickCheck.UI.SetObject
 
+    if flag(newtypewrappers)
+        Other-modules:	BishBosh.Test.QuickCheck.Type.Count
+
     Build-depends:
         array >= 0.5.1.1,
         base >= 4.9 && < 5.0,
@@ -537,6 +540,9 @@ Test-Suite quickcheck-tests
 
     if impl(ghc >= 8.0)
         GHC-options:	-Wredundant-constraints
+
+    if flag(newtypewrappers)
+        CPP-Options:	-DUSE_NEWTYPE_WRAPPERS
 
     if flag(polyparse)
         Build-depends:	polyparse

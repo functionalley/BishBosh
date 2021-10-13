@@ -23,9 +23,6 @@
 -}
 
 module BishBosh.Test.HUnit.State.Board(
--- * Types
--- ** Type-synonyms
-	Board,
 -- * Constants
 	testCases
 ) where
@@ -45,8 +42,6 @@ import qualified	BishBosh.State.Board				as State.Board
 import qualified	BishBosh.State.CoordinatesByRankByLogicalColour	as State.CoordinatesByRankByLogicalColour
 import qualified	BishBosh.State.MaybePieceByCoordinates		as State.MaybePieceByCoordinates
 import qualified	BishBosh.StateProperty.Mutator			as StateProperty.Mutator
-import qualified	BishBosh.Test.HUnit.Cartesian.Coordinates	as Test.HUnit.Cartesian.Coordinates
-import qualified	BishBosh.Type.Length				as Type.Length
 import qualified	Control.Arrow
 import qualified	Data.Array.IArray
 import qualified	Data.Default
@@ -57,16 +52,13 @@ import qualified	Test.HUnit
 import qualified	ToolShed.Data.Foldable
 import			Test.HUnit((~:), (~?=), (~?))
 
--- | Defines a concrete type for testing.
-type Board	= State.Board.Board Type.Length.X Type.Length.Y
-
 -- | Check the sanity of the implementation, by validating a list of static test-cases.
 testCases :: Test.HUnit.Test
 testCases	= Test.HUnit.test [
 	"'BishBosh.Cartesian.Coordinates' failed to locate the expected pieces on a default board." ~: (
 		map length . ToolShed.Data.Foldable.gather $ map (
 			`State.MaybePieceByCoordinates.dereference` Data.Default.def
-		) (Property.FixedMembership.members :: [Test.HUnit.Cartesian.Coordinates.Coordinates])
+		) (Property.FixedMembership.members :: [Cartesian.Coordinates.Coordinates])
 	) ~?= [32, 8, 2, 2, 2, 1, 1, 8, 2, 2, 2, 1, 1],
 	let
 		kingsColour		= minBound
@@ -74,7 +66,7 @@ testCases	= Test.HUnit.test [
 		directionToCoordinates	= last . (`Cartesian.Coordinates.extrapolate` destination)
 		mkPiece			= Component.Piece.mkPiece $ Property.Opposable.getOpposite kingsColour
 
-		maybeShift :: Cartesian.Vector.VectorInt -> Maybe Test.HUnit.Cartesian.Coordinates.Coordinates
+		maybeShift :: Cartesian.Vector.VectorInt -> Maybe Cartesian.Coordinates.Coordinates
 		maybeShift	= Cartesian.Vector.maybeTranslate destination
 	in all (
 		State.Board.isKingChecked kingsColour . placePieces . (:) (Component.Piece.mkKing kingsColour, destination) . return {-to List-monad-}
@@ -299,7 +291,7 @@ testCases	= Test.HUnit.test [
 	Data.Foldable.all (
 		Data.Foldable.all (== 1)
 	) (
-		State.CoordinatesByRankByLogicalColour.countPawnsByFileByLogicalColour $ State.Board.getCoordinatesByRankByLogicalColour (Data.Default.def :: Board)
+		State.CoordinatesByRankByLogicalColour.countPawnsByFileByLogicalColour $ State.Board.getCoordinatesByRankByLogicalColour (Data.Default.def :: State.Board.Board)
 	) ~? "'BishBosh.State.Board.countPawnsByFileByLogicalColour': failed for default board",
 	(
 		(== [(0, 3), (2, 2), (4, 1)]) . Map.toList . (! maxBound) . State.CoordinatesByRankByLogicalColour.countPawnsByFileByLogicalColour . State.Board.getCoordinatesByRankByLogicalColour . placePieces $ map (
@@ -315,7 +307,7 @@ testCases	= Test.HUnit.test [
 	) ~? "'BishBosh.State.Board.countPawnsByFileByLogicalColour': failed",
 	(
 		Map.unions (
-			Data.Foldable.toList $ State.Board.countDefendersByCoordinatesByLogicalColour (Data.Default.def :: Board)
+			Data.Foldable.toList $ State.Board.countDefendersByCoordinatesByLogicalColour (Data.Default.def :: State.Board.Board)
 		) == foldr (
 			Map.delete . Cartesian.Coordinates.kingsStartingCoordinates
 		) (
@@ -337,6 +329,6 @@ testCases	= Test.HUnit.test [
 		) Property.FixedMembership.members
 	) ~? "'BoshBosh.State.Board.countDefendersByCoordinatesByLogicalColour': failed"
  ] where
-	placePieces :: [(Component.Piece.Piece, Test.HUnit.Cartesian.Coordinates.Coordinates)] -> Board
+	placePieces :: [(Component.Piece.Piece, Cartesian.Coordinates.Coordinates)] -> State.Board.Board
 	placePieces	= StateProperty.Mutator.placeAllPieces
 

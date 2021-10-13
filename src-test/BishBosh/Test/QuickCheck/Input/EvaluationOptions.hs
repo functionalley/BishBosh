@@ -31,22 +31,20 @@ module BishBosh.Test.QuickCheck.Input.EvaluationOptions(
 	results
 ) where
 
-import			BishBosh.Data.Bool()
-import			BishBosh.Test.QuickCheck.Attribute.Rank()
 import			BishBosh.Test.QuickCheck.Input.CriteriaWeights()
 import			BishBosh.Test.QuickCheck.Input.PieceSquareTable()
 import			BishBosh.Test.QuickCheck.Input.RankValues()
+import			BishBosh.Test.QuickCheck.State.Board()
 import			Control.Arrow((&&&))
 import qualified	BishBosh.Component.PieceSquareByCoordinatesByRank	as Component.PieceSquareByCoordinatesByRank
 import qualified	BishBosh.Input.CriteriaWeights				as Input.CriteriaWeights
 import qualified	BishBosh.Input.EvaluationOptions			as Input.EvaluationOptions
 import qualified	BishBosh.Input.PieceSquareTable				as Input.PieceSquareTable
+import qualified	BishBosh.Input.RankValues				as Input.RankValues
 import qualified	BishBosh.Property.Reflectable				as Property.Reflectable
 import qualified	BishBosh.State.Board					as State.Board
 import qualified	BishBosh.State.CoordinatesByRankByLogicalColour		as State.CoordinatesByRankByLogicalColour
 import qualified	BishBosh.State.MaybePieceByCoordinates			as State.MaybePieceByCoordinates
-import qualified	BishBosh.Test.QuickCheck.State.Board			as Test.QuickCheck.State.Board
-import qualified	BishBosh.Type.Length					as Type.Length
 import qualified	BishBosh.Type.Mass					as Type.Mass
 import qualified	Data.Array.IArray
 import qualified	Data.List
@@ -56,22 +54,19 @@ import qualified	Test.QuickCheck
 import			Test.QuickCheck((==>))
 
 -- | Defines a concrete type for testing.
-type EvaluationOptions	= Input.EvaluationOptions.EvaluationOptions Type.Mass.PieceSquareValue Type.Length.X Type.Length.Y
+type EvaluationOptions	= Input.EvaluationOptions.EvaluationOptions Type.Mass.PieceSquareValue
 
 instance (
-	Enum		x,
-	Enum		y,
 	Fractional	pieceSquareValue,
 	Ord		pieceSquareValue,
-	Ord		x,
-	Ord		y,
 	Show		pieceSquareValue
- ) => Test.QuickCheck.Arbitrary (Input.EvaluationOptions.EvaluationOptions pieceSquareValue x y) where
---	{-# SPECIALISE instance Test.QuickCheck.Arbitrary EvaluationOptions #-}
+ ) => Test.QuickCheck.Arbitrary (Input.EvaluationOptions.EvaluationOptions pieceSquareValue) where
+	{-# SPECIALISE instance Test.QuickCheck.Arbitrary EvaluationOptions #-}
 	arbitrary	= do
-		criteriaWeights	<- Test.QuickCheck.arbitrary
+		rankValues	<- Test.QuickCheck.arbitrary
+		criteriaWeights	<- Test.QuickCheck.suchThat Test.QuickCheck.arbitrary $ \c -> Input.RankValues.calculateMaximumTotalValue rankValues /= 0 || Input.CriteriaWeights.getWeightOfMaterial c == 0
 
-		Input.EvaluationOptions.mkEvaluationOptions <$> Test.QuickCheck.arbitrary {-RankValues-} <*> return {-to Gen-monad-} criteriaWeights <*> Test.QuickCheck.arbitrary {-incrementalEvaluation-} <*> if Input.CriteriaWeights.getWeightOfPieceSquareValue criteriaWeights == minBound
+		Input.EvaluationOptions.mkEvaluationOptions rankValues criteriaWeights <$> Test.QuickCheck.arbitrary {-incrementalEvaluation-} <*> if Input.CriteriaWeights.getWeightOfPieceSquareValue criteriaWeights == minBound
 			then return {-to Gen-monad-} Nothing
 			else do
 				(pieceSquareTable, pieceSquareTable', ranks)	<- Test.QuickCheck.arbitrary
@@ -87,7 +82,7 @@ instance (
 results :: IO [Test.QuickCheck.Result]
 results	= sequence [
 	let
-		f :: EvaluationOptions -> Test.QuickCheck.State.Board.Board -> Test.QuickCheck.Property
+		f :: EvaluationOptions -> State.Board.Board -> Test.QuickCheck.Property
 		f evaluationOptions board	= Data.Maybe.isJust maybePieceSquareByCoordinatesByRank ==> Test.QuickCheck.label "EvaluationOptions.prop_sumPieceSquareValueByLogicalColour/reflectOnX" . uncurry (==) $ (
 			Data.Array.IArray.elems . sumPieceSquareValueByLogicalColour &&& reverse . Data.Array.IArray.elems . sumPieceSquareValueByLogicalColour . Property.Reflectable.reflectOnX
 		 ) board where
@@ -95,7 +90,7 @@ results	= sequence [
 			sumPieceSquareValueByLogicalColour	= State.Board.sumPieceSquareValueByLogicalColour $ Data.Maybe.fromJust maybePieceSquareByCoordinatesByRank
 	in Test.QuickCheck.quickCheckWithResult Test.QuickCheck.stdArgs { Test.QuickCheck.maxSuccess = 32 } f,
 	let
-		f :: Input.EvaluationOptions.EvaluationOptions Rational {-precision is required-} Type.Length.X Type.Length.Y -> Test.QuickCheck.State.Board.Board -> Test.QuickCheck.Property
+		f :: Input.EvaluationOptions.EvaluationOptions Rational {-precision is required-} -> State.Board.Board -> Test.QuickCheck.Property
 		f evaluationOptions board	= Data.Maybe.isJust maybePieceSquareByCoordinatesByRank ==> Test.QuickCheck.label "EvaluationOptions.prop_sumPieceSquareValueByLogicalColour" . uncurry (==) $ (
 			State.CoordinatesByRankByLogicalColour.sumPieceSquareValueByLogicalColour (
 				\logicalColour rank coordinatesList	-> Component.PieceSquareByCoordinatesByRank.findPieceSquareValues nPieces logicalColour rank coordinatesList pieceSquareByCoordinatesByRank

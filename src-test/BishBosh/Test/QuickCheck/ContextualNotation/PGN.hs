@@ -25,9 +25,6 @@
 -}
 
 module BishBosh.Test.QuickCheck.ContextualNotation.PGN(
--- * Types
--- ** Type-synonyms
-	PGN,
 -- * Constants
 --	ficsGamesDBGameNoTag,
 --	ecoCodeTag,
@@ -37,12 +34,11 @@ module BishBosh.Test.QuickCheck.ContextualNotation.PGN(
 ) where
 
 import			BishBosh.Test.QuickCheck.ContextualNotation.PGNComment()
+import			BishBosh.Test.QuickCheck.Model.Game()
 import qualified	BishBosh.ContextualNotation.PGN			as ContextualNotation.PGN
 import qualified	BishBosh.ContextualNotation.PGNComment		as ContextualNotation.PGNComment
 import qualified	BishBosh.ContextualNotation.StandardAlgebraic	as ContextualNotation.StandardAlgebraic
 import qualified	BishBosh.Model.Game				as Model.Game
-import qualified	BishBosh.Test.QuickCheck.Model.Game		as Test.QuickCheck.Model.Game
-import qualified	BishBosh.Type.Length				as Type.Length
 import qualified	Data.Word
 import qualified	Test.QuickCheck
 
@@ -50,10 +46,10 @@ import qualified	Test.QuickCheck
 import			Control.Arrow((|||))
 import qualified	Text.ParserCombinators.Parsec
 #elif USE_POLYPARSE == 1
-import qualified	Text.ParserCombinators.Poly.Lazy	as Poly
+import qualified	Text.ParserCombinators.Poly.Lazy		as Poly
 #else /* Plain */
 import			Control.Arrow((|||))
-import qualified	Text.ParserCombinators.Poly.Plain	as Poly
+import qualified	Text.ParserCombinators.Poly.Plain		as Poly
 #endif
 
 -- | Qualifies a value.
@@ -73,18 +69,7 @@ arbitraryECOCode	= do
 
 	return {-to Gen-monad-} [c, i, j]
 
--- | Defines a concrete type for testing.
-type PGN	= ContextualNotation.PGN.PGN Type.Length.X Type.Length.Y
-
-instance (
-	Enum	x,
-	Enum	y,
-	Ord	x,
-	Ord	y,
-	Show	x,
-	Show	y
- ) => Test.QuickCheck.Arbitrary (ContextualNotation.PGN.PGN x y) where
-	{-# SPECIALISE instance Test.QuickCheck.Arbitrary PGN #-}
+instance Test.QuickCheck.Arbitrary ContextualNotation.PGN.PGN where
 	arbitrary	= let
 		arbitraryString :: Test.QuickCheck.Gen String
 		arbitraryString	= do
@@ -124,7 +109,7 @@ instance (
 results :: IO [Test.QuickCheck.Result]
 results	= sequence [
 	let
-		f :: Bool -> ContextualNotation.StandardAlgebraic.ValidateMoves -> Test.QuickCheck.Model.Game.Game -> Test.QuickCheck.Property
+		f :: Bool -> ContextualNotation.StandardAlgebraic.ValidateMoves -> Model.Game.Game -> Test.QuickCheck.Property
 		f isStrictlySequential validateMoves game	= Test.QuickCheck.label "PGN.prop_moveTextParser" .
 #ifdef USE_POLYPARSE
 #	if USE_POLYPARSE == 1
@@ -141,7 +126,7 @@ results	= sequence [
 				moveTextParser	= ContextualNotation.PGN.moveTextParser isStrictlySequential validateMoves
 	in Test.QuickCheck.quickCheckWithResult Test.QuickCheck.stdArgs { Test.QuickCheck.maxSuccess = 128 } f,
 	let
-		f :: Bool -> ContextualNotation.StandardAlgebraic.ValidateMoves -> PGN -> [ContextualNotation.PGNComment.PGNComment] -> Test.QuickCheck.Property
+		f :: Bool -> ContextualNotation.StandardAlgebraic.ValidateMoves -> ContextualNotation.PGN.PGN -> [ContextualNotation.PGNComment.PGNComment] -> Test.QuickCheck.Property
 		f isStrictlySequential validateMoves pgn pgnComments	= Test.QuickCheck.label "PGN.prop_pgnParser" .
 #ifdef USE_POLYPARSE
 #	if USE_POLYPARSE == 1

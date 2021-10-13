@@ -29,11 +29,11 @@ module BishBosh.Test.QuickCheck.ContextualNotation.StandardAlgebraic(
 ) where
 
 import			BishBosh.Test.QuickCheck.Attribute.Rank()
+import			BishBosh.Test.QuickCheck.Model.Game()
 import qualified	BishBosh.Attribute.Rank				as Attribute.Rank
 import qualified	BishBosh.Component.Turn				as Component.Turn
 import qualified	BishBosh.ContextualNotation.StandardAlgebraic	as ContextualNotation.StandardAlgebraic
 import qualified	BishBosh.Model.Game				as Model.Game
-import qualified	BishBosh.Test.QuickCheck.Model.Game		as Test.QuickCheck.Model.Game
 import qualified	Test.QuickCheck
 
 #ifdef USE_POLYPARSE
@@ -57,7 +57,7 @@ results	= sequence [
 		f rank	= Test.QuickCheck.label "StandardAlgebraic.prop_san" $ ContextualNotation.StandardAlgebraic.toRank (ContextualNotation.StandardAlgebraic.fromRank rank) == rank
 	in Test.QuickCheck.quickCheckWithResult Test.QuickCheck.stdArgs { Test.QuickCheck.maxSuccess = 32 } f,
 	let
-		f :: Test.QuickCheck.Model.Game.Game -> ContextualNotation.StandardAlgebraic.ExplicitEnPassant -> ContextualNotation.StandardAlgebraic.ValidateMoves -> Test.QuickCheck.Property
+		f :: Model.Game.Game -> ContextualNotation.StandardAlgebraic.ExplicitEnPassant -> ContextualNotation.StandardAlgebraic.ValidateMoves -> Test.QuickCheck.Property
 		f game explicitEnPassant validateMoves	= Test.QuickCheck.label "StandardAlgebraic.prop_sanParser" $ all (
 			\(game', turn) -> let
 				qualifiedMove	= Component.Turn.getQualifiedMove turn

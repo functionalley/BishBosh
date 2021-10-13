@@ -65,14 +65,14 @@ module BishBosh.Notation.PureCoordinate(
 ) where
 
 import			Control.Arrow((&&&), (***))
-import qualified	BishBosh.Attribute.Rank		as Attribute.Rank
-import qualified	BishBosh.Cartesian.Abscissa	as Cartesian.Abscissa
-import qualified	BishBosh.Cartesian.Coordinates	as Cartesian.Coordinates
-import qualified	BishBosh.Cartesian.Ordinate	as Cartesian.Ordinate
-import qualified	BishBosh.Component.Move		as Component.Move
-import qualified	BishBosh.Data.Enum		as Data.Enum
-import qualified	BishBosh.Data.Exception		as Data.Exception
-import qualified	BishBosh.Type.Length		as Type.Length
+import qualified	BishBosh.Attribute.Rank			as Attribute.Rank
+import qualified	BishBosh.Cartesian.Abscissa		as Cartesian.Abscissa
+import qualified	BishBosh.Cartesian.Coordinates		as Cartesian.Coordinates
+import qualified	BishBosh.Cartesian.Ordinate		as Cartesian.Ordinate
+import qualified	BishBosh.Component.Move			as Component.Move
+import qualified	BishBosh.Data.Enum			as Data.Enum
+import qualified	BishBosh.Data.Exception			as Data.Exception
+import qualified	BishBosh.Type.Length			as Type.Length
 import qualified	Control.Arrow
 import qualified	Control.Exception
 import qualified	Data.List.Extra
@@ -127,23 +127,15 @@ regexSyntax	= showString "([a-h][1-8]){2}[" $ showString (
 
 #ifdef USE_POLYPARSE
 -- | Parse an /x/-coordinate.
-abscissaParser :: Enum x => Text.Poly.TextParser x
-{-# SPECIALISE abscissaParser :: Text.Poly.TextParser Type.Length.X #-}
+abscissaParser :: Text.Poly.TextParser Type.Length.X
 abscissaParser	= Data.Enum.translate (+ xOriginOffset) `fmap` Poly.satisfyMsg inXRange "Abscissa"
 
 -- | Parse a /y/-coordinate.
-ordinateParser :: Enum y => Text.Poly.TextParser y
-{-# SPECIALISE ordinateParser :: Text.Poly.TextParser Type.Length.Y #-}
+ordinateParser :: Text.Poly.TextParser Type.Length.Y
 ordinateParser	= Data.Enum.translate (+ yOriginOffset) `fmap` Poly.satisfyMsg inYRange "Ordinate"
 
 -- | Parse a pair of /coordinates/.
-coordinatesParser :: (
-	Enum	x,
-	Enum	y,
-	Ord	x,
-	Ord	y
- ) => Text.Poly.TextParser (Cartesian.Coordinates.Coordinates x y)
-{-# SPECIALISE coordinatesParser :: Text.Poly.TextParser (Cartesian.Coordinates.Coordinates Type.Length.X Type.Length.Y) #-}
+coordinatesParser :: Text.Poly.TextParser Cartesian.Coordinates.Coordinates
 coordinatesParser	= do
 	x	<- abscissaParser
 	y	<- ordinateParser
@@ -151,37 +143,29 @@ coordinatesParser	= do
 	return {-to Parser-monad-} $ Cartesian.Coordinates.mkCoordinates x y
 #else /* Parsec */
 -- | Parse an /x/-coordinate.
-abscissaParser :: Enum x => Parsec.Parser x
-{-# SPECIALISE abscissaParser :: Parsec.Parser Type.Length.X #-}
+abscissaParser :: Parsec.Parser Type.Length.X
 abscissaParser	= Data.Enum.translate (+ xOriginOffset) <$> Parsec.satisfy inXRange <?> "Abscissa"
 
 -- | Parse a /y/-coordinate.
-ordinateParser :: Enum y => Parsec.Parser y
-{-# SPECIALISE ordinateParser :: Parsec.Parser Type.Length.Y #-}
+ordinateParser :: Parsec.Parser Type.Length.Y
 ordinateParser	= Data.Enum.translate (+ yOriginOffset) <$> Parsec.satisfy inYRange <?> "Ordinate"
 
 -- | Parse a pair of /coordinates/.
-coordinatesParser :: (
-	Enum	x,
-	Enum	y,
-	Ord	x,
-	Ord	y
- ) => Parsec.Parser (Cartesian.Coordinates.Coordinates x y)
-{-# SPECIALISE coordinatesParser :: Parsec.Parser (Cartesian.Coordinates.Coordinates Type.Length.X Type.Length.Y) #-}
+coordinatesParser :: Parsec.Parser Cartesian.Coordinates.Coordinates
 coordinatesParser	= Cartesian.Coordinates.mkCoordinates <$> abscissaParser <*> ordinateParser
 #endif
 
 -- | Defines a /move/, to enable i/o in /PureCoordinate/-notation.
-data PureCoordinate x y	= MkPureCoordinate {
-	getMove			:: Component.Move.Move x y,
+data PureCoordinate	= MkPureCoordinate {
+	getMove			:: Component.Move.Move,
 	getMaybePromotionRank	:: Maybe Attribute.Rank.Rank
 } deriving Eq
 
 -- | Smart constructor.
 mkPureCoordinate
-	:: Component.Move.Move x y
+	:: Component.Move.Move
 	-> Maybe Attribute.Rank.Rank	-- ^ The optional promotion-rank.
-	-> PureCoordinate x y
+	-> PureCoordinate
 mkPureCoordinate move maybePromotionRank
 	| Just rank	<- maybePromotionRank
 	, rank `notElem` Attribute.Rank.promotionProspects	= Control.Exception.throw . Data.Exception.mkInvalidDatum . showString "BishBosh.Notation.PureCoordinate.mkPureCoordinate:\tcan't promote to a " $ shows rank "."
@@ -193,26 +177,21 @@ mkPureCoordinate move maybePromotionRank
 -- | Smart constructor.
 mkPureCoordinate'
 	:: Attribute.Rank.Promotable promotable
-	=> Component.Move.Move x y
+	=> Component.Move.Move
 	-> promotable	-- ^ The datum from which to extract the optional promotion-rank.
-	-> PureCoordinate x y
+	-> PureCoordinate
 mkPureCoordinate' move	= mkPureCoordinate move . Attribute.Rank.getMaybePromotionRank
 
 -- | Encodes the ordinate & abscissa.
-encode :: (Enum x, Enum y) => Cartesian.Coordinates.Coordinates x y -> (ShowS, ShowS)
+encode :: Cartesian.Coordinates.Coordinates -> (ShowS, ShowS)
 encode	= showChar . Data.Enum.translate (subtract xOriginOffset) . Cartesian.Coordinates.getX &&& showChar . Data.Enum.translate (subtract yOriginOffset) . Cartesian.Coordinates.getY
 
 -- | Shows the specified /coordinates/.
-showsCoordinates :: (Enum x, Enum y) => Cartesian.Coordinates.Coordinates x y -> ShowS
+showsCoordinates :: Cartesian.Coordinates.Coordinates -> ShowS
 showsCoordinates	= uncurry (.) . encode
 
 -- | Reads coordinates.
-readsCoordinates :: (
-	Enum	x,
-	Enum	y,
-	Ord	x,
-	Ord	y
- ) => ReadS (Cartesian.Coordinates.Coordinates x y)
+readsCoordinates :: ReadS Cartesian.Coordinates.Coordinates
 readsCoordinates s	= case Data.List.Extra.trimStart s of
 	x : y : remainder	-> map (
 		flip (,) remainder
@@ -223,7 +202,7 @@ readsCoordinates s	= case Data.List.Extra.trimStart s of
 	 )
 	_			-> []	-- Mo parse.
 
-instance (Enum x, Enum y) => Show (PureCoordinate x y) where
+instance Show PureCoordinate where
 	showsPrec _ MkPureCoordinate {
 		getMove			= move,
 		getMaybePromotionRank	= maybePromotionRank
@@ -234,12 +213,7 @@ instance (Enum x, Enum y) => Show (PureCoordinate x y) where
 	 ) . Data.Maybe.maybe id shows maybePromotionRank
 
 -- N.B. this merely validates the syntax, leaving any semantic errors to 'Model.Game.validate'.
-instance (
-	Enum	x,
-	Enum	y,
-	Ord	x,
-	Ord	y
- ) => Read (PureCoordinate x y) where
+instance Read PureCoordinate where
 	readsPrec _ s	= case Data.List.Extra.trimStart s of
 		x : y : x' : y' : remainder	-> let
 			fromPureCoordinate pair@(cx, cy)
@@ -269,6 +243,6 @@ instance (
 		 ] -- List-comprehension.
 		_					-> []	-- No parse.
 
-instance Attribute.Rank.Promotable (PureCoordinate x y) where
+instance Attribute.Rank.Promotable PureCoordinate where
 	getMaybePromotionRank	= getMaybePromotionRank
 

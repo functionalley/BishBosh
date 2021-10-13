@@ -24,36 +24,29 @@
 -}
 
 module BishBosh.Test.QuickCheck.Model.GameTree(
--- * Types
--- ** Type-synonyms
-	GameTree,
 -- * Constants
 	results
 ) where
 
-import qualified	BishBosh.Model.Game			as Model.Game
-import qualified	BishBosh.Model.GameTree			as Model.GameTree
-import qualified	BishBosh.Property.Arboreal		as Property.Arboreal
-import qualified	BishBosh.Test.QuickCheck.Model.Game	as Test.QuickCheck.Model.Game
-import qualified	BishBosh.Type.Length			as Type.Length
+import			BishBosh.Test.QuickCheck.Model.Game()
+import qualified	BishBosh.Model.Game		as Model.Game
+import qualified	BishBosh.Model.GameTree		as Model.GameTree
+import qualified	BishBosh.Property.Arboreal	as Property.Arboreal
 import qualified	Data.Default
 import qualified	Data.Maybe
 import qualified	Test.QuickCheck
 
-instance (Enum x, Enum y, Ord x, Ord y, Show x, Show y) => Test.QuickCheck.Arbitrary (Model.GameTree.GameTree x y) where
+instance Test.QuickCheck.Arbitrary Model.GameTree.GameTree where
 	arbitrary	= do
 		depth	<- Test.QuickCheck.elements [1 .. 3]
 
 		fmap (Property.Arboreal.prune depth . Model.GameTree.fromGame) Test.QuickCheck.arbitrary
 
--- | Define a concrete type for testing.
-type GameTree	= Model.GameTree.GameTree Type.Length.X Type.Length.Y
-
 -- | The constant test-results for this data-type.
 results :: IO [Test.QuickCheck.Result]
 results	= sequence [
 	let
-		f :: Test.QuickCheck.Model.Game.Game -> Test.QuickCheck.Property
+		f :: Model.Game.Game -> Test.QuickCheck.Property
 		f = Test.QuickCheck.label "GameTree.prop_traceRoute" . (
 			\turns -> Data.Maybe.maybe False (
 				(== Just turns) . mapM Model.Game.maybeLastTurn

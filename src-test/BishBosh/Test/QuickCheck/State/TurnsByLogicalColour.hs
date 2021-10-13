@@ -32,25 +32,23 @@ module BishBosh.Test.QuickCheck.State.TurnsByLogicalColour(
 ) where
 
 import			BishBosh.Test.QuickCheck.Component.Turn()
+import			BishBosh.Test.QuickCheck.Model.Game()
 import			Control.Arrow((&&&))
 import qualified	BishBosh.Cartesian.Abscissa		as Cartesian.Abscissa
 import qualified	BishBosh.Component.Piece		as Component.Piece
 import qualified	BishBosh.Component.Turn			as Component.Turn
 import qualified	BishBosh.Model.Game			as Model.Game
 import qualified	BishBosh.State.TurnsByLogicalColour	as State.TurnsByLogicalColour
-import qualified	BishBosh.Test.QuickCheck.Model.Game	as Test.QuickCheck.Model.Game
-import qualified	BishBosh.Type.Length			as Type.Length
 import qualified	Test.QuickCheck
 import qualified	ToolShed.Test.ReversibleIO
 
--- | Define a concrete type for testing.
-type TurnsByLogicalColour	= State.TurnsByLogicalColour.TurnsByLogicalColour (Component.Turn.Turn Type.Length.X Type.Length.Y)
+type TurnsByLogicalColour	= State.TurnsByLogicalColour.TurnsByLogicalColour Component.Turn.Turn
 
 instance (
-	Show				a,
-	Test.QuickCheck.Arbitrary	a
- ) => Test.QuickCheck.Arbitrary (State.TurnsByLogicalColour.TurnsByLogicalColour a) where
---	{-# SPECIALISE instance Test.QuickCheck.Arbitrary TurnsByLogicalColour #-}
+	Show				turn,
+	Test.QuickCheck.Arbitrary	turn
+ ) => Test.QuickCheck.Arbitrary (State.TurnsByLogicalColour.TurnsByLogicalColour turn) where
+	{-# SPECIALISE instance Test.QuickCheck.Arbitrary TurnsByLogicalColour #-}
 	arbitrary	= do
 		turns	<- Test.QuickCheck.arbitrary
 
@@ -76,7 +74,7 @@ results	= sequence [
 		f turnsByLogicalColour	= Test.QuickCheck.label "TurnsByLogicalColour.prop_readTrailingGarbage" . ToolShed.Test.ReversibleIO.readTrailingGarbage (`elem` ('/' : Component.Piece.showPieces ++ concatMap show [1 .. Cartesian.Abscissa.xLength])) turnsByLogicalColour
 	in Test.QuickCheck.quickCheckWithResult Test.QuickCheck.stdArgs { Test.QuickCheck.maxSuccess = 128 } f,
 	let
-		f :: Test.QuickCheck.Model.Game.Game -> Test.QuickCheck.Property
+		f :: Model.Game.Game -> Test.QuickCheck.Property
 		f	= Test.QuickCheck.label "TurnsByLogicalColour.prop_getNPlies" . uncurry (==) . (State.TurnsByLogicalColour.getNPlies &&& State.TurnsByLogicalColour.countPlies) . Model.Game.getTurnsByLogicalColour
 	in Test.QuickCheck.quickCheckWithResult Test.QuickCheck.stdArgs { Test.QuickCheck.maxSuccess = 256 } f
  ]

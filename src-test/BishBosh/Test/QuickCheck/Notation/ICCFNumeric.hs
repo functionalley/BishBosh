@@ -24,9 +24,6 @@
 -}
 
 module BishBosh.Test.QuickCheck.Notation.ICCFNumeric(
--- * Types
--- ** Type-synonyms
---	ICCFNumeric,
 -- * Constants
 	results
 ) where
@@ -39,20 +36,10 @@ import qualified	BishBosh.Cartesian.Ordinate	as Cartesian.Ordinate
 import qualified	BishBosh.Cartesian.Vector	as Cartesian.Vector
 import qualified	BishBosh.Component.Move		as Component.Move
 import qualified	BishBosh.Notation.ICCFNumeric	as Notation.ICCFNumeric
-import qualified	BishBosh.Type.Length		as Type.Length
 import qualified	Test.QuickCheck
 import qualified	ToolShed.Test.ReversibleIO
 
--- | Defines a concrete type for testing.
-type ICCFNumeric	= Notation.ICCFNumeric.ICCFNumeric Type.Length.X Type.Length.Y
-
-instance (
-	Enum	x,
-	Enum	y,
-	Ord	x,
-	Ord	y
- ) => Test.QuickCheck.Arbitrary (Notation.ICCFNumeric.ICCFNumeric x y) where
-	{-# SPECIALISE instance Test.QuickCheck.Arbitrary ICCFNumeric #-}
+instance Test.QuickCheck.Arbitrary Notation.ICCFNumeric.ICCFNumeric where
 	arbitrary	= do
 		move	<- Test.QuickCheck.arbitrary
 
@@ -74,19 +61,19 @@ instance (
 results :: IO [Test.QuickCheck.Result]
 results	= sequence [
 	let
-		f :: ICCFNumeric -> Test.QuickCheck.Property
+		f :: Notation.ICCFNumeric.ICCFNumeric -> Test.QuickCheck.Property
 		f	= Test.QuickCheck.label "ICCFNumeric.prop_readPrependedWhiteSpace" . ToolShed.Test.ReversibleIO.readPrependedWhiteSpace
 	in Test.QuickCheck.quickCheckWithResult Test.QuickCheck.stdArgs { Test.QuickCheck.maxSuccess = 256 } f,
 	let
 		f :: String -> Test.QuickCheck.Property
 		f garbage	= Test.QuickCheck.label "ICCFNumeric.prop_read" $ case (
-			reads garbage :: [(ICCFNumeric, String)]
+			reads garbage :: [(Notation.ICCFNumeric.ICCFNumeric, String)]
 		 ) of
 			[_]	-> True
 			_	-> True	-- Unless the read-implementation throws an exception.
 	in Test.QuickCheck.quickCheckWithResult Test.QuickCheck.stdArgs { Test.QuickCheck.maxSuccess = 256 } f,
 	let
-		f :: ICCFNumeric -> String -> Test.QuickCheck.Property
+		f :: Notation.ICCFNumeric.ICCFNumeric -> String -> Test.QuickCheck.Property
 		f coordinate	= Test.QuickCheck.label "ICCFNumeric.prop_readTrailingGarbage" . ToolShed.Test.ReversibleIO.readTrailingGarbage (
 			`elem` concatMap (show . fst {-digit-}) Notation.ICCFNumeric.toRank
 		 ) coordinate

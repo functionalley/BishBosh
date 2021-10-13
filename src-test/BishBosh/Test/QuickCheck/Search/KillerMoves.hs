@@ -26,8 +26,7 @@
 module BishBosh.Test.QuickCheck.Search.KillerMoves(
 -- * Types
 -- ** Type-synonyms
---	Key,
-	KillerMoves,
+--	KillerMoves,
 -- * Constants
 	results
 -- * Functions
@@ -42,19 +41,9 @@ import qualified	BishBosh.Search.DynamicMoveData	as Search.DynamicMoveData
 import qualified	BishBosh.Search.EphemeralData	as Search.EphemeralData
 import qualified	BishBosh.Search.KillerMoves	as Search.KillerMoves
 import qualified	BishBosh.Type.Count		as Type.Count
-import qualified	BishBosh.Type.Length		as Type.Length
 import qualified	Test.QuickCheck
 
--- | Defines a concrete type for testing.
-type KillerMoveKey	= Search.DynamicMoveData.KillerMoveKey Type.Length.X Type.Length.Y
-
-instance (
-	Enum	x,
-	Enum	y,
-	Ord	x,
-	Ord	y
- ) => Test.QuickCheck.Arbitrary (Search.DynamicMoveData.KillerMoveKey x y) where
---	{-# SPECIALISE instance Test.QuickCheck.Arbitrary KillerMoveKey #-}
+instance Test.QuickCheck.Arbitrary Search.DynamicMoveData.KillerMoveKey where
 	arbitrary	= fmap Search.DynamicMoveData.mkKillerMoveKeyFromTurn Test.QuickCheck.arbitrary
 
 -- | Map the integer-domain into a smaller non-negative number of plies.
@@ -66,19 +55,20 @@ populate :: Ord key => [(Int, key)] -> Search.KillerMoves.KillerMoves key
 populate	= foldr (\(nPlies, killerMoveKey) -> Search.KillerMoves.insert (normalise nPlies) killerMoveKey) Property.Empty.empty {-KillerMoves-}
 
 -- | Defines a concrete type for testing.
-type KillerMoves	= Search.KillerMoves.KillerMoves KillerMoveKey
+type KillerMoves	= Search.KillerMoves.KillerMoves Search.DynamicMoveData.KillerMoveKey
 
 instance (
 	Ord				key,
 	Test.QuickCheck.Arbitrary	key
  ) => Test.QuickCheck.Arbitrary (Search.KillerMoves.KillerMoves key) where
+	{-# SPECIALISE instance Test.QuickCheck.Arbitrary KillerMoves #-}
 	arbitrary	= fmap populate Test.QuickCheck.arbitrary
 
 -- | The constant test-results for this data-type.
 results :: IO [Test.QuickCheck.Result]
 results	= sequence [
 	let
-		f :: [(Int, KillerMoveKey)] -> Test.QuickCheck.Property
+		f :: [(Int, Search.DynamicMoveData.KillerMoveKey)] -> Test.QuickCheck.Property
 		f	= Test.QuickCheck.label "KillerMoves.prop_insert/getNMoves" . uncurry (==) . (Search.EphemeralData.getSize . populate &&& length)
 	in Test.QuickCheck.quickCheckWithResult Test.QuickCheck.stdArgs { Test.QuickCheck.maxSuccess = 256 } f
  ]

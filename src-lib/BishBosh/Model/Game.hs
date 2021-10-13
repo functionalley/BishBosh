@@ -1,4 +1,3 @@
-{-# LANGUAGE FlexibleInstances, MultiParamTypeClasses #-}
 {-
 	Copyright (C) 2018 Dr. Alistair Ward
 
@@ -130,11 +129,9 @@ import qualified	BishBosh.State.TurnsByLogicalColour		as State.TurnsByLogicalCol
 import qualified	BishBosh.Text.ShowList				as Text.ShowList
 import qualified	BishBosh.Type.Count				as Type.Count
 import qualified	BishBosh.Type.Crypto				as Type.Crypto
-import qualified	BishBosh.Type.Length				as Type.Length
 import qualified	Control.Arrow
 import qualified	Control.DeepSeq
 import qualified	Control.Exception
-import qualified	Data.Array.IArray
 import qualified	Data.Bits
 import qualified	Data.Default
 import qualified	Data.Foldable
@@ -156,24 +153,24 @@ infix 4 =~, /~	-- Same as (==) & (/=).
 	Building 'Component.Zobrist.Zobrist' into 'Game' would break the instance of 'Eq'.
 	Building a hash-constructor into 'Game' would break the instance of @ (Eq, Read, Show) @.
 -}
-type InstancesByPosition x y	= State.InstancesByPosition.InstancesByPosition (State.Position.Position x y)
+type InstancesByPosition	= State.InstancesByPosition.InstancesByPosition State.Position.Position
 
 -- | The /move/s available to one player, indexed by the source-/coordinates/ of the /move/.
-type AvailableQualifiedMoves x y	= (
-	Map.Map (Cartesian.Coordinates.Coordinates x y)	-- Source.
+type AvailableQualifiedMoves	= (
+	Map.Map Cartesian.Coordinates.Coordinates	-- Source.
  ) [
 	(
-		Cartesian.Coordinates.Coordinates x y,	-- Destination.
+		Cartesian.Coordinates.Coordinates,	-- Destination.
 		Attribute.MoveType.MoveType
 	)
  ]
 
 -- | Sort the lists of destinations to faciliate testing for equality.
-sortAvailableQualifiedMoves :: (Ord x, Ord y) => AvailableQualifiedMoves x y -> AvailableQualifiedMoves x y
+sortAvailableQualifiedMoves :: AvailableQualifiedMoves -> AvailableQualifiedMoves
 sortAvailableQualifiedMoves	= Map.map . Data.List.sortBy $ Data.Ord.comparing fst {-destination-}
 
 -- | The /move/s available to both players.
-type AvailableQualifiedMovesByLogicalColour x y	= Map.Map Attribute.LogicalColour.LogicalColour (AvailableQualifiedMoves x y)
+type AvailableQualifiedMovesByLogicalColour	= Map.Map Attribute.LogicalColour.LogicalColour AvailableQualifiedMoves
 
 {- |
 	* The first three fields represent the state of the /game/.
@@ -182,23 +179,18 @@ type AvailableQualifiedMovesByLogicalColour x y	= Map.Map Attribute.LogicalColou
 
 	* For efficiency the list of available /move/s is stored.
 -}
-data Game x y	= MkGame {
-	getNextLogicalColour				:: Attribute.LogicalColour.LogicalColour,					-- ^ N.B.: can be derived from 'getTurnsByLogicalColour', unless 'Property.Reflectable.reflectOnX' has been called.
-	getCastleableRooksByLogicalColour		:: State.CastleableRooksByLogicalColour.CastleableRooksByLogicalColour x,	-- ^ Those @Rook@s which can still participate in castling.
-	getBoard					:: State.Board.Board x y,							-- ^ The current state of the /board/.
-	getTurnsByLogicalColour				:: State.CastleableRooksByLogicalColour.TurnsByLogicalColour x y,		-- ^ Successive /move/s & any /piece/ taken, recorded by player.
-	getMaybeChecked					:: Maybe Attribute.LogicalColour.LogicalColour,					-- ^ The player (if any), whose currently /checked/; which will typically be 'getNextLogicalColour', but 'listQualifiedMovesAvailableTo' can be called for either player.
-	getInstancesByPosition				:: InstancesByPosition x y,							-- ^ The number of instances of various positions since the last unrepeatable move.
-	getAvailableQualifiedMovesByLogicalColour	:: AvailableQualifiedMovesByLogicalColour x y,					-- ^ The /move/s available to each player. Since this is merely required for efficiency, it needn't have an entry for both players; & typically doesn't when checked, since radical pruning would otherwise be required. CAVEAT: doesn't account for game-termination.
-	getMaybeTerminationReason			:: Maybe Rule.GameTerminationReason.GameTerminationReason			-- ^ The reason (where appropriate) why the game was terminated.
+data Game	= MkGame {
+	getNextLogicalColour				:: Attribute.LogicalColour.LogicalColour,				-- ^ N.B.: can be derived from 'getTurnsByLogicalColour', unless 'Property.Reflectable.reflectOnX' has been called.
+	getCastleableRooksByLogicalColour		:: State.CastleableRooksByLogicalColour.CastleableRooksByLogicalColour,	-- ^ Those @Rook@s which can still participate in castling.
+	getBoard					:: State.Board.Board,							-- ^ The current state of the /board/.
+	getTurnsByLogicalColour				:: State.CastleableRooksByLogicalColour.TurnsByLogicalColour,		-- ^ Successive /move/s & any /piece/ taken, recorded by player.
+	getMaybeChecked					:: Maybe Attribute.LogicalColour.LogicalColour,				-- ^ The player (if any), whose currently /checked/; which will typically be 'getNextLogicalColour', but 'listQualifiedMovesAvailableTo' can be called for either player.
+	getInstancesByPosition				:: InstancesByPosition,							-- ^ The number of instances of various positions since the last unrepeatable move.
+	getAvailableQualifiedMovesByLogicalColour	:: AvailableQualifiedMovesByLogicalColour,				-- ^ The /move/s available to each player. Since this is merely required for efficiency, it needn't have an entry for both players; & typically doesn't when checked, since radical pruning would otherwise be required. CAVEAT: doesn't account for game-termination.
+	getMaybeTerminationReason			:: Maybe Rule.GameTerminationReason.GameTerminationReason		-- ^ The reason (where appropriate) why the game was terminated.
 }
 
-instance (
-	Enum	x,
-	Enum	y,
-	Ord	x,
-	Ord	y
- ) => Eq (Game x y) where
+instance Eq Game where
 	MkGame {
 		getNextLogicalColour				= nextLogicalColour,
 		getCastleableRooksByLogicalColour		= castleableRooksByLogicalColour,
@@ -237,10 +229,7 @@ instance (
 		maybeTerminationReason'
 	 )
 
-instance (
-	Control.DeepSeq.NFData	x,
-	Control.DeepSeq.NFData	y
- ) => Control.DeepSeq.NFData (Game x y) where
+instance Control.DeepSeq.NFData Game where
 	rnf MkGame {
 		getNextLogicalColour				= nextLogicalColour,
 		getCastleableRooksByLogicalColour		= castleableRooksByLogicalColour,
@@ -261,14 +250,7 @@ instance (
 		maybeTerminationReason
 	 ) -- Represent as a tuple.
 
-instance (
-	Enum	x,
-	Enum	y,
-	Ord	x,
-	Ord	y,
-	Show	x,
-	Show	y
- ) => Show (Game x y) where
+instance Show Game where
 	showsPrec precedence MkGame {
 		getBoard			= board,
 		getTurnsByLogicalColour		= turnsByLogicalColour,
@@ -279,17 +261,7 @@ instance (
 		maybeTerminationReason
 	 ) -- Represent as a tuple those fields which can't be inferred.
 
-instance (
-	Enum	x,
-	Enum	y,
-	Ord	x,
-	Ord	y,
-	Read	x,
-	Read	y,
-	Show	x,
-	Show	y
- ) => Read (Game x y) where
-	{-# SPECIALISE instance Read (Game Type.Length.X Type.Length.Y) #-}
+instance Read Game where
 	readsPrec precedence	= map (
 		Control.Arrow.first $ \(
 			board,
@@ -307,15 +279,7 @@ instance (
 		in game
 	 ) . readsPrec precedence
 
-instance (
-	Enum	x,
-	Enum	y,
-	Ord	x,
-	Ord	y,
-	Show	x,
-	Show	y
- ) => Data.Default.Default (Game x y) where
-	{-# SPECIALISE instance Data.Default.Default (Game Type.Length.X Type.Length.Y) #-}
+instance Data.Default.Default Game where
 	def = (
 		mkGame Attribute.LogicalColour.White Data.Default.def {-castleableRooksByLogicalColour-} Data.Default.def {-board-} Data.Default.def {-turnsByLogicalColour-}
 	 ) {
@@ -325,15 +289,7 @@ instance (
 		) Property.FixedMembership.members
 	}
 
-instance (
-	Enum	x,
-	Enum	y,
-	Ord	x,
-	Ord	y,
-	Show	x,
-	Show	y
- ) => Property.ExtendedPositionDescription.ReadsEPD (Game x y) where
-	{-# SPECIALISE instance Property.ExtendedPositionDescription.ReadsEPD (Game Type.Length.X Type.Length.Y) #-}
+instance Property.ExtendedPositionDescription.ReadsEPD Game where
 	readsEPD s	= [
 		(
 			mkGame nextLogicalColour castleableRooksByLogicalColour board turnsByLogicalColour,
@@ -367,12 +323,7 @@ instance (
 				 ) `map` Notation.PureCoordinate.readsCoordinates s3' -- En-passant destination.
 	 ] -- List-comprehension.
 
-instance (
-	Enum	x,
-	Enum	y,
-	Ord	x,
-	Ord	y
- ) => Property.ExtendedPositionDescription.ShowsEPD (Game x y) where
+instance Property.ExtendedPositionDescription.ShowsEPD Game where
 	showsEPD game@MkGame {
 		getNextLogicalColour			= nextLogicalColour,
 		getCastleableRooksByLogicalColour	= castleableRooksByLogicalColour,
@@ -389,15 +340,7 @@ instance (
 	 ]
 
 -- CAVEAT: some information is lost during 'showsFEN', which can't subsequently be recovered by 'readsFEN'.
-instance (
-	Enum	x,
-	Enum	y,
-	Ord	x,
-	Ord	y,
-	Show	x,
-	Show	y
- ) => Property.ForsythEdwards.ReadsFEN (Game x y) where
-	{-# SPECIALISE instance Property.ForsythEdwards.ReadsFEN (Game Type.Length.X Type.Length.Y) #-}
+instance Property.ForsythEdwards.ReadsFEN Game where
 	readsFEN s	= [
 		(game, s3) |
 			(game, s1)		<- Property.ExtendedPositionDescription.readsEPD s,
@@ -405,12 +348,7 @@ instance (
 			(_fullMoveCounter, s3)	<- reads s2 :: [(Int, String)]
 	 ] -- List-comprehension.
 
-instance (
-	Enum	x,
-	Enum	y,
-	Ord	x,
-	Ord	y
- ) => Property.ForsythEdwards.ShowsFEN (Game x y) where
+instance Property.ForsythEdwards.ShowsFEN Game where
 	showsFEN game@MkGame {
 		getTurnsByLogicalColour	= turnsByLogicalColour,
 		getInstancesByPosition	= instancesByPosition
@@ -420,18 +358,10 @@ instance (
 		shows . succ {-the full-move counter starts at '1', before any move has occurred-} . length $ State.TurnsByLogicalColour.dereference Attribute.LogicalColour.Black turnsByLogicalColour	-- 6. Full move counter.
 	 ]
 
-instance (
-	Enum	x,
-	Enum	y,
-	Ord	x,
-	Ord	y,
-	Show	x,
-	Show	y
- ) => Property.Empty.Empty (Game x y) where
-	{-# SPECIALISE instance Property.Empty.Empty (Game Type.Length.X Type.Length.Y) #-}
+instance Property.Empty.Empty Game where
 	empty	= Data.Default.def	-- i.e. zero turns have been taken, rather than zero pieces remain (which is illegal).
 
-instance Property.Null.Null (Game x y) where
+instance Property.Null.Null Game where
 	isNull MkGame { getTurnsByLogicalColour = turnsByLogicalColour }	= Property.Null.isNull turnsByLogicalColour
 
 {- |
@@ -440,15 +370,7 @@ instance Property.Null.Null (Game x y) where
 	* N.B.: 'Property.Reflectable.ReflectableOnY' isn't implemented,
 	since /reflectOnY/ produces a mirror-image /board/ in which the royal /piece/s start in a non-standard position & castling occurs the wrong way.
 -}
-instance (
-	Enum	x,
-	Enum	y,
-	Ord	x,
-	Ord	y,
-	Show	x,
-	Show	y
- ) => Property.Reflectable.ReflectableOnX (Game x y) where
-	{-# SPECIALISE instance Property.Reflectable.ReflectableOnX (Game Type.Length.X Type.Length.Y) #-}
+instance Property.Reflectable.ReflectableOnX Game where
 	reflectOnX MkGame {
 		getNextLogicalColour			= nextLogicalColour,
 		getCastleableRooksByLogicalColour	= castleableRooksByLogicalColour,
@@ -471,9 +393,8 @@ instance (
 		getMaybeTerminationReason	= fmap Property.Opposable.getOpposite maybeTerminationReason
 	}
 
-instance (Data.Array.IArray.Ix x, Enum x, Enum y, Ord y) => Component.Zobrist.Hashable2D Game x y {-CAVEAT: FlexibleInstances, MultiParamTypeClasses-} where
-	{-# SPECIALISE instance Component.Zobrist.Hashable2D Game Type.Length.X Type.Length.Y #-}
-	listRandoms2D game@MkGame {
+instance Component.Zobrist.Hashable Game where
+	listRandoms game@MkGame {
 		getNextLogicalColour			= nextLogicalColour,
 		getCastleableRooksByLogicalColour	= castleableRooksByLogicalColour,
 		getBoard				= board
@@ -482,28 +403,20 @@ instance (Data.Array.IArray.Ix x, Enum x, Enum y, Ord y) => Component.Zobrist.Ha
 			then (Component.Zobrist.getRandomForBlacksMove zobrist :)
 			else id
 	 ) . Data.Maybe.maybe id (
-		(++) . (`Component.Zobrist.listRandoms1D` zobrist)
+		(++) . (`Component.Zobrist.listRandoms` zobrist)
 	 ) (
 		maybeLastTurn game >>= State.EnPassantAbscissa.mkMaybeEnPassantAbscissa nextLogicalColour (
 			State.Board.getMaybePieceByCoordinates board
 		)
-	 ) $ Component.Zobrist.listRandoms1D castleableRooksByLogicalColour zobrist ++ Component.Zobrist.listRandoms2D board zobrist
+	 ) $ Component.Zobrist.listRandoms castleableRooksByLogicalColour zobrist ++ Component.Zobrist.listRandoms board zobrist
 
 -- | Smart constructor.
-mkGame :: (
-	Enum	x,
-	Enum	y,
-	Ord	x,
-	Ord	y,
-	Show	x,
-	Show	y
- )
-	=> Attribute.LogicalColour.LogicalColour	-- ^ The player who is required to move next.
-	-> State.CastleableRooksByLogicalColour.CastleableRooksByLogicalColour x
-	-> State.Board.Board x y
-	-> State.CastleableRooksByLogicalColour.TurnsByLogicalColour x y
-	-> Game x y
-{-# SPECIALISE mkGame :: Attribute.LogicalColour.LogicalColour -> State.CastleableRooksByLogicalColour.CastleableRooksByLogicalColour Type.Length.X -> State.Board.Board Type.Length.X Type.Length.Y -> State.CastleableRooksByLogicalColour.TurnsByLogicalColour Type.Length.X Type.Length.Y -> Game Type.Length.X Type.Length.Y #-}
+mkGame
+	:: Attribute.LogicalColour.LogicalColour	-- ^ The player who is required to move next.
+	-> State.CastleableRooksByLogicalColour.CastleableRooksByLogicalColour
+	-> State.Board.Board
+	-> State.CastleableRooksByLogicalColour.TurnsByLogicalColour
+	-> Game
 mkGame nextLogicalColour castleableRooksByLogicalColour board turnsByLogicalColour
 	| not . StateProperty.Censor.hasBothKings $ State.Board.getCoordinatesByRankByLogicalColour board	= Control.Exception.throw . Data.Exception.mkInvalidDatum . showString "BishBosh.Model.Game.mkGame:\tboth Kings must exist; " $ shows board "."
 	| State.Board.isKingChecked (
@@ -535,21 +448,13 @@ mkGame nextLogicalColour castleableRooksByLogicalColour board turnsByLogicalColo
 
 		* There're zero previous turns.
 -}
-fromBoard :: (
-	Enum	x,
-	Enum	y,
-	Ord	x,
-	Ord	y,
-	Show	x,
-	Show	y
- ) => State.Board.Board x y -> Game x y
-{-# SPECIALISE fromBoard :: State.Board.Board Type.Length.X Type.Length.Y -> Game Type.Length.X Type.Length.Y #-}
+fromBoard :: State.Board.Board -> Game
 fromBoard board	= mkGame Attribute.LogicalColour.White (
 	State.CastleableRooksByLogicalColour.fromBoard board
  ) board Property.Empty.empty {-TurnsByLogicalColour-}
 
 -- | Gets the sequence of /turn/s, with the latest at the head & the opening one last.
-listTurns :: Game x y -> [Component.Turn.Turn x y]
+listTurns :: Game -> [Component.Turn.Turn]
 listTurns MkGame {
 	getNextLogicalColour	= nextLogicalColour,
 	getTurnsByLogicalColour	= turnsByLogicalColour
@@ -558,11 +463,11 @@ listTurns MkGame {
  ) turnsByLogicalColour
 
 -- | Gets the sequence of /turn/s in the order they occured.
-listTurnsChronologically :: Game x y -> [Component.Turn.Turn x y]
+listTurnsChronologically :: Game -> [Component.Turn.Turn]
 listTurnsChronologically	= reverse . listTurns
 
 -- | The last /turn/, if there was one.
-maybeLastTurn :: Game x y -> Maybe (Component.Turn.Turn x y)
+maybeLastTurn :: Game -> Maybe Component.Turn.Turn
 maybeLastTurn MkGame {
 	getNextLogicalColour	= nextLogicalColour,
 	getTurnsByLogicalColour	= turnsByLogicalColour
@@ -577,13 +482,7 @@ maybeLastTurn MkGame {
 
 	* CAVEAT: this is a performance-hotspot; refactor => re-profile.
 -}
-findAvailableCastlingMoves :: (
-	Enum	x,
-	Enum	y,
-	Ord	x,
-	Ord	y
- ) => Attribute.LogicalColour.LogicalColour -> Game x y -> [Component.QualifiedMove.QualifiedMove x y]
-{-# SPECIALISE findAvailableCastlingMoves :: Attribute.LogicalColour.LogicalColour -> Game Type.Length.X Type.Length.Y -> [Component.QualifiedMove.QualifiedMove Type.Length.X Type.Length.Y] #-}
+findAvailableCastlingMoves :: Attribute.LogicalColour.LogicalColour -> Game -> [Component.QualifiedMove.QualifiedMove]
 findAvailableCastlingMoves logicalColour MkGame {
 	getCastleableRooksByLogicalColour	= castleableRooksByLogicalColour,
 	getBoard				= board,
@@ -609,8 +508,7 @@ findAvailableCastlingMoves logicalColour MkGame {
 
 -- | List any /rank/s to which the specified /piece/ can be promoted on moving to the specified /destination/.
 listMaybePromotionRanks
-	:: (Enum y, Eq y)
-	=> Cartesian.Coordinates.Coordinates x y	-- ^ Destination.
+	:: Cartesian.Coordinates.Coordinates	-- ^ Destination.
 	-> Component.Piece.Piece
 	-> [Maybe Attribute.Rank.Rank]
 {-# INLINE listMaybePromotionRanks #-}
@@ -619,7 +517,7 @@ listMaybePromotionRanks destination piece
 	| otherwise						= [Nothing]
 
 -- | The type of a function which transforms a /game/.
-type Transformation x y	= Game x y -> Game x y
+type Transformation	= Game -> Game
 
 {- |
 	* Moves the referenced /piece/ between the specified /coordinates/.
@@ -630,15 +528,7 @@ type Transformation x y	= Game x y -> Game x y
 
 	* CAVEAT: doesn't account for any previous game-termination when updating 'getAvailableQualifiedMovesByLogicalColour'.
 -}
-takeTurn :: (
-	Enum	x,
-	Enum	y,
-	Ord	x,
-	Ord	y,
-	Show	x,
-	Show	y
- ) => Component.Turn.Turn x y -> Transformation x y
-{-# SPECIALISE takeTurn :: Component.Turn.Turn Type.Length.X Type.Length.Y -> Transformation Type.Length.X Type.Length.Y #-}
+takeTurn :: Component.Turn.Turn -> Transformation
 takeTurn turn game@MkGame {
 	getNextLogicalColour				= nextLogicalColour,
 	getCastleableRooksByLogicalColour		= castleableRooksByLogicalColour,
@@ -822,15 +712,7 @@ takeTurn turn game@MkGame {
 	}
 
 -- | Construct a /turn/ & relay the request to 'takeTurn'.
-applyQualifiedMove :: (
-	Enum	x,
-	Enum	y,
-	Ord	x,
-	Ord	y,
-	Show	x,
-	Show	y
- ) => Component.QualifiedMove.QualifiedMove x y -> Transformation x y
-{-# SPECIALISE applyQualifiedMove :: Component.QualifiedMove.QualifiedMove Type.Length.X Type.Length.Y -> Transformation Type.Length.X Type.Length.Y #-}
+applyQualifiedMove :: Component.QualifiedMove.QualifiedMove -> Transformation
 applyQualifiedMove qualifiedMove game@MkGame { getBoard = board }
 	| Just piece	<- State.MaybePieceByCoordinates.dereference (Component.Move.getSource move) $ State.Board.getMaybePieceByCoordinates board
 	= takeTurn (Component.Turn.mkTurn qualifiedMove $ Component.Piece.getRank piece) game
@@ -839,15 +721,7 @@ applyQualifiedMove qualifiedMove game@MkGame { getBoard = board }
 		move	= Component.QualifiedMove.getMove qualifiedMove
 
 -- | Construct a /qualifiedMove/ & relay the request to "applyQualifiedMove".
-applyEitherQualifiedMove :: (
-	Enum	x,
-	Enum	y,
-	Ord	x,
-	Ord	y,
-	Show	x,
-	Show	y
- ) => Component.EitherQualifiedMove.EitherQualifiedMove x y -> Transformation x y
-{-# SPECIALISE applyEitherQualifiedMove :: Component.EitherQualifiedMove.EitherQualifiedMove Type.Length.X Type.Length.Y -> Transformation Type.Length.X Type.Length.Y #-}
+applyEitherQualifiedMove :: Component.EitherQualifiedMove.EitherQualifiedMove -> Transformation
 applyEitherQualifiedMove eitherQualifiedMove game@MkGame { getBoard = board } = applyQualifiedMove (
 	Component.QualifiedMove.mkQualifiedMove move . (
 		($ State.Board.getMaybePieceByCoordinates board) . State.MaybePieceByCoordinates.inferMoveType move ||| id
@@ -856,19 +730,11 @@ applyEitherQualifiedMove eitherQualifiedMove game@MkGame { getBoard = board } = 
 	move	= Component.EitherQualifiedMove.getMove eitherQualifiedMove
 
 -- | Constructs /eitherQualifiedMove/s from the data provided, validating & applying each in the specified order.
-applyEitherQualifiedMoves :: (
-	Enum	x,
-	Enum	y,
-	Ord	x,
-	Ord	y,
-	Show	x,
-	Show	y
- )
-	=> (a -> Either String (Component.EitherQualifiedMove.EitherQualifiedMove x y))	-- ^ A constructor which can return an error-message.
-	-> Game x y									-- ^ The /game/ to which the /move/s should be sequentially applied.
+applyEitherQualifiedMoves
+	:: (a -> Either String Component.EitherQualifiedMove.EitherQualifiedMove)	-- ^ A constructor which can return an error-message.
+	-> Game										-- ^ The /game/ to which the /move/s should be sequentially applied.
 	-> [a]										-- ^ An ordered sequence of data from which /move/s are constructed.
-	-> Either (a, String) (Game x y)						-- ^ Either a rogue datum & the corresponding error-message, or the resulting /game/.
-{-# SPECIALISE applyEitherQualifiedMoves :: (a -> Either String (Component.EitherQualifiedMove.EitherQualifiedMove Type.Length.X Type.Length.Y)) -> Game Type.Length.X Type.Length.Y -> [a] -> Either (a, String) (Game Type.Length.X Type.Length.Y) #-}
+	-> Either (a, String) Game							-- ^ Either a rogue datum & the corresponding error-message, or the resulting /game/.
 applyEitherQualifiedMoves moveConstructor	= Data.Foldable.foldl' (
 	\eitherGame datum -> eitherGame >>= (
 		\game -> Left . (,) datum {-Constructor failed-} ||| (
@@ -889,18 +755,10 @@ applyEitherQualifiedMoves moveConstructor	= Data.Foldable.foldl' (
 
 	* N.B.: it is considered valid to take a @King@, one just never has the opportunity, since the game terminates the move before.
 -}
-validateQualifiedMove :: (
-	Enum	x,
-	Enum	y,
-	Ord	x,
-	Ord	y,
-	Show	x,
-	Show	y
- )
-	=> Component.QualifiedMove.QualifiedMove x y
-	-> Game x y	-- ^ Prior to playing the /qualified move/.
+validateQualifiedMove
+	:: Component.QualifiedMove.QualifiedMove
+	-> Game	-- ^ Prior to playing the /qualified move/.
 	-> Maybe String	-- ^ Error-message.
-{-# SPECIALISE validateQualifiedMove :: Component.QualifiedMove.QualifiedMove Type.Length.X Type.Length.Y -> Game Type.Length.X Type.Length.Y -> Maybe String #-}
 validateQualifiedMove qualifiedMove game@MkGame {
 	getNextLogicalColour		= nextLogicalColour,
 	getBoard			= board,
@@ -1099,18 +957,10 @@ validateQualifiedMove qualifiedMove game@MkGame {
 	isObstructed	= State.MaybePieceByCoordinates.isObstructed source destination maybePieceByCoordinates
 
 -- | Validates the /move-type/ then forwards the request to 'validateQualifiedMove'.
-validateEitherQualifiedMove :: (
-	Enum	x,
-	Enum	y,
-	Ord	x,
-	Ord	y,
-	Show	x,
-	Show	y
- )
-	=> Component.EitherQualifiedMove.EitherQualifiedMove x y
-	-> Game x y	-- ^ Prior to playing the /move/.
+validateEitherQualifiedMove
+	:: Component.EitherQualifiedMove.EitherQualifiedMove
+	-> Game	-- ^ Prior to playing the /move/.
 	-> Maybe String	-- ^ Error-message.
-{-# SPECIALISE validateEitherQualifiedMove :: Component.EitherQualifiedMove.EitherQualifiedMove Type.Length.X Type.Length.Y -> Game Type.Length.X Type.Length.Y -> Maybe String #-}
 validateEitherQualifiedMove eitherQualifiedMove game@MkGame { getBoard = board }
 	| State.MaybePieceByCoordinates.isVacant (
 		Component.Move.getSource move
@@ -1129,27 +979,11 @@ validateEitherQualifiedMove eitherQualifiedMove game@MkGame { getBoard = board }
 		 ) maybePieceByCoordinates
 
 -- | Whether the specified /QualifiedMove/ is valid.
-isValidQualifiedMove :: (
-	Enum	x,
-	Enum	y,
-	Ord	x,
-	Ord	y,
-	Show	x,
-	Show	y
- ) => Component.QualifiedMove.QualifiedMove x y -> Game x y -> Bool
-{-# SPECIALISE isValidQualifiedMove :: Component.QualifiedMove.QualifiedMove Type.Length.X Type.Length.Y -> Game Type.Length.X Type.Length.Y -> Bool #-}
+isValidQualifiedMove :: Component.QualifiedMove.QualifiedMove -> Game -> Bool
 isValidQualifiedMove qualifiedMove	= Data.Maybe.isNothing . validateQualifiedMove qualifiedMove
 
 -- | Whether the specified /EitherQualifiedMove/ is valid.
-isValidEitherQualifiedMove :: (
-	Enum	x,
-	Enum	y,
-	Ord	x,
-	Ord	y,
-	Show	x,
-	Show	y
- ) => Component.EitherQualifiedMove.EitherQualifiedMove x y -> Game x y -> Bool
-{-# SPECIALISE isValidEitherQualifiedMove :: Component.EitherQualifiedMove.EitherQualifiedMove Type.Length.X Type.Length.Y -> Game Type.Length.X Type.Length.Y -> Bool #-}
+isValidEitherQualifiedMove :: Component.EitherQualifiedMove.EitherQualifiedMove -> Game -> Bool
 isValidEitherQualifiedMove eitherQualifiedMove	= Data.Maybe.isNothing . validateEitherQualifiedMove eitherQualifiedMove
 
 {- |
@@ -1157,15 +991,7 @@ isValidEitherQualifiedMove eitherQualifiedMove	= Data.Maybe.isNothing . validate
 
 	* The list-head contains the most recent /ply/, while the tail contains the first.
 -}
-rollBack :: (
-	Enum	x,
-	Enum	y,
-	Ord	x,
-	Ord	y,
-	Show	x,
-	Show	y
- ) => Game x y -> [(Game x y, Component.Turn.Turn x y)]
-{-# SPECIALISE rollBack :: Game Type.Length.X Type.Length.Y -> [(Game Type.Length.X Type.Length.Y, Component.Turn.Turn Type.Length.X Type.Length.Y)] #-}
+rollBack :: Game -> [(Game, Component.Turn.Turn)]
 rollBack	= Data.List.unfoldr (
 	\game@MkGame {
 		getNextLogicalColour	= nextLogicalColour,
@@ -1231,18 +1057,10 @@ rollBack	= Data.List.unfoldr (
 
 	* CAVEAT: to avoid an infinite loop, this doesn't check whether the game has already terminated.
 -}
-listQualifiedMovesAvailableTo :: (
-	Enum	x,
-	Enum	y,
-	Ord	x,
-	Ord	y,
-	Show	x,
-	Show	y
- )
-	=> Attribute.LogicalColour.LogicalColour	-- ^ Define the player for whom the moves are required.
-	-> Game x y
-	-> [Component.QualifiedMove.QualifiedMove x y]
-{-# SPECIALISE listQualifiedMovesAvailableTo :: Attribute.LogicalColour.LogicalColour -> Game Type.Length.X Type.Length.Y -> [Component.QualifiedMove.QualifiedMove Type.Length.X Type.Length.Y] #-}
+listQualifiedMovesAvailableTo
+	:: Attribute.LogicalColour.LogicalColour	-- ^ Define the player for whom the moves are required.
+	-> Game
+	-> [Component.QualifiedMove.QualifiedMove]
 listQualifiedMovesAvailableTo logicalColour game@MkGame {
 	getBoard	= board,
 	getMaybeChecked	= maybeChecked
@@ -1332,15 +1150,7 @@ listQualifiedMovesAvailableTo logicalColour game@MkGame {
 		isSafeQualifiedMove qualifiedMove				= not $ State.Board.exposesKing logicalColour (Component.QualifiedMove.getMove qualifiedMove) board
 
 -- | Construct 'AvailableQualifiedMoves' for the player of the specified /logical colour/.
-mkAvailableQualifiedMovesFor :: (
-	Enum	x,
-	Enum	y,
-	Ord	x,
-	Ord	y,
-	Show	x,
-	Show	y
- ) => Attribute.LogicalColour.LogicalColour -> Game x y -> AvailableQualifiedMoves x y
-{-# SPECIALISE mkAvailableQualifiedMovesFor :: Attribute.LogicalColour.LogicalColour -> Game Type.Length.X Type.Length.Y -> AvailableQualifiedMoves Type.Length.X Type.Length.Y #-}
+mkAvailableQualifiedMovesFor :: Attribute.LogicalColour.LogicalColour -> Game -> AvailableQualifiedMoves
 mkAvailableQualifiedMovesFor logicalColour	= foldr {-maintains destination-order-} (
 	\qualifiedMove -> let
 		move	= Component.QualifiedMove.getMove qualifiedMove
@@ -1359,18 +1169,10 @@ mkAvailableQualifiedMovesFor logicalColour	= foldr {-maintains destination-order
 
 	* CAVEAT: doesn't account for game-termination.
 -}
-findQualifiedMovesAvailableTo :: (
-	Enum	x,
-	Enum	y,
-	Ord	x,
-	Ord	y,
-	Show	x,
-	Show	y
- )
-	=> Attribute.LogicalColour.LogicalColour
-	-> Game x y
-	-> [Component.QualifiedMove.QualifiedMove x y]
-{-# SPECIALISE findQualifiedMovesAvailableTo :: Attribute.LogicalColour.LogicalColour -> Game Type.Length.X Type.Length.Y -> [Component.QualifiedMove.QualifiedMove Type.Length.X Type.Length.Y] #-}
+findQualifiedMovesAvailableTo
+	:: Attribute.LogicalColour.LogicalColour
+	-> Game
+	-> [Component.QualifiedMove.QualifiedMove]
 findQualifiedMovesAvailableTo logicalColour game@MkGame { getAvailableQualifiedMovesByLogicalColour = availableQualifiedMovesByLogicalColour }
 	| Just availableQualifiedMoves <- Map.lookup logicalColour availableQualifiedMovesByLogicalColour	= [
 		Component.QualifiedMove.mkQualifiedMove (Component.Move.mkMove source destination) moveType |
@@ -1380,15 +1182,7 @@ findQualifiedMovesAvailableTo logicalColour game@MkGame { getAvailableQualifiedM
 	| otherwise	= listQualifiedMovesAvailableTo logicalColour game	-- Generate the list of moves for this player.
 
 -- | Count the number of plies available to the specified player.
-countPliesAvailableTo :: (
-	Enum	x,
-	Enum	y,
-	Ord	x,
-	Ord	y,
-	Show	x,
-	Show	y
- ) => Attribute.LogicalColour.LogicalColour -> Game x y -> Type.Count.NPlies
-{-# SPECIALISE countPliesAvailableTo :: Attribute.LogicalColour.LogicalColour -> Game Type.Length.X Type.Length.Y -> Type.Count.NPlies #-}
+countPliesAvailableTo :: Attribute.LogicalColour.LogicalColour -> Game -> Type.Count.NPlies
 countPliesAvailableTo logicalColour game@MkGame { getAvailableQualifiedMovesByLogicalColour = availableQualifiedMovesByLogicalColour }
 	| isTerminated game	= 0
 	| Just availableQualifiedMoves	<- Map.lookup logicalColour availableQualifiedMovesByLogicalColour	-- N.B.: 'findQualifiedMovesAvailableToNextPlayer' unnecessarily constructs a list.
@@ -1396,19 +1190,11 @@ countPliesAvailableTo logicalColour game@MkGame { getAvailableQualifiedMovesByLo
 	| otherwise		= fromIntegral . length $ listQualifiedMovesAvailableTo logicalColour game
 
 -- | Retrieve the recorded value, or generate the list of /move/s available to the next player.
-findQualifiedMovesAvailableToNextPlayer :: (
-	Enum	x,
-	Enum	y,
-	Ord	x,
-	Ord	y,
-	Show	x,
-	Show	y
- ) => Game x y -> [Component.QualifiedMove.QualifiedMove x y]
-{-# SPECIALISE findQualifiedMovesAvailableToNextPlayer :: Game Type.Length.X Type.Length.Y -> [Component.QualifiedMove.QualifiedMove Type.Length.X Type.Length.Y] #-}
+findQualifiedMovesAvailableToNextPlayer :: Game -> [Component.QualifiedMove.QualifiedMove]
 findQualifiedMovesAvailableToNextPlayer game@MkGame { getNextLogicalColour = nextLogicalColour }	= findQualifiedMovesAvailableTo nextLogicalColour game
 
 -- | Let the specified player resign.
-resignationBy :: Attribute.LogicalColour.LogicalColour -> Transformation x y
+resignationBy :: Attribute.LogicalColour.LogicalColour -> Transformation
 resignationBy logicalColour game
 	| isTerminated game	= game	-- Already terminated.
 	| otherwise		= game {
@@ -1416,11 +1202,11 @@ resignationBy logicalColour game
 	}
 
 -- | Resignation by the player who currently holds the choice of /move/.
-resign :: Transformation x y
+resign :: Transformation
 resign game@MkGame { getNextLogicalColour = nextLogicalColour }	= resignationBy nextLogicalColour game
 
 -- | Agree to a draw.
-agreeToADraw :: Transformation x y
+agreeToADraw :: Transformation
 agreeToADraw game
 	| isTerminated game	= game	-- Already terminated.
 	| otherwise		= game {
@@ -1428,7 +1214,7 @@ agreeToADraw game
 	}
 
 -- | Whether the game has been terminated.
-isTerminated :: Game x y -> Bool
+isTerminated :: Game -> Bool
 isTerminated MkGame { getMaybeTerminationReason	= maybeTerminationReason }	= Data.Maybe.isJust maybeTerminationReason
 
 {- |
@@ -1436,15 +1222,7 @@ isTerminated MkGame { getMaybeTerminationReason	= maybeTerminationReason }	= Dat
 
 	* N.B.: resignation isn't included, because it leaves no evidence on the board.
 -}
-inferMaybeTerminationReason :: (
-	Enum	x,
-	Enum	y,
-	Ord	x,
-	Ord	y,
-	Show	x,
-	Show	y
- ) => Game x y -> Maybe Rule.GameTerminationReason.GameTerminationReason
-{-# SPECIALISE inferMaybeTerminationReason :: Game Type.Length.X Type.Length.Y -> Maybe Rule.GameTerminationReason.GameTerminationReason #-}
+inferMaybeTerminationReason :: Game -> Maybe Rule.GameTerminationReason.GameTerminationReason
 inferMaybeTerminationReason game@MkGame {
 	getBoard		= board,
 	getInstancesByPosition	= instancesByPosition
@@ -1465,13 +1243,13 @@ inferMaybeTerminationReason game@MkGame {
 			| otherwise																= Nothing
 
 -- | Provided that the game hasn't already terminated, update the termination-reason according to whether the specified result implies either a /draw by agreement/ or a /resignation/.
-updateTerminationReasonWith :: Rule.Result.Result -> Transformation x y
+updateTerminationReasonWith :: Rule.Result.Result -> Transformation
 updateTerminationReasonWith result game
 	| Just victorsLogicalColour <- Rule.Result.findMaybeVictor result	= resignationBy (Property.Opposable.getOpposite victorsLogicalColour) game
 	| otherwise								= agreeToADraw game
 
 -- | Forwards request to "State.CastleableRooksByLogicalColour".
-cantConverge :: Game x y -> Game x y -> Bool
+cantConverge :: Game -> Game -> Bool
 cantConverge MkGame {
 	getCastleableRooksByLogicalColour	= castleableRooksByLogicalColour
 } MkGame {
@@ -1479,13 +1257,7 @@ cantConverge MkGame {
 } = State.CastleableRooksByLogicalColour.cantConverge castleableRooksByLogicalColour castleableRooksByLogicalColour'
 
 -- | Constructor.
-mkPosition :: (
-	Enum	x,
-	Enum	y,
-	Ord	x,
-	Ord	y
- ) => Game x y -> State.Position.Position x y
-{-# SPECIALISE mkPosition :: Game Type.Length.X Type.Length.Y -> State.Position.Position Type.Length.X Type.Length.Y #-}
+mkPosition :: Game -> State.Position.Position
 mkPosition game@MkGame {
 	getNextLogicalColour			= nextLogicalColour,
 	getBoard				= board,
@@ -1493,15 +1265,7 @@ mkPosition game@MkGame {
 } = State.Position.mkPosition nextLogicalColour (State.Board.getMaybePieceByCoordinates board) castleableRooksByLogicalColour $ maybeLastTurn game
 
 -- | Constructor. Count the instances of each repeatable /position/.
-mkInstancesByPosition :: (
-	Enum	x,
-	Enum	y,
-	Ord	x,
-	Ord	y,
-	Show	x,
-	Show	y
- ) => Game x y -> InstancesByPosition x y
-{-# SPECIALISE mkInstancesByPosition :: Game Type.Length.X Type.Length.Y -> InstancesByPosition Type.Length.X Type.Length.Y #-}
+mkInstancesByPosition :: Game -> InstancesByPosition
 mkInstancesByPosition game	= State.InstancesByPosition.mkInstancesByPosition mkPosition . (game :) . map fst {-game-} . takeWhile (
 	Component.Turn.getIsRepeatableMove . snd {-turn-}
  ) $ rollBack game
@@ -1515,38 +1279,22 @@ mkInstancesByPosition game	= State.InstancesByPosition.mkInstancesByPosition mkP
 
 	* CAVEAT: though convenient, this function shouldn't be called for repeated tests against a constant /position/, resulting in unnecessary repeated construction of that /position/.
 -}
-(=~) :: (
-	Enum	x,
-	Enum	y,
-	Ord	x,
-	Ord	y
- ) => Game x y -> Game x y -> Bool
-{-# SPECIALISE (=~) :: Game Type.Length.X Type.Length.Y -> Game Type.Length.X Type.Length.Y -> Bool #-}
+(=~) :: Game -> Game -> Bool
 game =~ game'	= mkPosition game == mkPosition game'
 
 -- | Whether the state of the specified /game/s is different.
-(/~) :: (
-	Enum	x,
-	Enum	y,
-	Ord	x,
-	Ord	y
- ) => Game x y -> Game x y -> Bool
+(/~) :: Game -> Game -> Bool
 game /~ game'	= not $ game =~ game'
 
 -- | Update the /position-hash/ of the /game/ prior to application of the last /move/.
-updateIncrementalPositionHash :: (
-	Data.Array.IArray.Ix	x,
-	Data.Bits.Bits		positionHash,
-	Enum			x,
-	Enum			y,
-	Ord			y
- )
-	=> Game x y		-- ^ The /game/ before application of the last move.
-	-> positionHash		-- ^ The value before application of the last move.
-	-> Game x y		-- ^ The current game.
-	-> Component.Zobrist.Zobrist x y positionHash
+updateIncrementalPositionHash
+	:: Data.Bits.Bits positionHash
+	=> Game		-- ^ The /game/ before application of the last move.
+	-> positionHash	-- ^ The value before application of the last move.
+	-> Game		-- ^ The current game.
+	-> Component.Zobrist.Zobrist positionHash
 	-> positionHash
-{-# SPECIALISE updateIncrementalPositionHash :: Game Type.Length.X Type.Length.Y -> Type.Crypto.PositionHash -> Game Type.Length.X Type.Length.Y -> Component.Zobrist.Zobrist Type.Length.X Type.Length.Y Type.Crypto.PositionHash -> Type.Crypto.PositionHash #-}
+{-# SPECIALISE updateIncrementalPositionHash :: Game -> Type.Crypto.PositionHash -> Game -> Component.Zobrist.Zobrist Type.Crypto.PositionHash -> Type.Crypto.PositionHash #-}
 updateIncrementalPositionHash game positionHash game' zobrist	= Component.Zobrist.combine positionHash . (++) randomsFromMoveType . (
 	let
 		(castleableRooksByLogicalColour, castleableRooksByLogicalColour')	= ($ game) &&& ($ game') $ getCastleableRooksByLogicalColour
@@ -1564,7 +1312,7 @@ updateIncrementalPositionHash game positionHash game' zobrist	= Component.Zobris
 				State.Board.getMaybePieceByCoordinates $ getBoard g
 			) -- CAVEAT: accounts for any change to the En-passant option, rather than the act of taking En-passant.
 		) [game, game'],
-		random			<- Component.Zobrist.listRandoms1D enPassantAbscissa zobrist
+		random			<- Component.Zobrist.listRandoms enPassantAbscissa zobrist
  ] {-list-comprehension-} ++ Component.Zobrist.getRandomForBlacksMove zobrist : [
 	Component.Zobrist.dereferenceRandomByCoordinatesByRankByLogicalColour (lastLogicalColour, rankAccessor turn, coordinatesAccessor move) zobrist |
 		(rankAccessor, coordinatesAccessor)	<- zip [Component.Turn.getRank, (`Data.Maybe.fromMaybe` Attribute.Rank.getMaybePromotionRank moveType) . Component.Turn.getRank] coordinatesAccessors

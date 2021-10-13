@@ -36,6 +36,7 @@ module BishBosh.Cartesian.Abscissa(
 	xMax,
 	xBounds,
 	xRange,
+	kingsFile,
 --	adjacents,
 -- * Functions
 	toIx,
@@ -45,7 +46,6 @@ module BishBosh.Cartesian.Abscissa(
 	maybeTranslate,
 	getAdjacents,
 --	getAdjacents',
---	getAdjacentsInt,
 -- ** Constructors
 	listArrayByAbscissa,
 -- ** Predicates
@@ -67,48 +67,52 @@ xLength :: Type.Length.Distance
 xLength	= 8
 
 -- | The constant lower bound of abscissae.
-xMin :: Enum x => x
+xMin :: Type.Length.X
 xMin	= toEnum xOrigin
 
 -- | The constant upper bound of abscissae.
-xMax :: Enum x => x
+xMax :: Type.Length.X
 xMax	= toEnum $ xOrigin + fromIntegral (pred {-fence-post-} xLength)
 
 -- | The constant bounds of abscissae.
-xBounds :: Enum x => (x, x)
+xBounds :: (Type.Length.X, Type.Length.X)
 xBounds	= (xMin, xMax)
 
 -- | The constant list of all abscissae.
-xRange :: Enum x => [x]
+xRange :: [Type.Length.X]
 xRange	= uncurry enumFromTo xBounds
 
+-- | The conventional starting /file/ for the @King@ of either /logical colour/.
+kingsFile :: Type.Length.X
+kingsFile	= fromIx 4
+
 -- | Convert to an array-index.
-toIx :: Enum x => x -> Int
+toIx :: Type.Length.X -> Int
 {-# INLINE toIx #-}
 toIx	= subtract xOrigin . fromEnum
 
 -- | Convert from an array-index.
-fromIx :: Enum x => Int -> x
+fromIx :: Int -> Type.Length.X
 {-# INLINE fromIx #-}
 fromIx	= toEnum . (+ xOrigin)
 
 -- | Reflects about the mid-point of the axis.
-reflect :: Enum x => x -> x
+reflect :: Type.Length.X -> Type.Length.X
 reflect	= Data.Enum.translate $ (
 	+ (2 * xOrigin + fromIntegral (pred xLength))
  ) . negate
 
 -- | Predicate.
-inBounds :: (Enum x, Ord x) => x -> Bool
+inBounds :: Type.Length.X -> Bool
 {-# INLINE inBounds #-}
 inBounds x	= x >= xMin && x <= xMax
 
 -- | Translate the specified ordinate.
-translate :: (Enum x, Ord x) => (x -> x) -> x -> x
+translate :: (Type.Length.X -> Type.Length.X) -> Type.Length.X -> Type.Length.X
 translate transformation	= (\x -> Control.Exception.assert (inBounds x) x) . transformation
 
 -- | Where legal, translate the specified abscissa.
-maybeTranslate :: (Enum x, Ord x) => (x -> x) -> x -> Maybe x
+maybeTranslate :: (Type.Length.X -> Type.Length.X) -> Type.Length.X -> Maybe Type.Length.X
 maybeTranslate transformation	= (
 	\x -> if inBounds x
 		then Just x
@@ -116,36 +120,25 @@ maybeTranslate transformation	= (
  ) . transformation
 
 -- | Get the abscissae immediately left & right.
-getAdjacents' :: (Enum x, Eq x) => x -> [x]
+getAdjacents' :: Type.Length.X -> [Type.Length.X]
 getAdjacents' x
 	| x == xMin	= [succ xMin]
 	| x == xMax	= [pred xMax]
 	| otherwise	= [pred x, succ x]
 
 -- | The constant abscissae either side of each value.
-adjacents :: (Data.Array.IArray.Ix x, Enum x) => Data.Array.IArray.Array x [x]
-{-# SPECIALISE adjacents :: Data.Array.IArray.Array Type.Length.X [Type.Length.X] #-}	-- To promote memoisation.
+adjacents :: Data.Array.IArray.Array Type.Length.X [Type.Length.X]
 adjacents	= listArrayByAbscissa $ map getAdjacents' xRange
-
--- | A specialisation of 'getAdjacents'.
-getAdjacentsInt	:: Type.Length.X -> [Type.Length.X]
-getAdjacentsInt	= (adjacents !)
 
 {- |
 	* Get the abscissae immediately left & right.
 
 	* N.B.: this is really a compile-time switch between alternative implementations.
 -}
-getAdjacents :: (Enum x, Eq x) => x -> [x]
-{-# NOINLINE getAdjacents #-}	-- Ensure the rewrite-rule triggers.
-{-# RULES "getAdjacents/Int" getAdjacents = getAdjacentsInt #-}
-getAdjacents	= getAdjacents'
+getAdjacents :: Type.Length.X -> [Type.Length.X]
+getAdjacents	= (adjacents !)
 
 -- | Array-constructor.
-listArrayByAbscissa :: (
-	Data.Array.IArray.IArray	a e,
-	Data.Array.IArray.Ix		x,
-	Enum				x
- ) => [e] -> a x e
+listArrayByAbscissa :: Data.Array.IArray.IArray a e => [e] -> a Type.Length.X e
 listArrayByAbscissa	= Data.Array.IArray.listArray xBounds
 

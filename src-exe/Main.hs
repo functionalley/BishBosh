@@ -29,7 +29,6 @@
 
 module Main(main) where
 
---import		BishBosh.Data.Ratio()	-- Required if either Type.Mass.CriterionWeight or Type.Mass.CriterionValue is Rational.
 import			Control.Arrow((&&&), (***), (|||))
 import			Control.Category((>>>))
 import			Data.Array.IArray((!))
@@ -59,7 +58,6 @@ import qualified	BishBosh.Text.ShowList					as Text.ShowList
 import qualified	BishBosh.Text.ShowPrefix				as Text.ShowPrefix
 import qualified	BishBosh.Type.Count					as Type.Count
 import qualified	BishBosh.Type.Crypto					as Type.Crypto
-import qualified	BishBosh.Type.Length					as Type.Length
 import qualified	BishBosh.Type.Mass					as Type.Mass
 import qualified	Control.Exception
 import qualified	Control.Monad
@@ -95,7 +93,7 @@ import qualified	BishBosh.Concurrent.SignalHandlers	as Concurrent.SignalHandlers
 #endif
 
 -- Define concrete types to resolve the underlying polymorphic functions.
-type Options	= Input.Options.Options Type.Mass.PieceSquareValue Type.Length.X Type.Length.Y
+type Options	= Input.Options.Options Type.Mass.PieceSquareValue
 
 writeXMLToFile
 	:: HXT.XmlPickler pickleable
@@ -446,7 +444,7 @@ main	= do
 								 ) Property.Empty.empty {-QualifiedMoveForest-} (Input.IOOptions.getPGNOptionsList ioOptions)
 
 								let
-									maybeApplicationTerminationReason	= State.PlayState.getMaybeApplicationTerminationReason (playState :: State.PlayState.PlayState Type.Mass.PieceSquareValue Type.Crypto.PositionHash Type.Length.X Type.Length.Y)
+									maybeApplicationTerminationReason	= State.PlayState.getMaybeApplicationTerminationReason (playState :: State.PlayState.PlayState Type.Mass.PieceSquareValue Type.Crypto.PositionHash)
 								 in Control.Monad.when (
 									verbosity /= minBound && Data.Maybe.isJust maybeApplicationTerminationReason
 								 ) . System.IO.hPutStrLn System.IO.stderr . showsInfoPrefix . showString "application terminated " $ shows (Data.Maybe.fromJust maybeApplicationTerminationReason) "."

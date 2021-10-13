@@ -59,7 +59,6 @@ import qualified	BishBosh.Rule.GameTerminationReason	as Rule.GameTerminationReas
 import qualified	BishBosh.Text.ShowList			as Text.ShowList
 import qualified	BishBosh.Time.GameClock			as Time.GameClock
 import qualified	BishBosh.Type.Count			as Type.Count
-import qualified	BishBosh.Type.Length			as Type.Length
 import qualified	BishBosh.Type.Mass			as Type.Mass
 import qualified	BishBosh.UI.Command			as UI.Command
 import qualified	Control.Exception
@@ -117,7 +116,7 @@ readMove
 	-> Type.Count.NSeconds				-- ^ Read-timout.
 	-> Attribute.LogicalColour.LogicalColour	-- ^ Whose turn it is.
 	-> System.IO.Handle				-- ^ Output handle from which data should be read.
-	-> IO (Either Rule.GameTerminationReason.GameTerminationReason (MoveNotation Type.Length.X Type.Length.Y))
+	-> IO (Either Rule.GameTerminationReason.GameTerminationReason MoveNotation)
 readMove verbosity readTimeout logicalColour stdOut = do
 	Control.Monad.when (verbosity == maxBound) . IO.Logger.printInfo . showString "Waiting " . (
 		if readTimeout < 0
@@ -311,7 +310,7 @@ initialise options
 							] configFilePath
 							>>> HXT.arr (
 								 \inputOptions -> Input.SearchOptions.identifyAutomatedPlayers . Input.Options.getSearchOptions &&& Input.UIOptions.getMoveNotation . Input.IOOptions.getUIOptions . Input.Options.getIOOptions $ (
-									inputOptions	:: Input.Options.Options Type.Mass.PieceSquareValue Type.Length.X Type.Length.Y	-- Arbitrary concrete type.
+									inputOptions	:: Input.Options.Options Type.Mass.PieceSquareValue	-- Arbitrary concrete type.
 								 )
 							) -- Lift function into an arrow.
 

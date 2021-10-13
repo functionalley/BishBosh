@@ -59,10 +59,8 @@ import qualified	BishBosh.Rule.Result				as Rule.Result
 import qualified	BishBosh.State.Board				as State.Board
 import qualified	BishBosh.Type.Count				as Type.Count
 import qualified	BishBosh.Type.Crypto				as Type.Crypto
-import qualified	BishBosh.Type.Length				as Type.Length
 import qualified	Control.Arrow
 import qualified	Control.Exception
-import qualified	Data.Array.IArray
 import qualified	Data.Bits
 import qualified	Data.Default
 import qualified	Data.List
@@ -74,46 +72,38 @@ import qualified	System.Random
 import qualified	ToolShed.System.Random
 
 #ifdef USE_PARALLEL
-import qualified	Control.DeepSeq
 import qualified	Control.Parallel.Strategies
 #endif
 
 -- | Each label of the tree contains a /Zobrist-hash/ of the current position, augmented (except in the case of the apex-game) by the last /move/ that was played, & any conclusive result.
-data NodeLabel x y positionHash	= MkNodeLabel {
+data NodeLabel positionHash	= MkNodeLabel {
 	getPositionHash				:: positionHash,
-	getMaybeQualifiedMoveWithOnymousResult	:: Maybe (Component.QualifiedMove.QualifiedMove x y, Maybe ContextualNotation.QualifiedMoveForest.OnymousResult)
+	getMaybeQualifiedMoveWithOnymousResult	:: Maybe (Component.QualifiedMove.QualifiedMove, Maybe ContextualNotation.QualifiedMoveForest.OnymousResult)
 }
 
 -- | The tree of /qualified move/s.
-type Tree x y positionHash	= Data.Tree.Tree (NodeLabel x y positionHash)
+type Tree positionHash	= Data.Tree.Tree (NodeLabel positionHash)
 
 -- | Constructor.
-data PositionHashQualifiedMoveTree x y positionHash	= MkPositionHashQualifiedMoveTree {
-	getZobrist		:: Component.Zobrist.Zobrist x y positionHash,	-- ^ Used to hash each position in the tree.
-	getTree			:: Tree x y positionHash,
+data PositionHashQualifiedMoveTree positionHash	= MkPositionHashQualifiedMoveTree {
+	getZobrist		:: Component.Zobrist.Zobrist positionHash,	-- ^ Used to hash each position in the tree.
+	getTree			:: Tree positionHash,
 	getMinimumPieces	:: Type.Count.NPieces				-- ^ The minimum number of /piece/s remaining after the last /move/ in any game defined in the tree.
 }
 
 -- | Augment the specified /qualified-move forest/ with a /Zobrist-hash/ of the /position/ & include the default initial game at the apex.
-fromQualifiedMoveForest :: (
-	Data.Array.IArray.Ix	x,
-	Data.Bits.Bits		positionHash,
-	Enum			x,
-	Enum			y,
-	Ord			y,
-	Show			x,
-	Show			y
- )
+fromQualifiedMoveForest
+	:: Data.Bits.Bits positionHash
 	=> Bool	-- ^ IncrementalEvaluation.
-	-> Component.Zobrist.Zobrist x y positionHash
-	-> ContextualNotation.QualifiedMoveForest.QualifiedMoveForest x y
-	-> PositionHashQualifiedMoveTree x y positionHash
-{-# SPECIALISE fromQualifiedMoveForest :: Bool -> Component.Zobrist.Zobrist Type.Length.X Type.Length.Y Type.Crypto.PositionHash -> ContextualNotation.QualifiedMoveForest.QualifiedMoveForest Type.Length.X Type.Length.Y -> PositionHashQualifiedMoveTree Type.Length.X Type.Length.Y Type.Crypto.PositionHash #-}
+	-> Component.Zobrist.Zobrist positionHash
+	-> ContextualNotation.QualifiedMoveForest.QualifiedMoveForest
+	-> PositionHashQualifiedMoveTree positionHash
+{-# SPECIALISE fromQualifiedMoveForest :: Bool -> Component.Zobrist.Zobrist Type.Crypto.PositionHash -> ContextualNotation.QualifiedMoveForest.QualifiedMoveForest -> PositionHashQualifiedMoveTree Type.Crypto.PositionHash #-}
 fromQualifiedMoveForest incrementalEvaluation zobrist qualifiedMoveForest	= MkPositionHashQualifiedMoveTree {
 	getZobrist		= zobrist,
 	getTree			= let
 		initialGame		= Data.Default.def
-		initialPositionHash	= Component.Zobrist.hash2D initialGame zobrist
+		initialPositionHash	= Component.Zobrist.hash initialGame zobrist
 	in Data.Tree.Node {
 		Data.Tree.rootLabel	= MkNodeLabel initialPositionHash Nothing,
 		Data.Tree.subForest	= map (
@@ -134,7 +124,7 @@ fromQualifiedMoveForest incrementalEvaluation zobrist qualifiedMoveForest	= MkPo
 						Data.Tree.rootLabel	= label@(qualifiedMove, _),
 						Data.Tree.subForest	= qualifiedMoveForest'
 					} = Data.Tree.Node {
-						Data.Tree.rootLabel	= MkNodeLabel (Component.Zobrist.hash2D game' zobrist) $ Just label,	-- Hash the game after applying the move.
+						Data.Tree.rootLabel	= MkNodeLabel (Component.Zobrist.hash game' zobrist) $ Just label,	-- Hash the game after applying the move.
 						Data.Tree.subForest	= map (slave game') qualifiedMoveForest'	-- Recurse.
 					} where
 						game'	= Model.Game.applyQualifiedMove qualifiedMove game
@@ -145,7 +135,7 @@ fromQualifiedMoveForest incrementalEvaluation zobrist qualifiedMoveForest	= MkPo
 }
 
 -- | Predicate.
-isTerminal :: PositionHashQualifiedMoveTree x y positionHash -> Bool
+isTerminal :: PositionHashQualifiedMoveTree positionHash -> Bool
 isTerminal MkPositionHashQualifiedMoveTree { getTree = Data.Tree.Node { Data.Tree.subForest = [] } }	= True
 isTerminal _												= False
 
@@ -154,14 +144,14 @@ isTerminal _												= False
 
 	* CAVEAT: a negative result doesn't imply that convergence is possible, since other factors may prevent it.
 -}
-cantConverge :: Model.Game.Game x y -> PositionHashQualifiedMoveTree x y positionHash -> Bool
+cantConverge :: Model.Game.Game -> PositionHashQualifiedMoveTree positionHash -> Bool
 cantConverge game MkPositionHashQualifiedMoveTree { getMinimumPieces = minimumPieces }	= State.Board.getNPieces (Model.Game.getBoard game) < minimumPieces
 
 -- | A /qualified move/ annotated by the name & ultimate /result/, of each /game/ from which it could have originated.
-type OnymousQualifiedMove x y	= (Component.QualifiedMove.QualifiedMove x y, [ContextualNotation.QualifiedMoveForest.OnymousResult])
+type OnymousQualifiedMove	= (Component.QualifiedMove.QualifiedMove, [ContextualNotation.QualifiedMoveForest.OnymousResult])
 
 -- | Find the /onymous result/s for all /game/s originating from the specified tree.
-onymiseQualifiedMove :: Tree x y positionHash -> OnymousQualifiedMove x y
+onymiseQualifiedMove :: Tree positionHash -> OnymousQualifiedMove
 onymiseQualifiedMove	= (
 	fst {-qualifiedMove-} . head &&& Data.Maybe.mapMaybe snd {-Maybe OnymousResult-}
  ) . (
@@ -171,10 +161,10 @@ onymiseQualifiedMove	= (
  ) . Data.Tree.flatten
 
 -- | The type of a function used to locate a match in the tree.
-type FindMatch x y positionHash	= Model.Game.Game x y -> PositionHashQualifiedMoveTree x y positionHash -> [OnymousQualifiedMove x y]
+type FindMatch positionHash	= Model.Game.Game -> PositionHashQualifiedMoveTree positionHash -> [OnymousQualifiedMove]
 
 -- | For any exactly matching /game/ in the tree, return the subsequent /qualifiedMove/s.
-findNextOnymousQualifiedMovesForGame :: (Eq x, Eq y) => FindMatch x y positionHash
+findNextOnymousQualifiedMovesForGame :: FindMatch positionHash
 findNextOnymousQualifiedMovesForGame requiredGame	= slave (
 	Model.Game.listTurnsChronologically requiredGame
  ) . Data.Tree.subForest {-remove the apex which lacks a founding move-} . getTree where
@@ -194,14 +184,8 @@ findNextOnymousQualifiedMovesForGame requiredGame	= slave (
 
 	* CAVEAT: a null list can result from either match-failure, or a match with the final /move/ of a /game/.
 -}
-findNextOnymousQualifiedMovesForPosition :: (
-	Data.Array.IArray.Ix	x,
-	Data.Bits.Bits		positionHash,
-	Enum			x,
-	Enum			y,
-	Ord			y
- ) => FindMatch x y positionHash
-{-# SPECIALISE findNextOnymousQualifiedMovesForPosition :: FindMatch Type.Length.X Type.Length.Y Type.Crypto.PositionHash #-}
+findNextOnymousQualifiedMovesForPosition :: Data.Bits.Bits positionHash => FindMatch positionHash
+{-# SPECIALISE findNextOnymousQualifiedMovesForPosition :: FindMatch Type.Crypto.PositionHash #-}
 findNextOnymousQualifiedMovesForPosition requiredGame positionHashQualifiedMoveTree@MkPositionHashQualifiedMoveTree {
 	getZobrist	= zobrist,
 	getTree		= tree
@@ -209,7 +193,7 @@ findNextOnymousQualifiedMovesForPosition requiredGame positionHashQualifiedMoveT
 	| cantConverge requiredGame positionHashQualifiedMoveTree	= []	-- The specified game has fewer pieces than any defined in the tree.
 	| otherwise							= slave (2 * Component.Piece.nPiecesPerSide) tree
 	where
-		(requiredPositionHash, requiredNPieces)	= (`Component.Zobrist.hash2D` zobrist) &&& State.Board.getNPieces . Model.Game.getBoard $ requiredGame
+		(requiredPositionHash, requiredNPieces)	= (`Component.Zobrist.hash` zobrist) &&& State.Board.getNPieces . Model.Game.getBoard $ requiredGame
 
 		slave nPieces Data.Tree.Node {
 			Data.Tree.rootLabel	= MkNodeLabel { getPositionHash = positionHash },
@@ -231,20 +215,8 @@ findNextOnymousQualifiedMovesForPosition requiredGame positionHashQualifiedMoveT
 		 ) forest
 
 -- | Finds any single /move/s which can join the current /position/ with a member of the forest.
-findNextJoiningOnymousQualifiedMovesFromPosition :: (
-#ifdef USE_PARALLEL
-	Control.DeepSeq.NFData	x,
-	Control.DeepSeq.NFData	y,
-#endif
-	Data.Array.IArray.Ix	x,
-	Data.Bits.Bits		positionHash,
-	Enum			x,
-	Enum			y,
-	Ord			y,
-	Show			x,
-	Show			y
- ) => FindMatch x y positionHash
-{-# SPECIALISE findNextJoiningOnymousQualifiedMovesFromPosition :: FindMatch Type.Length.X Type.Length.Y Type.Crypto.PositionHash #-}
+findNextJoiningOnymousQualifiedMovesFromPosition :: Data.Bits.Bits positionHash => FindMatch positionHash
+{-# SPECIALISE findNextJoiningOnymousQualifiedMovesFromPosition :: FindMatch Type.Crypto.PositionHash #-}
 findNextJoiningOnymousQualifiedMovesFromPosition game positionHashQualifiedMoveTree
 	| Model.Game.isTerminated game	= []
 	| otherwise			= [
@@ -273,22 +245,11 @@ findNextJoiningOnymousQualifiedMovesFromPosition game positionHashQualifiedMoveT
 
 	* CAVEAT: the order of these searches has been hard-coded.
 -}
-findNextOnymousQualifiedMoves :: (
-#ifdef USE_PARALLEL
-	Control.DeepSeq.NFData	x,
-	Control.DeepSeq.NFData	y,
-#endif
-	Data.Array.IArray.Ix	x,
-	Data.Bits.Bits		positionHash,
-	Enum			x,
-	Enum			y,
-	Ord			y,
-	Show			x,
-	Show			y
- )
+findNextOnymousQualifiedMoves
+	:: Data.Bits.Bits positionHash
 	=> (Bool, Bool, Bool)	-- ^ MatchSwitches.
-	-> FindMatch x y positionHash
-{-# SPECIALISE findNextOnymousQualifiedMoves :: (Bool, Bool, Bool) -> FindMatch Type.Length.X Type.Length.Y Type.Crypto.PositionHash #-}
+	-> FindMatch positionHash
+{-# SPECIALISE findNextOnymousQualifiedMoves :: (Bool, Bool, Bool) -> FindMatch Type.Crypto.PositionHash #-}
 findNextOnymousQualifiedMoves (tryToMatchMoves, tryToMatchViaJoiningMove, tryToMatchColourFlippedPosition) game positionHashQualifiedMoveTree
 	| cantConverge game positionHashQualifiedMoveTree	= []	-- The specified game is smaller than any defined in the tree.
 	| otherwise						= Data.Maybe.fromMaybe [] . Data.List.find (
@@ -313,31 +274,21 @@ findNextOnymousQualifiedMoves (tryToMatchMoves, tryToMatchViaJoiningMove, tryToM
 
 -- | Randomly select a /qualifiedMove/ from matching /position/s in the tree, & supply the names of those archived games from which it originated.
 maybeRandomlySelectOnymousQualifiedMove :: (
-#ifdef USE_PARALLEL
-	Control.DeepSeq.NFData	x,
-	Control.DeepSeq.NFData	y,
-#endif
-	Data.Array.IArray.Ix	x,
 	Data.Bits.Bits		positionHash,
-	Enum			x,
-	Enum			y,
-	Ord			y,
-	Show			x,
-	Show			y,
 	System.Random.RandomGen	randomGen
  )
 	=> randomGen
 	-> (Bool, Bool, Bool)	-- ^ MatchSwitches.
-	-> Model.Game.Game x y
-	-> PositionHashQualifiedMoveTree x y positionHash
-	-> Maybe (Component.QualifiedMove.QualifiedMove x y, [ContextualNotation.QualifiedMoveForest.Name])
+	-> Model.Game.Game
+	-> PositionHashQualifiedMoveTree positionHash
+	-> Maybe (Component.QualifiedMove.QualifiedMove, [ContextualNotation.QualifiedMoveForest.Name])
 {-# SPECIALISE maybeRandomlySelectOnymousQualifiedMove
 	:: System.Random.RandomGen randomGen
 	=> randomGen
 	-> (Bool, Bool, Bool)
-	-> Model.Game.Game Type.Length.X Type.Length.Y
-	-> PositionHashQualifiedMoveTree Type.Length.X Type.Length.Y Type.Crypto.PositionHash
-	-> Maybe (Component.QualifiedMove.QualifiedMove Type.Length.X Type.Length.Y, [ContextualNotation.QualifiedMoveForest.Name])
+	-> Model.Game.Game
+	-> PositionHashQualifiedMoveTree Type.Crypto.PositionHash
+	-> Maybe (Component.QualifiedMove.QualifiedMove, [ContextualNotation.QualifiedMoveForest.Name])
  #-}
 maybeRandomlySelectOnymousQualifiedMove randomGen matchSwitches game positionHashQualifiedMoveTree	= case findNextOnymousQualifiedMoves matchSwitches game positionHashQualifiedMoveTree of
 	[]			-> Nothing

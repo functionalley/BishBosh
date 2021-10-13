@@ -1,4 +1,3 @@
-{-# LANGUAGE FlexibleInstances, MultiParamTypeClasses #-}
 {-
 	Copyright (C) 2018 Dr. Alistair Ward
 
@@ -52,26 +51,18 @@ import qualified	BishBosh.Property.Reflectable			as Property.Reflectable
 import qualified	BishBosh.State.CastleableRooksByLogicalColour	as State.CastleableRooksByLogicalColour
 import qualified	BishBosh.State.EnPassantAbscissa		as State.EnPassantAbscissa
 import qualified	BishBosh.State.MaybePieceByCoordinates		as State.MaybePieceByCoordinates
-import qualified	BishBosh.Type.Length				as Type.Length
 import qualified	Control.DeepSeq
-import qualified	Data.Array.IArray
 import qualified	Data.Maybe
 
 -- | The state of the game, without regard to how it arrived there.
-data Position x y	= MkPosition {
+data Position	= MkPosition {
 	getNextLogicalColour			:: Attribute.LogicalColour.LogicalColour,	-- ^ The next player to move.
-	getMaybePieceByCoordinates		:: State.MaybePieceByCoordinates.MaybePieceByCoordinates x y,
-	getCastleableRooksByLogicalColour	:: State.CastleableRooksByLogicalColour.CastleableRooksByLogicalColour x,
-	getMaybeEnPassantAbscissa		:: Maybe (State.EnPassantAbscissa.EnPassantAbscissa x)
+	getMaybePieceByCoordinates		:: State.MaybePieceByCoordinates.MaybePieceByCoordinates,
+	getCastleableRooksByLogicalColour	:: State.CastleableRooksByLogicalColour.CastleableRooksByLogicalColour,
+	getMaybeEnPassantAbscissa		:: Maybe State.EnPassantAbscissa.EnPassantAbscissa
 } deriving Eq
 
-instance (
-	Enum	x,
-	Enum	y,
-	Ord	x,
-	Ord	y
- ) => Ord (Position x y) where
-	{-# SPECIALISE instance Ord (Position Type.Length.X Type.Length.Y) #-}
+instance Ord Position where
 	position@MkPosition {
 		getNextLogicalColour		= nextLogicalColour,
 		getMaybePieceByCoordinates	= maybePieceByCoordinates
@@ -90,10 +81,7 @@ instance (
 		getMaybeEnPassantAbscissa position'
 	 )
 
-instance (
-	Control.DeepSeq.NFData	x,
-	Control.DeepSeq.NFData	y
- ) => Control.DeepSeq.NFData (Position x y) where
+instance Control.DeepSeq.NFData Position where
 	rnf MkPosition {
 		getNextLogicalColour			= nextLogicalColour,
 		getMaybePieceByCoordinates		= maybePieceByCoordinates,
@@ -101,12 +89,7 @@ instance (
 		getMaybeEnPassantAbscissa		= maybeEnPassantAbscissa
 	} = Control.DeepSeq.rnf (nextLogicalColour, maybePieceByCoordinates, castleableRooksByLogicalColour, maybeEnPassantAbscissa)
 
-instance (
-	Enum	x,
-	Enum	y,
-	Ord	x,
-	Ord	y
- ) => Property.Reflectable.ReflectableOnX (Position x y) where
+instance Property.Reflectable.ReflectableOnX Position where
 	reflectOnX position@MkPosition {
 		getNextLogicalColour			= nextLogicalColour,
 		getMaybePieceByCoordinates		= maybePieceByCoordinates,
@@ -117,8 +100,8 @@ instance (
 		getCastleableRooksByLogicalColour	= Property.Reflectable.reflectOnX castleableRooksByLogicalColour
 	}
 
-instance (Data.Array.IArray.Ix x, Enum x, Enum y, Ord y) => Component.Zobrist.Hashable2D Position x y {-CAVEAT: FlexibleInstances, MultiParamTypeClasses-} where
-	listRandoms2D MkPosition {
+instance Component.Zobrist.Hashable Position where
+	listRandoms MkPosition {
 		getNextLogicalColour			= nextLogicalColour,
 		getMaybePieceByCoordinates		= maybePieceByCoordinates,
 		getCastleableRooksByLogicalColour	= castleableRooksByLogicalColour,
@@ -128,22 +111,16 @@ instance (Data.Array.IArray.Ix x, Enum x, Enum y, Ord y) => Component.Zobrist.Ha
 			then (Component.Zobrist.getRandomForBlacksMove zobrist :)
 			else id
 	 ) . Data.Maybe.maybe id (
-		(++) . (`Component.Zobrist.listRandoms1D` zobrist)
-	 ) maybeEnPassantAbscissa $ Component.Zobrist.listRandoms1D castleableRooksByLogicalColour zobrist ++ Component.Zobrist.listRandoms2D maybePieceByCoordinates zobrist
+		(++) . (`Component.Zobrist.listRandoms` zobrist)
+	 ) maybeEnPassantAbscissa $ Component.Zobrist.listRandoms castleableRooksByLogicalColour zobrist ++ Component.Zobrist.listRandoms maybePieceByCoordinates zobrist
 
 -- | Constructor.
-mkPosition :: (
-	Enum	x,
-	Enum	y,
-	Ord	x,
-	Ord	y
- )
-	=> Attribute.LogicalColour.LogicalColour	-- ^ The logical colour of the next player to move.
-	-> State.MaybePieceByCoordinates.MaybePieceByCoordinates x y
-	-> State.CastleableRooksByLogicalColour.CastleableRooksByLogicalColour x
-	-> Maybe (Component.Turn.Turn x y)		-- ^ The last /turn/ made.
-	-> Position x y
-{-# SPECIALISE mkPosition :: Attribute.LogicalColour.LogicalColour -> State.MaybePieceByCoordinates.MaybePieceByCoordinates Type.Length.X Type.Length.Y -> State.CastleableRooksByLogicalColour.CastleableRooksByLogicalColour Type.Length.X -> Maybe (Component.Turn.Turn Type.Length.X Type.Length.Y) -> Position Type.Length.X Type.Length.Y #-}
+mkPosition
+	:: Attribute.LogicalColour.LogicalColour	-- ^ The logical colour of the next player to move.
+	-> State.MaybePieceByCoordinates.MaybePieceByCoordinates
+	-> State.CastleableRooksByLogicalColour.CastleableRooksByLogicalColour
+	-> Maybe Component.Turn.Turn			-- ^ The last /turn/ made.
+	-> Position
 mkPosition nextLogicalColour maybePieceByCoordinates castleableRooksByLogicalColour maybeLastTurn	= MkPosition {
 	getNextLogicalColour			= nextLogicalColour,
 	getMaybePieceByCoordinates		= maybePieceByCoordinates,	-- N.B.: one could have used 'State.CoordinatesByRankByLogicalColour.CoordinatesByRankByLogicalColour', except that the coordinates have an undefined order.

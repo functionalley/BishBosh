@@ -1,4 +1,3 @@
-{-# LANGUAGE FlexibleInstances, MultiParamTypeClasses #-}
 {-
 	Copyright (C) 2018 Dr. Alistair Ward
 
@@ -45,32 +44,25 @@ import qualified	BishBosh.Property.Opposable		as Property.Opposable
 import qualified	BishBosh.State.MaybePieceByCoordinates	as State.MaybePieceByCoordinates
 import qualified	BishBosh.Type.Length			as Type.Length
 import qualified	Control.DeepSeq
-import qualified	Data.Array.IArray
 import qualified	Data.Maybe
 
 -- | Defines the file on which an En-passant option currently exists.
-newtype EnPassantAbscissa x	= MkEnPassantAbscissa {
-	getAbscissa	:: x	-- ^ The file on which an En-passant option currently exists.
+newtype EnPassantAbscissa	= MkEnPassantAbscissa {
+	getAbscissa	:: Type.Length.X	-- ^ The file on which an En-passant option currently exists.
 } deriving (Eq, Ord)
 
-instance Data.Array.IArray.Ix x => Component.Zobrist.Hashable1D EnPassantAbscissa x {-CAVEAT: FlexibleInstances, MultiParamTypeClasses-} where
-	listRandoms1D MkEnPassantAbscissa { getAbscissa = x }	= return {-to List-monad-} . Component.Zobrist.dereferenceRandomByEnPassantAbscissa x
+instance Component.Zobrist.Hashable EnPassantAbscissa where
+	listRandoms MkEnPassantAbscissa { getAbscissa = x }	= return {-to List-monad-} . Component.Zobrist.dereferenceRandomByEnPassantAbscissa x
 
-instance Control.DeepSeq.NFData x => Control.DeepSeq.NFData (EnPassantAbscissa x) where
+instance Control.DeepSeq.NFData EnPassantAbscissa where
 	rnf MkEnPassantAbscissa { getAbscissa = x }	= Control.DeepSeq.rnf x
 
 -- | Constructor.
-mkMaybeEnPassantAbscissa :: (
-	Enum	x,
-	Enum	y,
-	Ord	x,
-	Ord	y
- )
-	=> Attribute.LogicalColour.LogicalColour	-- ^ The player who moves next, & who may have an En-passant capture-option.
-	-> State.MaybePieceByCoordinates.MaybePieceByCoordinates x y
-	-> Component.Turn.Turn x y			-- ^ The last /turn/ taken.
-	-> Maybe (EnPassantAbscissa x)
-{-# SPECIALISE mkMaybeEnPassantAbscissa :: Attribute.LogicalColour.LogicalColour -> State.MaybePieceByCoordinates.MaybePieceByCoordinates Type.Length.X Type.Length.Y -> Component.Turn.Turn Type.Length.X Type.Length.Y -> Maybe (EnPassantAbscissa Type.Length.X) #-}
+mkMaybeEnPassantAbscissa
+	:: Attribute.LogicalColour.LogicalColour	-- ^ The player who moves next, & who may have an En-passant capture-option.
+	-> State.MaybePieceByCoordinates.MaybePieceByCoordinates
+	-> Component.Turn.Turn				-- ^ The last /turn/ taken.
+	-> Maybe EnPassantAbscissa
 mkMaybeEnPassantAbscissa nextLogicalColour maybePieceByCoordinates lastTurn
 	| Component.Turn.isPawnDoubleAdvance (Property.Opposable.getOpposite nextLogicalColour) lastTurn
 	, let lastMoveDestination	= Component.Move.getDestination . Component.QualifiedMove.getMove $ Component.Turn.getQualifiedMove lastTurn

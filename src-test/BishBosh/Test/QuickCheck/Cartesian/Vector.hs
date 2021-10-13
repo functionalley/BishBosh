@@ -28,22 +28,22 @@ module BishBosh.Test.QuickCheck.Cartesian.Vector(
 	results
 ) where
 
+import			BishBosh.Test.QuickCheck.Cartesian.Coordinates()
 import			Control.Arrow((&&&), (***))
-import qualified	BishBosh.Cartesian.Abscissa			as Cartesian.Abscissa
-import qualified	BishBosh.Cartesian.Coordinates			as Cartesian.Coordinates
-import qualified	BishBosh.Cartesian.Ordinate			as Cartesian.Ordinate
-import qualified	BishBosh.Cartesian.Vector			as Cartesian.Vector
-import qualified	BishBosh.Property.Opposable			as Property.Opposable
-import qualified	BishBosh.Property.Orientated			as Property.Orientated
-import qualified	BishBosh.Test.QuickCheck.Cartesian.Coordinates	as Test.QuickCheck.Cartesian.Coordinates
-import qualified	BishBosh.Type.Length				as Type.Length
+import qualified	BishBosh.Cartesian.Abscissa	as Cartesian.Abscissa
+import qualified	BishBosh.Cartesian.Coordinates	as Cartesian.Coordinates
+import qualified	BishBosh.Cartesian.Ordinate	as Cartesian.Ordinate
+import qualified	BishBosh.Cartesian.Vector	as Cartesian.Vector
+import qualified	BishBosh.Property.Opposable	as Property.Opposable
+import qualified	BishBosh.Property.Orientated	as Property.Orientated
+import qualified	BishBosh.Type.Length		as Type.Length
 import qualified	Test.QuickCheck
 import			Test.QuickCheck((==>))
 
 instance (Num distance, Ord distance) => Test.QuickCheck.Arbitrary (Cartesian.Vector.Vector distance) where
---	{-# SPECIALISE instance Test.QuickCheck.Arbitrary Cartesian.Vector.VectorInt #-}
+	{-# SPECIALISE instance Test.QuickCheck.Arbitrary Cartesian.Vector.VectorInt #-}
 	arbitrary	= do
-		source		<- Test.QuickCheck.arbitrary :: Test.QuickCheck.Gen Test.QuickCheck.Cartesian.Coordinates.Coordinates
+		source		<- Test.QuickCheck.arbitrary :: Test.QuickCheck.Gen Cartesian.Coordinates.Coordinates
 		destination	<- Test.QuickCheck.suchThat Test.QuickCheck.arbitrary (/= source)
 
 		return {-to Gen-monad-} $ Cartesian.Vector.measureDistance source destination
@@ -64,7 +64,7 @@ results	= sequence [
 		f vector	= not (Property.Orientated.isStraight vector) ==> Test.QuickCheck.label "Vector.prop_straight" . not . uncurry (||) $ (Property.Orientated.isDiagonal &&& Property.Orientated.isParallel) vector
 	in Test.QuickCheck.quickCheckWithResult Test.QuickCheck.stdArgs { Test.QuickCheck.maxSuccess = 64 } f,
 	let
-		f :: (Type.Length.Distance, Type.Length.Distance) -> Test.QuickCheck.Cartesian.Coordinates.Coordinates -> Test.QuickCheck.Property
+		f :: (Type.Length.Distance, Type.Length.Distance) -> Cartesian.Coordinates.Coordinates -> Test.QuickCheck.Property
 		f (distanceX, distanceY) coordinates	= Test.QuickCheck.label "Vector.prop_maybeTranslate" $ Cartesian.Coordinates.maybeTranslate (deltaX *** deltaY) coordinates == (
 			Cartesian.Coordinates.maybeTranslateX deltaX coordinates >>= Cartesian.Coordinates.maybeTranslateY deltaY
 		 ) where
@@ -83,13 +83,13 @@ results	= sequence [
 			 )
 	in Test.QuickCheck.quickCheckWithResult Test.QuickCheck.stdArgs { Test.QuickCheck.maxSuccess = 256 } f,
 	let
-		f :: Test.QuickCheck.Cartesian.Coordinates.Coordinates -> Test.QuickCheck.Cartesian.Coordinates.Coordinates -> Test.QuickCheck.Property
+		f :: Cartesian.Coordinates.Coordinates -> Cartesian.Coordinates.Coordinates -> Test.QuickCheck.Property
 		f source destination = Test.QuickCheck.label "Vector.prop_measureDistance => translate" $ Cartesian.Vector.translate source (
 			Cartesian.Vector.measureDistance source destination	:: Cartesian.Vector.VectorInt
 		 ) == destination
 	in Test.QuickCheck.quickCheckWithResult Test.QuickCheck.stdArgs { Test.QuickCheck.maxSuccess = 64 } f,
 	let
-		f :: Test.QuickCheck.Cartesian.Coordinates.Coordinates -> Test.QuickCheck.Cartesian.Coordinates.Coordinates -> Test.QuickCheck.Property
+		f :: Cartesian.Coordinates.Coordinates -> Cartesian.Coordinates.Coordinates -> Test.QuickCheck.Property
 		f source destination = Test.QuickCheck.label "Vector.prop_translate" $ Cartesian.Vector.measureDistance source destination == Property.Opposable.getOpposite (
 			Cartesian.Vector.measureDistance destination source	:: Cartesian.Vector.VectorInt
 		 )

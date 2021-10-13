@@ -27,9 +27,9 @@ module BishBosh.Test.QuickCheck.Model.MoveFrequency(
 	results
 ) where
 
-import qualified	BishBosh.Model.GameTree			as Model.GameTree
-import qualified	BishBosh.Model.MoveFrequency		as Model.MoveFrequency
-import qualified	BishBosh.Test.QuickCheck.Model.GameTree	as Test.QuickCheck.Model.GameTree
+import			BishBosh.Test.QuickCheck.Model.GameTree()
+import qualified	BishBosh.Model.GameTree		as Model.GameTree
+import qualified	BishBosh.Model.MoveFrequency	as Model.MoveFrequency
 import qualified	Data.Foldable
 import qualified	Test.QuickCheck
 
@@ -37,7 +37,7 @@ import qualified	Test.QuickCheck
 results :: IO [Test.QuickCheck.Result]
 results	= sequence [
 	let
-		f :: Test.QuickCheck.Model.GameTree.GameTree -> Test.QuickCheck.Property
+		f :: Model.GameTree.GameTree -> Test.QuickCheck.Property
 		f gameTree	= Test.QuickCheck.label "MoveFrequency.prop_countMoves" $ Model.MoveFrequency.countEntries (
 			Model.GameTree.toMoveFrequency gameTree
 		 ) == pred {-the apex is counted in 'getNPlies'-} (

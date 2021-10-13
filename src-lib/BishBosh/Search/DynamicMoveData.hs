@@ -59,36 +59,36 @@ import qualified	Data.Maybe
 
 	* CAVEAT: there's still ambiguity in this /key/, since it may match either a different piece of the same /rank/ or have a different /move-type/ (though typically only quiet moves are recorded), in sibling games.
 -}
-data KillerMoveKey x y	= MkKillerMoveKey (Component.Move.Move x y) Attribute.Rank.Rank deriving (Eq, Ord, Show)
+data KillerMoveKey	= MkKillerMoveKey Component.Move.Move Attribute.Rank.Rank deriving (Eq, Ord, Show)
 
 -- | Constructor.
-mkKillerMoveKeyFromTurn :: Component.Turn.Turn x y -> KillerMoveKey x y
+mkKillerMoveKeyFromTurn :: Component.Turn.Turn -> KillerMoveKey
 mkKillerMoveKeyFromTurn	= uncurry MkKillerMoveKey . (Component.QualifiedMove.getMove . Component.Turn.getQualifiedMove &&& Component.Turn.getRank)
 
 -- | The data on /move/s, gathered while searching.
-data DynamicMoveData x y positionHash	= MkDynamicMoveData {
-	getKillerMoves		:: Search.KillerMoves.KillerMoves (KillerMoveKey x y),
-	getTranspositions	:: Search.Transpositions.Transpositions (Component.QualifiedMove.QualifiedMove x y) positionHash	-- ^ N.B. a qualifiedMove is used to additionally record any promotion-rank.
+data DynamicMoveData positionHash	= MkDynamicMoveData {
+	getKillerMoves		:: Search.KillerMoves.KillerMoves KillerMoveKey,
+	getTranspositions	:: Search.Transpositions.Transpositions Component.QualifiedMove.QualifiedMove positionHash	-- ^ N.B. a qualifiedMove is used to additionally record any promotion-rank.
 }
 
-instance Property.Empty.Empty (DynamicMoveData x y positionHash) where
+instance Property.Empty.Empty (DynamicMoveData positionHash) where
 	empty = MkDynamicMoveData {
 		getKillerMoves		= Property.Empty.empty,
 		getTranspositions	= Property.Empty.empty
 	}
 
 -- | The type of a function which transforms the dynamic move-data.
-type Transformation x y positionHash	= DynamicMoveData x y positionHash -> DynamicMoveData x y positionHash
+type Transformation positionHash	= DynamicMoveData positionHash -> DynamicMoveData positionHash
 
 -- | Mutator.
-updateKillerMoves :: Search.KillerMoves.Transformation (KillerMoveKey x y) -> Transformation x y positionHash
+updateKillerMoves :: Search.KillerMoves.Transformation KillerMoveKey -> Transformation positionHash
 updateKillerMoves f dynamicMoveData@MkDynamicMoveData { getKillerMoves = killerMoves }	= dynamicMoveData { getKillerMoves = f killerMoves }
 
 -- | Mutator.
-updateTranspositions :: Search.Transpositions.Transformation (Component.QualifiedMove.QualifiedMove x y) positionHash -> Transformation x y positionHash
+updateTranspositions :: Search.Transpositions.Transformation Component.QualifiedMove.QualifiedMove positionHash -> Transformation positionHash
 updateTranspositions f dynamicMoveData@MkDynamicMoveData { getTranspositions = transpositions }	= dynamicMoveData { getTranspositions = f transpositions }
 
-instance Search.EphemeralData.MaybeEphemeralData (DynamicMoveData x y positionHash) where
+instance Search.EphemeralData.MaybeEphemeralData (DynamicMoveData positionHash) where
 	maybeEuthanise nPlies maybeRetireKillerMovesAfter maybeRetireTranspositionsAfter MkDynamicMoveData {
 		getKillerMoves		= killerMoves,
 		getTranspositions	= transpositions

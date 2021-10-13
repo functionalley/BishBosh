@@ -70,7 +70,6 @@ import qualified	BishBosh.Property.Empty				as Property.Empty
 import qualified	BishBosh.Property.Null				as Property.Null
 import qualified	BishBosh.Property.Opposable			as Property.Opposable
 import qualified	BishBosh.Type.Count				as Type.Count
-import qualified	BishBosh.Type.Length				as Type.Length
 import qualified	BishBosh.Type.Mass				as Type.Mass
 import qualified	Control.Exception
 import qualified	Data.Default
@@ -80,13 +79,13 @@ import qualified	Data.Maybe
 import qualified	Data.Tree
 
 -- | Each node defines the state of the game.
-type BareGameTree x y	= Data.Tree.Tree (Model.Game.Game x y)
+type BareGameTree	= Data.Tree.Tree Model.Game.Game
 
 -- | Forwards request to 'Component.Turn.compareByMVVLVA'.
 compareByMVVLVA
 	:: Attribute.Rank.EvaluateRank
-	-> BareGameTree x y
-	-> BareGameTree x y
+	-> BareGameTree
+	-> BareGameTree
 	-> Ordering
 compareByMVVLVA evaluateRank Data.Tree.Node { Data.Tree.rootLabel = gameL } Data.Tree.Node { Data.Tree.rootLabel = gameR }	= uncurry (
 	Component.Turn.compareByMVVLVA evaluateRank
@@ -95,7 +94,7 @@ compareByMVVLVA evaluateRank Data.Tree.Node { Data.Tree.rootLabel = gameL } Data
  ) $ Data.Maybe.fromJust . Model.Game.maybeLastTurn
 
 -- | Get the last move responsible for the current position.
-getLastMove :: BareGameTree x y -> Component.Move.Move x y
+getLastMove :: BareGameTree -> Component.Move.Move
 {-# INLINE getLastMove #-}
 getLastMove Data.Tree.Node { Data.Tree.rootLabel = game }	= Component.QualifiedMove.getMove . Component.Turn.getQualifiedMove . Data.Maybe.fromJust $ Model.Game.maybeLastTurn game
 
@@ -107,15 +106,14 @@ getLastMove Data.Tree.Node { Data.Tree.rootLabel = game }	= Component.QualifiedM
 	* CAVEAT: assumes that the battle continues until either player concludes it's disadvantageous to continue, or fire-power has been exhausted.
 -}
 staticExchangeEvaluation
-	:: (Eq x, Eq y)
-	=> Attribute.Rank.EvaluateRank
-	-> BareGameTree x y
+	:: Attribute.Rank.EvaluateRank
+	-> BareGameTree
 	-> Type.Mass.RankValue
 staticExchangeEvaluation evaluateRank node@Data.Tree.Node { Data.Tree.rootLabel = game }	= Data.Maybe.maybe 0 {-nothing taken-} (slave node) $ getMaybeImplicitlyTakenRank game where	-- Find the rank of any victim.
-	getMaybeImplicitlyTakenRank :: Model.Game.Game x y -> Maybe Attribute.Rank.Rank
+	getMaybeImplicitlyTakenRank :: Model.Game.Game -> Maybe Attribute.Rank.Rank
 	getMaybeImplicitlyTakenRank game'	= Attribute.MoveType.getMaybeImplicitlyTakenRank . Component.QualifiedMove.getMoveType . Component.Turn.getQualifiedMove =<< Model.Game.maybeLastTurn game'
 
---	slave :: BareGameTree x y -> Attribute.Rank.Rank -> Type.Mass.RankValue
+--	slave :: BareGameTree -> Attribute.Rank.Rank -> Type.Mass.RankValue
 	slave node'@Data.Tree.Node { Data.Tree.subForest = forest' }	= max 0 {-this player shouldn't progress the battle-} . subtract (
 		case filter (
 			(
@@ -137,30 +135,22 @@ staticExchangeEvaluation evaluateRank node@Data.Tree.Node { Data.Tree.rootLabel 
 	 ) . realToFrac . evaluateRank {-of victim-}
 
 -- | Accessor.
-getRankAndMove :: Model.MoveFrequency.GetRankAndMove (BareGameTree x y) (Component.Move.Move x y)
+getRankAndMove :: Model.MoveFrequency.GetRankAndMove BareGameTree Component.Move.Move
 {-# INLINE getRankAndMove #-}
 getRankAndMove Data.Tree.Node { Data.Tree.rootLabel = game }	= (Component.Turn.getRank &&& Component.QualifiedMove.getMove . Component.Turn.getQualifiedMove) . Data.Maybe.fromJust $ Model.Game.maybeLastTurn game
 
 -- | Wrap a 'BareGameTree'.
-newtype GameTree x y	= MkGameTree {
-	deconstruct	:: BareGameTree x y
+newtype GameTree	= MkGameTree {
+	deconstruct	:: BareGameTree
 } deriving Show {-CAVEAT: required by QuickCheck, but shouldn't actually be called-}
 
-instance (
-	Enum	x,
-	Enum	y,
-	Ord	x,
-	Ord	y,
-	Show	x,
-	Show	y
- ) => Data.Default.Default (GameTree x y) where
-	{-# SPECIALISE instance Data.Default.Default (GameTree Type.Length.X Type.Length.Y) #-}
+instance Data.Default.Default GameTree where
 	def	= fromGame Data.Default.def
 
-instance Property.Arboreal.Prunable (GameTree x y) where
+instance Property.Arboreal.Prunable GameTree where
 	prune depth MkGameTree { deconstruct = bareGameTree }	= MkGameTree $ Property.Arboreal.prune depth bareGameTree
 
-instance (Enum x, Enum y) => Notation.MoveNotation.ShowNotation (GameTree x y) where
+instance Notation.MoveNotation.ShowNotation GameTree where
 	showsNotation moveNotation MkGameTree {
 		deconstruct	= bareGameTree@Data.Tree.Node {
 			Data.Tree.rootLabel	= game,
@@ -173,19 +163,11 @@ instance (Enum x, Enum y) => Notation.MoveNotation.ShowNotation (GameTree x y) w
 			toString	= Notation.MoveNotation.showNotation moveNotation . Data.Maybe.fromJust . Model.Game.maybeLastTurn
 
 -- | Constructor.
-fromBareGameTree :: BareGameTree x y -> GameTree x y
+fromBareGameTree :: BareGameTree -> GameTree
 fromBareGameTree	= MkGameTree
 
 -- | Constructs a game-tree with the specified game at its root.
-fromGame :: (
-	Enum	x,
-	Enum	y,
-	Ord	x,
-	Ord	y,
-	Show	x,
-	Show	y
- ) => Model.Game.Game x y -> GameTree x y
-{-# SPECIALISE fromGame :: Model.Game.Game Type.Length.X Type.Length.Y -> GameTree Type.Length.X Type.Length.Y #-}
+fromGame :: Model.Game.Game -> GameTree
 fromGame	= MkGameTree . Data.Tree.unfoldTree (
 	\game -> (
 		game,
@@ -203,25 +185,24 @@ fromGame	= MkGameTree . Data.Tree.unfoldTree (
 	* N.B.: some of the /game-state/s may have identical positions, reached by different sequences of /move/s.
 -}
 countGames :: Property.Arboreal.Depth -> Type.Count.NGames
-countGames depth	= Data.RoseTree.countTerminalNodes . deconstruct $ Property.Arboreal.prune depth (Data.Default.def :: GameTree Type.Length.X Type.Length.Y)
+countGames depth	= Data.RoseTree.countTerminalNodes . deconstruct $ Property.Arboreal.prune depth (Data.Default.def :: GameTree)
 
 -- | Counts the number of possible positions in chess, down to the specified depth. N.B.: some of these may be transpositions.
 countPositions :: Property.Arboreal.Depth -> Type.Count.NPositions
-countPositions depth	= fromIntegral . pred {-the apex is constructed without moving-} . Data.Foldable.length . deconstruct $ Property.Arboreal.prune depth (Data.Default.def :: GameTree Type.Length.X Type.Length.Y)
+countPositions depth	= fromIntegral . pred {-the apex is constructed without moving-} . Data.Foldable.length . deconstruct $ Property.Arboreal.prune depth (Data.Default.def :: GameTree)
 
 -- | Trace the route down the tree which matches the specified list of turns.
 traceRoute
-	:: (Eq x, Eq y)
-	=> GameTree x y
-	-> [Component.Turn.Turn x y]	-- ^ The data against which, nodes from the tree should be matched.
-	-> Maybe [Model.Game.Game x y]	-- ^ Returns 'Nothing' on match-failure.
+	:: GameTree
+	-> [Component.Turn.Turn]	-- ^ The data against which, nodes from the tree should be matched.
+	-> Maybe [Model.Game.Game]	-- ^ Returns 'Nothing' on match-failure.
 traceRoute MkGameTree { deconstruct = bareGameTree }	= Data.RoseTree.traceRoute (\turn -> (== Just turn) . Model.Game.maybeLastTurn) bareGameTree
 
 -- | Focus the underlying type.
-type MoveFrequency x y	= Model.MoveFrequency.MoveFrequency (Component.Move.Move x y)
+type MoveFrequency	= Model.MoveFrequency.MoveFrequency Component.Move.Move
 
 -- | Self-documentation.
-type Transformation x y	= GameTree x y -> GameTree x y
+type Transformation	= GameTree -> GameTree
 
 {- |
 	* Independently sorts the forest of moves at each node of the tree, without regard to runtime-data.
@@ -231,12 +212,10 @@ type Transformation x y	= GameTree x y -> GameTree x y
 	* The above sort-algorithms are stable & can therefore be applied independently.
 -}
 sortGameTree
-	:: (Integral x, Integral y)
-	=> Maybe Attribute.CaptureMoveSortAlgorithm.CaptureMoveSortAlgorithm
+	:: Maybe Attribute.CaptureMoveSortAlgorithm.CaptureMoveSortAlgorithm
 	-> Attribute.Rank.EvaluateRank
-	-> MoveFrequency x y
-	-> Transformation x y
-{-# SPECIALISE sortGameTree :: Maybe Attribute.CaptureMoveSortAlgorithm.CaptureMoveSortAlgorithm -> Attribute.Rank.EvaluateRank -> MoveFrequency Type.Length.X Type.Length.Y -> Transformation Type.Length.X Type.Length.Y #-}
+	-> MoveFrequency
+	-> Transformation
 sortGameTree maybeCaptureMoveSortAlgorithm evaluateRank standardOpeningMoveFrequency MkGameTree { deconstruct = bareGameTree }	= MkGameTree $ Data.RoseTree.mapForest (
 	\game -> Data.Maybe.maybe id (
 		\case
@@ -260,7 +239,7 @@ sortGameTree maybeCaptureMoveSortAlgorithm evaluateRank standardOpeningMoveFrequ
 	Had the move-frequency been derived from a list of games, a different distribution would result,
 	but then early moves would appear popular rather than just the consequence of limited choice.
 -}
-toMoveFrequency :: (Ord x, Ord y) => GameTree x y -> MoveFrequency x y
+toMoveFrequency :: GameTree -> MoveFrequency
 toMoveFrequency MkGameTree { deconstruct = bareGameTree } = slave maxBound {-logicalColour-} Property.Empty.empty {-MoveFrequency-} bareGameTree where
 	slave _ moveFrequency Data.Tree.Node { Data.Tree.subForest = [] }			= moveFrequency
 	slave logicalColour moveFrequency Data.Tree.Node { Data.Tree.subForest = forest }	= Data.List.foldl' (

@@ -29,22 +29,21 @@ graphmod: $(BIN_DIR)/graphmod
 
 # Groom sourcecode.
 hlint: $(BIN_DIR)/hlint
-	@$@ -j --no-exit-code\
+	@$@ -j	--no-exit-code\
 		--cpp-define 'USE_NEWTYPE_WRAPPERS'\
 		--cpp-define 'USE_PARALLEL'\
 		--cpp-define 'USE_POLYPARSE=1'\
 		--cpp-define 'USE_UNBOXED_ARRAYS'\
 		--ignore 'Use tuple-section'\
 		src-lib/ +RTS -N -RTS
-	@$@ -j --no-exit-code\
+	@$@ -j	--no-exit-code\
 		--cpp-define 'MOVE_NOTATION=S'\
 		--cpp-define 'USE_HXTRELAXNG'\
-		--cpp-define 'USE_PARALLEL'\
 		--cpp-define 'USE_UNBOXED_ARRAYS'\
 		--cpp-define 'USE_UNIX'\
 		--ignore 'Reduce duplication'\
 		src-exe/ +RTS -N -RTS
-	@$@ -j 	--cpp-define 'USE_PARALLEL'\
+	@$@ -j	--cpp-define 'USE_NEWTYPE_WRAPPERS'\
 		--cpp-define 'USE_POLYPARSE=1'\
 		--cpp-define 'USE_SEARCH'\
 		--ignore 'Use tuple-section'\
@@ -52,7 +51,7 @@ hlint: $(BIN_DIR)/hlint
 
 # Serially compile with various CPP-flags & run the test-suites.
 test:
-	@for FLAG in -polyparse newtypewrappers -hxtrelaxng narrownumbers unboxedarrays -threaded; do\
+	@for FLAG in -polyparse newtypewrappers narrownumbers unboxedarrays -hxtrelaxng -threaded; do\
 		echo $${FLAG};\
 		stack '$@' --flag="$(PACKAGE_NAME):$${FLAG}" $(GHC_OPTIONS) || break;\
 	done

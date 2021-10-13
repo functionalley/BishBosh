@@ -104,15 +104,15 @@ type Normalise	= Bool
 type ReflectOnY	= Bool
 
 -- | Defines the value for each type of piece, of occupying each square.
-data PieceSquareTable x y pieceSquareValue	= MkPieceSquareTable {
+data PieceSquareTable pieceSquareValue	= MkPieceSquareTable {
 	getNormalise				:: Normalise,	-- ^ Whether to map the specified values into the closed unit-interval.	CAVEAT: incompatible with RelaxNG, the specification for which already constrains values to the unit-interval.
 	getReflectOnY				:: ReflectOnY,	-- ^ Whether values for the RHS of the board should be inferred by reflection about the y-axis.
 	getPieceSquareValueByCoordinatesByRank	:: Map.Map Attribute.Rank.Rank (
-		Cartesian.Coordinates.ArrayByCoordinates x y pieceSquareValue
+		Cartesian.Coordinates.ArrayByCoordinates pieceSquareValue
 	)							-- ^ N.B.: on the assumption that the values for Black pieces are the reflection of those for White, merely the /rank/ of each /piece/ need be defined.
 } deriving (Eq, Show)
 
-instance (Real pieceSquareValue, Show pieceSquareValue) => Property.ShowFloat.ShowFloat (PieceSquareTable x y pieceSquareValue) where
+instance (Real pieceSquareValue, Show pieceSquareValue) => Property.ShowFloat.ShowFloat (PieceSquareTable pieceSquareValue) where
 	showsFloat fromDouble MkPieceSquareTable {
 		getNormalise				= normalise,
 		getReflectOnY				= reflectOnY,
@@ -135,7 +135,7 @@ instance (Real pieceSquareValue, Show pieceSquareValue) => Property.ShowFloat.Sh
 		Map.toList byRank
 	 )
 
-instance Data.Default.Default (PieceSquareTable x y pieceSquareValue) where
+instance Data.Default.Default (PieceSquareTable pieceSquareValue) where
 	def = MkPieceSquareTable {
 		getNormalise				= False,
 		getReflectOnY				= True,
@@ -143,15 +143,11 @@ instance Data.Default.Default (PieceSquareTable x y pieceSquareValue) where
 	}
 
 instance (
-	Enum		x,
-	Enum		y,
 	Fractional	pieceSquareValue,
 	Ord		pieceSquareValue,
-	Ord		x,
-	Ord		y,
 	Real		pieceSquareValue,
 	Show		pieceSquareValue
- ) => HXT.XmlPickler (PieceSquareTable x y pieceSquareValue) where
+ ) => HXT.XmlPickler (PieceSquareTable pieceSquareValue) where
 	xpickle	= HXT.xpWrap (
 		\(a, b, c)	-> mkPieceSquareTable a b c,	-- Construct.
 		\MkPieceSquareTable {
@@ -227,18 +223,14 @@ unmirror pieceSquareValues		= Control.Exception.throw . Data.Exception.mkInvalid
 
 -- | Smart constructor.
 mkPieceSquareTable :: (
-	Enum		x,
-	Enum		y,
 	Fractional	pieceSquareValue,
 	Ord		pieceSquareValue,
-	Ord		x,
-	Ord		y,
 	Show		pieceSquareValue
  )
 	=> Normalise	-- ^ Whether to normalise the specified values into the closed unit interval.
 	-> ReflectOnY	-- ^ Whether values for the RHS of the board are inferred by reflection about the y-axis.
 	-> Assocs Attribute.Rank.Rank pieceSquareValue
-	-> PieceSquareTable x y pieceSquareValue
+	-> PieceSquareTable pieceSquareValue
 mkPieceSquareTable normalise reflectOnY assocs
 	| any (
 		(/= nValuesRequired) . length . snd {-pieceSquareValues-}
@@ -270,13 +262,13 @@ mkPieceSquareTable normalise reflectOnY assocs
 		 ) Cartesian.Coordinates.nSquares
 
 -- | Identify any /rank/ lacking a definition.
-findUndefinedRanks :: PieceSquareTable x y pieceSquareValue -> Data.Set.Set Attribute.Rank.Rank
+findUndefinedRanks :: PieceSquareTable pieceSquareValue -> Data.Set.Set Attribute.Rank.Rank
 findUndefinedRanks MkPieceSquareTable { getPieceSquareValueByCoordinatesByRank = pieceSquareValueByCoordinatesByRank }	= Data.Set.fromAscList Property.FixedMembership.members `Data.Set.difference` Map.keysSet pieceSquareValueByCoordinatesByRank
 
 -- | Lookup the values for all /coordinates/, corresponding to the specified /rank/.
 dereference
 	:: Attribute.Rank.Rank
-	-> PieceSquareTable x y pieceSquareValue
-	-> Maybe (Cartesian.Coordinates.ArrayByCoordinates x y pieceSquareValue)
+	-> PieceSquareTable pieceSquareValue
+	-> Maybe (Cartesian.Coordinates.ArrayByCoordinates pieceSquareValue)
 dereference rank MkPieceSquareTable { getPieceSquareValueByCoordinatesByRank = pieceSquareValueByCoordinatesByRank }	= Map.lookup rank pieceSquareValueByCoordinatesByRank
 

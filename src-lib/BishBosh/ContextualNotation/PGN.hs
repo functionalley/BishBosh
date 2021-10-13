@@ -83,7 +83,6 @@ import qualified	BishBosh.Rule.Result				as Rule.Result
 import qualified	BishBosh.State.TurnsByLogicalColour		as State.TurnsByLogicalColour
 import qualified	BishBosh.Text.ShowList				as Text.ShowList
 import qualified	BishBosh.Type.Count				as Type.Count
-import qualified	BishBosh.Type.Length				as Type.Length
 import qualified	Control.Applicative
 import qualified	Control.Arrow
 import qualified	Control.DeepSeq
@@ -194,7 +193,7 @@ showsDate	= (
 	* The first six fields are mandatory according to the PGN-specification, though none are used by this application.
 	The seventh mandatory field /Result/ can be derived from 'getGame'.
 -}
-data PGN x y	= MkPGN {
+data PGN	= MkPGN {
 	getMaybeEventName		:: Maybe Value,
 	getMaybeSiteName		:: Maybe Value,
 	getDay				:: Data.Time.Calendar.Day,
@@ -202,18 +201,10 @@ data PGN x y	= MkPGN {
 	getMaybeWhitePlayerName		:: Maybe Value,
 	getMaybeBlackPlayerName		:: Maybe Value,
 	getIdentificationTagPairs	:: [TagPair],		-- ^ Arbitrary tagged values.
-	getGame				:: Model.Game.Game x y	-- ^ Defines the turn-sequence & the result.
+	getGame				:: Model.Game.Game	-- ^ Defines the turn-sequence & the result.
 } deriving Eq
 
-instance (
-	Enum	x,
-	Enum	y,
-	Ord	x,
-	Ord	y,
-	Show	x,
-	Show	y
- ) => Show (PGN x y) where
-	{-# SPECIALISE instance Show (PGN Type.Length.X Type.Length.Y) #-}
+instance Show PGN where
 	showsPrec _ MkPGN {
 		getMaybeEventName		= maybeEventName,
 		getMaybeSiteName		= maybeSiteName,
@@ -252,10 +243,7 @@ instance (
 		representUnknownTagValue :: Maybe Value -> ShowS
 		representUnknownTagValue	= quote . Data.Maybe.maybe (showChar unknownTagValue) showString
 
-instance (
-	Control.DeepSeq.NFData	x,
-	Control.DeepSeq.NFData	y
- ) => Control.DeepSeq.NFData (PGN x y) where
+instance Control.DeepSeq.NFData PGN where
 	rnf MkPGN {
 		getIdentificationTagPairs	= identificationTagPairs,
 		getGame				= game
@@ -270,8 +258,8 @@ mkPGN
 	-> Maybe Value	-- ^ Name of White player.
 	-> Maybe Value	-- ^ Name of Black player.
 	-> [TagPair]	-- ^ Arbitrary tag-pairs.
-	-> Model.Game.Game x y
-	-> PGN x y
+	-> Model.Game.Game
+	-> PGN
 mkPGN maybeEventName maybeSiteName day maybeRoundName maybeWhitePlayerName maybeBlackPlayerName identificationTagPairs game
 	| any (
 		(== [unknownTagValue]) . snd {-tag-value-}
@@ -306,8 +294,8 @@ mkPGN maybeEventName maybeSiteName day maybeRoundName maybeWhitePlayerName maybe
 mkPGN'
 	:: [Tag]	-- ^ Identify fields used to form a unique composite game-identifier.
 	-> [TagPair]	-- ^ The data from which to extract the required values.
-	-> Model.Game.Game x y
-	-> PGN x y
+	-> Model.Game.Game
+	-> PGN
 mkPGN' identificationTags tagPairs	= mkPGN maybeEventName maybeSiteName (
 	let
 #ifdef USE_POLYPARSE
@@ -358,15 +346,7 @@ mkPGN' identificationTags tagPairs	= mkPGN maybeEventName maybeSiteName (
 
 	* This function is only responsible for the line defining the numbered sequence of /move/s represented in SAN.
 -}
-showsMoveText :: (
-	Enum	x,
-	Enum	y,
-	Ord	x,
-	Ord	y,
-	Show	x,
-	Show	y
- ) => Model.Game.Game x y -> ShowS
-{-# SPECIALISE showsMoveText :: Model.Game.Game Type.Length.X Type.Length.Y -> ShowS #-}
+showsMoveText :: Model.Game.Game -> ShowS
 showsMoveText game	= foldr (.) (
 	Data.Maybe.maybe (
 		showsBlockComment "Game unfinished" . showChar ' ' . showChar inProgressFlag
@@ -402,15 +382,7 @@ showsMoveText game	= foldr (.) (
 	showsBlockComment	= shows . ContextualNotation.PGNComment.BlockComment
 
 -- | Shows PGN for the specified /game/, with defaults for other fields.
-showsGame :: (
-	Enum	x,
-	Enum	y,
-	Ord	x,
-	Ord	y,
-	Show	x,
-	Show	y
- ) => Model.Game.Game x y -> IO ShowS
-{-# SPECIALISE showsGame :: Model.Game.Game Type.Length.X Type.Length.Y -> IO ShowS #-}
+showsGame :: Model.Game.Game -> IO ShowS
 showsGame game	= do
 	utcTime	<- Data.Time.Clock.getCurrentTime
 
@@ -489,28 +461,13 @@ maybeResultParser	= Control.Applicative.many ContextualNotation.PGNComment.block
 #endif
 
 -- | Parses a /game/ from PGN move-text.
-moveTextParser :: (
-	Enum	x,
-	Enum	y,
-	Ord	x,
-	Ord	y,
-	Show	x,
-	Show	y
- )
+moveTextParser
 #ifdef USE_POLYPARSE
-	=> IsStrictlySequential
+	:: IsStrictlySequential
 	-> ContextualNotation.StandardAlgebraic.ValidateMoves
-	-> Text.Poly.TextParser (Model.Game.Game x y)
-{-# SPECIALISE moveTextParser :: IsStrictlySequential -> ContextualNotation.StandardAlgebraic.ValidateMoves -> Text.Poly.TextParser (Model.Game.Game Type.Length.X Type.Length.Y) #-}
+	-> Text.Poly.TextParser Model.Game.Game
 moveTextParser isStrictlySequential validateMoves	= let
-	elementSequenceParser :: (
-		Enum	x,
-		Enum	y,
-		Ord	x,
-		Ord	y,
-		Show	x,
-		Show	y
-	 ) => Model.Game.Game x y -> Text.Poly.TextParser (Model.Game.Game x y)
+	elementSequenceParser :: Model.Game.Game -> Text.Poly.TextParser Model.Game.Game
 	elementSequenceParser game	= let
 		expectedMoveNumber :: Type.Count.NMoves
 		expectedMoveNumber	= fromIntegral . succ . (`div` 2) . State.TurnsByLogicalColour.getNPlies $ Model.Game.getTurnsByLogicalColour game
@@ -545,19 +502,11 @@ moveTextParser isStrictlySequential validateMoves	= let
  in do
 	game	<- fmap (Data.Maybe.fromMaybe Data.Default.def {-game-}) . Control.Applicative.optional $ elementSequenceParser Data.Default.def {-game-}
 #else /* Parsec */
-	=> IsStrictlySequential
+	:: IsStrictlySequential
 	-> ContextualNotation.StandardAlgebraic.ValidateMoves
-	-> Parsec.Parser (Model.Game.Game x y)
-{-# SPECIALISE moveTextParser :: IsStrictlySequential -> ContextualNotation.StandardAlgebraic.ValidateMoves -> Parsec.Parser (Model.Game.Game Type.Length.X Type.Length.Y) #-}
+	-> Parsec.Parser Model.Game.Game
 moveTextParser isStrictlySequential validateMoves	= let
-	elementSequenceParser :: (
-		Enum	x,
-		Enum	y,
-		Ord	x,
-		Ord	y,
-		Show	x,
-		Show	y
-	 ) => Model.Game.Game x y -> Parsec.Parser (Model.Game.Game x y)
+	elementSequenceParser :: Model.Game.Game -> Parsec.Parser Model.Game.Game
 	elementSequenceParser game	= let
 		expectedMoveNumber :: Type.Count.NMoves
 		expectedMoveNumber	= fromIntegral . succ . (`div` 2) . State.TurnsByLogicalColour.getNPlies $ Model.Game.getTurnsByLogicalColour game
@@ -597,20 +546,12 @@ moveTextParser isStrictlySequential validateMoves	= let
 	* CAVEAT: this function doesn't /produce/ when using either "Parsec" or "Poly.Plain", since it returns 'Either' the appropriate constructor for which may be unknown until the last character is parsed.
 	Equally for these parsers, all data must be strictly evaluated before any data can retrieved.
 -}
-parser :: (
-	Enum	x,
-	Enum	y,
-	Ord	x,
-	Ord	y,
-	Show	x,
-	Show	y
- )
-	=> IsStrictlySequential
+parser
+	:: IsStrictlySequential
 	-> ContextualNotation.StandardAlgebraic.ValidateMoves
 	-> [Tag]	-- ^ Identify fields used to form a unique composite game-identifier.
 #ifdef USE_POLYPARSE
-	-> Text.Poly.TextParser (PGN x y)
-{-# SPECIALISE parser :: IsStrictlySequential -> ContextualNotation.StandardAlgebraic.ValidateMoves -> [Tag] -> Text.Poly.TextParser (PGN Type.Length.X Type.Length.Y) #-}
+	-> Text.Poly.TextParser PGN
 parser isStrictlySequential validateMoves identificationTags	= do
 	tagPairs	<- Control.Applicative.many $ tagPairParser <* Control.Applicative.many ContextualNotation.PGNComment.parser
 	game		<- moveTextParser' <* Control.Applicative.many ContextualNotation.PGNComment.parser
@@ -637,8 +578,7 @@ parser isStrictlySequential validateMoves identificationTags	= do
 				return {-to Parser-monad-} (tagName, tagValue)
 		 )
 #else /* Parsec */
-	-> Parsec.Parser (PGN x y)
-{-# SPECIALISE parser :: IsStrictlySequential -> ContextualNotation.StandardAlgebraic.ValidateMoves -> [Tag] -> Parsec.Parser (PGN Type.Length.X Type.Length.Y) #-}
+	-> Parsec.Parser PGN
 parser isStrictlySequential validateMoves identificationTags	= mkPGN' identificationTags <$> (
 	removeUnknownTagValues <$> Control.Applicative.many (
 		tagPairParser <* Control.Applicative.many ContextualNotation.PGNComment.parser

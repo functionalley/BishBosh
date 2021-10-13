@@ -89,13 +89,11 @@ mkVector xDistance yDistance	= Control.Exception.assert (
 
 -- | Construct a /vector/ by measuring the signed distance between source-/coordinates/ & destination.
 measureDistance :: (
-	Enum	x,
-	Enum	y,
 	Num	distance,
 	Ord	distance
  )
-	=> Cartesian.Coordinates.Coordinates x y	-- ^ Source.
-	-> Cartesian.Coordinates.Coordinates x y	-- ^ Destination.
+	=> Cartesian.Coordinates.Coordinates	-- ^ Source.
+	-> Cartesian.Coordinates.Coordinates	-- ^ Destination.
 	-> Vector distance
 {-# INLINE measureDistance #-}
 measureDistance source destination	= uncurry mkVector $ Cartesian.Coordinates.measureDistance source destination
@@ -205,32 +203,22 @@ matchesPawnDoubleAdvance logicalColour (MkVector xDistance yDistance)	= xDistanc
  ) 2
 
 -- | Translate the specified /coordinates/ by the specified /vector/.
-translate :: (
-	Enum		x,
-	Enum		y,
-	Integral	distance,
-	Ord		x,
-	Ord		y
- )
-	=> Cartesian.Coordinates.Coordinates x y
+translate
+	:: Integral distance
+	=> Cartesian.Coordinates.Coordinates
 	-> Vector distance
-	-> Cartesian.Coordinates.Coordinates x y
+	-> Cartesian.Coordinates.Coordinates
 translate coordinates (MkVector xDistance yDistance)	= Cartesian.Coordinates.translate (
 	Data.Enum.translate (+ fromIntegral xDistance) *** Data.Enum.translate (+ fromIntegral yDistance)
  ) coordinates
 
 -- | Where legal, translate the specified /coordinates/ by the specified /vector/.
-maybeTranslate :: (
-	Enum		x,
-	Enum		y,
-	Integral	distance,
-	Ord		x,
-	Ord		y
- )
-	=> Cartesian.Coordinates.Coordinates x y
+maybeTranslate
+	:: Integral distance
+	=> Cartesian.Coordinates.Coordinates
 	-> Vector distance
-	-> Maybe (Cartesian.Coordinates.Coordinates x y)
-{-# SPECIALISE maybeTranslate :: Cartesian.Coordinates.Coordinates Type.Length.X Type.Length.Y -> Vector Type.Length.Distance -> Maybe (Cartesian.Coordinates.Coordinates Type.Length.X Type.Length.Y) #-}
+	-> Maybe Cartesian.Coordinates.Coordinates
+{-# SPECIALISE maybeTranslate :: Cartesian.Coordinates.Coordinates -> Vector Type.Length.Distance -> Maybe Cartesian.Coordinates.Coordinates #-}
 maybeTranslate coordinates (MkVector xDistance yDistance)	= Cartesian.Coordinates.maybeTranslate (
 	Data.Enum.translate (+ fromIntegral xDistance) *** Data.Enum.translate (+ fromIntegral yDistance)
  ) coordinates
