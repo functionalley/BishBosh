@@ -27,9 +27,14 @@ module BishBosh.Property.Opposable(
 	Opposable(..)
 ) where
 
-import Prelude()
+import Prelude(Ordering(..))
 
 -- | An interface which data which have the concept of an opposite, may implement.
 class Opposable a where
 	getOpposite	:: a -> a
+
+instance Opposable Ordering where
+	getOpposite LT	= GT
+	getOpposite GT	= LT
+	getOpposite _	= EQ
 

@@ -55,7 +55,7 @@ module BishBosh.Attribute.Direction(
 --	range,
 	opposites,
 -- * Functions
---	reverseOrdering,
+--	getOpposite,
 	advanceDirection,
 	attackDirectionsForPawn,
 	listArrayByDirection,
@@ -118,8 +118,8 @@ se	= MkDirection GT LT
 
 -- | Define a /direction/ by the sense of change to /x/ & /y/ coordinates.
 data Direction	= MkDirection {
-	getXDirection	:: Ordering,	-- ^ The sense of the change in the /x/-coordinate.
-	getYDirection	:: Ordering	-- ^ The sense of the change in the /y/-coordinate.
+	getXDirection	:: ! Ordering,	-- ^ The sense of the change in the /x/-coordinate.
+	getYDirection	:: ! Ordering	-- ^ The sense of the change in the /y/-coordinate.
 } deriving (Eq, Ord)
 
 instance Bounded Direction where
@@ -164,19 +164,13 @@ instance Read Direction where
 		'E' : _	-> [(e, tail s')]
 		_	-> []	-- No parse.
 
--- | Get the opposite.
-reverseOrdering :: Ordering -> Ordering
-reverseOrdering LT	= GT
-reverseOrdering GT	= LT
-reverseOrdering _	= EQ
-
 instance Property.Opposable.Opposable Direction where
 	getOpposite MkDirection {
 		getXDirection	= xDirection,
 		getYDirection	= yDirection
 	} = MkDirection {
-		getXDirection	= reverseOrdering xDirection,
-		getYDirection	= reverseOrdering yDirection
+		getXDirection	= Property.Opposable.getOpposite xDirection,
+		getYDirection	= Property.Opposable.getOpposite yDirection
 	}
 
 instance Property.Orientated.Orientated Direction where
@@ -186,12 +180,12 @@ instance Property.Orientated.Orientated Direction where
 
 instance Property.Reflectable.ReflectableOnX Direction where
 	reflectOnX direction@MkDirection { getYDirection = yDirection }	= direction {
-		getYDirection	= reverseOrdering yDirection
+		getYDirection	= Property.Opposable.getOpposite yDirection
 	}
 
 instance Property.Reflectable.ReflectableOnY Direction where
 	reflectOnY direction@MkDirection { getXDirection = xDirection }	= direction {
-		getXDirection	= reverseOrdering xDirection
+		getXDirection	= Property.Opposable.getOpposite xDirection
 	}
 
 instance HXT.XmlPickler Direction where
