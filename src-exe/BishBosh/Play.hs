@@ -48,6 +48,7 @@ import qualified	BishBosh.Input.Options						as Input.Options
 import qualified	BishBosh.Input.SearchOptions					as Input.SearchOptions
 import qualified	BishBosh.Input.UIOptions					as Input.UIOptions
 import qualified	BishBosh.Input.Verbosity					as Input.Verbosity
+import qualified	BishBosh.Model.Game						as Model.Game
 import qualified	BishBosh.Model.GameTree						as Model.GameTree
 import qualified	BishBosh.Model.MoveFrequency					as Model.MoveFrequency
 import qualified	BishBosh.Notation.MoveNotation					as Notation.MoveNotation
@@ -112,9 +113,16 @@ play verbosity randomGen options qualifiedMoveForest	= Data.Maybe.maybe (
 		then return {-to IO-monad-} Data.Default.def {-game-}
 		else Control.Exception.catch (
 			do
-				s	<- readFile filePath
+				game	<- read <$> readFile filePath
 
-				return {-to IO-monad-} $! read s	-- Force evaluation, to trigger any exception thrown from within 'catch'.
+				Data.Maybe.maybe (
+					return {-to IO-monad-} $! game	-- Force evaluation, to trigger any exception thrown from within 'catch'.
+				 ) (
+					\terminationReason -> do
+						Control.Monad.when (verbosity > minBound) . System.IO.hPutStrLn System.IO.stderr . Text.ShowColouredPrefix.showsPrefixWarning . showString "persisted game had terminated (" $ shows terminationReason "); restarting game."
+
+						return {-to IO-monad-} Data.Default.def
+				 ) $ Model.Game.getMaybeTerminationReason game
 		) $ \e -> do
 			System.IO.hPutStrLn System.IO.stderr . Text.ShowColouredPrefix.showsPrefixWarning . showString "'readFile' failed; " $ shows (e :: Control.Exception.SomeException) "."
 
