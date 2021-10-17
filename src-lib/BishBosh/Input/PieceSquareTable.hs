@@ -233,7 +233,7 @@ mkPieceSquareTable :: (
 	-> PieceSquareTable pieceSquareValue
 mkPieceSquareTable normalise reflectOnY assocs
 	| any (
-		(/= nValuesRequired) . length . snd {-pieceSquareValues-}
+		(/= nValuesRequired) . fromIntegral . length . snd {-pieceSquareValues-}
 	) assocs						= Control.Exception.throw . Data.Exception.mkInvalidDatum . showString "BishBosh.Input.PieceSquareTable.mkPieceSquareTable:\texactly " . shows nValuesRequired . showString " values must be defined for each type of piece; " $ shows assocs "."
 	| not $ null duplicateRanks				= Control.Exception.throw . Data.Exception.mkDuplicateData . showString "BishBosh.Input.PieceSquareTable.mkPieceSquareTable:\tranks must be distinct; " $ shows duplicateRanks "."
 	| not $ normalise || inClosedUnitInterval assocs	= Control.Exception.throw . Data.Exception.mkOutOfBounds . showString "BishBosh.Input.PieceSquareTable.mkPieceSquareTable:\tall values must be within the closed unit-interval [0,1]; " $ shows assocs "."

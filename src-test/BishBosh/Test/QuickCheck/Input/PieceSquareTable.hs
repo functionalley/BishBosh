@@ -62,7 +62,7 @@ instance (
 						if reflectOnY
 							then (`div` 2)
 							else id
-					) Cartesian.Coordinates.nSquares
+					) $ fromIntegral Cartesian.Coordinates.nSquares
 				)
 			)
 		 ) Property.FixedMembership.members

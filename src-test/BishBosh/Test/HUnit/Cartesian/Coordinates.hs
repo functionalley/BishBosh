@@ -48,7 +48,7 @@ testCases	= Test.HUnit.test [
 	),
 	"'BishBosh.Cartesian.Coordinates' failed to visit all squares." ~: length (
 		Property.FixedMembership.members	:: [Cartesian.Coordinates.Coordinates]
-	) ~?= Cartesian.Coordinates.nSquares,
+	) ~?= fromIntegral Cartesian.Coordinates.nSquares,
 	"instance 'Data.Array.IArray.Ix Coordinates' is incompatible with instance 'Ord Coordinates'." ~: Data.Array.IArray.indices (
 		Cartesian.Coordinates.listArrayByCoordinates [0 .. ]	:: Cartesian.Coordinates.ArrayByCoordinates Int
 	) ~?= Property.FixedMembership.members

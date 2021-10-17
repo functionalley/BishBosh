@@ -90,6 +90,7 @@ import qualified	BishBosh.Property.Opposable			as Property.Opposable
 import qualified	BishBosh.Property.Reflectable			as Property.Reflectable
 import qualified	BishBosh.Property.Rotatable			as Property.Rotatable
 import qualified	BishBosh.Text.ShowList				as Text.ShowList
+import qualified	BishBosh.Type.Count				as Type.Count
 import qualified	BishBosh.Type.Length				as Type.Length
 import qualified	Control.DeepSeq
 import qualified	Control.Exception
@@ -171,7 +172,7 @@ bottomRight = MkCoordinates {
 }
 
 -- | The constant number of squares on the board.
-nSquares :: Int
+nSquares :: Type.Count.NCoordinates
 nSquares	= fromIntegral Cartesian.Abscissa.xLength * fromIntegral Cartesian.Ordinate.yLength
 
 instance Property.FixedMembership.FixedMembership Coordinates where

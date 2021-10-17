@@ -32,6 +32,7 @@ module BishBosh.Type.Count(
 -- ** Type-synonyms
 --	Base,
 -- ** Data-types
+	NCoordinates,
 	NDecimalDigits,
 	NDirections,
 	NGames,
@@ -52,6 +53,16 @@ import qualified	Text.XML.HXT.Arrow.Pickle	as HXT
 
 -- | The private type which is wrapped by various countable data-types.
 type Base	= Int
+
+-- | A number of (board) coordinates.
+#ifdef USE_NEWTYPE_WRAPPERS
+newtype NCoordinates	= MkNCoordinates Base deriving (Enum, Eq, Integral, Num, Ord, Real)
+
+instance Show NCoordinates where
+	showsPrec precedence (MkNCoordinates n)	= showsPrec precedence n
+#else
+type NCoordinates	= Base
+#endif
 
 -- | A number of decimal digits.
 #ifdef USE_NEWTYPE_WRAPPERS
