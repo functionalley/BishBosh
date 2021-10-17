@@ -30,7 +30,6 @@
 
 module BishBosh.Cartesian.Ordinate(
 -- * Constants
-	yOrigin,
 	yLength,
 	yMin,
 	yMax,
@@ -52,30 +51,18 @@ module BishBosh.Cartesian.Ordinate(
 
 import qualified	BishBosh.Attribute.LogicalColour	as Attribute.LogicalColour
 import qualified	BishBosh.Cartesian.Abscissa		as Cartesian.Abscissa
-import qualified	BishBosh.Data.Enum			as Data.Enum
 import qualified	BishBosh.Property.Opposable		as Property.Opposable
 import qualified	BishBosh.Type.Length			as Type.Length
 import qualified	Control.Exception
 
--- | The position of the origin on the /y/-axis.
-yOrigin :: Int
-yOrigin	= Cartesian.Abscissa.xOrigin	-- N.B. it doesn't need to be the same.
-
 -- | The constant length of the /y/-axis.
-yLength :: Type.Length.Distance
-yLength	= Cartesian.Abscissa.xLength	-- Because the board is square.
-
--- | The constant lower bound of ordinates.
-yMin :: Type.Length.Y
-yMin	= toEnum yOrigin
-
--- | The constant upper bound of ordinates.
-yMax :: Type.Length.Y
-yMax	= toEnum $ yOrigin + fromIntegral (pred {-fence-post-} yLength)
+yLength :: Type.Length.Y
+yLength	= fromIntegral Cartesian.Abscissa.xLength	-- I.E.: the board is square.
 
 -- | The constant bounds of ordinates.
 yBounds :: (Type.Length.Y, Type.Length.Y)
-yBounds	= (yMin, yMax)
+yMin, yMax :: Type.Length.Y
+yBounds@(yMin, yMax)	= (0, yMin + pred {-fence-post-} yLength)
 
 -- | The constant list of all ordinates.
 yRange :: [Type.Length.Y]
@@ -84,12 +71,12 @@ yRange	= uncurry enumFromTo yBounds
 -- | Convert to an array-index.
 toIx :: Type.Length.Y -> Int
 {-# INLINE toIx #-}
-toIx	= subtract yOrigin . fromEnum
+toIx	= fromIntegral . subtract yMin
 
 -- | Convert from an array-index.
 fromIx :: Int -> Type.Length.Y
 {-# INLINE fromIx #-}
-fromIx	= toEnum . (+ yOrigin)
+fromIx	= (+ yMin) . fromIntegral
 
 -- | The /rank/ from which /piece/s conventionally start.
 firstRank :: Attribute.LogicalColour.LogicalColour -> Type.Length.Y
@@ -114,8 +101,8 @@ enPassantRank _					= fromIx 4
 
 -- | Reflects about the mid-point of the axis.
 reflect :: Type.Length.Y -> Type.Length.Y
-reflect	= Data.Enum.translate $ (
-	+ (2 * yOrigin + fromIntegral (pred yLength))
+reflect	= (
+	+ (2 * yMin + pred yLength)
  ) . negate
 
 -- | Predicate.

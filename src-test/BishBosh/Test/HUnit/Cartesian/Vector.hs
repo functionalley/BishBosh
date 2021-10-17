@@ -32,28 +32,23 @@ module BishBosh.Test.HUnit.Cartesian.Vector(
 import			Control.Arrow((&&&))
 import qualified	BishBosh.Cartesian.Vector		as Cartesian.Vector
 import qualified	BishBosh.Property.FixedMembership	as Property.FixedMembership
-import qualified	BishBosh.Type.Length			as Type.Length
 import qualified	Data.Maybe
 import qualified	Test.HUnit
 import			Test.HUnit((~?))
 
 -- | Sum the absolute value of /x/ & /y/ distances.
-measureLength :: Cartesian.Vector.VectorInt -> Type.Length.Distance
-measureLength	= uncurry (+) . (abs . Cartesian.Vector.getXDistance &&& abs . Cartesian.Vector.getYDistance)
+measureLength :: Cartesian.Vector.Vector -> Int
+measureLength	= uncurry (+) . (fromIntegral . abs . Cartesian.Vector.getXDistance &&& fromIntegral . abs . Cartesian.Vector.getYDistance)
 
 -- | Check the sanity of the implementation, by validating a list of static test-cases.
 testCases :: Test.HUnit.Test
 testCases	= Test.HUnit.test [
 	all (
 		Data.Maybe.isJust . Cartesian.Vector.toMaybeDirection
-	) (
-		Cartesian.Vector.attackVectorsForKing	:: [Cartesian.Vector.VectorInt]
-	) ~? "'BishBosh.Cartesian.Vector.attackVectorsForKing' failed.",
+	) Cartesian.Vector.attackVectorsForKing ~? "'BishBosh.Cartesian.Vector.attackVectorsForKing' failed.",
 	all (
 		Data.Maybe.isNothing . Cartesian.Vector.toMaybeDirection
-	) (
-		Cartesian.Vector.attackVectorsForKnight	:: [Cartesian.Vector.VectorInt]
-	) ~? "'BishBosh.Cartesian.Vector.attackVectorsForKnight' failed.",
+	) Cartesian.Vector.attackVectorsForKnight ~? "'BishBosh.Cartesian.Vector.attackVectorsForKnight' failed.",
 	all (
 		uncurry (&&) . (
 			all ((== 2) . measureLength) &&& (== 2) . length

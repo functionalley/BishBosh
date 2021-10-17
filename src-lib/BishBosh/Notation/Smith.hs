@@ -30,39 +30,29 @@ module BishBosh.Notation.Smith(
 		getQualifiedMove
 	),
 -- * Constants
-	origin,
---	xOriginOffset,
---	yOriginOffset,
+	notation,
 	regexSyntax,
 -- * Functions
---	encode,
-	showsCoordinates,
 -- ** Constructor
 	fromQualifiedMove
 ) where
 
-import			Control.Arrow((&&&), (***))
+import			Control.Arrow((&&&))
 import qualified	BishBosh.Attribute.MoveType		as Attribute.MoveType
 import qualified	BishBosh.Attribute.Rank			as Attribute.Rank
-import qualified	BishBosh.Cartesian.Abscissa		as Cartesian.Abscissa
-import qualified	BishBosh.Cartesian.Coordinates		as Cartesian.Coordinates
-import qualified	BishBosh.Cartesian.Ordinate		as Cartesian.Ordinate
 import qualified	BishBosh.Component.Move			as Component.Move
 import qualified	BishBosh.Component.QualifiedMove	as Component.QualifiedMove
-import qualified	BishBosh.Data.Enum			as Data.Enum
+import qualified	BishBosh.Notation.Notation		as Notation.Notation
+import qualified	BishBosh.Notation.PureCoordinate	as Notation.PureCoordinate
 import qualified	Control.Arrow
 import qualified	Data.Char
 import qualified	Data.Default
 import qualified	Data.List.Extra
 import qualified	Data.Maybe
 
--- | The origin.
-origin :: (Int, Int)
-origin	= ($ 'a') &&& ($ '1') $ fromEnum
-
--- | The offset of the application's internal coordinate-system from this conventional one.
-xOriginOffset, yOriginOffset :: Int
-(xOriginOffset, yOriginOffset)	= (Cartesian.Abscissa.xOrigin -) *** (Cartesian.Ordinate.yOrigin -) $ origin
+-- | Define the parameters of the notation, using the minimum permissible values for /x/ & /y/ coordinates.
+notation :: Notation.Notation.Notation
+notation	= Notation.PureCoordinate.notation	--N.B. the encoding of coordinates is (coincidentally) identical.
 
 -- | Defines using a regex, the required syntax.
 regexSyntax :: String
@@ -81,20 +71,12 @@ newtype Smith	= MkSmith {
 fromQualifiedMove :: Component.QualifiedMove.QualifiedMove -> Smith
 fromQualifiedMove	= MkSmith
 
--- | Encodes the ordinate & abscissa.
-encode :: Cartesian.Coordinates.Coordinates -> (ShowS, ShowS)
-encode	= showChar . Data.Enum.translate (subtract xOriginOffset) . Cartesian.Coordinates.getX &&& showChar . Data.Enum.translate (subtract yOriginOffset) . Cartesian.Coordinates.getY
-
--- | Shows the specified /coordinates/.
-showsCoordinates :: Cartesian.Coordinates.Coordinates -> ShowS
-showsCoordinates	= uncurry (.) . encode
-
 instance Show Smith where
 	showsPrec _ MkSmith { getQualifiedMove = qualifiedMove }	= let
 		(move, moveType)	= Component.QualifiedMove.getMove &&& Component.QualifiedMove.getMoveType $ qualifiedMove
-	 in showsCoordinates (
+	 in Notation.Notation.showsCoordinates notation (
 		Component.Move.getSource move
-	 ) . showsCoordinates (
+	 ) . Notation.Notation.showsCoordinates notation (
 		Component.Move.getDestination move
 	 ) . (
 		case moveType of
@@ -114,25 +96,14 @@ instance Show Smith where
 -- N.B. this merely validates the syntax, leaving any semantic errors to 'Model.Game.validate'.
 instance Read Smith where
 	readsPrec _ s	= case Data.List.Extra.trimStart s of
-		x : y : x' : y' : remainder	-> let
-			fromSmith pair@(cx, cy)
-				| not . uncurry (&&) $ (
-					uncurry (&&) . (
-						(cx >=) &&& (cx <) . Data.Enum.translate (+ fromEnum Cartesian.Abscissa.xLength)
-					) . toEnum *** uncurry (&&) . (
-						(cy >=) &&& (cy <) . Data.Enum.translate (+ fromEnum Cartesian.Ordinate.yLength)
-					) . toEnum
-				) origin	= Nothing
-				| otherwise	= uncurry Cartesian.Coordinates.mkMaybeCoordinates $ (
-					Data.Enum.translate (+ xOriginOffset) *** Data.Enum.translate (+ yOriginOffset)
-				) pair
-		 in [
+		x : y : x' : y' : remainder	-> [
 			(
 				fromQualifiedMove $ Component.QualifiedMove.mkQualifiedMove (Component.Move.mkMove source destination) moveType,
 				remainder'
 			) |
-				source			<- Data.Maybe.maybeToList $ fromSmith (x, y),
-				destination		<- Data.Maybe.maybeToList $ fromSmith (x', y'),
+				let mkCoordinatesList	= Data.Maybe.maybeToList . Notation.Notation.mkMaybeCoordinates notation,
+				source			<- mkCoordinatesList (x, y),
+				destination		<- mkCoordinatesList (x', y'),
 				source /= destination,
 				(moveType, remainder')	<- case remainder of
 					[]		-> [(Data.Default.def, remainder)]

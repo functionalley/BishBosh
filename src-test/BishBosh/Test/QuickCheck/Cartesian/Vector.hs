@@ -1,3 +1,4 @@
+{-# LANGUAGE CPP #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 {-
 	Copyright (C) 2018 Dr. Alistair Ward
@@ -30,18 +31,21 @@ module BishBosh.Test.QuickCheck.Cartesian.Vector(
 
 import			BishBosh.Test.QuickCheck.Cartesian.Coordinates()
 import			Control.Arrow((&&&), (***))
-import qualified	BishBosh.Cartesian.Abscissa	as Cartesian.Abscissa
-import qualified	BishBosh.Cartesian.Coordinates	as Cartesian.Coordinates
-import qualified	BishBosh.Cartesian.Ordinate	as Cartesian.Ordinate
-import qualified	BishBosh.Cartesian.Vector	as Cartesian.Vector
-import qualified	BishBosh.Property.Opposable	as Property.Opposable
-import qualified	BishBosh.Property.Orientated	as Property.Orientated
-import qualified	BishBosh.Type.Length		as Type.Length
+import qualified	BishBosh.Cartesian.Abscissa		as Cartesian.Abscissa
+import qualified	BishBosh.Cartesian.Coordinates		as Cartesian.Coordinates
+import qualified	BishBosh.Cartesian.Ordinate		as Cartesian.Ordinate
+import qualified	BishBosh.Cartesian.Vector		as Cartesian.Vector
+import qualified	BishBosh.Property.Opposable		as Property.Opposable
+import qualified	BishBosh.Property.Orientated		as Property.Orientated
+import qualified	BishBosh.Type.Length			as Type.Length
 import qualified	Test.QuickCheck
 import			Test.QuickCheck((==>))
 
-instance (Num distance, Ord distance) => Test.QuickCheck.Arbitrary (Cartesian.Vector.Vector distance) where
-	{-# SPECIALISE instance Test.QuickCheck.Arbitrary Cartesian.Vector.VectorInt #-}
+#ifdef USE_NEWTYPE_WRAPPERS
+import			BishBosh.Test.QuickCheck.Type.Length()
+#endif
+
+instance Test.QuickCheck.Arbitrary Cartesian.Vector.Vector where
 	arbitrary	= do
 		source		<- Test.QuickCheck.arbitrary :: Test.QuickCheck.Gen Cartesian.Coordinates.Coordinates
 		destination	<- Test.QuickCheck.suchThat Test.QuickCheck.arbitrary (/= source)
@@ -52,46 +56,46 @@ instance (Num distance, Ord distance) => Test.QuickCheck.Arbitrary (Cartesian.Ve
 results :: IO [Test.QuickCheck.Result]
 results	= sequence [
 	let
-		f :: Cartesian.Vector.VectorInt -> Test.QuickCheck.Property
+		f :: Cartesian.Vector.Vector -> Test.QuickCheck.Property
 		f	= Test.QuickCheck.label "Vector.prop_getOpposite" . uncurry (==) . (Property.Opposable.getOpposite . Property.Opposable.getOpposite &&& id)
 	in Test.QuickCheck.quickCheckWithResult Test.QuickCheck.stdArgs { Test.QuickCheck.maxSuccess = 64 } f,
 	let
-		f	:: Cartesian.Vector.VectorInt -> Test.QuickCheck.Property
+		f	:: Cartesian.Vector.Vector -> Test.QuickCheck.Property
 		f	= Test.QuickCheck.label "Vector.prop_orthogonal" . not . uncurry (&&) . (Property.Orientated.isDiagonal &&& Property.Orientated.isParallel)
 	in Test.QuickCheck.quickCheckWithResult Test.QuickCheck.stdArgs { Test.QuickCheck.maxSuccess = 256 } f,
 	let
-		f :: Cartesian.Vector.VectorInt -> Test.QuickCheck.Property
+		f :: Cartesian.Vector.Vector -> Test.QuickCheck.Property
 		f vector	= not (Property.Orientated.isStraight vector) ==> Test.QuickCheck.label "Vector.prop_straight" . not . uncurry (||) $ (Property.Orientated.isDiagonal &&& Property.Orientated.isParallel) vector
 	in Test.QuickCheck.quickCheckWithResult Test.QuickCheck.stdArgs { Test.QuickCheck.maxSuccess = 64 } f,
 	let
-		f :: (Type.Length.Distance, Type.Length.Distance) -> Cartesian.Coordinates.Coordinates -> Test.QuickCheck.Property
+		f :: (Type.Length.X, Type.Length.Y) -> Cartesian.Coordinates.Coordinates -> Test.QuickCheck.Property
 		f (distanceX, distanceY) coordinates	= Test.QuickCheck.label "Vector.prop_maybeTranslate" $ Cartesian.Coordinates.maybeTranslate (deltaX *** deltaY) coordinates == (
 			Cartesian.Coordinates.maybeTranslateX deltaX coordinates >>= Cartesian.Coordinates.maybeTranslateY deltaY
 		 ) where
 			deltaX	:: Type.Length.X -> Type.Length.X
 			deltaX = (
-				+ fromIntegral (
+				+ (
 					(distanceX `mod` Cartesian.Abscissa.xLength) - (Cartesian.Abscissa.xLength `div` 2)
 				)
-			 )
+			 ) -- Section.
 
 			deltaY	:: Type.Length.Y -> Type.Length.Y
 			deltaY	= (
-				+ fromIntegral (
+				+ (
 					(distanceY `mod` Cartesian.Ordinate.yLength) - (Cartesian.Ordinate.yLength `div` 2)
 				)
-			 )
+			 ) -- Section.
 	in Test.QuickCheck.quickCheckWithResult Test.QuickCheck.stdArgs { Test.QuickCheck.maxSuccess = 256 } f,
 	let
 		f :: Cartesian.Coordinates.Coordinates -> Cartesian.Coordinates.Coordinates -> Test.QuickCheck.Property
 		f source destination = Test.QuickCheck.label "Vector.prop_measureDistance => translate" $ Cartesian.Vector.translate source (
-			Cartesian.Vector.measureDistance source destination	:: Cartesian.Vector.VectorInt
+			Cartesian.Vector.measureDistance source destination	:: Cartesian.Vector.Vector
 		 ) == destination
 	in Test.QuickCheck.quickCheckWithResult Test.QuickCheck.stdArgs { Test.QuickCheck.maxSuccess = 64 } f,
 	let
 		f :: Cartesian.Coordinates.Coordinates -> Cartesian.Coordinates.Coordinates -> Test.QuickCheck.Property
 		f source destination = Test.QuickCheck.label "Vector.prop_translate" $ Cartesian.Vector.measureDistance source destination == Property.Opposable.getOpposite (
-			Cartesian.Vector.measureDistance destination source	:: Cartesian.Vector.VectorInt
+			Cartesian.Vector.measureDistance destination source	:: Cartesian.Vector.Vector
 		 )
 	in Test.QuickCheck.quickCheckWithResult Test.QuickCheck.stdArgs { Test.QuickCheck.maxSuccess = 64 } f
  ]

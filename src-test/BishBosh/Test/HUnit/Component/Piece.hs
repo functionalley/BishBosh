@@ -52,9 +52,7 @@ testCases	= Test.HUnit.test [
 		Data.List.sort . uncurry (++) $ (Component.Piece.getAttackDirections . Component.Piece.mkBishop &&& Component.Piece.getAttackDirections . Component.Piece.mkRook) Attribute.LogicalColour.Black
 	] ~? "'BishBosh.Component.Piece.getAttackDirections' failed to show Queen's moves to be union of Bishop & Rook.",
 	"'BishBosh.Cartesian.Vector.attackVectorsForKing'." ~: (
-		(
-			length	:: [Cartesian.Vector.VectorInt] -> Int
-		) Cartesian.Vector.attackVectorsForKing ~?= length (Component.Piece.getAttackDirections $ Component.Piece.mkKing Attribute.LogicalColour.Black)
+		length Cartesian.Vector.attackVectorsForKing ~?= length (Component.Piece.getAttackDirections $ Component.Piece.mkKing Attribute.LogicalColour.Black)
 	),
 	"'BishBosh.Component.Piece.getAttackDirections' failed for King." ~: Data.List.sort (
 		Component.Piece.getAttackDirections $ Component.Piece.mkKing Attribute.LogicalColour.Black {-arbitrarily-}

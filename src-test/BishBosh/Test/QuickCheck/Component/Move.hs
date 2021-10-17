@@ -30,7 +30,6 @@ module BishBosh.Test.QuickCheck.Component.Move(
 
 import			BishBosh.Test.QuickCheck.Cartesian.Coordinates()
 import			Control.Arrow((&&&))
-import qualified	BishBosh.Cartesian.Vector	as Cartesian.Vector
 import qualified	BishBosh.Component.Move		as Component.Move
 import qualified	BishBosh.Property.Opposable	as Property.Opposable
 import qualified	BishBosh.Property.Orientated	as Property.Orientated
@@ -73,9 +72,7 @@ results	= sequence [
 	in Test.QuickCheck.quickCheckWithResult Test.QuickCheck.stdArgs { Test.QuickCheck.maxSuccess = 64 } f,
 	let
 		f :: Component.Move.Move -> Test.QuickCheck.Property
-		f move	= Test.QuickCheck.label "Move.prop_measureDistance" $ Component.Move.measureDistance (Property.Opposable.getOpposite move) == Property.Opposable.getOpposite (
-			Component.Move.measureDistance move	:: Cartesian.Vector.VectorInt
-		 )
+		f move	= Test.QuickCheck.label "Move.prop_measureDistance" $ Component.Move.measureDistance (Property.Opposable.getOpposite move) == Property.Opposable.getOpposite (Component.Move.measureDistance move)
 	in Test.QuickCheck.quickCheckWithResult Test.QuickCheck.stdArgs { Test.QuickCheck.maxSuccess = 256 } f,
 	let
 		f :: Component.Move.Move -> Test.QuickCheck.Property

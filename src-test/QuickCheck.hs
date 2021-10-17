@@ -52,6 +52,7 @@ import qualified	BishBosh.Test.QuickCheck.Model.GameTree						as Test.QuickCheck
 import qualified	BishBosh.Test.QuickCheck.Model.MoveFrequency					as Test.QuickCheck.Model.MoveFrequency
 import qualified	BishBosh.Test.QuickCheck.Notation.Figurine					as Test.QuickCheck.Notation.Figurine
 import qualified	BishBosh.Test.QuickCheck.Notation.ICCFNumeric					as Test.QuickCheck.Notation.ICCFNumeric
+import qualified	BishBosh.Test.QuickCheck.Notation.MoveNotation					as Test.QuickCheck.Notation.MoveNotation
 import qualified	BishBosh.Test.QuickCheck.Notation.PureCoordinate				as Test.QuickCheck.Notation.PureCoordinate
 import qualified	BishBosh.Test.QuickCheck.Notation.Smith						as Test.QuickCheck.Notation.Smith
 import qualified	BishBosh.Test.QuickCheck.Rule.GameTerminationReason				as Test.QuickCheck.Rule.GameTerminationReason
@@ -100,6 +101,7 @@ main	= mapM_ (
 	Test.QuickCheck.Notation.ICCFNumeric.results,
 	Test.QuickCheck.Notation.PureCoordinate.results,
 	Test.QuickCheck.Notation.Smith.results,
+	Test.QuickCheck.Notation.MoveNotation.results,
 	Test.QuickCheck.State.CastleableRooksByLogicalColour.results,
 	Test.QuickCheck.State.Position.results,
 	Test.QuickCheck.State.InstancesByPosition.results,

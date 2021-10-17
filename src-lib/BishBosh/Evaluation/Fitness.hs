@@ -240,14 +240,14 @@ measureValueOfIsolatedPawns game	= fromRational . (
 -- | Measure the arithmetic difference between the number of /passed/ @Pawn@s on either side; <https://www.chessprogramming.org/Passed_Pawn>.
 measureValueOfPassedPawns :: Model.Game.Game -> Metric.CriterionValue.CriterionValue
 measureValueOfPassedPawns game	= fromRational . (
-	/ fromIntegral {-Int-} Cartesian.Abscissa.xLength	-- Normalise to [-1 .. 1].
+	/ fromIntegral Cartesian.Abscissa.xLength	-- Normalise to [-1 .. 1].
  ) . uncurry (-) . (
 	valuePassedPawns . Property.Opposable.getOpposite {-recent mover-} &&& valuePassedPawns
  ) $ Model.Game.getNextLogicalColour game where
 	valuePassedPawns logicalColour	= Data.List.foldl' (
-		\acc -> (acc +) . recip {-value increases exponentially as distance to promotion decreases-} . fromIntegral {-Int-} . abs . subtract (
-			fromEnum $ Cartesian.Ordinate.lastRank logicalColour
-		) . fromEnum . Cartesian.Coordinates.getY	-- Measure the distance to promotion.
+		\acc -> (acc +) . recip {-value increases exponentially as distance to promotion decreases-} . fromIntegral . abs . subtract (
+			Cartesian.Ordinate.lastRank logicalColour
+		) . Cartesian.Coordinates.getY	-- Measure the distance to promotion.
 	 ) 0 $ State.Board.getPassedPawnCoordinatesByLogicalColour (Model.Game.getBoard game) ! logicalColour
 
 {- |

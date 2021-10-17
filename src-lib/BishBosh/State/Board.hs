@@ -292,7 +292,7 @@ movePiece move maybeMoveType board@MkBoard {
 				(affectedCoordinates, affectedPiece) |
 					(knightsCoordinates, knight)	<- (source, sourcePiece) : (,) destination `map` (destinationPiece : (const [] ||| Data.Maybe.maybeToList) eitherPassingPawnsDestinationOrMaybeTakenPiece),
 					Component.Piece.isKnight knight,
-					Just affectedCoordinates	<- Cartesian.Vector.maybeTranslate knightsCoordinates `map` (Cartesian.Vector.attackVectorsForKnight :: [Cartesian.Vector.VectorInt]),
+					Just affectedCoordinates	<- Cartesian.Vector.maybeTranslate knightsCoordinates `map` Cartesian.Vector.attackVectorsForKnight,
 					affectedPiece			<- Data.Maybe.maybeToList $ State.MaybePieceByCoordinates.dereference affectedCoordinates maybePieceByCoordinates',
 					Component.Piece.isFriend knight affectedPiece
 			] {-list-comprehension-} ++ [
@@ -483,16 +483,12 @@ exposesKing
 	-> Bool
 exposesKing logicalColour move board@MkBoard { getCoordinatesByRankByLogicalColour = coordinatesByRankByLogicalColour }
 	| source == kingsCoordinates	= not . null $ findAttackersOf logicalColour (Component.Move.getDestination move) board	-- CAVEAT: expensive, since all directions from the King may have to be explored.
-	| Just directionFromKing	<- Cartesian.Vector.toMaybeDirection (
-		Cartesian.Vector.measureDistance kingsCoordinates source	:: Cartesian.Vector.VectorInt
-	) -- Confirm that one's own King is on a straight line with the start of the move.
+	| Just directionFromKing	<- Cartesian.Vector.toMaybeDirection $ Cartesian.Vector.measureDistance kingsCoordinates source	-- Confirm that one's own King is on a straight line with the start of the move.
 	, let maybePieceByCoordinates	= getMaybePieceByCoordinates board
 	, State.MaybePieceByCoordinates.isClear kingsCoordinates source maybePieceByCoordinates	-- Confirm that the straight line from one's own King to the start of the move, is clear.
 	, Data.Maybe.maybe True {-Knight's move-} (
 		not . Attribute.Direction.areAligned directionFromKing	-- The blocking piece has revealed any attacker.
-	) $ Cartesian.Vector.toMaybeDirection (
-		Component.Move.measureDistance move	:: Cartesian.Vector.VectorInt
-	)
+	) . Cartesian.Vector.toMaybeDirection $ Component.Move.measureDistance move
 	, Just (_, attackersRank)	<- State.MaybePieceByCoordinates.findAttackerInDirection logicalColour directionFromKing source maybePieceByCoordinates	-- Confirm the existence of an obscured attacker.
 	= attackersRank `notElem` Attribute.Rank.plodders	-- Confirm sufficient range to bridge the vacated space.
 	| otherwise	= False

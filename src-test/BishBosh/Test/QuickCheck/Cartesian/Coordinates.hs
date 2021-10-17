@@ -50,9 +50,7 @@ instance Test.QuickCheck.Arbitrary Cartesian.Coordinates.Coordinates where
 
 -- Check that one can interpolate between the coordinates.
 isValidMove :: Cartesian.Coordinates.Coordinates -> Cartesian.Coordinates.Coordinates -> Bool
-isValidMove source destination	= source /= destination && Property.Orientated.isStraight (
-	Cartesian.Vector.measureDistance source destination	:: Cartesian.Vector.VectorInt
- )
+isValidMove source destination	= source /= destination && Property.Orientated.isStraight (Cartesian.Vector.measureDistance source destination)
 
 -- | The constant test-results for this data-type.
 results :: IO [Test.QuickCheck.Result]

@@ -41,6 +41,7 @@ module BishBosh.Notation.MoveNotation(
 	readsQualifiedMove,
 	showNotation,
 	showsMoveSyntax,
+	getNotation,
 	getOrigin,
 	showsNotationFloatToNDecimals,
 -- ** Predicates
@@ -54,6 +55,7 @@ import qualified	BishBosh.Component.EitherQualifiedMove	as Component.EitherQuali
 import qualified	BishBosh.Component.QualifiedMove	as Component.QualifiedMove
 import qualified	BishBosh.Component.Turn			as Component.Turn
 import qualified	BishBosh.Notation.ICCFNumeric		as Notation.ICCFNumeric
+import qualified	BishBosh.Notation.Notation		as Notation.Notation
 import qualified	BishBosh.Notation.PureCoordinate	as Notation.PureCoordinate
 import qualified	BishBosh.Notation.Smith			as Notation.Smith
 import qualified	BishBosh.Property.FixedMembership	as Property.FixedMembership
@@ -115,11 +117,15 @@ showsMoveSyntax moveNotation	= showChar '/' . showString (
 		Smith		-> Notation.Smith.regexSyntax
  ) . showChar '/'
 
+-- | Returns the notation-parameters.
+getNotation :: MoveNotation -> Notation.Notation.Notation
+getNotation ICCFNumeric		= Notation.ICCFNumeric.notation
+getNotation PureCoordinate	= Notation.PureCoordinate.notation
+getNotation Smith		= Notation.Smith.notation
+
 -- | Returns the origin of the specified coordinate-system.
-getOrigin :: MoveNotation -> (Int, Int)
-getOrigin ICCFNumeric		= Notation.ICCFNumeric.origin
-getOrigin PureCoordinate	= Notation.PureCoordinate.origin
-getOrigin Smith			= Notation.Smith.origin
+getOrigin :: MoveNotation -> Notation.Notation.CoordinatePairI
+getOrigin	= Notation.Notation.getOrigin . getNotation
 
 -- | Predicate.
 isPureCoordinate :: MoveNotation -> Bool
@@ -142,9 +148,7 @@ instance ShowNotation Component.Turn.Turn where
 	showsNotation moveNotation	= showsNotation moveNotation . Component.Turn.getQualifiedMove
 
 instance ShowNotation Cartesian.Coordinates.Coordinates where
-	showsNotation ICCFNumeric	= Notation.ICCFNumeric.showsCoordinates
-	showsNotation PureCoordinate	= Notation.PureCoordinate.showsCoordinates
-	showsNotation Smith		= Notation.Smith.showsCoordinates
+	showsNotation	= Notation.Notation.showsCoordinates . getNotation
 
 -- | Show an arbitrary datum using the specified notation.
 showNotation :: (ShowNotation a) => MoveNotation -> a -> String

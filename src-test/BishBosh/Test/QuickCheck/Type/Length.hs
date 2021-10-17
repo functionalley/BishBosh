@@ -24,13 +24,18 @@
  [@DESCRIPTION@]	Implements 'Test.QuickCheck.Arbitrary'
 -}
 
-module BishBosh.Test.QuickCheck.Type.Count() where
+module BishBosh.Test.QuickCheck.Type.Length() where
 
 #ifdef USE_NEWTYPE_WRAPPERS
-import qualified	BishBosh.Type.Count	as Type.Count
+import qualified	BishBosh.Cartesian.Abscissa	as Cartesian.Abscissa
+import qualified	BishBosh.Cartesian.Ordinate	as Cartesian.Ordinate
+import qualified	BishBosh.Type.Length		as Type.Length
 import qualified	Test.QuickCheck
 
-instance Test.QuickCheck.Arbitrary Type.Count.NPlies where
-	arbitrary	= fromInteger <$> Test.QuickCheck.elements [0 .. 9]
+instance Test.QuickCheck.Arbitrary Type.Length.X where
+	arbitrary	= Test.QuickCheck.elements Cartesian.Abscissa.xRange
+
+instance Test.QuickCheck.Arbitrary Type.Length.Y where
+	arbitrary	= Test.QuickCheck.elements Cartesian.Ordinate.yRange
 #endif
 

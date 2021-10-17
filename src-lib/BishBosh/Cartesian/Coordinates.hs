@@ -1,4 +1,4 @@
-{-# LANGUAGE CPP, FlexibleContexts #-}
+{-# LANGUAGE CPP #-}
 {-
 	Copyright (C) 2018 Dr. Alistair Ward
 
@@ -77,7 +77,7 @@ module BishBosh.Cartesian.Coordinates(
 	areSquaresIsochromatic
 ) where
 
-import			Control.Arrow((&&&))
+import			Control.Arrow((&&&), (***))
 import			Data.Array.IArray((!))
 import qualified	BishBosh.Attribute.Direction			as Attribute.Direction
 import qualified	BishBosh.Attribute.LogicalColour		as Attribute.LogicalColour
@@ -110,8 +110,8 @@ tag	= "coordinates"
 
 -- | The /coordinates/ of a square on the board.
 data Coordinates	= MkCoordinates {
-	getX	:: Type.Length.X,	-- ^ Abscissa.
-	getY	:: Type.Length.Y	-- ^ Ordinate.
+	getX	:: ! Type.Length.X,	-- ^ Abscissa.
+	getY	:: ! Type.Length.Y	-- ^ Ordinate.
 } deriving Eq
 
 instance Control.DeepSeq.NFData Coordinates where
@@ -172,7 +172,7 @@ bottomRight = MkCoordinates {
 
 -- | The constant number of squares on the board.
 nSquares :: Int
-nSquares	= fromIntegral $ Cartesian.Abscissa.xLength * Cartesian.Ordinate.yLength
+nSquares	= fromIntegral Cartesian.Abscissa.xLength * fromIntegral Cartesian.Ordinate.yLength
 
 instance Property.FixedMembership.FixedMembership Coordinates where
 	members	= [
@@ -189,7 +189,6 @@ inBounds
 	:: Type.Length.X	-- ^ Abscissa.
 	-> Type.Length.Y	-- ^ Ordinate.
 	-> Bool
-{-# INLINABLE inBounds #-}
 inBounds x y	= Cartesian.Abscissa.inBounds x && Cartesian.Ordinate.inBounds y
 
 -- | Constructor.
@@ -241,7 +240,6 @@ translate transformation MkCoordinates {
 
 -- | Where legal, translate the specified /coordinates/.
 maybeTranslate :: ((Type.Length.X, Type.Length.Y) -> (Type.Length.X, Type.Length.Y)) -> Coordinates -> Maybe Coordinates
-{-# INLINABLE maybeTranslate #-}
 maybeTranslate transformation MkCoordinates {
 	getX	= x,
 	getY	= y
@@ -293,7 +291,6 @@ mkRelativeCoordinates	= (`translate` minBound)
 advance
 	:: Attribute.LogicalColour.LogicalColour	-- ^ The /logical colour/ of the /piece/ which is to advance.
 	-> Transformation
-{-# INLINE advance #-}
 advance logicalColour	= translateY $ if Attribute.LogicalColour.isBlack logicalColour
 	then pred
 	else succ
@@ -403,24 +400,23 @@ rotate direction coordinates@MkCoordinates {
 } = case Attribute.Direction.getXDirection &&& Attribute.Direction.getYDirection $ direction of
 	(EQ, GT)	-> coordinates
 	(LT, EQ)	-> MkCoordinates {
-		getX	= Cartesian.Abscissa.fromIx $ fromIntegral yDistance',
-		getY	= Cartesian.Ordinate.fromIx $ fromIntegral xDistance
+		getX	= Cartesian.Abscissa.fromIx yDistance',
+		getY	= Cartesian.Ordinate.fromIx xDistance
 	} -- +90 degrees, i.e. anti-clockwise.
 	(EQ, LT)	-> MkCoordinates {
-		getX	= Cartesian.Abscissa.fromIx $ fromIntegral xDistance',
-		getY	= Cartesian.Ordinate.fromIx $ fromIntegral yDistance'
+		getX	= Cartesian.Abscissa.fromIx xDistance',
+		getY	= Cartesian.Ordinate.fromIx yDistance'
 	} -- 180 degrees.
 	(GT, EQ)	-> MkCoordinates {
-		getX	= Cartesian.Abscissa.fromIx $ fromIntegral yDistance,
-		getY	= Cartesian.Ordinate.fromIx $ fromIntegral xDistance'
+		getX	= Cartesian.Abscissa.fromIx yDistance,
+		getY	= Cartesian.Ordinate.fromIx xDistance'
 	} -- -90 degrees, i.e. clockwise.
 	_		-> Control.Exception.throw . Data.Exception.mkRequestFailure . showString "BishBosh.Cartesian.Coordinates.rotate:\tunable to rotate to direction" . Text.ShowList.showsAssociation $ shows direction "."
 	where
-		xDistance, xDistance', yDistance, yDistance'	:: Type.Length.Distance
-		xDistance	= fromIntegral $ Cartesian.Abscissa.toIx x
-		yDistance	= fromIntegral $ Cartesian.Ordinate.toIx y
-		xDistance'	= pred Cartesian.Abscissa.xLength - xDistance
-		yDistance'	= pred Cartesian.Ordinate.yLength - yDistance
+		xDistance	= Cartesian.Abscissa.toIx x
+		yDistance	= Cartesian.Ordinate.toIx y
+		xDistance'	= fromIntegral (pred Cartesian.Abscissa.xLength) - xDistance
+		yDistance'	= fromIntegral (pred Cartesian.Ordinate.yLength) - yDistance
 
 {- |
 	* Measures the signed distance between source & destination /coordinates/.
@@ -430,27 +426,24 @@ rotate direction coordinates@MkCoordinates {
 	* CAVEAT: beware the potential fence-post error.
 -}
 measureDistance
-	:: Num distance
-	=> Coordinates		-- ^ Source.
-	-> Coordinates		-- ^ Destination.
-	-> (distance, distance)	-- ^ (X-distance, Y-distance)
-{-# INLINE measureDistance #-}
+	:: Coordinates	-- ^ Source.
+	-> Coordinates	-- ^ Destination.
+	-> (Type.Length.X, Type.Length.Y)
 measureDistance MkCoordinates {
 	getX	= x,
 	getY	= y
 } MkCoordinates {
 	getX	= x',
 	getY	= y'
-} = (fromIntegral $ fromEnum x' - fromEnum x, fromIntegral $ fromEnum y' - fromEnum y)
+} = (x' - x, y' - y)
 
 -- | The /logical colour/ of the specified square.
 getLogicalColourOfSquare :: Coordinates -> Attribute.LogicalColourOfSquare.LogicalColourOfSquare
 getLogicalColourOfSquare coordinates
-	| even $ uncurry (+) distance	= Attribute.LogicalColourOfSquare.black
-	| otherwise			= Attribute.LogicalColourOfSquare.white
-	where
-		distance :: (Type.Length.Distance, Type.Length.Distance)
-		distance	= measureDistance minBound coordinates
+	| uncurry (==) . (
+		even *** even
+	) $ measureDistance minBound coordinates	= Attribute.LogicalColourOfSquare.black
+	| otherwise					= Attribute.LogicalColourOfSquare.white
 
 -- | Whether the specified squares have the same /logical colour/.
 areSquaresIsochromatic :: [Coordinates] -> Bool
@@ -470,7 +463,6 @@ rooksStartingCoordinates _				= [minBound, bottomRight]
 
 -- | Whether the specified /coordinates/ are where a @Pawn@ of the specified /logical colour/ starts.
 isPawnsFirstRank :: Attribute.LogicalColour.LogicalColour -> Coordinates -> Bool
-{-# INLINE isPawnsFirstRank #-}
 isPawnsFirstRank logicalColour MkCoordinates { getY = y }	= y == Cartesian.Ordinate.pawnsFirstRank logicalColour
 
 -- | Whether a @Pawn@ is currently on the appropriate /rank/ to take an opponent's @Pawn@ /en-passant/.

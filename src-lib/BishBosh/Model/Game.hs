@@ -103,6 +103,7 @@ import qualified	BishBosh.Component.Turn				as Component.Turn
 import qualified	BishBosh.Component.Zobrist			as Component.Zobrist
 import qualified	BishBosh.Data.Exception				as Data.Exception
 import qualified	BishBosh.Notation.MoveNotation			as Notation.MoveNotation
+import qualified	BishBosh.Notation.Notation			as Notation.Notation
 import qualified	BishBosh.Notation.PureCoordinate		as Notation.PureCoordinate
 import qualified	BishBosh.Property.Empty				as Property.Empty
 import qualified	BishBosh.Property.ExtendedPositionDescription	as Property.ExtendedPositionDescription
@@ -321,7 +322,7 @@ instance Property.ExtendedPositionDescription.ReadsEPD Game where
 							] -- Singleton.
 						) -- Pair.
 					]
-				 ) `map` Notation.PureCoordinate.readsCoordinates s3' -- En-passant destination.
+				 ) `map` Notation.Notation.readsCoordinates Notation.PureCoordinate.notation s3' -- En-passant destination.
 	 ] -- List-comprehension.
 
 instance Property.ExtendedPositionDescription.ShowsEPD Game where
@@ -615,16 +616,12 @@ takeTurn turn game@MkGame {
 						(blockingCoordinates, blockingPiece) |
 							(kingsCoordinates, _)			<- kingsByCoordinates,
 							moveEndpoint				<- moveEndpoints,
-							direction				<- Data.Maybe.maybeToList $ Cartesian.Vector.toMaybeDirection (
-								Cartesian.Vector.measureDistance kingsCoordinates moveEndpoint	:: Cartesian.Vector.VectorInt
-							), -- N.B. null when the King isn't aligned with any move-endpoint.
+							direction				<- Data.Maybe.maybeToList . Cartesian.Vector.toMaybeDirection $ Cartesian.Vector.measureDistance kingsCoordinates moveEndpoint, -- N.B. null when the King isn't aligned with any move-endpoint.
 							let findBlockingPieceFrom coordinates	= State.MaybePieceByCoordinates.findBlockingPiece direction coordinates maybePieceByCoordinates',
 							(blockingCoordinates, blockingPiece)	<- Data.Maybe.maybeToList $ (
 								\pair@(coordinates, _) -> if coordinates /= destination
 									then Just pair
-									else {-blocker is destination-} if Cartesian.Vector.toMaybeDirection (
-										Cartesian.Vector.measureDistance kingsCoordinates source	:: Cartesian.Vector.VectorInt
-									) == Just direction
+									else {-blocker is destination-} if Cartesian.Vector.toMaybeDirection (Cartesian.Vector.measureDistance kingsCoordinates source) == Just direction
 										then Nothing
 										else findBlockingPieceFrom coordinates	-- Look through the destination to the previous blocker; which might be the source.
 							) =<< findBlockingPieceFrom kingsCoordinates
@@ -950,9 +947,7 @@ validateQualifiedMove qualifiedMove game@MkGame {
 	(source, destination)	= Component.Move.getSource &&& Component.Move.getDestination $ move	-- Deconstruct.
 	maybePieceByCoordinates	= State.Board.getMaybePieceByCoordinates board
 	maybeDestinationPiece	= State.MaybePieceByCoordinates.dereference destination maybePieceByCoordinates	-- Query.
-
-	distance :: Cartesian.Vector.VectorInt
-	distance	= Component.Move.measureDistance move
+	distance		= Component.Move.measureDistance move
 
 	isObstructed :: Bool
 	isObstructed	= State.MaybePieceByCoordinates.isObstructed source destination maybePieceByCoordinates

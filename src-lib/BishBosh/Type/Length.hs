@@ -34,7 +34,6 @@ module BishBosh.Type.Length(
 -- * Types
 -- ** Type-synonyms
 --	Base,
-	Distance,
 -- ** Data-types
 	X,
 	Y,
@@ -65,13 +64,6 @@ instance HXT.XmlPickler Data.Int.Int8 where
 #else
 	Int
 #endif
-
-{- |
-	* The signed distance of a move.
-
-	* N.B.: since /distance/ is used to represent only the horizontal or vertical component of a move, rather than a diagonal length, it can be represented by an integral value.
--}
-type Distance	= Base	-- N.B.: conceptually independent of both 'X' & 'Y' which could be unsigned.
 
 -- | The board-abscissa.
 #ifdef USE_NEWTYPE_WRAPPERS

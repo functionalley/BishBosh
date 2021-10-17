@@ -65,7 +65,6 @@ import qualified	BishBosh.Component.Piece			as Component.Piece
 import qualified	BishBosh.Component.QualifiedMove		as Component.QualifiedMove
 import qualified	BishBosh.Component.Turn				as Component.Turn
 import qualified	BishBosh.Component.Zobrist			as Component.Zobrist
-import qualified	BishBosh.Data.Enum				as Data.Enum
 import qualified	BishBosh.Data.Exception				as Data.Exception
 import qualified	BishBosh.Property.ExtendedPositionDescription	as Property.ExtendedPositionDescription
 import qualified	BishBosh.Property.FixedMembership		as Property.FixedMembership
@@ -241,10 +240,7 @@ fromBoard board
 			Cartesian.Coordinates.mkCoordinates x (
 				Cartesian.Ordinate.pawnsFirstRank logicalColour
 			) |
-				bishopsAbscissa	<- [
-					Cartesian.Abscissa.translate (Data.Enum.translate (+ 2)) Cartesian.Abscissa.xMin,
-					Cartesian.Abscissa.translate (Data.Enum.translate $ subtract 2) Cartesian.Abscissa.xMax
-				 ],
+				bishopsAbscissa	<- Cartesian.Abscissa.bishopsFiles,
 				x		<- Cartesian.Abscissa.getAdjacents bishopsAbscissa
 		] -- List-comprehension.
 	) Property.FixedMembership.members	= Control.Exception.throw . Data.Exception.mkIncompatibleData . showString "BishBosh.State.CastleableRooksByLogicalColourFromBoard.fromBoard:\tfor castling to have occurred, a Bishop must have been moved, which can only happen when a blocking Pawn is moved; " $ shows (castleableRooksByLogicalColour, board) "."

@@ -144,7 +144,6 @@ Library
         BishBosh.ContextualNotation.StandardAlgebraic
         BishBosh.Data.Bool
         BishBosh.Data.Either
-        BishBosh.Data.Enum
         BishBosh.Data.Exception
         BishBosh.Data.Foldable
         BishBosh.Data.Integral
@@ -182,6 +181,7 @@ Library
         BishBosh.Notation.Figurine
         BishBosh.Notation.ICCFNumeric
         BishBosh.Notation.MoveNotation
+        BishBosh.Notation.Notation
         BishBosh.Notation.PureCoordinate
         BishBosh.Notation.Smith
         BishBosh.Property.Arboreal
@@ -518,13 +518,12 @@ Test-Suite quickcheck-tests
         BishBosh.Test.QuickCheck.State.TurnsByLogicalColour
         BishBosh.Test.QuickCheck.Text.Encoding
         BishBosh.Test.QuickCheck.Time.StopWatch
+        BishBosh.Test.QuickCheck.Type.Count
+        BishBosh.Test.QuickCheck.Type.Length
         BishBosh.Test.QuickCheck.UI.Command
         BishBosh.Test.QuickCheck.UI.PrintObject
         BishBosh.Test.QuickCheck.UI.ReportObject
         BishBosh.Test.QuickCheck.UI.SetObject
-
-    if flag(newtypewrappers)
-        Other-modules:	BishBosh.Test.QuickCheck.Type.Count
 
     Build-depends:
         array >= 0.5.1.1,

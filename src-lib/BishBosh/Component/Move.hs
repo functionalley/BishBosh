@@ -19,7 +19,11 @@
 {- |
  [@AUTHOR@]	Dr. Alistair Ward
 
- [@DESCRIPTION@]	Defines one move (actually just a half move AKA "ply") of a /piece/.
+ [@DESCRIPTION@]
+
+	* Defines one move (actually just a half move AKA "ply") of a /piece/.
+
+	* Similar to 'Cartesian.Vector.Vector', but the position is fixed.
 -}
 
 module BishBosh.Component.Move(
@@ -93,14 +97,17 @@ instance Read Move where
 	readsPrec precedence	= map (Control.Arrow.first $ uncurry mkMove) . readsPrec precedence
 
 instance Property.Opposable.Opposable Move where
-	getOpposite (MkMove source destination)	= MkMove {
+	getOpposite MkMove {
+		getSource	= source,
+		getDestination	= destination
+	} = MkMove {
 		getSource	= destination,
 		getDestination	= source
 	}
 
 instance Property.Orientated.Orientated Move where
-	isDiagonal	= (Property.Orientated.isDiagonal :: Cartesian.Vector.VectorInt -> Bool) . measureDistance
-	isParallel	= (Property.Orientated.isParallel :: Cartesian.Vector.VectorInt -> Bool) . measureDistance
+	isDiagonal	= Property.Orientated.isDiagonal . measureDistance
+	isParallel	= Property.Orientated.isParallel . measureDistance
 
 instance Property.Reflectable.ReflectableOnX Move where
 	reflectOnX MkMove {
@@ -132,11 +139,7 @@ mkMove source destination	= Control.Exception.assert (source /= destination) MkM
 }
 
 -- | Measures the signed distance between the ends of the move.
-measureDistance :: (
-	Num	distance,
-	Ord	distance
- ) => Move -> Cartesian.Vector.Vector distance
-{-# SPECIALISE measureDistance :: Move -> Cartesian.Vector.VectorInt #-}
+measureDistance :: Move -> Cartesian.Vector.Vector
 measureDistance	MkMove {
 	getSource	= source,
 	getDestination	= destination
@@ -159,9 +162,7 @@ isPawnDoubleAdvance
 	:: Attribute.LogicalColour.LogicalColour	-- ^ Defines the side whose move is referenced.
 	-> Move
 	-> Bool
-isPawnDoubleAdvance logicalColour move	= Cartesian.Coordinates.isPawnsFirstRank logicalColour (
-	getSource move
- ) && Cartesian.Vector.matchesPawnDoubleAdvance logicalColour (
-	measureDistance move :: Cartesian.Vector.VectorInt
+isPawnDoubleAdvance logicalColour move@MkMove { getSource = source }	= Cartesian.Coordinates.isPawnsFirstRank logicalColour source && Cartesian.Vector.matchesPawnDoubleAdvance logicalColour (
+	measureDistance move
  )
 

@@ -65,9 +65,7 @@ testCases	= Test.HUnit.test [
 		destination		= Cartesian.Coordinates.mkRelativeCoordinates ((+ 3) *** (+ 3))
 		directionToCoordinates	= last . (`Cartesian.Coordinates.extrapolate` destination)
 		mkPiece			= Component.Piece.mkPiece $ Property.Opposable.getOpposite kingsColour
-
-		maybeShift :: Cartesian.Vector.VectorInt -> Maybe Cartesian.Coordinates.Coordinates
-		maybeShift	= Cartesian.Vector.maybeTranslate destination
+		maybeShift		= Cartesian.Vector.maybeTranslate destination
 	in all (
 		State.Board.isKingChecked kingsColour . placePieces . (:) (Component.Piece.mkKing kingsColour, destination) . return {-to List-monad-}
 	) (
@@ -294,7 +292,9 @@ testCases	= Test.HUnit.test [
 		State.CoordinatesByRankByLogicalColour.countPawnsByFileByLogicalColour $ State.Board.getCoordinatesByRankByLogicalColour (Data.Default.def :: State.Board.Board)
 	) ~? "'BishBosh.State.Board.countPawnsByFileByLogicalColour': failed for default board",
 	(
-		(== [(0, 3), (2, 2), (4, 1)]) . Map.toList . (! maxBound) . State.CoordinatesByRankByLogicalColour.countPawnsByFileByLogicalColour . State.Board.getCoordinatesByRankByLogicalColour . placePieces $ map (
+		(
+			== map (Control.Arrow.first (Cartesian.Abscissa.xMin +)) [(0, 3), (2, 2), (4, 1)]
+		) . Map.toList . (! maxBound) . State.CoordinatesByRankByLogicalColour.countPawnsByFileByLogicalColour . State.Board.getCoordinatesByRankByLogicalColour . placePieces $ map (
 			(,) (Component.Piece.mkPawn maxBound) . Cartesian.Coordinates.mkRelativeCoordinates
 		) [
 			Control.Arrow.second succ,

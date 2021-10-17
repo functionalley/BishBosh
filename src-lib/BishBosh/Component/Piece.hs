@@ -248,13 +248,7 @@ mkByRankByLogicalColour ranks mkElement	= Attribute.LogicalColour.listArrayByLog
 
 	* CAVEAT: it doesn't identify @Pawn@-advances, since these aren't attacks.
 -}
-attackVectorsByRankByLogicalColour :: (
-#ifdef USE_PARALLEL
-	Control.DeepSeq.NFData	distance,
-#endif
-	Num			distance,
-	Ord			distance
- ) => ByRankByLogicalColour [Cartesian.Vector.Vector distance]
+attackVectorsByRankByLogicalColour :: ByRankByLogicalColour [Cartesian.Vector.Vector]
 attackVectorsByRankByLogicalColour	= mkByRankByLogicalColour Attribute.Rank.fixedAttackRange $ \logicalColour -> \case
 	Attribute.Rank.Pawn	-> Cartesian.Vector.attackVectorsForPawn logicalColour
 	Attribute.Rank.Knight	-> Cartesian.Vector.attackVectorsForKnight
@@ -275,7 +269,7 @@ findAttackDestinations' source MkPiece {
 } = Data.Maybe.mapMaybe (
 	Cartesian.Vector.maybeTranslate source
  ) (
-	attackVectorsByRankByLogicalColour ! logicalColour Map.! rank :: [Cartesian.Vector.VectorInt]
+	attackVectorsByRankByLogicalColour ! logicalColour Map.! rank
  )
 
 {- |
@@ -349,7 +343,7 @@ canAttackAlong source destination piece	= (
 		Attribute.Rank.Queen	-> Cartesian.Vector.isStraight
 		Attribute.Rank.King	-> Cartesian.Vector.isKingsMove
  ) (
-	Cartesian.Vector.measureDistance source destination	:: Cartesian.Vector.VectorInt
+	Cartesian.Vector.measureDistance source destination
  )
 
 {- |
@@ -381,7 +375,7 @@ canMoveBetween source destination piece	= (
 		Attribute.Rank.Queen	-> Cartesian.Vector.isStraight
 		Attribute.Rank.King	-> Cartesian.Vector.isKingsMove
  ) (
-	Cartesian.Vector.measureDistance source destination	:: Cartesian.Vector.VectorInt
+	Cartesian.Vector.measureDistance source destination
  )
 
 -- | Whether a move qualifies for @Pawn@-promotion.

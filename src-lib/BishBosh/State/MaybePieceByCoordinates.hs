@@ -376,10 +376,10 @@ listDestinationsFor source piece maybePieceByCoordinates@MkMaybePieceByCoordinat
 
 -- | Show the /board/ in two dimensions, with /x/ & /y/ indexes.
 shows2D
-	:: Type.Length.Column	-- ^ The column-magnification.
+	:: Type.Length.Column			-- ^ The column-magnification.
 	-> Attribute.ColourScheme.ColourScheme
-	-> Bool			-- ^ Whether to depict pieces as Unicode figurines.
-	-> (Int, Int)		-- ^ The origin from which axes are labelled.
+	-> Bool					-- ^ Whether to depict pieces as Unicode figurines.
+	-> (Type.Length.X, Type.Length.Y)	-- ^ The origin from which axes are labelled.
 	-> MaybePieceByCoordinates
 	-> ShowS		-- ^ Output suitable for display on a terminal.
 shows2D boardColumnMagnification colourScheme depictFigurine (xOrigin, yOrigin) MkMaybePieceByCoordinates { deconstruct = byCoordinates }	= (
@@ -402,7 +402,7 @@ shows2D boardColumnMagnification colourScheme depictFigurine (xOrigin, yOrigin) 
 			in showPadding . showChar c . showPadding . acc'
 		) showsReset pairs . showChar '\n'
 	) id . zip (
-		take (fromIntegral Cartesian.Ordinate.yLength) . enumFrom $ Data.Char.chr yOrigin
+		take (fromIntegral Cartesian.Ordinate.yLength) . enumFrom . Data.Char.chr $ fromIntegral yOrigin
 	) . listToRaster . map (
 		Control.Arrow.second . Data.Maybe.maybe ' ' $ if depictFigurine
 			then Notation.Figurine.toFigurine	-- Represent each piece as a Unicode figurine.
@@ -415,7 +415,7 @@ shows2D boardColumnMagnification colourScheme depictFigurine (xOrigin, yOrigin) 
 		showString $ replicate (2 * fromIntegral (pred boardColumnMagnification)) ' '	-- Separate each of the x-axis labels.
 	) . map showChar . take (
 		fromIntegral Cartesian.Abscissa.xLength
-	) . enumFrom $ Data.Char.chr xOrigin
+	) . enumFrom . Data.Char.chr $ fromIntegral xOrigin
  ) where
 	axisGraphicsRendition :: Attribute.ANSIColourCode.GraphicsRendition
 	axisGraphicsRendition	= Attribute.ANSIColourCode.selectGraphicsRendition True {-isBold-} $ Attribute.ANSIColourCode.mkFgColourCode Attribute.PhysicalColour.green
@@ -425,10 +425,10 @@ shows2D boardColumnMagnification colourScheme depictFigurine (xOrigin, yOrigin) 
 
 -- | Show the board using a two-dimensional representation.
 show2D
-	:: Type.Length.Column	-- ^ The column-magnification.
+	:: Type.Length.Column			-- ^ The column-magnification.
 	-> Attribute.ColourScheme.ColourScheme
-	-> Bool			-- ^ Whether to depict figurines.
-	-> (Int, Int)		-- ^ The origin from which axes are labelled.
+	-> Bool					-- ^ Whether to depict figurines.
+	-> (Type.Length.X, Type.Length.Y)	-- ^ The origin from which axes are labelled.
 	-> MaybePieceByCoordinates
 	-> String		-- ^ The output suitable for display on a terminal.
 show2D boardColumnMagnification colourScheme depictFigurine (xOrigin, yOrigin) maybePieceByCoordinates	= shows2D boardColumnMagnification colourScheme depictFigurine (xOrigin, yOrigin) maybePieceByCoordinates ""

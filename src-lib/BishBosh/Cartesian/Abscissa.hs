@@ -30,12 +30,12 @@
 
 module BishBosh.Cartesian.Abscissa(
 -- * Constants
-	xOrigin,
 	xLength,
 	xMin,
 	xMax,
 	xBounds,
 	xRange,
+	bishopsFiles,
 	kingsFile,
 --	adjacents,
 -- * Functions
@@ -53,34 +53,26 @@ module BishBosh.Cartesian.Abscissa(
 ) where
 
 import			Data.Array.IArray((!))
-import qualified	BishBosh.Data.Enum	as Data.Enum
 import qualified	BishBosh.Type.Length	as Type.Length
 import qualified	Control.Exception
 import qualified	Data.Array.IArray
 
--- | The position of the origin on the /x/-axis.
-xOrigin :: Int
-xOrigin	= 0
-
 -- | The constant length of the /x/-axis.
-xLength :: Type.Length.Distance
+xLength :: Type.Length.X
 xLength	= 8
-
--- | The constant lower bound of abscissae.
-xMin :: Type.Length.X
-xMin	= toEnum xOrigin
-
--- | The constant upper bound of abscissae.
-xMax :: Type.Length.X
-xMax	= toEnum $ xOrigin + fromIntegral (pred {-fence-post-} xLength)
 
 -- | The constant bounds of abscissae.
 xBounds :: (Type.Length.X, Type.Length.X)
-xBounds	= (xMin, xMax)
+xMin, xMax :: Type.Length.X
+xBounds@(xMin, xMax)	= (0, xMin + pred {-fence-post-} xLength)
 
 -- | The constant list of all abscissae.
 xRange :: [Type.Length.X]
 xRange	= uncurry enumFromTo xBounds
+
+-- | The conventional starting /file/s for the @Bishops@ of either /logical colour/.
+bishopsFiles :: [Type.Length.X]
+bishopsFiles	= map fromIx [2, 5]
 
 -- | The conventional starting /file/ for the @King@ of either /logical colour/.
 kingsFile :: Type.Length.X
@@ -89,17 +81,17 @@ kingsFile	= fromIx 4
 -- | Convert to an array-index.
 toIx :: Type.Length.X -> Int
 {-# INLINE toIx #-}
-toIx	= subtract xOrigin . fromEnum
+toIx	= fromIntegral . subtract xMin
 
 -- | Convert from an array-index.
 fromIx :: Int -> Type.Length.X
 {-# INLINE fromIx #-}
-fromIx	= toEnum . (+ xOrigin)
+fromIx	= (+ xMin) . fromIntegral
 
 -- | Reflects about the mid-point of the axis.
 reflect :: Type.Length.X -> Type.Length.X
-reflect	= Data.Enum.translate $ (
-	+ (2 * xOrigin + fromIntegral (pred xLength))
+reflect	= (
+	+ (2 * xMin + pred xLength)
  ) . negate
 
 -- | Predicate.
@@ -130,11 +122,7 @@ getAdjacents' x
 adjacents :: Data.Array.IArray.Array Type.Length.X [Type.Length.X]
 adjacents	= listArrayByAbscissa $ map getAdjacents' xRange
 
-{- |
-	* Get the abscissae immediately left & right.
-
-	* N.B.: this is really a compile-time switch between alternative implementations.
--}
+-- | Get the abscissae immediately left & right.
 getAdjacents :: Type.Length.X -> [Type.Length.X]
 getAdjacents	= (adjacents !)
 

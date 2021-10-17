@@ -150,7 +150,7 @@ instance StateProperty.Hashable.Hashable CoordinatesByRankByLogicalColour where
 instance StateProperty.Seeker.Seeker CoordinatesByRankByLogicalColour {-CAVEAT: MultiParamTypeClasses-} where
 	findProximateKnights logicalColour destination MkCoordinatesByRankByLogicalColour { deconstruct = byLogicalColour }	= filter (
 		\source -> source /= destination {-guard against attempting to constructing a null vector-} && Cartesian.Vector.isKnightsMove (
-			Cartesian.Vector.measureDistance source destination	:: Cartesian.Vector.VectorInt
+			Cartesian.Vector.measureDistance source destination
 		)
 	 ) $ byLogicalColour ! logicalColour ! Attribute.Rank.Knight
 

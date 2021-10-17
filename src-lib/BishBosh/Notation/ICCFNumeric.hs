@@ -31,40 +31,29 @@ module BishBosh.Notation.ICCFNumeric(
 --		getMaybePromotionRank
 	),
 -- * Constants
-	origin,
---	xOriginOffset,
---	yOriginOffset,
+	notation,
 	regexSyntax,
 	toRank,
 -- * Functions
---	encode,
-	showsCoordinates,
 -- ** Constructors
 	mkICCFNumeric,
 	mkICCFNumeric'
 ) where
 
-import			Control.Arrow((&&&), (***))
+import			Control.Arrow((&&&))
 import qualified	BishBosh.Attribute.Rank		as Attribute.Rank
-import qualified	BishBosh.Cartesian.Abscissa	as Cartesian.Abscissa
-import qualified	BishBosh.Cartesian.Coordinates	as Cartesian.Coordinates
-import qualified	BishBosh.Cartesian.Ordinate	as Cartesian.Ordinate
 import qualified	BishBosh.Component.Move		as Component.Move
-import qualified	BishBosh.Data.Enum		as Data.Enum
 import qualified	BishBosh.Data.Exception		as Data.Exception
+import qualified	BishBosh.Notation.Notation	as Notation.Notation
 import qualified	Control.Arrow
 import qualified	Control.Exception
 import qualified	Data.List.Extra
 import qualified	Data.Maybe
 import qualified	Data.Tuple
 
--- | The origin.
-origin :: (Int, Int)
-origin	= fromEnum &&& fromEnum $ '1'
-
--- | The offset of the application's internal coordinate-system from this conventional one.
-xOriginOffset, yOriginOffset :: Int
-(xOriginOffset, yOriginOffset)	= (Cartesian.Abscissa.xOrigin -) *** (Cartesian.Ordinate.yOrigin -) $ origin
+-- | Define the parameters of the notation, using the minimum permissible values for /x/ & /y/ coordinates.
+notation :: Notation.Notation.Notation
+notation	= Notation.Notation.mkNotation $ (id &&& id) '1'
 
 -- | Defines using a regex, the required syntax.
 regexSyntax :: String
@@ -106,21 +95,13 @@ mkICCFNumeric'
 	-> ICCFNumeric
 mkICCFNumeric' move	= mkICCFNumeric move . Attribute.Rank.getMaybePromotionRank
 
--- | Encodes the ordinate & abscissa.
-encode :: Cartesian.Coordinates.Coordinates -> (ShowS, ShowS)
-encode	= showChar . Data.Enum.translate (subtract xOriginOffset) . Cartesian.Coordinates.getX &&& showChar . Data.Enum.translate (subtract yOriginOffset) . Cartesian.Coordinates.getY
-
--- | Shows the specified /coordinates/.
-showsCoordinates :: Cartesian.Coordinates.Coordinates -> ShowS
-showsCoordinates	= uncurry (.) . encode
-
 instance Show ICCFNumeric where
 	showsPrec _ MkICCFNumeric {
 		getMove			= move,
 		getMaybePromotionRank	= maybePromotionRank
-	} = showsCoordinates (
+	} = Notation.Notation.showsCoordinates notation (
 		Component.Move.getSource move
-	 ) . showsCoordinates (
+	 ) . Notation.Notation.showsCoordinates notation (
 		Component.Move.getDestination move
 	 ) . Data.Maybe.maybe id (
 		shows . Data.Maybe.fromJust . (`lookup` map Data.Tuple.swap toRank)
@@ -129,19 +110,7 @@ instance Show ICCFNumeric where
 -- N.B. this merely validates the syntax, leaving any semantic errors to 'Model.Game.validate'.
 instance Read ICCFNumeric where
 	readsPrec _ s	= case Data.List.Extra.trimStart s of
-		x : y : x' : y' : remainder	-> let
-			fromICCFNumeric pair@(cx, cy)
-				| not . uncurry (&&) $ (
-					uncurry (&&) . (
-						(cx >=) &&& (cx <) . Data.Enum.translate (+ fromEnum Cartesian.Abscissa.xLength)
-					) . toEnum *** uncurry (&&) . (
-						(cy >=) &&& (cy <) . Data.Enum.translate (+ fromEnum Cartesian.Ordinate.yLength)
-					) . toEnum
-				) origin	= Nothing
-				| otherwise	= uncurry Cartesian.Coordinates.mkMaybeCoordinates $ (
-					Data.Enum.translate (+ xOriginOffset) *** Data.Enum.translate (+ yOriginOffset)
-				) pair
-		 in [
+		x : y : x' : y' : remainder	-> [
 			Control.Arrow.first (
 				mkICCFNumeric $ Component.Move.mkMove source destination
 			) (
@@ -151,8 +120,9 @@ instance Read ICCFNumeric where
 						| otherwise				-> (Nothing, remainder)
 					_						-> (Nothing, remainder)
 			) |
-				source		<- Data.Maybe.maybeToList $ fromICCFNumeric (x, y),
-				destination	<- Data.Maybe.maybeToList $ fromICCFNumeric (x', y'),
+				let mkCoordinatesList	= Data.Maybe.maybeToList . Notation.Notation.mkMaybeCoordinates notation,
+				source		<- mkCoordinatesList (x, y),
+				destination	<- mkCoordinatesList (x', y'),
 				source /= destination
 		 ] -- List-comprehension.
 		_				-> []	-- No parse.

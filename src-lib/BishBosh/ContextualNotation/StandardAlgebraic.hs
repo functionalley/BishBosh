@@ -69,6 +69,7 @@ import qualified	BishBosh.Component.QualifiedMove	as Component.QualifiedMove
 import qualified	BishBosh.Component.Turn			as Component.Turn
 import qualified	BishBosh.Data.Exception			as Data.Exception
 import qualified	BishBosh.Model.Game			as Model.Game
+import qualified	BishBosh.Notation.Notation		as Notation.Notation
 import qualified	BishBosh.Notation.PureCoordinate	as Notation.PureCoordinate
 import qualified	BishBosh.Property.ForsythEdwards	as Property.ForsythEdwards
 import qualified	BishBosh.Rule.GameTerminationReason	as Rule.GameTerminationReason
@@ -196,7 +197,7 @@ showsTurn explicitEnPassant turn game
 				else checkFlag
 			else id
 	)
-	| otherwise	= Control.Exception.throw . Data.Exception.mkSearchFailure . showString "BishBosh.ContextualNotation.StandardAlgebraic.showsTurn:\tno piece exists at " . Notation.PureCoordinate.showsCoordinates source . showString "; " $ Property.ForsythEdwards.showsFEN game "."
+	| otherwise	= Control.Exception.throw . Data.Exception.mkSearchFailure . showString "BishBosh.ContextualNotation.StandardAlgebraic.showsTurn:\tno piece exists at " . Notation.Notation.showsCoordinates Notation.PureCoordinate.notation source . showString "; " $ Property.ForsythEdwards.showsFEN game "."
 	where
 		((source, destination), moveType)	= (Component.Move.getSource &&& Component.Move.getDestination) . Component.QualifiedMove.getMove &&& Component.QualifiedMove.getMoveType $ Component.Turn.getQualifiedMove turn
 		board					= Model.Game.getBoard game
@@ -209,9 +210,8 @@ showsTurn explicitEnPassant turn game
 		showsRank rank	= showChar $ fromRank rank
 
 		showsCapture, showsX, showsY, showsDestination :: ShowS
-		showsCapture		= showChar captureFlag
-		(showsX, showsY)	= Notation.PureCoordinate.encode source
-		showsDestination	= Notation.PureCoordinate.showsCoordinates destination
+		showsCapture				= showChar captureFlag
+		((showsX, showsY), showsDestination)	= (`Notation.Notation.encode` source) &&& (`Notation.Notation.showsCoordinates` destination) $ Notation.PureCoordinate.notation
 
 		game'	= Model.Game.takeTurn turn game
 
