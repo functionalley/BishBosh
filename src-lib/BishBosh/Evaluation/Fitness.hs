@@ -29,11 +29,13 @@
 -}
 
 module BishBosh.Evaluation.Fitness(
+-- * Types
+-- ** Type-synonyms
+--	WorkingType,
 -- * Constants
 --	maximumDestinations,
 	maximumDefended,
 -- * Functions
---	mkPieceSquareCriterionValue,
 	measurePieceSquareValue,
 	measurePieceSquareValueIncrementally,
 	measureValueOfMaterial,
@@ -82,11 +84,8 @@ import qualified	Data.Maybe
 import qualified	Data.Array.Unboxed
 #endif
 
--- | Construct a criterion-value from a piece-square value.
-mkPieceSquareCriterionValue :: Real pieceSquareValue => pieceSquareValue -> Metric.CriterionValue.CriterionValue
-mkPieceSquareCriterionValue	= fromRational . (
-	/ fromIntegral Component.Piece.nPiecesPerSide
- ) . toRational
+-- | Used until the range of a result permits safe conversion to 'Metric.CriterionValue.CriterionValue'.
+type WorkingType	= Double
 
 -- | Measures the piece-square value from the perspective of the last player to move.
 measurePieceSquareValue :: (
@@ -148,8 +147,8 @@ measureValueOfMaterial
 	-> Type.Mass.RankValue	-- ^ Maximum total rank-value.
 	-> Model.Game.Game
 	-> Metric.CriterionValue.CriterionValue
-measureValueOfMaterial rankValues maximumTotalRankValue game	= fromRational . (
-	/ toRational maximumTotalRankValue -- Normalise.
+measureValueOfMaterial rankValues maximumTotalRankValue game	= realToFrac . (
+	/ maximumTotalRankValue	-- Normalise.
  ) . (
 	if Attribute.LogicalColour.isBlack $ Model.Game.getNextLogicalColour game
 		then id		-- White just moved.
@@ -157,7 +156,7 @@ measureValueOfMaterial rankValues maximumTotalRankValue game	= fromRational . (
  ) . Data.List.foldl' (
 	\acc (rank, nPiecesDifference) -> if nPiecesDifference == 0
 		then acc	-- Avoid calling 'Input.RankValues.findRankValue'.
-		else acc + toRational (
+		else acc + realToFrac (
 			Input.RankValues.findRankValue rank rankValues
 		) * fromIntegral nPiecesDifference
  ) 0 . Data.Array.IArray.assocs . State.Board.getNPiecesDifferenceByRank {-which arbitrarily counts White pieces as positive & Black as negative-} $ Model.Game.getBoard game
@@ -183,16 +182,18 @@ measureValueOfMaterial rankValues maximumTotalRankValue game	= fromRational . (
 	This presents a paradox !
 -}
 measureValueOfMobility :: Model.Game.Game -> Metric.CriterionValue.CriterionValue
-measureValueOfMobility game	= fromRational . uncurry (-) . (
+measureValueOfMobility game	= realToFrac . uncurry (-) . (
 	measureConstriction &&& measureConstriction . Property.Opposable.getOpposite {-recent mover-}
  ) $ Model.Game.getNextLogicalColour game where
+	measureConstriction :: Attribute.LogicalColour.LogicalColour -> WorkingType
 	measureConstriction logicalColour	= recip . fromIntegral {-NPlies-} . succ {-avoid divide-by-zero-} $ Model.Game.countPliesAvailableTo logicalColour game
 
 -- | Measure the arithmetic difference between the potential to /Castle/, on either side.
 measureValueOfCastlingPotential :: Model.Game.Game -> Metric.CriterionValue.CriterionValue
-measureValueOfCastlingPotential game	= fromRational . uncurry (-) . (
+measureValueOfCastlingPotential game	= realToFrac . uncurry (-) . (
 	castlingPotential . Property.Opposable.getOpposite {-recent mover-} &&& castlingPotential
  ) $ Model.Game.getNextLogicalColour game where
+	castlingPotential :: Attribute.LogicalColour.LogicalColour -> WorkingType
 	castlingPotential	= Data.Maybe.maybe 1 {-have Castled-} (
 		(/ 2) . fromIntegral . length
 	 ) . (
@@ -207,11 +208,14 @@ measureValueOfCastlingPotential game	= fromRational . uncurry (-) . (
 	* CAVEAT: this is a negative attribute, so the weighted normalised value shouldn't exceed the reduction due to 'measureValueOfMaterial' resulting from a @Pawn@-sacrifice.
 -}
 measureValueOfDoubledPawns :: Model.Game.Game -> Metric.CriterionValue.CriterionValue
-measureValueOfDoubledPawns game	= fromRational . (
-	/ 6	-- Normalise to [-1 .. 1]; the optimal scenario is all files containing one Pawn; the worst scenario is two files each containing four Pawns, all but one per file of which are counted as doubled.
+measureValueOfDoubledPawns game	= realToFrac . (
+	/ (
+		6	:: WorkingType	-- Normalise to [-1 .. 1]; the optimal scenario is all files containing one Pawn; the worst scenario is two files each containing four Pawns, all but one per file of which are counted as doubled.
+	)
  ) . fromIntegral {-NPieces-} . uncurry (-) . (
 	countDoubledPawns &&& countDoubledPawns . Property.Opposable.getOpposite {-recent mover-}
  ) $ Model.Game.getNextLogicalColour game where
+	countDoubledPawns :: Attribute.LogicalColour.LogicalColour -> Type.Count.NPieces
 	countDoubledPawns logicalColour	= uncurry (-) . (
 		Data.Foldable.foldl' (+) 0 &&& fromIntegral . Data.Foldable.length {-one Pawn can't be considered to be doubled, so substract one Pawn per column-}
 	 ) $ State.Board.getNPawnsByFileByLogicalColour (Model.Game.getBoard game) ! logicalColour
@@ -222,28 +226,29 @@ measureValueOfDoubledPawns game	= fromRational . (
 	* CAVEAT: this is a negative attribute, so the weighted normalised value shouldn't exceed the reduction due to 'measureValueOfMaterial' resulting from a @Pawn@-sacrifice.
 -}
 measureValueOfIsolatedPawns :: Model.Game.Game -> Metric.CriterionValue.CriterionValue
-measureValueOfIsolatedPawns game	= fromRational . (
-	/ fromIntegral {-Int-} Cartesian.Abscissa.xLength	-- Normalise to [-1 .. 1]; the optimal scenario is eight files each containing one Pawn & the worst scenario is all Pawns isolated (e.g. 4 alternate files of 2, 2 separate files or 4, ...).
+measureValueOfIsolatedPawns game	= realToFrac . (
+	/ (
+		fromIntegral {-X-} Cartesian.Abscissa.xLength	:: WorkingType	-- Normalise to [-1 .. 1]; the optimal scenario is eight files each containing one Pawn & the worst scenario is all Pawns isolated (e.g. 4 alternate files of 2, 2 separate files or 4, ...).
+	)
  ) . fromIntegral {-NPieces-} . uncurry (-) . (
 	countIsolatedPawns &&& countIsolatedPawns . Property.Opposable.getOpposite {-recent mover-}
  ) $ Model.Game.getNextLogicalColour game where
 	countIsolatedPawns :: Attribute.LogicalColour.LogicalColour -> Type.Count.NPieces
 	countIsolatedPawns logicalColour	= Map.foldlWithKey' (
-		\acc x nPawns -> (
-			if (`Map.member` nPawnsByFile) `any` Cartesian.Abscissa.getAdjacents x
-				then id		-- This file has at least one neighbouring Pawn which can (if at a suitable rank) be used to protect any of those in this file.
-				else (+ nPawns)	-- All the Pawns on this file are isolated & thus lack the protection that may be offered by adjacent Pawns.
-		) acc
+		\acc x nPawns -> if (`Map.member` nPawnsByFile) `any` Cartesian.Abscissa.getAdjacents x
+			then acc		-- This file has at least one neighbouring Pawn which can (if at a suitable rank) be used to protect any of those in this file.
+			else acc + nPawns	-- All the Pawns on this file are isolated & thus lack the protection that may be offered by adjacent Pawns.
 	 ) 0 nPawnsByFile where
 		nPawnsByFile	= State.Board.getNPawnsByFileByLogicalColour (Model.Game.getBoard game) ! logicalColour
 
 -- | Measure the arithmetic difference between the number of /passed/ @Pawn@s on either side; <https://www.chessprogramming.org/Passed_Pawn>.
 measureValueOfPassedPawns :: Model.Game.Game -> Metric.CriterionValue.CriterionValue
-measureValueOfPassedPawns game	= fromRational . (
-	/ fromIntegral Cartesian.Abscissa.xLength	-- Normalise to [-1 .. 1].
+measureValueOfPassedPawns game	= realToFrac . (
+	/ fromIntegral {-X-} Cartesian.Abscissa.xLength	-- Normalise to [-1 .. 1]; the optimal scenario is all files containing exactly one Pawn, of one's own logical colour, on the 7th rank.
  ) . uncurry (-) . (
 	valuePassedPawns . Property.Opposable.getOpposite {-recent mover-} &&& valuePassedPawns
  ) $ Model.Game.getNextLogicalColour game where
+	valuePassedPawns :: Attribute.LogicalColour.LogicalColour -> WorkingType
 	valuePassedPawns logicalColour	= Data.List.foldl' (
 		\acc -> (acc +) . recip {-value increases exponentially as distance to promotion decreases-} . fromIntegral . abs . subtract (
 			Cartesian.Ordinate.lastRank logicalColour
@@ -279,8 +284,10 @@ maximumDefended	= 70
 	* CAVEAT: this criterion competes with /mobility/, since each defended /piece/ blocks the path of the defender.
 -}
 measureValueOfDefence :: Model.Game.Game -> Metric.CriterionValue.CriterionValue
-measureValueOfDefence game	= fromRational . (
-	/ fromIntegral {-NPieces-} maximumDefended	-- Normalise.
+measureValueOfDefence game	= realToFrac . (
+	/ (
+		fromIntegral {-NPieces-} maximumDefended	:: WorkingType	-- Normalise.
+	)
  ) . fromIntegral {-NPieces-} . uncurry (-) . (
 	(! Property.Opposable.getOpposite {-recent mover-} nextLogicalColour) &&& (! nextLogicalColour)
  ) . State.Board.summariseNDefendersByLogicalColour $ Model.Game.getBoard game where
@@ -324,9 +331,9 @@ evaluateFitness maybePieceSquareValue game
 		 ) (
 			measureValueOfMobility game
 		 ) (
-			Data.Maybe.maybe 0 mkPieceSquareCriterionValue $ maybePieceSquareValue <|> fmap (
-				`measurePieceSquareValue` game
-			) maybePieceSquareByCoordinatesByRank
+			Data.Maybe.maybe 0 (
+				realToFrac . (/ fromIntegral Component.Piece.nPiecesPerSide)
+			) $ maybePieceSquareValue <|> fmap (`measurePieceSquareValue` game) maybePieceSquareByCoordinatesByRank
 		 ) (
 			measureValueOfCastlingPotential game
 		 ) (

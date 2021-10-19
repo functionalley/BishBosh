@@ -122,6 +122,7 @@ New Module				| Purpose
 * Efficiency:
 	+ Reimplemented function **BishBosh.Cartesian.Abscissa.getAdjacents** to promote memoisation.
 	* Made **BishBosh.Cartesian.Coordinates** & **BishBosh.Attribute.Direction** strict.
+	* Changed to use **Double** rather than **Rational** to perform the calculations defined by **BishBosh.Evaluation.Fitness**, before conversion to **BishBosh.Metric.CriterionValue.CriterionValue**.
 * Bug-fixes:
 	+ Avoided potential divide-by-zero @ **BishBosh.Input.CriteriaWeights.getWeightOfMaterial** / **BishBosh.Input.RankValues.calculateMaximumTotalValue** @.
 	+ Guarded against starting from a persisted, but terminated, game.
