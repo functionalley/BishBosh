@@ -31,6 +31,9 @@ module BishBosh.Notation.Smith(
 	),
 -- * Constants
 	notation,
+--	enpassantTag,
+--	shortCastleTag,
+--	longCastleTag,
 	regexSyntax,
 -- * Functions
 -- ** Constructor
@@ -52,14 +55,26 @@ import qualified	Data.Maybe
 
 -- | Define the parameters of the notation, using the minimum permissible values for /x/ & /y/ coordinates.
 notation :: Notation.Notation.Notation
-notation	= Notation.PureCoordinate.notation	--N.B. the encoding of coordinates is (coincidentally) identical.
+notation	= Notation.PureCoordinate.notation	-- CAVEAT: the encoding of coordinates is only coincidentally identical.
+
+-- | Token.
+enpassantTag :: Char
+enpassantTag	= 'E'
+
+-- | Token.
+shortCastleTag :: Char
+shortCastleTag	= 'c'
+
+-- | Token.
+longCastleTag :: Char
+longCastleTag	= 'C'
 
 -- | Defines using a regex, the required syntax.
 regexSyntax :: String
 regexSyntax	= showString "([a-h][1-8]){2}[" . showString (
 	concatMap show Attribute.Rank.range
- ) . showString "EcC]?[" $ showString (
-	Data.List.Extra.upper $ map (head . show) Attribute.Rank.promotionProspects
+ ) . showChar enpassantTag . showChar shortCastleTag . showChar longCastleTag . showString "]?[" $ showString (
+	Data.List.Extra.upper $ concatMap show Attribute.Rank.promotionProspects
  ) "]?"
 
 -- | Defines a /move/, to enable i/o in /Smith/-notation.
@@ -81,9 +96,9 @@ instance Show Smith where
 	 ) . (
 		case moveType of
 			Attribute.MoveType.Castle isShort	-> showChar $ if isShort
-				then 'c'
-				else 'C'
-			Attribute.MoveType.EnPassant		-> showChar 'E'
+				then shortCastleTag
+				else longCastleTag
+			Attribute.MoveType.EnPassant		-> showChar enpassantTag
 			_ {-normal-}				-> Data.Maybe.maybe id shows (
 				Attribute.MoveType.getMaybeExplicitlyTakenRank moveType
 			 ) . Data.Maybe.maybe id (
