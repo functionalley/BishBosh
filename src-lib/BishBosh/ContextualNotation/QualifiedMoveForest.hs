@@ -51,6 +51,7 @@ module BishBosh.ContextualNotation.QualifiedMoveForest(
 import			Control.Applicative((<|>))
 import			Control.Arrow((&&&), (***))
 import qualified	BishBosh.Attribute.MoveType		as Attribute.MoveType
+import qualified	BishBosh.Component.Piece		as Component.Piece
 import qualified	BishBosh.Component.QualifiedMove	as Component.QualifiedMove
 import qualified	BishBosh.Component.Turn			as Component.Turn
 import qualified	BishBosh.ContextualNotation.PGN		as ContextualNotation.PGN
@@ -63,7 +64,6 @@ import qualified	BishBosh.Property.Empty			as Property.Empty
 import qualified	BishBosh.Property.Null			as Property.Null
 import qualified	BishBosh.Rule.GameTerminationReason	as Rule.GameTerminationReason
 import qualified	BishBosh.Rule.Result			as Rule.Result
-import qualified	BishBosh.State.Board			as State.Board
 import qualified	BishBosh.Text.ShowList			as Text.ShowList
 import qualified	BishBosh.Type.Count			as Type.Count
 import qualified	Control.Arrow
@@ -190,18 +190,16 @@ fromPGNDatabase	= (`mergePGNDatabase` Property.Empty.empty {-QualifiedMoveForest
 -- | Find the minimum number of /piece/s in any of the recorded /game/s.
 findMinimumPieces :: QualifiedMoveForest -> Type.Count.NPieces
 findMinimumPieces	= slave (
-	State.Board.getNPieces (
-		Data.Default.def	:: State.Board.Board	-- CAVEAT: this assumes the game to which the moves in the forest refer.
-	)
+	2 * Component.Piece.nPiecesPerSide	-- CAVEAT: assuming a conventional starting position.
  ) . deconstruct where
 	slave nPieces []	= nPieces
 	slave nPieces forest	= minimum $ map (
 		\Data.Tree.Node {
 			Data.Tree.rootLabel	= (qualifiedMove, _),
 			Data.Tree.subForest	= subForest
-		} -> slave (
-			Attribute.MoveType.nPiecesMutator (Component.QualifiedMove.getMoveType qualifiedMove) nPieces
-		) subForest	-- Recurse.
+		} -> let
+			nPieces'	= Attribute.MoveType.nPiecesMutator (Component.QualifiedMove.getMoveType qualifiedMove) nPieces
+		in nPieces' `seq` slave nPieces' subForest	-- Recurse.
 	 ) forest
 
 -- | Count the number of /game/s & distinct /positions/.
