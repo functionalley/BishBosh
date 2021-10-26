@@ -26,7 +26,9 @@
 module Duel.Process.Intermediary (
 -- * Types
 -- ** Type-synonyms
+--	MoveNotation,
 --	IOHandles,
+--	FEN,
 --	GameTerminationReasonsMap,
 -- * Functions
 --	runBishBosh,
@@ -47,6 +49,7 @@ import qualified	BishBosh.Data.Exception			as Data.Exception
 import qualified	BishBosh.Input.CommandLineOption	as Input.CommandLineOption
 import qualified	BishBosh.Input.IOOptions		as Input.IOOptions
 import qualified	BishBosh.Input.Options			as Input.Options
+import qualified	BishBosh.Input.PGNOptions		as Input.PGNOptions
 import qualified	BishBosh.Input.SearchOptions		as Input.SearchOptions
 import qualified	BishBosh.Input.UIOptions		as Input.UIOptions
 import qualified	BishBosh.Input.Verbosity		as Input.Verbosity
@@ -61,9 +64,11 @@ import qualified	BishBosh.Time.GameClock			as Time.GameClock
 import qualified	BishBosh.Type.Count			as Type.Count
 import qualified	BishBosh.Type.Mass			as Type.Mass
 import qualified	BishBosh.UI.Command			as UI.Command
+import qualified	BishBosh.UI.ReportObject		as UI.ReportObject
 import qualified	Control.Exception
 import qualified	Control.Monad
 import qualified	Data.Default
+import qualified	Data.Foldable
 import qualified	Data.Map.Strict				as Map
 import qualified	Data.Maybe
 import qualified	Duel.Data.Options			as Data.Options
@@ -132,7 +137,7 @@ readMove verbosity readTimeout logicalColour stdOut = do
 
 	case reads line of
 		[(gameTerminationReason, "")]	-> do
-			Control.Monad.when (verbosity > minBound) . IO.Logger.printInfo $ shows gameTerminationReason " => game over."
+			Control.Monad.when (verbosity /= minBound) . IO.Logger.printInfo $ shows gameTerminationReason " => game over."
 
 			return {-to IO-monad-} $ Left gameTerminationReason	-- Return the result.
 		_				-> case reads line of
@@ -161,6 +166,9 @@ copyMove verbosity readTimeout logicalColour stdOut stdIn = do
 -- | Contains /stdin/ & /stdout/ handles respectively.
 type IOHandles	= (System.IO.Handle, System.IO.Handle)
 
+-- | A Forsyth-Edwards description of a game.
+type FEN	= String
+
 -- | Shuttle moves between the two child processes until the game terminates.
 play
 	:: Property.Switchable.Switchable gameClock
@@ -169,7 +177,7 @@ play
 	-> IOHandles
 	-> IOHandles
 	-> gameClock
-	-> IO (Rule.GameTerminationReason.GameTerminationReason, gameClock)
+	-> IO (FEN, Rule.GameTerminationReason.GameTerminationReason, gameClock)
 play verbosity readTimeout	= slave maxBound	where
 	slave logicalColour producer@(_, stdOut) consumer@(stdIn', stdOut') gameClock	= copyMove verbosity readTimeout logicalColour stdOut stdIn' >>= Data.Maybe.maybe (
 		do
@@ -182,7 +190,11 @@ play verbosity readTimeout	= slave maxBound	where
 				\gameTerminationReason' -> do
 					Control.Monad.unless (gameTerminationReason == gameTerminationReason') . Control.Exception.throwIO . Data.Exception.mkIncompatibleData . showString "Duel.Process.Intermediary.play:\tsecond game terminated for a different reason; " $ shows gameTerminationReason' "."
 
-					return {-to IO-monad-} (gameTerminationReason, gameClock)
+					System.IO.hPutStrLn stdIn' $ UI.Command.issueCommand (UI.Command.Report UI.ReportObject.FEN) ""
+
+					fen	<- System.IO.hGetLine stdOut'
+
+					return {-to IO-monad-} (fen, gameTerminationReason, gameClock)
 			 ) ||| (
 				\move	-> Control.Exception.throwIO . Data.Exception.mkParseFailure . showString "Duel.Process.Intermediary.play:\tread from " . shows (Property.Opposable.getOpposite logicalColour) . showString ", unexpected move='" $ shows move "'."
 			 )
@@ -195,11 +207,7 @@ purge handle	= do
 
 	Control.Monad.when isReady . Control.Monad.void $ System.IO.hGetLine handle
 
-{- |
-	* Accumulates the frequency of each game-termination reason
-
-	* N.B.: the recorded result is merely a string, though it could be read into a 'BishBosh.Rule.GameTerminationReason'.
--}
+-- | Accumulates the frequency-distribution of game-termination reasons.
 type GameTerminationReasonsMap	= Map.Map Rule.GameTerminationReason.GameTerminationReason Type.Count.NGames
 
 {- |
@@ -214,6 +222,8 @@ type GameTerminationReasonsMap	= Map.Map Rule.GameTerminationReason.GameTerminat
 	* Plays repeatedly, measuring both the total time taken by each side & accumulating the final results of each game.
 
 	* Prints the total time taken by either side, & returns the accumulated results of each game.
+
+	* Reports games which are duplicated.
 -}
 startGame
 	:: Input.Verbosity.Verbosity
@@ -224,16 +234,23 @@ startGame
 	-> GameTerminationReasonsMap
 	-> Type.Count.NGames
 	-> IO GameTerminationReasonsMap
-startGame verbosity nDecimalDigits readTimeout producer consumer gameTerminationReasonsMap nGames	= Property.Switchable.on >>= slave gameTerminationReasonsMap nGames where
-	slave :: GameTerminationReasonsMap -> Type.Count.NGames -> Time.GameClock.GameClock -> IO GameTerminationReasonsMap
-	slave gameTerminationReasonsMap' 0 gameClock	= do
+startGame verbosity nDecimalDigits readTimeout producer consumer gameTerminationReasonsMap nGames	= Property.Switchable.on >>= slave Property.Empty.empty gameTerminationReasonsMap nGames where
+	accumulateFrequencyDistribution :: (Enum i, Num i, Ord k) => k -> Map.Map k i -> Map.Map k i
+	accumulateFrequencyDistribution	= flip (Map.insertWith $ const succ) 1
+
+	slave :: Map.Map FEN Type.Count.NGames -> GameTerminationReasonsMap -> Type.Count.NGames -> Time.GameClock.GameClock -> IO GameTerminationReasonsMap
+	slave fenMap gameTerminationReasonsMap' 0 gameClock	= do
 		Time.GameClock.showsElapsedTimes nDecimalDigits gameClock >>= IO.Logger.printInfo . showString "Elapsed time" . Text.ShowList.showsAssociation . ($ ".")
 
+		let duplicatedFENMap	= Map.filter (> 1) fenMap
+
+		Control.Monad.unless (verbosity == minBound || Data.Foldable.null duplicatedFENMap) . IO.Logger.printWarning . showString "Duplicated FENs:\t" $ shows (Map.toList duplicatedFENMap) "."
+
 		return {-to IO-monad-} gameTerminationReasonsMap'
-	slave gameTerminationReasonsMap' nGames' gameClock	= do
+	slave fenMap gameTerminationReasonsMap' nGames' gameClock	= do
 		Control.Monad.when (verbosity == maxBound) $ IO.Logger.printInfo "Starting game."
 
-		(gameTerminationReason, gameClock')	<- play verbosity readTimeout producer consumer gameClock
+		(fen, gameTerminationReason, gameClock')	<- play verbosity readTimeout producer consumer gameClock
 
 		sequence_ $ [
 			\(_, stdOut) -> do
@@ -243,11 +260,13 @@ startGame verbosity nDecimalDigits readTimeout producer consumer gameTermination
 			\(stdIn, _) -> do
 				Control.Monad.when (verbosity == maxBound) $ IO.Logger.printInfo "Requesting restart."
 
-				System.IO.hPutStrLn stdIn $ UI.Command.commandPrefix : UI.Command.restartTag
+				System.IO.hPutStrLn stdIn $ UI.Command.issueCommand UI.Command.Restart ""
 		 ] <*> [consumer, producer]
 
 		slave (
-			Map.insertWith (const succ) gameTerminationReason 1 gameTerminationReasonsMap'
+			accumulateFrequencyDistribution fen fenMap
+		 ) (
+			accumulateFrequencyDistribution gameTerminationReason gameTerminationReasonsMap'
 		 ) (
 			pred nGames' -- Recurse.
 		 ) gameClock'
@@ -301,7 +320,7 @@ initialise options
 	in Control.Exception.catch (
 		do
 			Control.Monad.when (Data.Options.getVerifyConfiguration options) $ do
-				[(logicalColoursFirst, moveNotationFirst), (logicalColoursSecond, moveNotationSecond)]	<- mapM (
+				[(logicalColoursFirst, moveNotationFirst, unspecifiedPGNOptionsFirst), (logicalColoursSecond, moveNotationSecond, unspecifiedPGNOptionsSecond)]	<- mapM (
 					\configFilePath -> do
 						[pair]	<- HXT.runX $ HXT.setTraceLevel hxtTraceLevel
 							>>> HXT.xunpickleDocument HXT.xpickle [
@@ -309,9 +328,13 @@ initialise options
 								HXT.withStrictInput HXT.no	-- Only a fraction of the document is required.
 							] configFilePath
 							>>> HXT.arr (
-								 \inputOptions -> Input.SearchOptions.identifyAutomatedPlayers . Input.Options.getSearchOptions &&& Input.UIOptions.getMoveNotation . Input.IOOptions.getUIOptions . Input.Options.getIOOptions $ (
-									inputOptions	:: Input.Options.Options Type.Mass.PieceSquareValue	-- Arbitrary concrete type.
-								 )
+								\inputOptions -> (
+									Input.SearchOptions.identifyAutomatedPlayers $ Input.Options.getSearchOptions (
+										inputOptions	:: Input.Options.Options Type.Mass.PieceSquareValue	-- Arbitrary concrete type.
+									),
+									Input.UIOptions.getMoveNotation . Input.IOOptions.getUIOptions $ Input.Options.getIOOptions inputOptions,
+									null . Input.IOOptions.getPGNOptionsList $ Input.Options.getIOOptions inputOptions
+								)
 							) -- Lift function into an arrow.
 
 						return {-to IO-monad-} pair
@@ -320,6 +343,8 @@ initialise options
 				Control.Monad.unless (logicalColoursFirst == [maxBound] && logicalColoursSecond == [minBound]) . Control.Exception.throwIO . Data.Exception.mkIncompatibleData . showString "Duel.Process.Intermediary.initialise:\tconfiguration-files must automate White & Black respectively; " $ shows (logicalColoursFirst ++ logicalColoursSecond) "."
 
 				Control.Monad.unless (moveNotationFirst == moveNotationSecond) . Control.Exception.throwIO . Data.Exception.mkIncompatibleData . showString "Duel.Process.Intermediary.initialise:\tconfiguration-files must define the same " . showString Notation.MoveNotation.tag . Text.ShowList.showsAssociation $ shows (moveNotationFirst, moveNotationSecond) "."
+
+				Control.Monad.when (unspecifiedPGNOptionsFirst && unspecifiedPGNOptionsSecond) . Control.Exception.throwIO . Data.Exception.mkNullDatum . showString "Duel.Process.Intermediary.initialise:\tto introduce randomness, at least one configuration-file must define '" . showString Input.PGNOptions.tag . showChar '.' $ showString Input.PGNOptions.databaseFilePathTag "'."
 
 			bracketProcess verbosity inputConfigFilePaths $ \[handles, handles'] -> uncurry (
 				uncurry (startGame verbosity) $ (Data.Options.getNDecimalDigits &&& Data.Options.getReadTimeout) options

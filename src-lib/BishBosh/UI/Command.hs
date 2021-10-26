@@ -28,13 +28,13 @@ module BishBosh.UI.Command (
 -- ** Data-types
 	Command(..),
 -- * Constants
-	commandPrefix,
+--	commandPrefix,
 --	hintTag,
 	printTag,
 --	quitTag,
 --	reportTag,
 --	resignTag,
-	restartTag,
+--	restartTag,
 --	rollBackTag,
 --	saveTag,
 	setTag,
@@ -48,6 +48,7 @@ module BishBosh.UI.Command (
 -- * Functions
 	readsCommand,
 	showsCommand,
+	issueCommand,
 	autoComplete
  ) where
 
@@ -251,10 +252,14 @@ showsCommand	= \case
 	Report reportObject	-> showString reportTag . showChar ' ' . shows reportObject
 	Resign			-> showString resignTag
 	Restart			-> showString restartTag
-	RollBack maybeNMoves	-> showString rollBackTag . Data.Maybe.maybe id (\nMoves -> showChar ' ' . shows nMoves) maybeNMoves
+	RollBack maybeNPlies	-> showString rollBackTag . Data.Maybe.maybe id (\nPlies -> showChar ' ' . shows nPlies) maybeNPlies
 	Save			-> showString saveTag
 	Set setObject		-> showString setTag . showChar ' ' . shows setObject
 	Swap			-> showString swapTag
+
+-- | Show the specified command in the format required by this application's parser.
+issueCommand :: Command -> ShowS
+issueCommand command	= showChar commandPrefix . shows command
 
 -- | Replace the first word of the specified string with the name of a command of which it is an unambiguous case-insensitive prefix.
 autoComplete :: ShowS

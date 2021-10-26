@@ -11,6 +11,11 @@ This application merely acts as an intermediary, passing moves between these ins
 while measuring the total time taken by either side & collating the game-results to permit comparison of the fitness of their respective configurations.
 .PP
 This process facilitates optimisation of the complex configuration of \fBbishbosh\fR.
+.PP
+CAVEAT: the population of games resulting from this statistical experiment must be diverse, but this application's logic is largely deterministic (& both players are configured to use it).
+In order to introduce some randomness, PGN-databases must be configured in which the application may search for positions matching the current game.
+When more than one match for the current position is found, one of them is \fIrandomly\fR selected at the source of the next move.
+If the specified PGN-databases fail to provide such move-options, deterministic play will result.
 .SH OPTIONS
 .TP
 \fB--verbosity=\fR(\fBSilent\fR|\fBNormal\fR|\fBVerbose\fR|\fBDeafening\fR), defaulting to "\fBNormal\fR".
@@ -88,6 +93,9 @@ man/man1/bishbosh.1	The man-page for \fBbishbosh\fR.
 .SH AUTHOR
 Written by Dr. Alistair Ward.
 .SH BUGS
+.PP
+In the absence of any configured \fBpgnOptions\fR, the game is completely deterministic & will reproduce the previous result endlessly.
+Even when PGN-databases have been configured, they may introduce insufficient randomness to produce a large population of unique games on which to perform statistical analysis.
 .SS "REPORTING BUGS"
 Report bugs to "\fBbishbosh@functionalley.com\fR".
 .SH COPYRIGHT
