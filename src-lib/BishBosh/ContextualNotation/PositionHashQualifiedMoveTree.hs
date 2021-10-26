@@ -89,7 +89,7 @@ type Tree positionHash	= Data.Tree.Tree (NodeLabel positionHash)
 data PositionHashQualifiedMoveTree positionHash	= MkPositionHashQualifiedMoveTree {
 	getZobrist		:: Component.Zobrist.Zobrist positionHash,	-- ^ Used to hash each position in the tree.
 	getTree			:: Tree positionHash,
-	getMinimumPieces	:: Type.Count.NPieces				-- ^ The minimum number of /piece/s remaining after the last /move/ in any game defined in the tree.
+	getMinimumPieces	:: ! Type.Count.NPieces				-- ^ The minimum number of /piece/s remaining after the last /move/ in any game defined in the tree.
 }
 
 -- | Augment the specified /qualified-move forest/ with a /Zobrist-hash/ of the /position/ & include the default initial game at the apex.
