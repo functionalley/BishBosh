@@ -169,8 +169,10 @@ readMove positionHashQualifiedMoveTree randomGen runningWatch playState	= let
 						_		-> Control.Exception.throwIO . Data.Exception.mkRequestFailure . showString "BishBosh.UI.Raw.readMove.onCommand:\tunexpectedly failed to find any moves; " $ shows game "."	-- CAVEAT: the game should have terminated.
 			 ) (
 				\(qualifiedMove, names) -> putStrLn . Text.ShowColouredPrefix.showsPrefixInfo . showString "Try \"" . Notation.MoveNotation.showsNotation moveNotation qualifiedMove . showString "\" from:" $ ContextualNotation.QualifiedMoveForest.showsNames maybeMaximumPGNNames names ""
-			 ) $ ContextualNotation.PositionHashQualifiedMoveTree.maybeRandomlySelectOnymousQualifiedMove randomGen (
-				Input.StandardOpeningOptions.getMatchSwitches $ Input.SearchOptions.getStandardOpeningOptions searchOptions
+			 ) $ uncurry (
+				ContextualNotation.PositionHashQualifiedMoveTree.maybeRandomlySelectOnymousQualifiedMove randomGen
+			 ) (
+				Input.StandardOpeningOptions.getPreferVictories &&& Input.StandardOpeningOptions.getMatchSwitches $ Input.SearchOptions.getStandardOpeningOptions searchOptions
 			 ) game positionHashQualifiedMoveTree
 
 			return {-to IO-monad-} playState	-- N.B.: though one could merely call "eventLoop", a new random-generator is desirable in case an alternative hint is requested.
@@ -539,8 +541,10 @@ takeTurns positionHashQualifiedMoveTree randomGen playState	= let
 										putStrLn $ show2D selectedGame
 
 								return {-to IO-monad-} (State.PlayState.updateWithManualMove selectedGame playState', Nothing)	-- N.B.: one could ponder, but would have to construct a game-tree, & the chance of a subsequent standard-opening move is high.
-						 ) $ ContextualNotation.PositionHashQualifiedMoveTree.maybeRandomlySelectOnymousQualifiedMove randomGen' (
-							Input.StandardOpeningOptions.getMatchSwitches $ Input.SearchOptions.getStandardOpeningOptions searchOptions
+						 ) $ uncurry (
+							ContextualNotation.PositionHashQualifiedMoveTree.maybeRandomlySelectOnymousQualifiedMove randomGen'
+						 ) (
+							Input.StandardOpeningOptions.getPreferVictories &&& Input.StandardOpeningOptions.getMatchSwitches $ Input.SearchOptions.getStandardOpeningOptions searchOptions
 						 ) game' positionHashQualifiedMoveTree	-- Determine whether the automated player's move can be decided by a search of recorded games or we must decide ourself.
 					 ) (
 						Model.Game.getNextLogicalColour game' `Map.lookup` Input.SearchOptions.getSearchDepthByLogicalColour searchOptions'	-- Determinate whether the next player is manual.

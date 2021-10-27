@@ -34,7 +34,6 @@ import qualified	BishBosh.Component.Turn						as Component.Turn
 import qualified	BishBosh.ContextualNotation.PositionHashQualifiedMoveTree	as ContextualNotation.PositionHashQualifiedMoveTree
 import qualified	BishBosh.ContextualNotation.QualifiedMoveForest			as ContextualNotation.QualifiedMoveForest
 import qualified	BishBosh.Input.EvaluationOptions				as Input.EvaluationOptions
-import qualified	BishBosh.Input.StandardOpeningOptions				as Input.StandardOpeningOptions
 import qualified	BishBosh.Model.Game						as Model.Game
 import qualified	BishBosh.Model.GameTree						as Model.GameTree
 import qualified	BishBosh.Property.Null						as Property.Null
@@ -60,7 +59,7 @@ instance (
 results :: IO [Test.QuickCheck.Result]
 results	= sequence [
 	let
-		f :: Input.EvaluationOptions.IncrementalEvaluation -> Input.StandardOpeningOptions.MatchSwitches -> Test.QuickCheck.Component.Zobrist.Zobrist -> ContextualNotation.QualifiedMoveForest.QualifiedMoveForest -> Test.QuickCheck.Property
+		f :: Input.EvaluationOptions.IncrementalEvaluation -> ContextualNotation.PositionHashQualifiedMoveTree.MatchSwitches -> Test.QuickCheck.Component.Zobrist.Zobrist -> ContextualNotation.QualifiedMoveForest.QualifiedMoveForest -> Test.QuickCheck.Property
 		f incrementalEvaluation tryToMatchSwitches zobrist qualifiedMoveForest	= not (Property.Null.isNull qualifiedMoveForest) ==> Test.QuickCheck.label "PositionHashQualifiedMoveTree.prop_findNextOnymousQualifiedMoves" $ all (
 			(
 				\(previousGame, lastTurn)	-> Data.Maybe.isJust . Data.List.find (

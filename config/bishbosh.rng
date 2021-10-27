@@ -104,6 +104,10 @@
 								<attribute name="tryToMatchColourFlippedPosition">
 									<ref name="Boolean"/>
 								</attribute>
+							</optional><optional>
+								<attribute name="preferVictories">
+									<ref name="Boolean"/>
+								</attribute>
 							</optional>
 						</element>	<!-- standardOpeningOptions -->
 					</optional>

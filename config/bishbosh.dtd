@@ -80,6 +80,7 @@
 				tryToMatchMoves			(False | True)	#IMPLIED
 				tryToMatchViaJoiningMove	(False | True)	#IMPLIED
 				tryToMatchColourFlippedPosition	(False | True)	#IMPLIED
+				preferVictories			(False | True)	#IMPLIED
 			>
 		<!ELEMENT searchDepthByLogicalColour (byLogicalColour)*>
 			<!ELEMENT byLogicalColour EMPTY>

@@ -122,19 +122,20 @@ New Module				| Purpose
 	+ **duel** now accumulates the frequency-distribution of games played in order to detect duplicates & warn when there's insufficient randomness.
 * Efficiency:
 	+ Reimplemented function **BishBosh.Cartesian.Abscissa.getAdjacents** to promote memoisation.
-	* Made **BishBosh.Cartesian.Coordinates** & **BishBosh.Attribute.Direction** strict.
-	* Changed to use **Double** rather than **Rational** to perform the calculations defined by **BishBosh.Evaluation.Fitness**, before conversion to **BishBosh.Metric.CriterionValue.CriterionValue**.
+	+ Made **BishBosh.Cartesian.Coordinates** & **BishBosh.Attribute.Direction** strict.
+	+ Changed to use **Double** rather than **Rational** to perform the calculations defined by **BishBosh.Evaluation.Fitness**, before conversion to **BishBosh.Metric.CriterionValue.CriterionValue**.
+	+ Added a Boolean switch **preferVictories** to **standardOpeningOptions** to govern whether from all matching positions extracted from the PGN-database, to prefer moves which result in a greater probability of victory, for the player who has the next move. Turning this off reduces the evaluation required of the PGN-parser; & there's no down-side if the PGN-database is known not to actually record any victories.
 * Bug-fixes:
 	+ Avoided potential divide-by-zero @ **BishBosh.Input.CriteriaWeights.getWeightOfMaterial** / **BishBosh.Input.RankValues.calculateMaximumTotalValue** @.
 	+ Guarded against starting from a persisted, but terminated, game.
 	+ Added guards to function **BishBosh.Component.Piece.promote**.
-	* Polymorphism:
-		+ Replaced the polymorphic type **distance** in **BishBosh.Component.Vector**, with two concrete types **BishBosh.Type.Length.[XY]**. Removed the type **BishBosh.Type.Length.Distance**.
-		+ Replaced the polymorphic type-parameters **x** & **y** with newtypes to:
-			* eliminate the fragile **RULE** pragmas required to switch to memoised function-implementations for specific type-parameters,
-			* eliminate chains of **SPECIALISE** pragmas down the call-stack to hot-spots.
-			* allow external calls from [**Text.ParserCombinators.Poly.Lazy.runParser**, **Text.ParserCombinators.Parsec.parse**], to access specialised implementations (see previous items),
-			* permit unification of the similar type-classes **BishBosh.Component.Zobrist.Hashable[12]D**, & to avoid the requirement for the **MultiParameterTypeClasses** pragma.
+	+ Polymorphism:
+		* Replaced the polymorphic type **distance** in **BishBosh.Component.Vector**, with two concrete types **BishBosh.Type.Length.[XY]**. Removed the type **BishBosh.Type.Length.Distance**.
+		* Replaced the polymorphic type-parameters **x** & **y** with newtypes to:
+			+ eliminate the fragile **RULE** pragmas required to switch to memoised function-implementations for specific type-parameters,
+			+ eliminate chains of **SPECIALISE** pragmas down the call-stack to hot-spots.
+			+ allow external calls from [**Text.ParserCombinators.Poly.Lazy.runParser**, **Text.ParserCombinators.Parsec.parse**], to access specialised implementations (see previous items),
+			+ permit unification of the similar type-classes **BishBosh.Component.Zobrist.Hashable[12]D**, & to avoid the requirement for the **MultiParameterTypeClasses** pragma.
 * Structural:
 	+ Moved the type-class from module **BishBosh.Component.Zobrist** into a new module **BishBosh.StateProperty.Hashable**.
 	+ Replaced non-specific type @ (Int, Int) @ coordinates in **BishBosh.Notation.{ICCFNumeric, PureCoordinate, Smith}** with @ (**BishBosh.Type.Length.X**, **BishBosh.Type.Length.Y**) @, & moved common code into a new module **BishBosh.Notation.Notation**.

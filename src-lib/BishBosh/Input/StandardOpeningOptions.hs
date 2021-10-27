@@ -24,23 +24,20 @@
 
 module BishBosh.Input.StandardOpeningOptions(
 -- * Types
--- ** Type-synonyms
---	TryToMatchMoves,
---	TryToMatchViaJoiningMove,
---	TryToMatchColourFlippedPosition,
-	MatchSwitches,
 -- ** Data-types
 	StandardOpeningOptions(
 --		MkStandardOpeningOptions,
 --		getTryToMatchMoves,
 --		getTryToMatchViaJoiningMove,
---		getTryToMatchColourFlippedPosition
+--		getTryToMatchColourFlippedPosition,
+		getPreferVictories
 	),
 -- * Constants
 	tag,
 --	tryToMatchMovesTag,
 --	tryToMatchViaJoiningMoveTag,
 --	tryToMatchColourFlippedPositionTag,
+--	preferVictoriesTag,
 -- * Functions
 -- ** Constructor
 	mkStandardOpeningOptions,
@@ -48,11 +45,12 @@ module BishBosh.Input.StandardOpeningOptions(
 	getMatchSwitches
 ) where
 
-import			BishBosh.Data.Bool()		-- For 'HXT.xpickle'.
-import qualified	BishBosh.Text.ShowList		as Text.ShowList
+import			BishBosh.Data.Bool()	-- For 'HXT.xpickle'.
+import qualified	BishBosh.Text.ShowList						as Text.ShowList
 import qualified	Control.DeepSeq
 import qualified	Data.Default
-import qualified	Text.XML.HXT.Arrow.Pickle	as HXT
+import qualified	BishBosh.ContextualNotation.PositionHashQualifiedMoveTree	as ContextualNotation.PositionHashQualifiedMoveTree
+import qualified	Text.XML.HXT.Arrow.Pickle					as HXT
 
 -- | Used to qualify XML.
 tag :: String
@@ -70,37 +68,32 @@ tryToMatchViaJoiningMoveTag		= "tryToMatchViaJoiningMove"
 tryToMatchColourFlippedPositionTag :: String
 tryToMatchColourFlippedPositionTag	= "tryToMatchColourFlippedPosition"
 
--- | Whether to attempt to exactly match moves with a standard opening; transpositions won't be matched.
-type TryToMatchMoves	= Bool
-
--- | Whether to attempt to join the current position to a standard opening that's only one ply away.
-type TryToMatchViaJoiningMove	= Bool
-
--- | Whether to attempt to match a colour-flipped version of the current position with a standard opening
-type TryToMatchColourFlippedPosition	= Bool
-
--- | The switches used to control attempts to find a match amongst standard openings.
-type MatchSwitches	= (TryToMatchMoves, TryToMatchViaJoiningMove, TryToMatchColourFlippedPosition)
+-- | Used to qualify XML.
+preferVictoriesTag :: String
+preferVictoriesTag			= "preferVictories"
 
 -- | Defines options related to searching for a move.
 data StandardOpeningOptions	= MkStandardOpeningOptions {
-	getTryToMatchMoves			:: TryToMatchMoves,			-- ^ Whether to attempt to exactly match moves with a standard opening; transpositions won't be matched.
-	getTryToMatchViaJoiningMove		:: TryToMatchViaJoiningMove,		-- ^ Whether to attempt to join the current position to a standard opening that's only one ply away.
-	getTryToMatchColourFlippedPosition	:: TryToMatchColourFlippedPosition	-- ^ Whether to attempt to match a colour-flipped version of the current position with a standard opening.
+	getTryToMatchMoves			:: ContextualNotation.PositionHashQualifiedMoveTree.TryToMatchMoves,			-- ^ Whether to attempt to exactly match moves with a standard opening; transpositions won't be matched.
+	getTryToMatchViaJoiningMove		:: ContextualNotation.PositionHashQualifiedMoveTree.TryToMatchViaJoiningMove,		-- ^ Whether to attempt to join the current position to a standard opening that's only one ply away.
+	getTryToMatchColourFlippedPosition	:: ContextualNotation.PositionHashQualifiedMoveTree.TryToMatchColourFlippedPosition,	-- ^ Whether to attempt to match a colour-flipped version of the current position with a standard opening.
+	getPreferVictories			:: ContextualNotation.PositionHashQualifiedMoveTree.PreferVictories			-- ^ Whether from all matching positions extracted from PGN-Databases, to prefer moves which result in a greater probability of victory, for the player who has the next move.
 } deriving Eq
 
 instance Control.DeepSeq.NFData StandardOpeningOptions where
 	rnf MkStandardOpeningOptions {
 		getTryToMatchMoves			= tryToMatchMoves,
 		getTryToMatchViaJoiningMove		= tryToMatchViaJoiningMove,
-		getTryToMatchColourFlippedPosition	= tryToMatchColourFlippedPosition
-	} = Control.DeepSeq.rnf (tryToMatchMoves, tryToMatchViaJoiningMove, tryToMatchColourFlippedPosition)
+		getTryToMatchColourFlippedPosition	= tryToMatchColourFlippedPosition,
+		getPreferVictories			= preferVictories
+	} = Control.DeepSeq.rnf (tryToMatchMoves, tryToMatchViaJoiningMove, tryToMatchColourFlippedPosition, preferVictories)
 
 instance Show StandardOpeningOptions where
 	showsPrec _ MkStandardOpeningOptions {
 		getTryToMatchMoves			= tryToMatchMoves,
 		getTryToMatchViaJoiningMove		= tryToMatchViaJoiningMove,
-		getTryToMatchColourFlippedPosition	= tryToMatchColourFlippedPosition
+		getTryToMatchColourFlippedPosition	= tryToMatchColourFlippedPosition,
+		getPreferVictories			= preferVictories
 	} = Text.ShowList.showsAssociationList' [
 		(
 			tryToMatchMovesTag,
@@ -111,6 +104,9 @@ instance Show StandardOpeningOptions where
 		), (
 			tryToMatchColourFlippedPositionTag,
 			shows tryToMatchColourFlippedPosition
+		), (
+			preferVictoriesTag,
+			shows preferVictories
 		)
 	 ]
 
@@ -118,40 +114,46 @@ instance Data.Default.Default StandardOpeningOptions where
 	def = MkStandardOpeningOptions {
 		getTryToMatchMoves			= True,
 		getTryToMatchViaJoiningMove		= True,
-		getTryToMatchColourFlippedPosition	= True
+		getTryToMatchColourFlippedPosition	= True,
+		getPreferVictories			= True
 	}
 
 instance HXT.XmlPickler StandardOpeningOptions where
 	xpickle	= HXT.xpDefault Data.Default.def . HXT.xpElem tag . HXT.xpWrap (
-		\(a, b, c) -> mkStandardOpeningOptions a b c,	-- Construct.
+		\(a, b, c, d) -> mkStandardOpeningOptions a b c d,	-- Construct.
 		\MkStandardOpeningOptions {
 			getTryToMatchMoves			= tryToMatchMoves,
 			getTryToMatchViaJoiningMove		= tryToMatchViaJoiningMove,
-			getTryToMatchColourFlippedPosition	= tryToMatchColourFlippedPosition
-		} -> (tryToMatchMoves, tryToMatchViaJoiningMove, tryToMatchColourFlippedPosition) -- Deconstruct.
-	 ) $ HXT.xpTriple(
+			getTryToMatchColourFlippedPosition	= tryToMatchColourFlippedPosition,
+			getPreferVictories			= preferVictories
+		} -> (tryToMatchMoves, tryToMatchViaJoiningMove, tryToMatchColourFlippedPosition, preferVictories) -- Deconstruct.
+	 ) $ HXT.xp4Tuple (
 		getTryToMatchMoves def `HXT.xpDefault` HXT.xpAttr tryToMatchMovesTag HXT.xpickle
 	 ) (
 		getTryToMatchViaJoiningMove def `HXT.xpDefault` HXT.xpAttr tryToMatchViaJoiningMoveTag HXT.xpickle
 	 ) (
 		getTryToMatchColourFlippedPosition def `HXT.xpDefault` HXT.xpAttr tryToMatchColourFlippedPositionTag HXT.xpickle
+	 ) (
+		getPreferVictories def `HXT.xpDefault` HXT.xpAttr preferVictoriesTag HXT.xpickle
 	 ) where
 		def	= Data.Default.def
 
 -- | Smart constructor.
 mkStandardOpeningOptions
-	:: TryToMatchMoves
-	-> TryToMatchViaJoiningMove
-	-> TryToMatchColourFlippedPosition
+	:: ContextualNotation.PositionHashQualifiedMoveTree.TryToMatchMoves
+	-> ContextualNotation.PositionHashQualifiedMoveTree.TryToMatchViaJoiningMove
+	-> ContextualNotation.PositionHashQualifiedMoveTree.TryToMatchColourFlippedPosition
+	-> ContextualNotation.PositionHashQualifiedMoveTree.PreferVictories
 	-> StandardOpeningOptions
-mkStandardOpeningOptions tryToMatchMoves tryToMatchViaJoiningMove tryToMatchColourFlippedPosition	= MkStandardOpeningOptions {
+mkStandardOpeningOptions tryToMatchMoves tryToMatchViaJoiningMove tryToMatchColourFlippedPosition preferVictories	= MkStandardOpeningOptions {
 	getTryToMatchMoves			= tryToMatchMoves,
 	getTryToMatchViaJoiningMove		= tryToMatchViaJoiningMove,
-	getTryToMatchColourFlippedPosition	= tryToMatchColourFlippedPosition
+	getTryToMatchColourFlippedPosition	= tryToMatchColourFlippedPosition,
+	getPreferVictories			= preferVictories
 }
 
 -- | Accessor.
-getMatchSwitches :: StandardOpeningOptions -> MatchSwitches
+getMatchSwitches :: StandardOpeningOptions -> ContextualNotation.PositionHashQualifiedMoveTree.MatchSwitches
 getMatchSwitches MkStandardOpeningOptions {
 	getTryToMatchMoves			= tryToMatchMoves,
 	getTryToMatchViaJoiningMove		= tryToMatchViaJoiningMove,

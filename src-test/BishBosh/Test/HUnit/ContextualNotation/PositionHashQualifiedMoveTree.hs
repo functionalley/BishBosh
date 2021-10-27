@@ -36,7 +36,6 @@ import qualified	BishBosh.ContextualNotation.PGN					as ContextualNotation.PGN
 import qualified	BishBosh.ContextualNotation.PositionHashQualifiedMoveTree	as ContextualNotation.PositionHashQualifiedMoveTree
 import qualified	BishBosh.ContextualNotation.QualifiedMoveForest			as ContextualNotation.QualifiedMoveForest
 import qualified	BishBosh.Data.Exception						as Data.Exception
-import qualified	BishBosh.Input.StandardOpeningOptions				as Input.StandardOpeningOptions
 import qualified	BishBosh.Model.Game						as Model.Game
 import qualified	BishBosh.Notation.MoveNotation					as Notation.MoveNotation
 import qualified	BishBosh.Property.Reflectable					as Property.Reflectable
@@ -80,15 +79,15 @@ testCases	= Test.HUnit.test [
 	finalMove		= last standardOpeningMoves
 
 	checkMatch
-		:: Input.StandardOpeningOptions.MatchSwitches
+		:: ContextualNotation.PositionHashQualifiedMoveTree.MatchSwitches
 		-> Model.Game.Game
 		-> String
 		-> Component.Move.Move
 		-> Test.HUnit.Test
-	checkMatch tryToMatchSwitches game s expectedMove	= map (
+	checkMatch matchSwitches game s expectedMove	= map (
 		Component.QualifiedMove.getMove . fst {-qualifiedMove-}
 	 ) (
-		ContextualNotation.PositionHashQualifiedMoveTree.findNextOnymousQualifiedMoves tryToMatchSwitches (
+		ContextualNotation.PositionHashQualifiedMoveTree.findNextOnymousQualifiedMoves matchSwitches (
 			mkGame s
 		) . ContextualNotation.PositionHashQualifiedMoveTree.fromQualifiedMoveForest False {-incrementalEvaluation-} (
 			Data.Default.def	:: Component.Zobrist.Zobrist Type.Crypto.PositionHash

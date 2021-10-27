@@ -259,7 +259,9 @@ readMove positionHashQualifiedMoveTree randomGen	= slave where
 					\(qualifiedMove, _) -> putStrLn . showString hintTag . showChar ' ' $ if displaySAN
 						then ContextualNotation.StandardAlgebraic.showMove explicitEnpassant qualifiedMove game
 						else Notation.MoveNotation.showNotation moveNotation qualifiedMove
-				 ) $ ContextualNotation.PositionHashQualifiedMoveTree.maybeRandomlySelectOnymousQualifiedMove randomGen tryToMatchSwitches game positionHashQualifiedMoveTree
+				 ) $ ContextualNotation.PositionHashQualifiedMoveTree.maybeRandomlySelectOnymousQualifiedMove randomGen (
+					Input.StandardOpeningOptions.getPreferVictories . Input.SearchOptions.getStandardOpeningOptions $ searchOptions
+				 ) tryToMatchSwitches game positionHashQualifiedMoveTree
 
 				return {-to IO-monad-} playState	-- N.B.: though one could merely call "eventLoop", a new random-generator is desirable in case an alternative hint is requested.
 			onCommand (UI.Command.Print printObject)	= do
@@ -1217,8 +1219,10 @@ takeTurns positionHashQualifiedMoveTree randomGen playState	= do
 							putStrLn . showString moveTag . showChar ' ' $ Notation.MoveNotation.showNotation moveNotation qualifiedMove	-- Send the move to the GUI.
 
 							return {-to IO-monad-} (State.PlayState.updateWithManualMove selectedGame playState', Nothing)	-- N.B.: one could ponder, but would have to construct a game-tree, & the chance of a subsequent standard-opening move is high.
-					 ) $ ContextualNotation.PositionHashQualifiedMoveTree.maybeRandomlySelectOnymousQualifiedMove randomGen' (
-						Input.StandardOpeningOptions.getMatchSwitches $ Input.SearchOptions.getStandardOpeningOptions searchOptions
+					 ) $ uncurry (
+						ContextualNotation.PositionHashQualifiedMoveTree.maybeRandomlySelectOnymousQualifiedMove randomGen'
+					 ) (
+						Input.StandardOpeningOptions.getPreferVictories &&& Input.StandardOpeningOptions.getMatchSwitches $ Input.SearchOptions.getStandardOpeningOptions searchOptions
 					 ) game' positionHashQualifiedMoveTree	-- Determine whether the automated player's move can be decided by a search of recorded games or we must decide ourself.
 				 ) (
 					if Input.UIOptions.isCECPManualMode uiOptions'

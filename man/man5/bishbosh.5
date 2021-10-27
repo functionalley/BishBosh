@@ -140,6 +140,7 @@ Attribute	Type	Default	Meaning
 tryToMatchMoves	Bool	True	whether to attempt to exactly match the moves already made, with a standard opening; i.e. without matching transpositions.
 tryToMatchViaJoiningMove	Bool	True	whether to attempt to join the current position (irrespective of the means by which it was achieved) to a standard opening that's only one move away.
 tryToMatchColourFlippedPosition	Bool	True	whether to attempt to match a colour-flipped (<\fBhttps://www.chessprogramming.org/Color_Flipping\fR>) version of the current position with a standard opening.
+preferVictories	Bool	True	whether from all matching positions extracted from the PGN-database, to prefer moves which result in a greater probability of victory, for the player who has the next move.
 .TE
 .IP \(bu
 \fBsearchDepth\fR \fIInt\fR, defaulting to "\fB4\fR" (minimum "\fB1\fR"): the number of plies (half moves) to search ahead, when selecting the next move.

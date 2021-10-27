@@ -28,6 +28,7 @@
 	</evaluationOptions>
 	<searchOptions captureMoveSortAlgorithm="MVVLVA" retireKillerMovesAfter="3" usePondering="True">
 		&transpositions;
+		<standardOpeningOptions preferVictories="False"/>	<!-- the SCID PGN-database only contains standard-openings -->
 		<searchDepthByLogicalColour>
 			<byLogicalColour logicalColour="Black" searchDepth="5"/>
 		</searchDepthByLogicalColour>
