@@ -34,19 +34,21 @@ import			Test.HUnit((~?))
 
 #ifdef USE_POLYPARSE
 import qualified	BishBosh.Text.Poly			as Text.Poly
-#	if USE_POLYPARSE == 1
+#	if USE_POLYPARSE == 'L'
 import qualified	Data.Char
 import qualified	Text.ParserCombinators.Poly.Lazy	as Poly
-#	else /* Plain */
+#	elif USE_POLYPARSE == 'P'
 import			Control.Arrow((|||))
 import qualified	Text.ParserCombinators.Poly.Plain	as Poly
+#	else
+#		error "USE_POLYPARSE invalid"
 #	endif
 #else /* Parsec */
 import			Control.Arrow((|||))
 import qualified	Text.ParserCombinators.Parsec		as Parsec
 #endif
 
-#if !defined(USE_POLYPARSE) || USE_POLYPARSE != 1
+#if !defined(USE_POLYPARSE) || USE_POLYPARSE != 'L'
 import qualified	BishBosh.Data.Exception			as Data.Exception
 import qualified	Control.Exception
 #endif
@@ -56,16 +58,18 @@ testCases :: Test.HUnit.Test
 testCases	= Test.HUnit.test $ map (
 	\(isStrictlySequential, validateMoves, s) ->
 #ifdef USE_POLYPARSE
-#	if USE_POLYPARSE == 1
+#	if USE_POLYPARSE == 'L'
 	(
 		\s' -> all Data.Char.isSpace s' ~? showString "Unparsed input: " (show s')
 	) . snd
-#	else /* Plain */
+#	elif USE_POLYPARSE == 'P'
 	(
 		Control.Exception.throw . Data.Exception.mkParseFailure . showString "BishBosh.Test.HUnit.ContextualNotation.PGN.testCases:\tfailed: " . show ||| const (
 			True ~? ""
 		)
 	) . fst
+#	else
+#		error "USE_POLYPARSE invalid"
 #	endif
 	$ Poly.runParser (
 		ContextualNotation.PGN.parser isStrictlySequential validateMoves []	:: Text.Poly.TextParser ContextualNotation.PGN.PGN

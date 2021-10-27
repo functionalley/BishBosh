@@ -45,11 +45,13 @@ import qualified	Test.QuickCheck
 #ifndef USE_POLYPARSE
 import			Control.Arrow((|||))
 import qualified	Text.ParserCombinators.Parsec
-#elif USE_POLYPARSE == 1
+#elif USE_POLYPARSE == 'L'
 import qualified	Text.ParserCombinators.Poly.Lazy		as Poly
-#else /* Plain */
+#elif USE_POLYPARSE == 'P'
 import			Control.Arrow((|||))
 import qualified	Text.ParserCombinators.Poly.Plain		as Poly
+#else
+#	error "USE_POLYPARSE invalid"
 #endif
 
 -- | Qualifies a value.
@@ -112,10 +114,12 @@ results	= sequence [
 		f :: Bool -> ContextualNotation.StandardAlgebraic.ValidateMoves -> Model.Game.Game -> Test.QuickCheck.Property
 		f isStrictlySequential validateMoves game	= Test.QuickCheck.label "PGN.prop_moveTextParser" .
 #ifdef USE_POLYPARSE
-#	if USE_POLYPARSE == 1
+#	if USE_POLYPARSE == 'L'
 			(Model.Game.listTurns game ==) . Model.Game.listTurns
-#	else /* Plain */
+#	elif USE_POLYPARSE == 'P'
 			(const False ||| (Model.Game.listTurns game ==) . Model.Game.listTurns)
+#	else
+#		error "USE_POLYPARSE invalid"
 #	endif
 			. fst {-discard unparsed text-} . Poly.runParser moveTextParser
 #else /* Parsec */
@@ -129,10 +133,12 @@ results	= sequence [
 		f :: Bool -> ContextualNotation.StandardAlgebraic.ValidateMoves -> ContextualNotation.PGN.PGN -> [ContextualNotation.PGNComment.PGNComment] -> Test.QuickCheck.Property
 		f isStrictlySequential validateMoves pgn pgnComments	= Test.QuickCheck.label "PGN.prop_pgnParser" .
 #ifdef USE_POLYPARSE
-#	if USE_POLYPARSE == 1
+#	if USE_POLYPARSE == 'L'
 			(== pgn)
-#	else /* Plain */
+#	elif USE_POLYPARSE == 'P'
 			(const False ||| (== pgn))
+#	else
+#		error "USE_POLYPARSE invalid"
 #	endif
 			. fst {-discard unparsed text-} . Poly.runParser parser
 #else /* Parsec */

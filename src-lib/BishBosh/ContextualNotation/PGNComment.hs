@@ -45,11 +45,13 @@ import qualified	Control.Applicative
 
 #ifdef USE_POLYPARSE
 import qualified	BishBosh.Text.Poly			as Text.Poly
-#if USE_POLYPARSE == 1
+#	if USE_POLYPARSE == 'L'
 import qualified	Text.ParserCombinators.Poly.Lazy	as Poly
-#else /* Plain */
+#	elif USE_POLYPARSE == 'P'
 import qualified	Text.ParserCombinators.Poly.Plain	as Poly
-#endif
+#	else
+#		error "USE_POLYPARSE invalid"
+#	endif
 #else /* Parsec */
 import qualified	Control.Monad
 import qualified	Text.ParserCombinators.Parsec		as Parsec

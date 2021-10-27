@@ -275,7 +275,7 @@ Library
 
     if flag(polyparse)
         Build-depends:		polyparse
-        CPP-Options:		-DUSE_POLYPARSE=2
+        CPP-Options:		-DUSE_POLYPARSE='L'
         Exposed-modules:	BishBosh.Text.Poly
     else
         Build-depends:		parsec
@@ -446,7 +446,7 @@ Test-Suite hunit-tests
 
     if flag(polyparse)
         Build-depends:	polyparse
-        CPP-Options:	-DUSE_POLYPARSE=2
+        CPP-Options:	-DUSE_POLYPARSE='L'
     else
         Build-depends:	parsec
 
@@ -547,7 +547,7 @@ Test-Suite quickcheck-tests
 
     if flag(polyparse)
         Build-depends:	polyparse
-        CPP-Options:	-DUSE_POLYPARSE=2
+        CPP-Options:	-DUSE_POLYPARSE='L'
     else
         Build-depends:	parsec
 

@@ -35,11 +35,13 @@ import qualified	Test.QuickCheck
 #ifndef USE_POLYPARSE
 import			Control.Arrow((|||))
 import qualified	Text.ParserCombinators.Parsec
-#elif USE_POLYPARSE == 1
+#elif USE_POLYPARSE == 'L'
 import qualified	Text.ParserCombinators.Poly.Lazy	as Poly
-#else /* Plain */
+#elif USE_POLYPARSE == 'P'
 import			Control.Arrow((|||))
 import qualified	Text.ParserCombinators.Poly.Plain	as Poly
+#else
+#	error "USE_POLYPARSE invalid"
 #endif
 
 instance Test.QuickCheck.Arbitrary ContextualNotation.PGNComment.PGNComment where
@@ -56,10 +58,12 @@ results	= sequence [
 		f :: ContextualNotation.PGNComment.PGNComment -> Test.QuickCheck.Property
 		f pgnComment	= Test.QuickCheck.label "PGNComment.prop_io" .
 #ifdef USE_POLYPARSE
-#	if USE_POLYPARSE == 1
+#	if USE_POLYPARSE == 'L'
 			(== s)
-#	else /* Plain */
+#	elif USE_POLYPARSE == 'P'
 			(const False ||| (== s))
+#	else
+#		error "USE_POLYPARSE invalid"
 #	endif
 			. fst {-discard unparsed text-} . Poly.runParser ContextualNotation.PGNComment.parser
 #else /* Parsec */

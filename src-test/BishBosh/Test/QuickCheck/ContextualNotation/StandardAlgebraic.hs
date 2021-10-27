@@ -38,11 +38,13 @@ import qualified	Test.QuickCheck
 
 #ifdef USE_POLYPARSE
 import			Control.Arrow((***))
-#	if USE_POLYPARSE == 1
+#	if USE_POLYPARSE == 'L'
 import qualified	Text.ParserCombinators.Poly.Lazy		as Poly
-#	else /* Plain */
+#	elif USE_POLYPARSE == 'P'
 import			Control.Arrow((|||))
 import qualified	Text.ParserCombinators.Poly.Plain		as Poly
+#	else
+#		error "USE_POLYPARSE invalid"
 #	endif
 #else /* Parsec */
 import			Control.Arrow((|||))
@@ -64,12 +66,14 @@ results	= sequence [
 			in
 #ifdef USE_POLYPARSE
 			uncurry (&&) . (
-#	if USE_POLYPARSE == 1
+#	if USE_POLYPARSE == 'L'
 				(== qualifiedMove) . ContextualNotation.StandardAlgebraic.getQualifiedMove *** null {-unparsed input-}
-#	else /* Plain */
+#	elif USE_POLYPARSE == 'P'
 				(
 					const False ||| (== qualifiedMove) . ContextualNotation.StandardAlgebraic.getQualifiedMove
 				) *** null {-unparsed input-}
+#	else
+#		error "USE_POLYPARSE invalid"
 #	endif
 			) . Poly.runParser (
 				ContextualNotation.StandardAlgebraic.parser explicitEnPassant validateMoves game'

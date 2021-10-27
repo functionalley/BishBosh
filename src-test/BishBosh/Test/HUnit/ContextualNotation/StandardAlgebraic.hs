@@ -46,10 +46,12 @@ import qualified	Test.HUnit
 
 #ifdef USE_POLYPARSE
 import			Test.HUnit((~?=))
-#	if USE_POLYPARSE == 1
+#	if USE_POLYPARSE == 'L'
 import qualified	Text.ParserCombinators.Poly.Lazy		as Poly
-#	else /* Plain */
+#	elif USE_POLYPARSE == 'P'
 import qualified	Text.ParserCombinators.Poly.Plain		as Poly
+#	else
+#		error "USE_POLYPARSE invalid"
 #	endif
 #else /* Parsec */
 import			Control.Arrow((|||))
@@ -65,10 +67,12 @@ testCases	= Test.HUnit.test $ map (
 	in
 #ifdef USE_POLYPARSE
 		fst (Poly.runParser parser san) ~?=
-#	if USE_POLYPARSE == 1
+#	if USE_POLYPARSE == 'L'
 			standardAlgebraic
-#	else /* Plain */
+#	elif USE_POLYPARSE == 'P'
 			Right standardAlgebraic
+#	else
+#		error "USE_POLYPARSE invalid"
 #	endif
 #else /* Parsec */
 		(\parseError -> False ~? show parseError) ||| (~?= standardAlgebraic) $ Text.ParserCombinators.Parsec.parse parser "SAN-parser" san

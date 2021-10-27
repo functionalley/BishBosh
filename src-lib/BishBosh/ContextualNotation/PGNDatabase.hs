@@ -57,11 +57,13 @@ import qualified	System.Process
 
 #ifdef USE_POLYPARSE
 import qualified	BishBosh.Text.Poly				as Text.Poly
-#	if USE_POLYPARSE == 1
+#	if USE_POLYPARSE == 'L'
 import qualified	Text.ParserCombinators.Poly.Lazy		as Poly
-#	else /* Plain */
+#	elif USE_POLYPARSE == 'P'
 import qualified	Control.Arrow
 import qualified	Text.ParserCombinators.Poly.Plain		as Poly
+#	else
+#		error "USE_POLYPARSE invalid"
 #	endif
 #else /* Parsec */
 import qualified	Control.Arrow
@@ -104,10 +106,12 @@ parse
 	-> String		-- ^ The database-contents.
 	-> Either String PGNDatabase
 #ifdef USE_POLYPARSE
-#	if USE_POLYPARSE == 1
+#	if USE_POLYPARSE == 'L'
 parse _ isStrictlySequential validateMoves identificationTags pgnPredicate maybeMaximumGames	= Right	-- N.B.: the lazy parser throws an exception rather than returning 'Either', because otherwise it can't choose whether to construct with 'Left' or 'Right' until the input has been fully parsed.
-#	else /* Plain */
+#	elif USE_POLYPARSE == 'P'
 parse name isStrictlySequential validateMoves identificationTags pgnPredicate maybeMaximumGames	= Control.Arrow.left (showString "regarding " . shows name . showString ", ")
+#	else
+#		error "USE_POLYPARSE invalid"
 #	endif
 	. fst {-discard unparsed data-} . Poly.runParser parser'
 #else /* Parsec */

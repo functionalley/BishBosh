@@ -98,11 +98,13 @@ import qualified	Text.Printf
 
 #ifdef USE_POLYPARSE
 import qualified	BishBosh.Text.Poly				as Text.Poly
-#if USE_POLYPARSE == 1
+#	if USE_POLYPARSE == 'L'
 import qualified	Text.ParserCombinators.Poly.Lazy		as Poly
-#else /* Plain */
+#	elif USE_POLYPARSE == 'P'
 import qualified	Text.ParserCombinators.Poly.Plain		as Poly
-#endif
+#	else
+#		error "USE_POLYPARSE invalid"
+#	endif
 #else /* Parsec */
 import qualified	BishBosh.Data.Integral				as Data.Integral
 import qualified	Text.ParserCombinators.Parsec			as Parsec
@@ -307,11 +309,11 @@ mkPGN' identificationTags tagPairs	= mkPGN maybeEventName maybeSiteName (
 	in Data.Maybe.maybe (
 		Control.Exception.throw . Data.Exception.mkSearchFailure . showString "failed to find " $ show dateTag	-- N.B.: this will only terminate the application when the date is evaluated.
 	) (
-#if USE_POLYPARSE != 1
+#	if USE_POLYPARSE != 'L'
 		either (
 			Control.Exception.throw . Data.Exception.mkParseFailure . showString "failed to parse " . shows dateTag . showString "; " . show
 		) id .
-#endif
+#	endif
 		fst . Poly.runParser dateParser
 #else /* Parsec */
 		dateParser :: Parsec.Parser Data.Time.Calendar.Day
