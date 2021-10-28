@@ -223,6 +223,7 @@ Library
         BishBosh.Text.AutoComplete
         BishBosh.Text.Case
         BishBosh.Text.Encoding
+        BishBosh.Text.ShowColouredPrefix
         BishBosh.Text.ShowList
         BishBosh.Text.ShowPrefix
         BishBosh.Time.GameClock
@@ -299,7 +300,6 @@ Executable bishbosh
         BishBosh.Play
         BishBosh.State.ApplicationTerminationReason
         BishBosh.State.PlayState
-        BishBosh.Text.ShowColouredPrefix
         BishBosh.UI.CECP
         BishBosh.UI.Raw
         Paths_bishbosh

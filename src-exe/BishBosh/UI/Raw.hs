@@ -212,16 +212,7 @@ readMove positionHashQualifiedMoveTree randomGen runningWatch playState	= let
 		onCommand UI.Command.Restart	= do
 			Control.Monad.when (verbosity == maxBound) . System.IO.hPutStrLn System.IO.stderr $ Text.ShowColouredPrefix.showsPrefixInfo "restarting game."
 
-			Data.Maybe.maybe (
-				return {-to IO-monad-} ()
-			 ) (
-				\(filePath, _) -> Control.Exception.catch (
-					do
-						System.IO.withFile filePath System.IO.WriteMode (`System.IO.hPrint` (Data.Default.def :: Model.Game.Game))
-
-						Control.Monad.when (verbosity == maxBound) . System.IO.hPutStrLn System.IO.stderr . Text.ShowColouredPrefix.showsPrefixInfo . showString "the initial game-state has been saved in " $ shows filePath "."
-				) $ \e -> System.IO.hPutStrLn System.IO.stderr . Text.ShowColouredPrefix.showsPrefixError $ show (e :: Control.Exception.SomeException)
-			 ) $ Input.IOOptions.getMaybePersistence ioOptions
+			Input.IOOptions.persist ioOptions (verbosity == maxBound) (Data.Default.def :: Model.Game.Game)
 
 			return {-to IO-monad-} $ State.PlayState.resetPositionHashQuantifiedGameTree playState
 		onCommand (UI.Command.RollBack maybeNPlies)	= let
@@ -548,18 +539,7 @@ takeTurns positionHashQualifiedMoveTree randomGen playState	= let
 						Model.Game.getNextLogicalColour game' `Map.lookup` Input.SearchOptions.getSearchDepthByLogicalColour searchOptions'	-- Determinate whether the next player is manual.
 					 ) >>= (
 						\(playState'', maybePondering') -> do
-							Data.Maybe.maybe (
-								return {-to IO-monad-} ()
-							 ) (
-								\(filePath, automatic) -> let
-									game''	= State.PlayState.getGame playState''
-								in Control.Monad.when automatic . Control.Exception.catch (
-									do
-										System.IO.withFile filePath System.IO.WriteMode (`System.IO.hPrint` game'')
-
-										Control.Monad.when (verbosity == maxBound) . System.IO.hPutStrLn System.IO.stderr . Text.ShowColouredPrefix.showsPrefixInfo . showString "the game-state has been saved in " $ shows filePath "."
-								) $ \e -> System.IO.hPutStrLn System.IO.stderr . Text.ShowColouredPrefix.showsPrefixError $ show (e :: Control.Exception.SomeException)
-							 ) $ Input.IOOptions.getMaybePersistence ioOptions
+							Input.IOOptions.persist ioOptions (verbosity == maxBound) $ State.PlayState.getGame playState''
 
 							if State.PlayState.hasApplicationTerminationBeenRequested playState''
 								then return {-to IO-monad-} playState''

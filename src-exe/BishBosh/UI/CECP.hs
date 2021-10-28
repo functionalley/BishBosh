@@ -308,16 +308,7 @@ readMove positionHashQualifiedMoveTree randomGen	= slave where
 						else showString " & leaving " . shows modeNames
 				 ) "."
 
-				Data.Maybe.maybe (
-					return {-to IO-monad-} ()
-				 ) (
-					\(filePath, _) -> Control.Exception.catch (
-						do
-							System.IO.withFile filePath System.IO.WriteMode (`System.IO.hPrint` (Data.Default.def :: Model.Game.Game))
-
-							Control.Monad.when (verbosity == maxBound) . System.IO.hPutStrLn System.IO.stderr . Text.ShowPrefix.showsPrefixInfo . showString "the game-state has been saved in " $ shows filePath "."
-					) $ \e -> System.IO.hPutStrLn System.IO.stderr . Text.ShowPrefix.showsPrefixError $ show (e :: Control.Exception.SomeException)
-				 ) $ Input.IOOptions.getMaybePersistence ioOptions
+				Input.IOOptions.persist ioOptions False (Data.Default.def :: Model.Game.Game)
 
 				return {-to IO-monad-} $ State.PlayState.resetPositionHashQuantifiedGameTree playState {
 					State.PlayState.getOptions	= options {
@@ -1228,15 +1219,7 @@ takeTurns positionHashQualifiedMoveTree randomGen playState	= do
 						else Model.Game.getNextLogicalColour game' `Map.lookup` Input.SearchOptions.getSearchDepthByLogicalColour searchOptions'
 				 ) >>= (
 					\(playState'', maybePondering') -> do
-						Data.Maybe.maybe (
-							return {-to IO-monad-} ()
-						 ) (
-							\(filePath, automatic) -> let
-								game''	= State.PlayState.getGame playState''
-							in Control.Monad.when automatic . Control.Exception.catch (
-								System.IO.withFile filePath System.IO.WriteMode (`System.IO.hPrint` game'')
-							) $ \e -> System.IO.hPutStrLn System.IO.stderr . Text.ShowPrefix.showsPrefixError $ show (e :: Control.Exception.SomeException)
-						 ) $ Input.IOOptions.getMaybePersistence ioOptions
+						Input.IOOptions.persist ioOptions False $ State.PlayState.getGame playState''
 
 						if State.PlayState.hasApplicationTerminationBeenRequested playState''
 							then return {-to IO-monad-} playState''

@@ -25,6 +25,7 @@
 module BishBosh.Input.IOOptions(
 -- * Types
 -- ** Type-synonyms
+--	PersistenceSpecification,
 --	Transformation,
 -- ** Data-types
 	IOOptions(
@@ -43,6 +44,7 @@ module BishBosh.Input.IOOptions(
 --	filePathTag,
 --	automaticTag,
 -- * Functions
+	persist,
 -- ** Constructor
 	mkIOOptions,
 -- ** Mutators
@@ -54,22 +56,26 @@ module BishBosh.Input.IOOptions(
 	setVerbosity
 ) where
 
-import qualified	BishBosh.Data.Exception		as Data.Exception
-import qualified	BishBosh.Data.Foldable		as Data.Foldable
-import qualified	BishBosh.Input.CECPFeatures	as Input.CECPFeatures
-import qualified	BishBosh.Input.PGNOptions	as Input.PGNOptions
-import qualified	BishBosh.Input.UIOptions	as Input.UIOptions
-import qualified	BishBosh.Input.Verbosity	as Input.Verbosity
-import qualified	BishBosh.Property.Arboreal	as Property.Arboreal
-import qualified	BishBosh.Text.ShowList		as Text.ShowList
-import qualified	BishBosh.Type.Count		as Type.Count
+import qualified	BishBosh.Data.Exception			as Data.Exception
+import qualified	BishBosh.Data.Foldable			as Data.Foldable
+import qualified	BishBosh.Input.CECPFeatures		as Input.CECPFeatures
+import qualified	BishBosh.Input.PGNOptions		as Input.PGNOptions
+import qualified	BishBosh.Input.UIOptions		as Input.UIOptions
+import qualified	BishBosh.Input.Verbosity		as Input.Verbosity
+import qualified	BishBosh.Property.Arboreal		as Property.Arboreal
+import qualified	BishBosh.Text.ShowColouredPrefix	as Text.ShowColouredPrefix
+import qualified	BishBosh.Text.ShowList			as Text.ShowList
+import qualified	BishBosh.Text.ShowPrefix		as Text.ShowPrefix
+import qualified	BishBosh.Type.Count			as Type.Count
 import qualified	Control.Arrow
 import qualified	Control.DeepSeq
 import qualified	Control.Exception
+import qualified	Control.Monad
 import qualified	Data.Default
 import qualified	Data.Maybe
 import qualified	System.FilePath
-import qualified	Text.XML.HXT.Arrow.Pickle	as HXT
+import qualified	System.IO
+import qualified	Text.XML.HXT.Arrow.Pickle		as HXT
 
 -- | Used to qualify XML.
 tag :: String
@@ -95,13 +101,16 @@ filePathTag		= "filePath"
 automaticTag :: String
 automaticTag		= "automatic"
 
+-- | The path to a file, into which game-state can be persisted (obliterating any existing content), & whether to save this state automatically after each move.
+type PersistenceSpecification	= (System.FilePath.FilePath, Bool)
+
 -- | Defines options related to i/o.
 data IOOptions	= MkIOOptions {
-	getMaybeOutputConfigFilePath	:: Maybe System.FilePath.FilePath,		-- ^ An optional path to a file, into which the unprocessed configuration, formatted as XML, should be written (obliterating any existing file-contents).
-	getMaybeMaximumPGNNames		:: Maybe Type.Count.NGames,			-- ^ The maximum number of names to display, of matching games from the PGN-database; @Nothing@ implies unlimited. CAVEAT: pedantically, it's a number of names not a number of games.
-	getPGNOptionsList		:: [Input.PGNOptions.PGNOptions],		-- ^ How to construct each PGN-database.
-	getMaybePersistence		:: Maybe (System.FilePath.FilePath, Bool),	-- ^ Optional path to a file, into which game-state can be persisted (obliterating any existing content), & whether to save this state automatically after each move.
-	getUIOptions			:: Input.UIOptions.UIOptions			-- ^ Options which define the user-interface.
+	getMaybeOutputConfigFilePath	:: Maybe System.FilePath.FilePath,	-- ^ An optional path to a file, into which the unprocessed configuration, formatted as XML, should be written (obliterating any existing file-contents).
+	getMaybeMaximumPGNNames		:: Maybe Type.Count.NGames,		-- ^ The maximum number of names to display, of matching games from the PGN-database; @Nothing@ implies unlimited. CAVEAT: pedantically, it's a number of names not a number of games.
+	getPGNOptionsList		:: [Input.PGNOptions.PGNOptions],	-- ^ How to construct each PGN-database.
+	getMaybePersistence		:: Maybe PersistenceSpecification,	-- ^ Optional path to a file, into which game-state can be persisted (obliterating any existing content), & whether to save this state automatically after each move.
+	getUIOptions			:: Input.UIOptions.UIOptions		-- ^ Options which define the user-interface.
 } deriving Eq
 
 instance Control.DeepSeq.NFData IOOptions where
@@ -179,10 +188,10 @@ instance HXT.XmlPickler IOOptions where
 
 -- | Smart constructor.
 mkIOOptions
-	:: Maybe System.FilePath.FilePath		-- ^ An optional path to a file, into which the unprocessed configuration, formatted as XML, should be written (obliterating any existing file-contents).
-	-> Maybe Type.Count.NGames			-- ^ The optional maximum number of names, of matching PGN-games, to display; @Nothing@ implies unlimited.
-	-> [Input.PGNOptions.PGNOptions]		-- ^ How to find & process PGN-databases.
-	-> Maybe (System.FilePath.FilePath, Bool)	-- ^ Optional path to a file, into which game-state can be persisted (obliterating any existing content), & whether to save this state automatically after each move.
+	:: Maybe System.FilePath.FilePath	-- ^ An optional path to a file, into which the unprocessed configuration, formatted as XML, should be written (obliterating any existing file-contents).
+	-> Maybe Type.Count.NGames		-- ^ The optional maximum number of names, of matching PGN-games, to display; @Nothing@ implies unlimited.
+	-> [Input.PGNOptions.PGNOptions]	-- ^ How to find & process PGN-databases.
+	-> Maybe PersistenceSpecification	-- ^ Optional path to a file, into which game-state can be persisted (obliterating any existing content), & whether to save this state automatically after each move.
 	-> Input.UIOptions.UIOptions
 	-> IOOptions
 mkIOOptions maybeOutputConfigFilePath maybeMaximumPGNNames pgnOptionsList maybePersistence uiOptions
@@ -206,6 +215,26 @@ mkIOOptions maybeOutputConfigFilePath maybeMaximumPGNNames pgnOptionsList maybeP
 	}
 	where
 		duplicateFilePaths	= Data.Foldable.findDuplicates $ map (System.FilePath.normalise . Input.PGNOptions.getDatabaseFilePath) pgnOptionsList
+
+-- | Persist the specified game to file.
+persist
+	:: Show game
+	=> IOOptions
+	-> Bool	-- ^ Verbose.
+	-> game
+	-> IO () 
+persist MkIOOptions {
+	getMaybePersistence	= maybePersistence
+} verbose game = Data.Maybe.maybe (
+	return {-to IO-monad-} ()
+ ) (
+	\(filePath, automatic) -> Control.Monad.when automatic . Control.Exception.catch (
+		do
+			System.IO.withFile filePath System.IO.WriteMode (`System.IO.hPrint` game)
+
+			Control.Monad.when verbose . System.IO.hPutStrLn System.IO.stderr . Text.ShowColouredPrefix.showsPrefixInfo . showString "the game-state has been saved in " $ shows filePath "."
+	) $ \e -> System.IO.hPutStrLn System.IO.stderr . Text.ShowPrefix.showsPrefixError $ show (e :: Control.Exception.SomeException)
+ ) maybePersistence
 
 -- | The type of a function used to transform 'IOOptions'.
 type Transformation	= IOOptions -> IOOptions
