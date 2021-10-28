@@ -48,7 +48,6 @@ module BishBosh.Input.CriteriaWeights(
 --	weightOfDoubledPawnsTag,
 --	weightOfIsolatedPawnsTag,
 --	weightOfPassedPawnsTag,
---	onymousOperators,
 -- * Functions
 	calculateWeightedMean,
 	normalise,
@@ -324,14 +323,16 @@ normalise criteriaWeights@MkCriteriaWeights {
 {- |
 	* Independently perturbs each /criterion-weight/ by a random value, of configurable magnitude.
 
-	* Under this transformation, /criterion-weight/s of @0@, will remain unchanged, thus irrelevant criteria remain irrelevant.
+	* Under this transformation, /criterion-weight/s of @0@, will remain unchanged, thus those criteria deemed irrelevant remain irrelevant.
+
+	* The identity transform results from specification of a change-magnitude of zero.
 -}
 perturbWeights
 	:: System.Random.RandomGen randomGen
 	=> randomGen
-	-> Type.Mass.CriterionWeight	-- ^ Change-magnitude.
+	-> Type.Mass.CriterionWeight	-- ^ Positive change-magnitude; unbounded to permit values greater than 1.
 	-> Transformation
-perturbWeights _ 0 criteriaWeights	= criteriaWeights
+perturbWeights _ 0 criteriaWeights	= criteriaWeights	-- The indentity transform.
 perturbWeights randomGen changeMagnitude MkCriteriaWeights {
 	getWeightOfMaterial		= weightOfMaterial,
 	getWeightOfMobility		= weightOfMobility,
@@ -341,60 +342,20 @@ perturbWeights randomGen changeMagnitude MkCriteriaWeights {
 	getWeightOfDoubledPawns		= weightOfDoubledPawns,
 	getWeightOfIsolatedPawns	= weightOfIsolatedPawns,
 	getWeightOfPassedPawns		= weightOfPassedPawns
-} = Control.Exception.assert (changeMagnitude > 0) $ normalise MkCriteriaWeights {
-	getWeightOfMaterial		= reduceBy a weightOfMaterial,
-	getWeightOfMobility		= reduceBy b weightOfMobility,
-	getWeightOfPieceSquareValue	= reduceBy c weightOfPieceSquareValue,
-	getWeightOfCastlingPotential	= reduceBy d weightOfCastlingPotential,
-	getWeightOfDefence		= reduceBy e weightOfDefence,
-	getWeightOfDoubledPawns		= reduceBy f weightOfDoubledPawns,
-	getWeightOfIsolatedPawns	= reduceBy g weightOfIsolatedPawns,
-	getWeightOfPassedPawns		= reduceBy h weightOfPassedPawns
-} where
-	(a : b : c : d : e : f : g : h : _)	= System.Random.randomRs (1, succ changeMagnitude) randomGen
-	reduceBy randomValue			= (/ realToFrac randomValue)	-- N.B. this always reduces the weight, leaving 'normalise' to correct this.
-
--- | A constant list of named accessors & mutators.
-onymousOperators :: [
-	(
-		String,								-- Tag.
-		CriteriaWeights -> Metric.CriterionWeight.CriterionWeight,	-- Accessor.
-		Metric.CriterionWeight.CriterionWeight -> Transformation	-- Mutator.
-	) -- Triple.
- ]
-onymousOperators	= [
-	(
-		weightOfMaterialTag,
-		getWeightOfMaterial,
-		\w criteriaWeights -> criteriaWeights { getWeightOfMaterial = w }
-	), (
-		weightOfMobilityTag,
-		getWeightOfMobility,
-		\w criteriaWeights -> criteriaWeights { getWeightOfMobility = w }
-	), (
-		weightOfPieceSquareValueTag,
-		getWeightOfPieceSquareValue,
-		\w criteriaWeights -> criteriaWeights { getWeightOfPieceSquareValue = w }
-	), (
-		weightOfCastlingPotentialTag,
-		getWeightOfCastlingPotential,
-		\w criteriaWeights -> criteriaWeights { getWeightOfCastlingPotential = w }
-	), (
-		weightOfDefenceTag,
-		getWeightOfDefence,
-		\w criteriaWeights -> criteriaWeights { getWeightOfDefence = w }
-	), (
-		weightOfDoubledPawnsTag,
-		getWeightOfDoubledPawns,
-		\w criteriaWeights -> criteriaWeights { getWeightOfDoubledPawns = w }
-	), (
-		weightOfIsolatedPawnsTag,
-		getWeightOfIsolatedPawns,
-		\w criteriaWeights -> criteriaWeights { getWeightOfIsolatedPawns = w }
-	), (
-		weightOfPassedPawnsTag,
-		getWeightOfPassedPawns,
-		\w criteriaWeights -> criteriaWeights { getWeightOfPassedPawns = w }
-	)
- ]
+}
+	| changeMagnitude < 0	= Control.Exception.throw $ Data.Exception.mkInvalidDatum "BishBosh.Input.CriteriaWeights.perturbWeights:\tchange-magnitude can't be negative."
+	| otherwise		= normalise MkCriteriaWeights {
+		getWeightOfMaterial		= a weightOfMaterial,
+		getWeightOfMobility		= b weightOfMobility,
+		getWeightOfPieceSquareValue	= c weightOfPieceSquareValue,
+		getWeightOfCastlingPotential	= d weightOfCastlingPotential,
+		getWeightOfDefence		= e weightOfDefence,
+		getWeightOfDoubledPawns		= f weightOfDoubledPawns,
+		getWeightOfIsolatedPawns	= g weightOfIsolatedPawns,
+		getWeightOfPassedPawns		= h weightOfPassedPawns
+	}
+	where
+		(a : b : c : d : e : f : g : h : _)	= map (
+			\r -> realToFrac . (/ r) . realToFrac	-- N.B. this always reduces the weight, & therefore can't breach Metric.CriterionWeight.CriterionWeight's permissible bounds.
+		 ) $ System.Random.randomRs (1, succ changeMagnitude) randomGen
 
