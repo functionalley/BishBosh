@@ -287,9 +287,7 @@ readMove positionHashQualifiedMoveTree randomGen	= slave where
 						UI.ReportObject.FEN			-> return {-to IO-monad-} . Property.ForsythEdwards.showFEN
 						UI.ReportObject.Game			-> return {-to IO-monad-} . show
 						UI.ReportObject.MaxPositionInstances	-> return {-to IO-monad-} . show . State.InstancesByPosition.findMaximumInstances . Model.Game.getInstancesByPosition
-						UI.ReportObject.Moves			-> return {-to IO-monad-} . showString (
-							showString Component.Move.tag "s"
-						 ) . Text.ShowList.showsAssociation . ($ ".") . Text.ShowList.showsFormattedList' (
+						UI.ReportObject.Moves			-> return {-to IO-monad-} . ($ "") . Text.ShowList.showsFormattedList' (
 							Notation.MoveNotation.showsNotation moveNotation
 						 ) . Model.Game.listTurnsChronologically
 						UI.ReportObject.PGN			-> fmap ($ ".") . ContextualNotation.PGN.showsGame

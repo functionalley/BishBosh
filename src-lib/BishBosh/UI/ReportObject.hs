@@ -41,6 +41,7 @@ module BishBosh.UI.ReportObject (
 	autoComplete
  ) where
 
+import qualified	BishBosh.Component.Move			as Component.Move
 import qualified	BishBosh.Property.FixedMembership	as Property.FixedMembership
 import qualified	BishBosh.Text.AutoComplete		as Text.AutoComplete
 import qualified	Control.Arrow
@@ -73,7 +74,7 @@ maxPositionInstancesTag	= "maxPositionInstances"
 
 -- | Input-format.
 movesTag :: String
-movesTag		= "moves"
+movesTag		= showString Component.Move.tag "s"
 
 -- | Input-format.
 pgnTag :: String

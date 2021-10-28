@@ -28,7 +28,7 @@ module Duel.Process.Intermediary (
 -- ** Type-synonyms
 --	MoveNotation,
 --	IOHandles,
---	FEN,
+--	MoveSequence,
 --	GameTerminationReasonsMap,
 -- * Functions
 --	runBishBosh,
@@ -166,8 +166,8 @@ copyMove verbosity readTimeout logicalColour stdOut stdIn = do
 -- | Contains /stdin/ & /stdout/ handles respectively.
 type IOHandles	= (System.IO.Handle, System.IO.Handle)
 
--- | A Forsyth-Edwards description of a game.
-type FEN	= String
+-- | The chronological sequence of moves which occurred in a game.
+type MoveSequence	= String
 
 -- | Shuttle moves between the two child processes until the game terminates.
 play
@@ -177,7 +177,7 @@ play
 	-> IOHandles
 	-> IOHandles
 	-> gameClock
-	-> IO (FEN, Rule.GameTerminationReason.GameTerminationReason, gameClock)
+	-> IO (MoveSequence, Rule.GameTerminationReason.GameTerminationReason, gameClock)
 play verbosity readTimeout	= slave maxBound	where
 	slave logicalColour producer@(_, stdOut) consumer@(stdIn', stdOut') gameClock	= copyMove verbosity readTimeout logicalColour stdOut stdIn' >>= Data.Maybe.maybe (
 		do
@@ -190,11 +190,11 @@ play verbosity readTimeout	= slave maxBound	where
 				\gameTerminationReason' -> do
 					Control.Monad.unless (gameTerminationReason == gameTerminationReason') . Control.Exception.throwIO . Data.Exception.mkIncompatibleData . showString "Duel.Process.Intermediary.play:\tsecond game terminated for a different reason; " $ shows gameTerminationReason' "."
 
-					System.IO.hPutStrLn stdIn' $ UI.Command.issueCommand (UI.Command.Report UI.ReportObject.FEN) ""
+					System.IO.hPutStrLn stdIn' $ UI.Command.issueCommand (UI.Command.Report UI.ReportObject.Moves) ""	-- Request the move-sequence, for comparison with the other games in this trial.
 
-					fen	<- System.IO.hGetLine stdOut'
+					moveSequence	<- System.IO.hGetLine stdOut'	-- CAVEAT: no attempt is made to parse the move-sequence.
 
-					return {-to IO-monad-} (fen, gameTerminationReason, gameClock)
+					return {-to IO-monad-} (moveSequence, gameTerminationReason, gameClock)
 			 ) ||| (
 				\move	-> Control.Exception.throwIO . Data.Exception.mkParseFailure . showString "Duel.Process.Intermediary.play:\tread from " . shows (Property.Opposable.getOpposite logicalColour) . showString ", unexpected move='" $ shows move "'."
 			 )
@@ -223,7 +223,7 @@ type GameTerminationReasonsMap	= Map.Map Rule.GameTerminationReason.GameTerminat
 
 	* Prints the total time taken by either side, & returns the accumulated results of each game.
 
-	* Reports games which are duplicated.
+	* Reports games which are duplicated; transpositions are considered to be different.
 -}
 startGame
 	:: Input.Verbosity.Verbosity
@@ -238,19 +238,21 @@ startGame verbosity nDecimalDigits readTimeout producer consumer gameTermination
 	accumulateFrequencyDistribution :: (Enum i, Num i, Ord k) => k -> Map.Map k i -> Map.Map k i
 	accumulateFrequencyDistribution	= flip (Map.insertWith $ const succ) 1
 
-	slave :: Map.Map FEN Type.Count.NGames -> GameTerminationReasonsMap -> Type.Count.NGames -> Time.GameClock.GameClock -> IO GameTerminationReasonsMap
-	slave fenMap gameTerminationReasonsMap' 0 gameClock	= do
+	slave :: Map.Map MoveSequence Type.Count.NGames -> GameTerminationReasonsMap -> Type.Count.NGames -> Time.GameClock.GameClock -> IO GameTerminationReasonsMap
+	slave moveSequenceMap gameTerminationReasonsMap' 0 gameClock	= do
 		Time.GameClock.showsElapsedTimes nDecimalDigits gameClock >>= IO.Logger.printInfo . showString "Elapsed time" . Text.ShowList.showsAssociation . ($ ".")
 
-		let duplicatedFENMap	= Map.filter (> 1) fenMap
+		let duplicatedMovesMap	= Map.filter (> 1) moveSequenceMap
 
-		Control.Monad.unless (verbosity == minBound || Data.Foldable.null duplicatedFENMap) . IO.Logger.printWarning . showString "Duplicated FENs:\t" $ shows (Map.toList duplicatedFENMap) "."
+		if Data.Foldable.null duplicatedMovesMap
+			then Control.Monad.when (verbosity == maxBound) $ IO.Logger.printInfo "All games were composed from unique move-sequences."
+			else Control.Monad.unless (verbosity == minBound) . IO.Logger.printWarning . showString "Duplicated move-sequences:\t" $ shows (Map.toList duplicatedMovesMap) "."
 
 		return {-to IO-monad-} gameTerminationReasonsMap'
-	slave fenMap gameTerminationReasonsMap' nGames' gameClock	= do
+	slave moveSequenceMap gameTerminationReasonsMap' nGames' gameClock	= do
 		Control.Monad.when (verbosity == maxBound) $ IO.Logger.printInfo "Starting game."
 
-		(fen, gameTerminationReason, gameClock')	<- play verbosity readTimeout producer consumer gameClock
+		(moveSequence, gameTerminationReason, gameClock')	<- play verbosity readTimeout producer consumer gameClock
 
 		sequence_ $ [
 			\(_, stdOut) -> do
@@ -264,7 +266,7 @@ startGame verbosity nDecimalDigits readTimeout producer consumer gameTermination
 		 ] <*> [consumer, producer]
 
 		slave (
-			accumulateFrequencyDistribution fen fenMap
+			accumulateFrequencyDistribution moveSequence moveSequenceMap
 		 ) (
 			accumulateFrequencyDistribution gameTerminationReason gameTerminationReasonsMap'
 		 ) (

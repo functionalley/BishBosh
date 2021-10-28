@@ -198,9 +198,7 @@ readMove positionHashQualifiedMoveTree randomGen runningWatch playState	= let
 				UI.ReportObject.FEN			-> putStrLn . Property.ForsythEdwards.showFEN
 				UI.ReportObject.Game			-> print
 				UI.ReportObject.MaxPositionInstances	-> print . State.InstancesByPosition.findMaximumInstances . Model.Game.getInstancesByPosition
-				UI.ReportObject.Moves			-> putStrLn . showString (
-					showString Component.Move.tag "s"
-				 ) . Text.ShowList.showsAssociation . ($ ".") . Text.ShowList.showsFormattedList' (
+				UI.ReportObject.Moves			-> putStrLn . ($ "") . Text.ShowList.showsFormattedList' (
 					Notation.MoveNotation.showsNotation moveNotation
 				 ) . Model.Game.listTurnsChronologically
 				UI.ReportObject.PGN			-> putStrLn . ($ ".") <=< ContextualNotation.PGN.showsGame
