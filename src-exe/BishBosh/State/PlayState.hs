@@ -89,7 +89,7 @@ import qualified	Data.Array.Unboxed
 -- | The type threaded through the sequence of /game/s during play.
 data PlayState pieceSquareValue positionHash	= MkPlayState {
 	getCriterionValues			:: [[Metric.CriterionValue.CriterionValue]],					-- ^ The /criterion-value/s accumulated during the game.
-	getZobrist				:: Component.Zobrist.Zobrist positionHash,					-- ^ The constant hash-codes used construct position-hashes.
+	getZobrist				:: Component.Zobrist.Zobrist positionHash,					-- ^ The constant hash-codes used to construct position-hashes.
 	getMoveFrequency			:: Model.GameTree.MoveFrequency,						-- ^ The constant frequency of moves extracted from file.
 	getSearchState				:: Search.SearchState.SearchState positionHash,
 	getOptions				:: Input.Options.Options pieceSquareValue,					-- ^ The constant options by which the game is configured.
