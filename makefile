@@ -32,7 +32,7 @@ hlint: $(BIN_DIR)/hlint
 	@$@ -j	--no-exit-code\
 		--cpp-define 'USE_NEWTYPE_WRAPPERS'\
 		--cpp-define 'USE_PARALLEL'\
-		--cpp-define 'USE_POLYPARSE=1'\
+		--cpp-define 'USE_POLYPARSE=L'\
 		--cpp-define 'USE_UNBOXED_ARRAYS'\
 		--ignore 'Use tuple-section'\
 		src-lib/ +RTS -N -RTS
@@ -44,7 +44,7 @@ hlint: $(BIN_DIR)/hlint
 		--ignore 'Reduce duplication'\
 		src-exe/ +RTS -N -RTS
 	@$@ -j	--cpp-define 'USE_NEWTYPE_WRAPPERS'\
-		--cpp-define 'USE_POLYPARSE=1'\
+		--cpp-define 'USE_POLYPARSE=L'\
 		--cpp-define 'USE_SEARCH'\
 		--ignore 'Use tuple-section'\
 		src-test/ +RTS -N -RTS
