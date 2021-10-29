@@ -81,7 +81,6 @@ import			Data.Array.IArray((!))
 import qualified	BishBosh.Attribute.Direction			as Attribute.Direction
 import qualified	BishBosh.Attribute.LogicalColour		as Attribute.LogicalColour
 import qualified	BishBosh.Attribute.Rank				as Attribute.Rank
-import qualified	BishBosh.Cartesian.Abscissa			as Cartesian.Abscissa
 import qualified	BishBosh.Cartesian.Coordinates			as Cartesian.Coordinates
 import qualified	BishBosh.Cartesian.Ordinate			as Cartesian.Ordinate
 import qualified	BishBosh.Cartesian.Vector			as Cartesian.Vector
@@ -95,6 +94,7 @@ import qualified	Control.DeepSeq
 import qualified	Control.Exception
 import qualified	Data.Array.IArray
 import qualified	Data.Char
+import qualified	Data.Foldable
 import qualified	Data.List.Extra
 import qualified	Data.Map					as Map
 import qualified	Data.Maybe
@@ -109,9 +109,9 @@ import qualified	Control.Parallel.Strategies
 tag :: String
 tag	= "piece"
 
--- | The initial number of pieces per side in a standard opening position; some of which are duplicates.
+-- | The constant number of pieces per side at the conventional opening position; some of which are duplicates.
 nPiecesPerSide :: Type.Count.NPieces
-nPiecesPerSide	= fromIntegral $ Cartesian.Abscissa.xLength * 2 {-rows-}
+nPiecesPerSide	= Data.Foldable.sum Attribute.Rank.initialAllocationByRankPerSide
 
 -- | A Chess-piece has a /logical colour/ & a /rank/.
 data Piece	= MkPiece {

@@ -49,7 +49,7 @@ module BishBosh.Attribute.Rank(
 	earthBound,
 	expendable,
 	nDistinctRanks,
---	allocationPerSide,
+	initialAllocationByRankPerSide,
 -- * Functions
 	compareByLVA,
 	findUndefinedRanks,
@@ -202,9 +202,9 @@ compareByLVA evaluateRank rankL rankR
 nDistinctRanks :: Type.Count.NRanks
 nDistinctRanks	= fromIntegral $ length range
 
--- | The number of each rank allocated to each side.
-allocationPerSide :: ArrayByRank Type.Count.NRanks
-allocationPerSide	= listArrayByRank [8, 2, 2, 2, 1, 1]
+-- | The constant number of each rank per side, at the conventional opening position.
+initialAllocationByRankPerSide :: ArrayByRank Type.Count.NPieces
+initialAllocationByRankPerSide	= listArrayByRank [8, 2, 2, 2, 1, 1]
 
 -- | A boxed array indexed by /rank/, of arbitrary values.
 type ArrayByRank	= Data.Array.IArray.Array Rank
