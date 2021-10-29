@@ -125,6 +125,7 @@ New Module				| Purpose
 	+ Made **BishBosh.Cartesian.Coordinates** & **BishBosh.Attribute.Direction** strict.
 	+ Changed to use **Double** rather than **Rational** to perform the calculations defined by **BishBosh.Evaluation.Fitness**, before conversion to **BishBosh.Metric.CriterionValue.CriterionValue**.
 	+ Added a Boolean switch **preferVictories** to **standardOpeningOptions** to govern whether from all matching positions extracted from the PGN-database, to prefer moves which result in a greater probability of victory, for the player who has the next move. Turning this off reduces the evaluation required of the PGN-parser; & there's no down-side if the PGN-database is known not to actually record any victories.
+	+ Improved **BishBosh.ContextualNotation.PositionHashQualifiedMoveTree.findNextOnymousQualifiedMovesForPosition**, by independently comparing the pieces of each player, between the target game & a node of the tree, allowing earlier termination of the search.
 * Bug-fixes:
 	+ Avoided potential divide-by-zero @ **BishBosh.Input.CriteriaWeights.getWeightOfMaterial** / **BishBosh.Input.RankValues.calculateMaximumTotalValue** @.
 	+ Guarded against starting from a persisted, but terminated, game.

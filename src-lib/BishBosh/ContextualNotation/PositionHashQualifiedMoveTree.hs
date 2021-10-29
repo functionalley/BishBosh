@@ -64,6 +64,7 @@ import qualified	BishBosh.Model.Game				as Model.Game
 import qualified	BishBosh.Property.Reflectable			as Property.Reflectable
 import qualified	BishBosh.Rule.Result				as Rule.Result
 import qualified	BishBosh.State.Board				as State.Board
+import qualified	BishBosh.StateProperty.Censor			as StateProperty.Censor
 import qualified	BishBosh.StateProperty.Hashable			as StateProperty.Hashable
 import qualified	BishBosh.Type.Count				as Type.Count
 import qualified	BishBosh.Type.Crypto				as Type.Crypto
@@ -203,33 +204,35 @@ findNextOnymousQualifiedMovesForGame requiredGame	= slave (
 -}
 findNextOnymousQualifiedMovesForPosition :: Data.Bits.Bits positionHash => FindMatch positionHash
 {-# SPECIALISE findNextOnymousQualifiedMovesForPosition :: FindMatch Type.Crypto.PositionHash #-}
-findNextOnymousQualifiedMovesForPosition requiredGame positionHashQualifiedMoveTree@MkPositionHashQualifiedMoveTree {
-	getZobrist	= zobrist,
-	getTree		= tree
-}
-	| cantConverge requiredGame positionHashQualifiedMoveTree	= []	-- The specified game has fewer pieces than any defined in the tree.
-	| otherwise							= slave (2 * Component.Piece.nPiecesPerSide) tree
+findNextOnymousQualifiedMovesForPosition requiredGame positionHashQualifiedMoveTree
+	| cantConverge requiredGame positionHashQualifiedMoveTree	= []	-- The game we're required to match has fewer pieces than any defined in the tree.
+	| otherwise							= slave nPiecesByLogicalColour $ getTree positionHashQualifiedMoveTree
 	where
-		(requiredPositionHash, requiredNPieces)	= (`StateProperty.Hashable.hash` zobrist) &&& State.Board.getNPieces . Model.Game.getBoard $ requiredGame
+		(requiredPositionHash, nPiecesByLogicalColour)	= (`StateProperty.Hashable.hash` getZobrist positionHashQualifiedMoveTree) &&& ((,) Component.Piece.nPiecesPerSide {-Black-} *** (,) Component.Piece.nPiecesPerSide {-White-}) . StateProperty.Censor.countPiecesByLogicalColour . State.Board.getCoordinatesByRankByLogicalColour . Model.Game.getBoard $ requiredGame
 
-		slave nPieces Data.Tree.Node {
+		slave (opponent, mover) Data.Tree.Node {
 			Data.Tree.rootLabel	= MkNodeLabel { getPositionHash = positionHash },
 			Data.Tree.subForest	= forest
-		} = (
-			if positionHash == requiredPositionHash
-				then (
-					map onymiseQualifiedMove forest ++	-- The position matches, so one can select any move from the forest.
-				) -- Section.
-				else id
-		 ) $ concatMap (
-			\node@Data.Tree.Node {
-				Data.Tree.rootLabel	= MkNodeLabel { getMaybeQualifiedMoveWithOnymousResult = Just (qualifiedMove, _) }
-			} -> if Attribute.MoveType.isCapture $ Component.QualifiedMove.getMoveType qualifiedMove
-				then if nPieces == requiredNPieces
-					then []	-- Terminate the recursion; no further pieces can be lost if a match is to occur.
-					else slave (pred nPieces) node	-- Recurse.
-				else slave nPieces node	-- Recurse.
-		 ) forest
+		}
+			| uncurry (<) mover	= []	-- Terminate the recursion, since from this node down the tree, at least this player has fewer pieces than in the game we're required to match.
+			| otherwise		= (
+				if positionHash == requiredPositionHash
+					then (
+						map onymiseQualifiedMove forest ++	-- The position matches, so one can select any move from the forest.
+					) -- Section.
+					else id
+			) $ concatMap (
+				\node@Data.Tree.Node {
+					Data.Tree.rootLabel	= MkNodeLabel { getMaybeQualifiedMoveWithOnymousResult = Just (qualifiedMove, _) }
+				} -> slave (
+					mover,
+					(
+						if Attribute.MoveType.isCapture $ Component.QualifiedMove.getMoveType qualifiedMove
+							then Control.Arrow.first pred
+							else id
+					) opponent
+				) node	-- Recurse.
+			) forest
 
 -- | Finds any single /move/s which can join the current /position/ with a member of the forest.
 findNextJoiningOnymousQualifiedMovesFromPosition :: Data.Bits.Bits positionHash => FindMatch positionHash
