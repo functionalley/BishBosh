@@ -187,7 +187,13 @@ mergePGNDatabase pgnDatabase MkQualifiedMoveForest { deconstruct = initialForest
 fromPGNDatabase :: ContextualNotation.PGNDatabase.PGNDatabase -> QualifiedMoveForest
 fromPGNDatabase	= (`mergePGNDatabase` Property.Empty.empty {-QualifiedMoveForest-})
 
--- | Find the minimum number of /piece/s in any of the recorded /game/s.
+{- |
+	* Find the minimum total number of /piece/s in any of the recorded /game/s, in order to determining whether a sample game is too small to converge on anything in the tree.
+
+	* CAVEAT: no attempt is made to partition this total by logical colour, because there's no clear concept of the /minimum/ amongst the pairs discovered at each leaf-node.
+
+	* N.B.: one call also measure other monotonically changing quantities (number of Pawns, number of Castleable Rooks, least advanced Pawn), but this is cheap.
+-}
 findMinimumPieces :: QualifiedMoveForest -> Type.Count.NPieces
 findMinimumPieces	= slave (
 	2 * Component.Piece.nPiecesPerSide	-- CAVEAT: assuming a conventional starting position.
