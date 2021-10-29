@@ -64,12 +64,13 @@ randomTest:
 
 # Profile a single-threaded build, to access entry-counts.
 prof:
-	@stack install --profile --flag='bishbosh:-threaded' $(GHC_OPTIONS)
+	@stack install --profile --flag='bishbosh:-threaded' $(GHC_OPTIONS);
+	sleep 16;	# Let the test-machine reach a quiescent state.
 	@$(PACKAGE_NAME) -i 'config/Raw/$(PACKAGE_NAME)_$@.xml' +RTS -p -RTS
 
 # Profile.
 profN2:
-	@stack install --profile $(GHC_OPTIONS)
+	@stack install --profile $(GHC_OPTIONS);
 	@$(PACKAGE_NAME) -i 'config/Raw/$(PACKAGE_NAME)_prof.xml' +RTS -p -N2 -RTS
 
 # Install this product.
