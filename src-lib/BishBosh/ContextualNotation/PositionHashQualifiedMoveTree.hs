@@ -43,7 +43,7 @@ module BishBosh.ContextualNotation.PositionHashQualifiedMoveTree(
 	findNextOnymousQualifiedMovesForPosition,
 --	findNextJoiningOnymousQualifiedMovesFromPosition,
 	findNextOnymousQualifiedMoves,
---	shortListByProbabilityOfVictory,
+--	shortListMostVictorious,
 	maybeRandomlySelectOnymousQualifiedMove,
 -- ** Constructors
 	fromQualifiedMoveForest,
@@ -77,7 +77,6 @@ import qualified	Data.List
 import qualified	Data.List.Extra
 import qualified	Data.Maybe
 import qualified	Data.Tree
-import qualified	Factory.Math.Statistics
 import qualified	System.Random
 import qualified	ToolShed.System.Random
 
@@ -308,22 +307,16 @@ findNextOnymousQualifiedMoves (tryToMatchMoves, tryToMatchViaJoiningMove, tryToM
 	] -- List-comprehension.
 
 -- | Shortlist matching moves extracted from the tree, prefering those after which the player who makes it, has the greatest recorded incidence of victory.
-shortListByProbabilityOfVictory
+shortListMostVictorious
 	:: Attribute.LogicalColour.LogicalColour	-- ^ The player who is next to move.
 	-> [OnymousQualifiedMove]
 	-> [OnymousQualifiedMove]
-shortListByProbabilityOfVictory nextLogicalColour	= last {-highest scoring group-} . Data.List.Extra.groupSortOn (
-	(
-		Factory.Math.Statistics.getMean	:: [Int] -> Rational
-	) . map (
-		 Data.Maybe.maybe 0 {-a draw-} (
-			\victorsLogicalColour -> (
-				if victorsLogicalColour == nextLogicalColour
-					then id
-					else negate
-			) 1 {-victory-}
-		) . Rule.Result.findMaybeVictor . snd {-result-}	-- Score the result, according to which side we'd like to win.
-	) . snd {-[OnymousResult]-}
+shortListMostVictorious nextLogicalColour	= last {-highest scoring group-} . Data.List.Extra.groupSortOn (
+	Data.List.foldl' (
+		 \acc -> ($ acc) . Data.Maybe.maybe id {-draw-} (
+			\victorsLogicalColour -> if victorsLogicalColour == nextLogicalColour then succ else pred	-- Score the result, according to which side we'd like to win.
+		) . Rule.Result.findMaybeVictor . snd {-result-}
+	) (0 :: Int) . snd {-[OnymousResult]-}
  )
 
 -- | Randomly select a /qualifiedMove/ from matching /position/s in the tree, & supply the names of those archived games from which it originated.
@@ -352,7 +345,7 @@ maybeRandomlySelectOnymousQualifiedMove randomGen preferVictories matchSwitches 
 		Control.Arrow.second $ Data.List.nub . map fst {-Name-}
 	 ) . ToolShed.System.Random.select randomGen $ (
 		if preferVictories && getHasAnyVictories positionHashQualifiedMoveTree
-			then shortListByProbabilityOfVictory $ Model.Game.getNextLogicalColour game
+			then shortListMostVictorious $ Model.Game.getNextLogicalColour game
 			else id
 	 ) onymousQualifiedMoves
 
