@@ -73,6 +73,7 @@ import qualified	BishBosh.Attribute.MoveType				as Attribute.MoveType
 import qualified	BishBosh.Attribute.Rank					as Attribute.Rank
 import qualified	BishBosh.Cartesian.Coordinates				as Cartesian.Coordinates
 import qualified	BishBosh.Cartesian.Vector				as Cartesian.Vector
+import qualified	BishBosh.Component.Accountant				as Component.Accountant
 import qualified	BishBosh.Component.Move					as Component.Move
 import qualified	BishBosh.Component.Piece				as Component.Piece
 import qualified	BishBosh.Component.PieceSquareByCoordinatesByRank	as Component.PieceSquareByCoordinatesByRank
@@ -410,9 +411,7 @@ sumPieceSquareValueByLogicalColour :: (
 sumPieceSquareValueByLogicalColour pieceSquareByCoordinatesByRank MkBoard {
 	getCoordinatesByRankByLogicalColour	= coordinatesByRankByLogicalColour,
 	getNPieces				= nPieces
-} = Attribute.LogicalColour.listArrayByLogicalColour $ State.CoordinatesByRankByLogicalColour.sumPieceSquareValueByLogicalColour (
-	\logicalColour rank coordinatesList -> Component.PieceSquareByCoordinatesByRank.findPieceSquareValues nPieces logicalColour rank coordinatesList pieceSquareByCoordinatesByRank
- ) coordinatesByRankByLogicalColour
+} = Attribute.LogicalColour.listArrayByLogicalColour $ Component.Accountant.sumPieceSquareValueByLogicalColour nPieces pieceSquareByCoordinatesByRank coordinatesByRankByLogicalColour
 
 {- |
 	* Lists the source-/coordinates/ from which the referenced destination can be attacked.

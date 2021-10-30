@@ -41,7 +41,6 @@ module BishBosh.State.MaybePieceByCoordinates(
 	inferMoveType,
 	findBlockingPiece,
 	findAttackerInDirection,
-	sumPieceSquareValueByLogicalColour,
 	listDestinationsFor,
 --	listToRaster,
 --	shows2D,
@@ -74,6 +73,7 @@ import qualified	BishBosh.Attribute.Rank					as Attribute.Rank
 import qualified	BishBosh.Cartesian.Abscissa				as Cartesian.Abscissa
 import qualified	BishBosh.Cartesian.Coordinates				as Cartesian.Coordinates
 import qualified	BishBosh.Cartesian.Ordinate				as Cartesian.Ordinate
+import qualified	BishBosh.Component.Accountant				as Component.Accountant
 import qualified	BishBosh.Component.CastlingMove				as Component.CastlingMove
 import qualified	BishBosh.Component.Move					as Component.Move
 import qualified	BishBosh.Component.Piece				as Component.Piece
@@ -94,7 +94,6 @@ import qualified	BishBosh.StateProperty.Mutator				as StateProperty.Mutator
 import qualified	BishBosh.StateProperty.Seeker				as StateProperty.Seeker
 import qualified	BishBosh.Text.ShowList					as Text.ShowList
 import qualified	BishBosh.Type.Length					as Type.Length
-import qualified	BishBosh.Type.Mass					as Type.Mass
 import qualified	Control.Arrow
 import qualified	Control.DeepSeq
 import qualified	Control.Exception
@@ -276,6 +275,18 @@ instance StateProperty.Seeker.Seeker MaybePieceByCoordinates where
 			(coordinates, Just piece)	<- Data.Array.IArray.assocs byCoordinates,
 			predicate piece
 	 ] -- List-comprehension.
+
+instance Component.Accountant.Accountant MaybePieceByCoordinates where
+	sumPieceSquareValueByLogicalColour nPieces pieceSquareByCoordinatesByRank = (
+		\(b, w) -> [b, w]
+	 ) . Data.List.foldl' (
+		\(b, w) (coordinates, piece) -> let
+			logicalColour		= Component.Piece.getLogicalColour piece
+			pieceSquareValue	= Component.PieceSquareByCoordinatesByRank.findPieceSquareValue nPieces logicalColour (Component.Piece.getRank piece) coordinates pieceSquareByCoordinatesByRank 
+		in if Attribute.LogicalColour.isBlack logicalColour
+			then let b' = b + pieceSquareValue in b' `seq` (b', w)
+			else let w' = w + pieceSquareValue in w' `seq` (b, w')
+	 ) (0, 0) . StateProperty.Seeker.findAllPieces
 
 -- | Dereference the array.
 dereference
@@ -552,22 +563,4 @@ movePiece move destinationPiece maybeEnPassantDestination MkMaybePieceByCoordina
 		Just destinationPiece	-- Place the piece at the destination, removing any opposing incumbent as a side-effect.
 	)
  ]
-
--- | Calculate the total value of the /coordinates/ occupied by the /piece/s of either side.
-sumPieceSquareValueByLogicalColour
-	:: Num pieceSquareValue
-	=> Component.PieceSquareByCoordinatesByRank.FindPieceSquareValue pieceSquareValue
-	-> MaybePieceByCoordinates
-	-> [pieceSquareValue]
-{-# SPECIALISE sumPieceSquareValueByLogicalColour :: Component.PieceSquareByCoordinatesByRank.FindPieceSquareValue Type.Mass.PieceSquareValue -> MaybePieceByCoordinates -> [Type.Mass.PieceSquareValue] #-}
-sumPieceSquareValueByLogicalColour findPieceSquareValue	= (
-	\(b, w) -> [b, w]
- ) . Data.List.foldl' (
-	\(b, w) (coordinates, piece) -> let
-		logicalColour		= Component.Piece.getLogicalColour piece
-		pieceSquareValue	= findPieceSquareValue logicalColour (Component.Piece.getRank piece) coordinates
-	in if Attribute.LogicalColour.isBlack logicalColour
-		then let b' = b + pieceSquareValue in b' `seq` (b', w)
-		else let w' = w + pieceSquareValue in w' `seq` (b, w')
- ) (0, 0) . StateProperty.Seeker.findAllPieces
 

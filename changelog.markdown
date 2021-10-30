@@ -141,5 +141,6 @@ New Module				| Purpose
 	+ Moved the type-class from module **BishBosh.Component.Zobrist** into a new module **BishBosh.StateProperty.Hashable**.
 	+ Replaced non-specific type @ (Int, Int) @ coordinates in **BishBosh.Notation.{ICCFNumeric, PureCoordinate, Smith}** with @ (**BishBosh.Type.Length.X**, **BishBosh.Type.Length.Y**) @, & moved common code into a new module **BishBosh.Notation.Notation**.
 	+ Added type **BishBosh.Type.Count.NCoordinates** for use by function **BishBosh.Cartesian.Coordinates.nSquares**.
-	+ Added a method **StateProperty.Seeker.countPawnsByFileByLogicalColour** including a default implementation, & relocated the implementation from module **State.CoordinatesByRankByLogicalColour**.
+	+ Added a method **BishBosh.StateProperty.Seeker.countPawnsByFileByLogicalColour** including a default implementation, & relocated the implementation from module **BishBosh.State.CoordinatesByRankByLogicalColour**.
+	+ Added a type-class **BishBosh.Component.Account.Accountant**, with a single method used to sum piece-square values; thus permiting a common interface between the implementations in **BishBosh.State.CoordinatesByRankByLogicalColour** & **BishBosh.State.MaybePieceByCoordinates**.
 

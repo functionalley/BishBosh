@@ -128,6 +128,7 @@ Library
         BishBosh.Cartesian.Coordinates
         BishBosh.Cartesian.Ordinate
         BishBosh.Cartesian.Vector
+        BishBosh.Component.Accountant
         BishBosh.Component.CastlingMove
         BishBosh.Component.EitherQualifiedMove
         BishBosh.Component.Move

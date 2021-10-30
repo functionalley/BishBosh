@@ -36,19 +36,17 @@ import			BishBosh.Test.QuickCheck.Input.PieceSquareTable()
 import			BishBosh.Test.QuickCheck.Input.RankValues()
 import			BishBosh.Test.QuickCheck.State.Board()
 import			Control.Arrow((&&&))
-import qualified	BishBosh.Component.PieceSquareByCoordinatesByRank	as Component.PieceSquareByCoordinatesByRank
-import qualified	BishBosh.Input.CriteriaWeights				as Input.CriteriaWeights
-import qualified	BishBosh.Input.EvaluationOptions			as Input.EvaluationOptions
-import qualified	BishBosh.Input.PieceSquareTable				as Input.PieceSquareTable
-import qualified	BishBosh.Input.RankValues				as Input.RankValues
-import qualified	BishBosh.Property.Reflectable				as Property.Reflectable
-import qualified	BishBosh.State.Board					as State.Board
-import qualified	BishBosh.State.CoordinatesByRankByLogicalColour		as State.CoordinatesByRankByLogicalColour
-import qualified	BishBosh.State.MaybePieceByCoordinates			as State.MaybePieceByCoordinates
-import qualified	BishBosh.Type.Mass					as Type.Mass
+import qualified	BishBosh.Component.Accountant		as Component.Accountant
+import qualified	BishBosh.Input.CriteriaWeights		as Input.CriteriaWeights
+import qualified	BishBosh.Input.EvaluationOptions	as Input.EvaluationOptions
+import qualified	BishBosh.Input.PieceSquareTable		as Input.PieceSquareTable
+import qualified	BishBosh.Input.RankValues		as Input.RankValues
+import qualified	BishBosh.Property.Reflectable		as Property.Reflectable
+import qualified	BishBosh.State.Board			as State.Board
+import qualified	BishBosh.Type.Mass			as Type.Mass
 import qualified	Data.Array.IArray
 import qualified	Data.List
-import qualified	Data.Map.Strict						as Map
+import qualified	Data.Map.Strict				as Map
 import qualified	Data.Maybe
 import qualified	Test.QuickCheck
 import			Test.QuickCheck((==>))
@@ -92,11 +90,7 @@ results	= sequence [
 	let
 		f :: Input.EvaluationOptions.EvaluationOptions Rational {-precision is required-} -> State.Board.Board -> Test.QuickCheck.Property
 		f evaluationOptions board	= Data.Maybe.isJust maybePieceSquareByCoordinatesByRank ==> Test.QuickCheck.label "EvaluationOptions.prop_sumPieceSquareValueByLogicalColour" . uncurry (==) $ (
-			State.CoordinatesByRankByLogicalColour.sumPieceSquareValueByLogicalColour (
-				\logicalColour rank coordinatesList	-> Component.PieceSquareByCoordinatesByRank.findPieceSquareValues nPieces logicalColour rank coordinatesList pieceSquareByCoordinatesByRank
-			) . State.Board.getCoordinatesByRankByLogicalColour &&& State.MaybePieceByCoordinates.sumPieceSquareValueByLogicalColour (
-				\logicalColour rank coordinates		-> Component.PieceSquareByCoordinatesByRank.findPieceSquareValue nPieces logicalColour rank coordinates pieceSquareByCoordinatesByRank
-			) . State.Board.getMaybePieceByCoordinates
+			Component.Accountant.sumPieceSquareValueByLogicalColour nPieces pieceSquareByCoordinatesByRank . State.Board.getCoordinatesByRankByLogicalColour &&& Component.Accountant.sumPieceSquareValueByLogicalColour nPieces pieceSquareByCoordinatesByRank . State.Board.getMaybePieceByCoordinates
 		 ) board where
 			maybePieceSquareByCoordinatesByRank	= Input.EvaluationOptions.getMaybePieceSquareByCoordinatesByRank evaluationOptions
 			pieceSquareByCoordinatesByRank		= Data.Maybe.fromJust maybePieceSquareByCoordinatesByRank

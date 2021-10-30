@@ -40,7 +40,6 @@ module BishBosh.State.CoordinatesByRankByLogicalColour(
 -- * Functions
 	findPassedPawnCoordinatesByLogicalColour,
 	findPiecesOfColour,
-	sumPieceSquareValueByLogicalColour,
 	assocs,
 	listCoordinates,
 -- ** Accessors
@@ -62,6 +61,7 @@ import qualified	BishBosh.Attribute.Rank					as Attribute.Rank
 import qualified	BishBosh.Cartesian.Abscissa				as Cartesian.Abscissa
 import qualified	BishBosh.Cartesian.Coordinates				as Cartesian.Coordinates
 import qualified	BishBosh.Cartesian.Vector				as Cartesian.Vector
+import qualified	BishBosh.Component.Accountant				as Component.Accountant
 import qualified	BishBosh.Component.Move					as Component.Move
 import qualified	BishBosh.Component.Piece				as Component.Piece
 import qualified	BishBosh.Component.PieceSquareByCoordinatesByRank	as Component.PieceSquareByCoordinatesByRank
@@ -73,7 +73,6 @@ import qualified	BishBosh.State.MaybePieceByCoordinates			as State.MaybePieceByC
 import qualified	BishBosh.StateProperty.Censor				as StateProperty.Censor
 import qualified	BishBosh.StateProperty.Hashable				as StateProperty.Hashable
 import qualified	BishBosh.StateProperty.Seeker				as StateProperty.Seeker
-import qualified	BishBosh.Type.Mass					as Type.Mass
 import qualified	Control.Arrow
 import qualified	Control.DeepSeq
 import qualified	Control.Exception
@@ -164,6 +163,13 @@ instance StateProperty.Seeker.Seeker CoordinatesByRankByLogicalColour {-CAVEAT: 
 			\m coordinates -> StateProperty.Seeker.accumulatePawnsByFile (Cartesian.Coordinates.getX coordinates) m
 		) Property.Empty.empty . (! Attribute.Rank.Pawn)
 	 ) byLogicalColour
+
+instance Component.Accountant.Accountant CoordinatesByRankByLogicalColour where
+	sumPieceSquareValueByLogicalColour nPieces pieceSquareByCoordinatesByRank MkCoordinatesByRankByLogicalColour { deconstruct = byLogicalColour }	= map (
+		\(logicalColour, byRank) -> Data.List.foldl' (
+			\acc -> Data.List.foldl' (+) acc . ($ pieceSquareByCoordinatesByRank) . uncurry (Component.PieceSquareByCoordinatesByRank.findPieceSquareValues nPieces logicalColour) 
+		) 0 $ Data.Array.IArray.assocs byRank
+	 ) $ Data.Array.IArray.assocs byLogicalColour
 
 -- | Constructor.
 fromMaybePieceByCoordinates :: State.MaybePieceByCoordinates.MaybePieceByCoordinates -> CoordinatesByRankByLogicalColour
@@ -256,19 +262,6 @@ findPassedPawnCoordinatesByLogicalColour MkCoordinatesByRankByLogicalColour { de
 	) $ findPawns logicalColour
  ) Property.FixedMembership.members where
 	findPawns	= (! Attribute.Rank.Pawn) . (byLogicalColour !)
-
--- | Calculate the total value of the /coordinates/ occupied by the /piece/s of either side.
-sumPieceSquareValueByLogicalColour
-	:: Num pieceSquareValue
-	=> Component.PieceSquareByCoordinatesByRank.FindPieceSquareValues pieceSquareValue
-	-> CoordinatesByRankByLogicalColour
-	-> [pieceSquareValue]
-{-# SPECIALISE sumPieceSquareValueByLogicalColour :: Component.PieceSquareByCoordinatesByRank.FindPieceSquareValues Type.Mass.PieceSquareValue -> CoordinatesByRankByLogicalColour -> [Type.Mass.PieceSquareValue] #-}
-sumPieceSquareValueByLogicalColour findPieceSquareValues MkCoordinatesByRankByLogicalColour { deconstruct = byLogicalColour }	= map (
-	\(logicalColour, byRank) -> Data.List.foldl' (
-		\acc	-> Data.List.foldl' (+) acc . uncurry (findPieceSquareValues logicalColour)
-	) 0 $ Data.Array.IArray.assocs byRank
- ) $ Data.Array.IArray.assocs byLogicalColour
 
 -- | Self-documentation.
 type Transformation	= CoordinatesByRankByLogicalColour -> CoordinatesByRankByLogicalColour

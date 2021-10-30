@@ -27,8 +27,6 @@ module BishBosh.Component.PieceSquareByCoordinatesByRank(
 -- ** Type-synonyms
 --	PieceSquareValueByNPieces,
 --	EitherPieceSquareValueByNPiecesByCoordinates,
-	FindPieceSquareValue,
-	FindPieceSquareValues,
 -- ** Data-types
 	PieceSquareByCoordinatesByRank(
 --		MkPieceSquareByCoordinatesByRank,
@@ -93,13 +91,6 @@ mkPieceSquareByCoordinatesByRank
 	-> PieceSquareByCoordinatesByRank pieceSquareValue
 mkPieceSquareByCoordinatesByRank	= MkPieceSquareByCoordinatesByRank . Attribute.Rank.listArrayByRank . (`map` Property.FixedMembership.members)
 
--- | The type of a function which can find the required piece-square value.
-type FindPieceSquareValue pieceSquareValue
-	= Attribute.LogicalColour.LogicalColour	-- ^ The /piece/'s /logical colour/.
-	-> Attribute.Rank.Rank			-- ^ The /piece/'s /rank/.
-	-> Cartesian.Coordinates.Coordinates	-- ^ The /piece/'s location.
-	-> pieceSquareValue
-
 -- | Find the piece-square value, at a stage in the game's lifetime defined by the total number of pieces remaining, for the specified /rank/ & /coordinates/.
 findPieceSquareValue
 	:: Type.Count.NPieces				-- ^ The progress through the game.
@@ -117,13 +108,6 @@ findPieceSquareValue nPieces logicalColour rank coordinates MkPieceSquareByCoord
 		then Property.Reflectable.reflectOnX
 		else id
  ) coordinates
-
--- | The type of a function which can find the required piece-square values.
-type FindPieceSquareValues pieceSquareValue
-	= Attribute.LogicalColour.LogicalColour	-- ^ The /piece/'s /logical colour/.
-	-> Attribute.Rank.Rank			-- ^ The /piece/'s /rank/.
-	-> [Cartesian.Coordinates.Coordinates]	-- ^ The locations of interest for the /piece/.
-	-> [pieceSquareValue]
 
 -- | Find the piece-square values, at a stage in the game's lifetime defined by the total number of pieces remaining, for the specified /rank/ & list of /coordinates/.
 findPieceSquareValues
