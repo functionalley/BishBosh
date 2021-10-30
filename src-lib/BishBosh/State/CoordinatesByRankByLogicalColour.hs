@@ -29,7 +29,6 @@
 module BishBosh.State.CoordinatesByRankByLogicalColour(
 -- * Types
 -- ** Type-synonyms
-	NPiecesByFileByLogicalColour,
 --	CoordinatesByRank,
 	CoordinatesByLogicalColour,
 --	Transformation,
@@ -39,11 +38,9 @@ module BishBosh.State.CoordinatesByRankByLogicalColour(
 		deconstruct
 	),
 -- * Functions
-	countPawnsByFileByLogicalColour,
 	findPassedPawnCoordinatesByLogicalColour,
 	findPiecesOfColour,
 	sumPieceSquareValueByLogicalColour,
---	deleteCoordinates,
 	assocs,
 	listCoordinates,
 -- ** Accessors
@@ -52,6 +49,7 @@ module BishBosh.State.CoordinatesByRankByLogicalColour(
 -- ** Constructor
 	fromMaybePieceByCoordinates,
 -- ** Mutators
+--	deleteCoordinates,
 	movePiece,
 	sortCoordinates
 ) where
@@ -75,8 +73,6 @@ import qualified	BishBosh.State.MaybePieceByCoordinates			as State.MaybePieceByC
 import qualified	BishBosh.StateProperty.Censor				as StateProperty.Censor
 import qualified	BishBosh.StateProperty.Hashable				as StateProperty.Hashable
 import qualified	BishBosh.StateProperty.Seeker				as StateProperty.Seeker
-import qualified	BishBosh.Type.Count					as Type.Count
-import qualified	BishBosh.Type.Length					as Type.Length
 import qualified	BishBosh.Type.Mass					as Type.Mass
 import qualified	Control.Arrow
 import qualified	Control.DeepSeq
@@ -163,6 +159,12 @@ instance StateProperty.Seeker.Seeker CoordinatesByRankByLogicalColour {-CAVEAT: 
 			coordinates		<- coordinatesList
 	 ] -- List-comprehension.
 
+	countPawnsByFileByLogicalColour MkCoordinatesByRankByLogicalColour { deconstruct = byLogicalColour }	= Data.Array.IArray.amap (
+		Data.List.foldl' (
+			\m coordinates -> StateProperty.Seeker.accumulatePawnsByFile (Cartesian.Coordinates.getX coordinates) m
+		) Property.Empty.empty . (! Attribute.Rank.Pawn)
+	 ) byLogicalColour
+
 -- | Constructor.
 fromMaybePieceByCoordinates :: State.MaybePieceByCoordinates.MaybePieceByCoordinates -> CoordinatesByRankByLogicalColour
 fromMaybePieceByCoordinates maybePieceByCoordinates	= MkCoordinatesByRankByLogicalColour . (
@@ -210,22 +212,6 @@ getKingsCoordinates
 {-# INLINE getKingsCoordinates #-}
 getKingsCoordinates logicalColour MkCoordinatesByRankByLogicalColour { deconstruct = byLogicalColour }	= Control.Exception.assert (not $ null coordinates) $ head coordinates {-there should be exactly one-} where
 	coordinates	= byLogicalColour ! logicalColour ! Attribute.Rank.King
-
--- | The number of /piece/s in each file, for each /logical colour/.
-type NPiecesByFileByLogicalColour	= Attribute.LogicalColour.ArrayByLogicalColour (Map.Map Type.Length.X Type.Count.NPieces)
-
-{- |
-	* Counts the number of @Pawn@s of each /logical colour/ with similar /x/-coordinates; their /y/-coordinate is irrelevant.
-
-	* N.B.: files lacking any @Pawn@, don't feature in the results.
--}
-countPawnsByFileByLogicalColour :: CoordinatesByRankByLogicalColour -> NPiecesByFileByLogicalColour
-{-# INLINABLE countPawnsByFileByLogicalColour #-}
-countPawnsByFileByLogicalColour MkCoordinatesByRankByLogicalColour { deconstruct = byLogicalColour }	= Data.Array.IArray.amap (
-	Data.List.foldl' (
-		\m coordinates -> Map.insertWith (const succ) (Cartesian.Coordinates.getX coordinates) 1 m
-	) Property.Empty.empty . (! Attribute.Rank.Pawn)
- ) byLogicalColour
 
 -- | Locate all /piece/s of the specified /logical colour/.
 findPiecesOfColour

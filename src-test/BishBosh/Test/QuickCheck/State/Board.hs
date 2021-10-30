@@ -181,7 +181,7 @@ results	= sequence [
 			\coordinatesByRankByLogicalColour -> all (
 				uncurry (==) . (
 					Data.Foldable.sum . (
-						State.CoordinatesByRankByLogicalColour.countPawnsByFileByLogicalColour coordinatesByRankByLogicalColour !
+						StateProperty.Seeker.countPawnsByFileByLogicalColour coordinatesByRankByLogicalColour !
 					) &&& fromIntegral . length . (
 						\logicalColour -> State.CoordinatesByRankByLogicalColour.dereference logicalColour Attribute.Rank.Pawn coordinatesByRankByLogicalColour
 					)

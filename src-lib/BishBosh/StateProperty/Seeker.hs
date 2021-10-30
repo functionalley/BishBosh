@@ -24,19 +24,43 @@
 -}
 
 module BishBosh.StateProperty.Seeker(
+-- * Types
+-- ** Type-synonyms
+--	NPiecesByFile,
+	NPiecesByFileByLogicalColour,
 -- * Type-classes
 	Seeker(..),
 -- * Functions
-	findAllPieces
+	accumulatePawnsByFile,
+	findAllPieces,
+	summariseNPawnsByLogicalColour
 ) where
 
 import qualified	BishBosh.Attribute.LogicalColour	as Attribute.LogicalColour
 import qualified	BishBosh.Cartesian.Coordinates		as Cartesian.Coordinates
 import qualified	BishBosh.Component.Piece		as Component.Piece
+import qualified	BishBosh.Property.Empty			as Property.Empty
+import qualified	BishBosh.Type.Count			as Type.Count
+import qualified	BishBosh.Type.Length			as Type.Length
+import qualified	Control.Arrow
+import qualified	Data.Array.IArray
+import qualified	Data.Foldable
+import qualified	Data.Map.Strict				as Map
+
+-- | The number of /piece/s in each file, for each /logical colour/.
+type NPiecesByFile	= Map.Map Type.Length.X Type.Count.NPieces
+
+-- | Add a Pawn's file to the map.
+accumulatePawnsByFile :: Type.Length.X -> NPiecesByFile -> NPiecesByFile
+{-# INLINE accumulatePawnsByFile #-}
+accumulatePawnsByFile	= flip (Map.insertWith $ const succ) 1
+
+-- | The number of /piece/s in each file, for each /logical colour/.
+type NPiecesByFileByLogicalColour	= Attribute.LogicalColour.ArrayByLogicalColour NPiecesByFile
 
 -- | An interface which may be implemented by data which can search the board.
 class Seeker seeker where
-	-- | Locate any @Knight@s capable of taking a piece at the specified coordinates.
+	-- | Locate any @Knight@s capable of taking a /piece/ at the specified /coordinates/.
 	findProximateKnights
 		:: Attribute.LogicalColour.LogicalColour	-- ^ The /logical colour/ of the @Knight@ for which to search.
 		-> Cartesian.Coordinates.Coordinates		-- ^ The destination to which the @Knight@ is required to be capable of jumping.
@@ -49,7 +73,29 @@ class Seeker seeker where
 		-> seeker
 		-> [Component.Piece.LocatedPiece]
 
+	{- |
+		* Counts the number of @Pawn@s of each /logical colour/ with similar /x/-coordinates; their /y/-coordinate is irrelevant.
+
+		* N.B.: files lacking any @Pawn@, don't feature in the results.
+	-}
+	countPawnsByFileByLogicalColour :: seeker -> NPiecesByFileByLogicalColour
+	countPawnsByFileByLogicalColour	= Attribute.LogicalColour.listArrayByLogicalColour . (
+		\(mB, mW) -> [mB, mW]
+	 ) . foldr (
+		\(coordinates, piece) -> (
+			if Attribute.LogicalColour.isBlack $ Component.Piece.getLogicalColour piece
+				then Control.Arrow.first
+				else Control.Arrow.second
+		) $ accumulatePawnsByFile (Cartesian.Coordinates.getX coordinates)
+	 ) Property.Empty.empty . findPieces Component.Piece.isPawn
+
 -- | Locate all /piece/s on the board.
 findAllPieces :: Seeker seeker => seeker -> [Component.Piece.LocatedPiece]
 findAllPieces	= findPieces $ const True
+
+-- | Collapses 'NPawnsByFileByLogicalColour' into the total number of /Pawn/s on either side.
+summariseNPawnsByLogicalColour :: Seeker seeker => seeker -> Attribute.LogicalColour.ArrayByLogicalColour Type.Count.NPieces
+summariseNPawnsByLogicalColour	= Data.Array.IArray.amap (
+	Data.Foldable.foldl' (+) 0
+ ) . countPawnsByFileByLogicalColour
 

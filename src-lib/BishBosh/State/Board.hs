@@ -122,7 +122,7 @@ data Board	= MkBoard {
 	getCoordinatesByRankByLogicalColour		:: State.CoordinatesByRankByLogicalColour.CoordinatesByRankByLogicalColour,	-- ^ The /coordinates/ of each /piece/.
 	getNDefendersByCoordinatesByLogicalColour	:: NDefendersByCoordinatesByLogicalColour,					-- ^ The number of defenders of each /piece/, indexed by /logical colour/ & then by /coordinates/.
 	getNPiecesDifferenceByRank			:: StateProperty.Censor.NPiecesByRank,						-- ^ The difference in the number of /piece/s of each /rank/ held by either side. @White@ /piece/s are arbitrarily considered positive & @Black@ ones negative.
-	getNPawnsByFileByLogicalColour			:: State.CoordinatesByRankByLogicalColour.NPiecesByFileByLogicalColour,		-- ^ The number of @Pawn@s of each /logical colour/, for each /file/.
+	getNPawnsByFileByLogicalColour			:: StateProperty.Seeker.NPiecesByFileByLogicalColour,				-- ^ The number of @Pawn@s of each /logical colour/, for each /file/.
 	getNPieces					:: Type.Count.NPieces,								-- ^ The total number of pieces on the board, including @Pawn@s.
 	getPassedPawnCoordinatesByLogicalColour		:: State.CoordinatesByRankByLogicalColour.CoordinatesByLogicalColour		-- ^ The /coordinates/ of any /passed/ @Pawn@s.
 }
@@ -187,6 +187,7 @@ instance StateProperty.Mutator.Mutator Board where
 instance StateProperty.Seeker.Seeker Board where
 	findProximateKnights logicalColour coordinates MkBoard { getCoordinatesByRankByLogicalColour = coordinatesByRankByLogicalColour }	= StateProperty.Seeker.findProximateKnights logicalColour coordinates coordinatesByRankByLogicalColour -- Forward the request.
 	findPieces predicate MkBoard { getCoordinatesByRankByLogicalColour = coordinatesByRankByLogicalColour }					= StateProperty.Seeker.findPieces predicate coordinatesByRankByLogicalColour	-- Forward the request.
+	countPawnsByFileByLogicalColour	MkBoard { getCoordinatesByRankByLogicalColour = coordinatesByRankByLogicalColour }			= StateProperty.Seeker.countPawnsByFileByLogicalColour coordinatesByRankByLogicalColour	-- Forward the request.
 
 -- | Constructor.
 fromMaybePieceByCoordinates :: State.MaybePieceByCoordinates.MaybePieceByCoordinates -> Board
@@ -196,7 +197,7 @@ fromMaybePieceByCoordinates maybePieceByCoordinates	= board where
 		getCoordinatesByRankByLogicalColour		= State.CoordinatesByRankByLogicalColour.fromMaybePieceByCoordinates maybePieceByCoordinates,				-- Infer.
 		getNDefendersByCoordinatesByLogicalColour	= countDefendersByCoordinatesByLogicalColour board,									-- Infer.
 		getNPiecesDifferenceByRank			= StateProperty.Censor.countPieceDifferenceByRank coordinatesByRankByLogicalColour,					-- Infer.
-		getNPawnsByFileByLogicalColour			= State.CoordinatesByRankByLogicalColour.countPawnsByFileByLogicalColour coordinatesByRankByLogicalColour,		-- Infer.
+		getNPawnsByFileByLogicalColour			= StateProperty.Seeker.countPawnsByFileByLogicalColour coordinatesByRankByLogicalColour,				-- Infer.
 		getNPieces					= StateProperty.Censor.countPieces coordinatesByRankByLogicalColour,							-- Infer.
 		getPassedPawnCoordinatesByLogicalColour		= State.CoordinatesByRankByLogicalColour.findPassedPawnCoordinatesByLogicalColour coordinatesByRankByLogicalColour	-- Infer.
 	}
@@ -365,7 +366,7 @@ movePiece move maybeMoveType board@MkBoard {
 					]
 				) maybePromotionRank,
 			getNPawnsByFileByLogicalColour		= if Component.Piece.isPawn sourcePiece && not (Attribute.MoveType.isQuiet moveType) || wasPawnTakenExplicitly
-				then State.CoordinatesByRankByLogicalColour.countPawnsByFileByLogicalColour coordinatesByRankByLogicalColour'	-- Recalculate.
+				then StateProperty.Seeker.countPawnsByFileByLogicalColour coordinatesByRankByLogicalColour'	-- Recalculate.
 				else getNPawnsByFileByLogicalColour board,
 			getNPieces				= Attribute.MoveType.nPiecesMutator moveType nPieces,
 			getPassedPawnCoordinatesByLogicalColour	= if Component.Piece.isPawn sourcePiece || wasPawnTakenExplicitly

@@ -29,6 +29,7 @@ module BishBosh.Test.QuickCheck.Model.Game(
 ) where
 
 import			Control.Arrow((&&&))
+import			Data.Array.IArray((!))
 import qualified	BishBosh.Attribute.MoveType			as Attribute.MoveType
 import qualified	BishBosh.Attribute.Rank				as Attribute.Rank
 import qualified	BishBosh.Cartesian.Coordinates			as Cartesian.Coordinates
@@ -210,7 +211,19 @@ results	= sequence [
 	let
 		f :: Model.Game.Game -> Test.QuickCheck.Property
 		f = Test.QuickCheck.label "Game.prop_(getNPawnsByFileByLogicalColour => countPawnsByFileByLogicalColour)" . uncurry (==) . (
-			State.Board.getNPawnsByFileByLogicalColour &&& State.CoordinatesByRankByLogicalColour.countPawnsByFileByLogicalColour . State.Board.getCoordinatesByRankByLogicalColour
+			State.Board.getNPawnsByFileByLogicalColour &&& StateProperty.Seeker.countPawnsByFileByLogicalColour . State.Board.getCoordinatesByRankByLogicalColour
+		 ) . Model.Game.getBoard
+	in Test.QuickCheck.quickCheckWithResult Test.QuickCheck.stdArgs { Test.QuickCheck.maxSuccess = 256 } f,
+	let
+		f :: Model.Game.Game -> Test.QuickCheck.Property
+		f = Test.QuickCheck.label "Game.prop_countPawnsByFileByLogicalColour" . uncurry (==) . (
+			StateProperty.Seeker.countPawnsByFileByLogicalColour . State.Board.getMaybePieceByCoordinates &&& StateProperty.Seeker.countPawnsByFileByLogicalColour . State.Board.getCoordinatesByRankByLogicalColour
+		 ) . Model.Game.getBoard
+	in Test.QuickCheck.quickCheckWithResult Test.QuickCheck.stdArgs { Test.QuickCheck.maxSuccess = 256 } f,
+	let
+		f :: Model.Game.Game -> Test.QuickCheck.Property
+		f = Test.QuickCheck.label "Game.prop_(summariseNPawnsByLogicalColour vs getNPiecesDifferenceByRank)" . uncurry (==) . (
+			uncurry (-) . ((! maxBound) &&& (! minBound)) . StateProperty.Seeker.summariseNPawnsByLogicalColour &&& (! Attribute.Rank.Pawn) . State.Board.getNPiecesDifferenceByRank
 		 ) . Model.Game.getBoard
 	in Test.QuickCheck.quickCheckWithResult Test.QuickCheck.stdArgs { Test.QuickCheck.maxSuccess = 256 } f,
 	let

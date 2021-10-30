@@ -42,6 +42,7 @@ import qualified	BishBosh.State.Board				as State.Board
 import qualified	BishBosh.State.CoordinatesByRankByLogicalColour	as State.CoordinatesByRankByLogicalColour
 import qualified	BishBosh.State.MaybePieceByCoordinates		as State.MaybePieceByCoordinates
 import qualified	BishBosh.StateProperty.Mutator			as StateProperty.Mutator
+import qualified	BishBosh.StateProperty.Seeker			as StateProperty.Seeker
 import qualified	Control.Arrow
 import qualified	Data.Array.IArray
 import qualified	Data.Default
@@ -289,12 +290,12 @@ testCases	= Test.HUnit.test [
 	Data.Foldable.all (
 		Data.Foldable.all (== 1)
 	) (
-		State.CoordinatesByRankByLogicalColour.countPawnsByFileByLogicalColour $ State.Board.getCoordinatesByRankByLogicalColour (Data.Default.def :: State.Board.Board)
+		StateProperty.Seeker.countPawnsByFileByLogicalColour $ State.Board.getCoordinatesByRankByLogicalColour (Data.Default.def :: State.Board.Board)
 	) ~? "'BishBosh.State.Board.countPawnsByFileByLogicalColour': failed for default board",
 	(
 		(
 			== map (Control.Arrow.first (Cartesian.Abscissa.xMin +)) [(0, 3), (2, 2), (4, 1)]
-		) . Map.toList . (! maxBound) . State.CoordinatesByRankByLogicalColour.countPawnsByFileByLogicalColour . State.Board.getCoordinatesByRankByLogicalColour . placePieces $ map (
+		) . Map.toList . (! maxBound) . StateProperty.Seeker.countPawnsByFileByLogicalColour . State.Board.getCoordinatesByRankByLogicalColour . placePieces $ map (
 			(,) (Component.Piece.mkPawn maxBound) . Cartesian.Coordinates.mkRelativeCoordinates
 		) [
 			Control.Arrow.second succ,
