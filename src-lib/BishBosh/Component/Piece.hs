@@ -111,7 +111,7 @@ tag	= "piece"
 
 -- | The constant number of pieces per side at the conventional opening position; some of which are duplicates.
 nPiecesPerSide :: Type.Count.NPieces
-nPiecesPerSide	= Data.Foldable.sum Attribute.Rank.initialAllocationByRankPerSide
+nPiecesPerSide	= Data.Foldable.foldl' (+) 0 Attribute.Rank.initialAllocationByRankPerSide
 
 -- | A Chess-piece has a /logical colour/ & a /rank/.
 data Piece	= MkPiece {
