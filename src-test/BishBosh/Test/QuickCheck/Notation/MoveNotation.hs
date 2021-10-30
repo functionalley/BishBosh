@@ -73,7 +73,7 @@ results	= sequence [
 				turn			= Data.Maybe.fromJust $ Model.Game.maybeLastTurn game
 				(move, moveType)	= Component.QualifiedMove.getMove &&& Component.QualifiedMove.getMoveType $ Component.Turn.getQualifiedMove turn
 				(Just rank)		= fmap Component.Piece.getRank . State.MaybePieceByCoordinates.dereference (Component.Move.getDestination move) . State.Board.getMaybePieceByCoordinates $ Model.Game.getBoard game
-				
+
 	in Test.QuickCheck.quickCheckWithResult Test.QuickCheck.stdArgs { Test.QuickCheck.maxSuccess = 1024 } f
  ]
 

@@ -222,7 +222,7 @@ persist
 	=> IOOptions
 	-> Bool	-- ^ Verbose.
 	-> game
-	-> IO () 
+	-> IO ()
 persist MkIOOptions {
 	getMaybePersistence	= maybePersistence
 } verbose game = Data.Maybe.maybe (
