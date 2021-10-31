@@ -40,6 +40,7 @@ module BishBosh.Input.PieceSquareTable(
 -- ** Type-synonyms
 --	Normalise,
 --	ReflectOnY,
+	IOFormat,
 	Assocs,
 -- ** Data-types
 	PieceSquareTable(
@@ -76,7 +77,6 @@ import qualified	BishBosh.Property.FixedMembership	as Property.FixedMembership
 import qualified	BishBosh.Property.ShowFloat		as Property.ShowFloat
 import qualified	BishBosh.Text.Case			as Text.Case
 import qualified	BishBosh.Text.ShowList			as Text.ShowList
-import qualified	BishBosh.Type.Mass			as Type.Mass
 import qualified	Control.Arrow
 import qualified	Control.Exception
 import qualified	Data.Default
@@ -142,6 +142,9 @@ instance Data.Default.Default (PieceSquareTable pieceSquareValue) where
 		getPieceSquareValueByCoordinatesByRank	= Property.Empty.empty
 	}
 
+-- The format of the values when read or written.
+type IOFormat	= Double
+
 instance (
 	Fractional	pieceSquareValue,
 	Ord		pieceSquareValue,
@@ -174,11 +177,11 @@ instance (
 			showString "by" $ Text.Case.toUpperInitial Attribute.Rank.tag
 		) $ HXT.xpickle {-rank-} `HXT.xpPair` HXT.xpWrap (
 			\s -> [
-				realToFrac (pieceSquareValue :: Type.Mass.PieceSquareValue) |
+				realToFrac (pieceSquareValue :: IOFormat) |
 					word			<- words s,
 					(pieceSquareValue, "")	<- reads word
 			], -- List-comprehension.
-			unwords . map (show . (\pieceSquareValue -> realToFrac pieceSquareValue :: Type.Mass.PieceSquareValue))
+			unwords . map (show . (\pieceSquareValue -> realToFrac pieceSquareValue :: IOFormat))
 		) (
 			HXT.xpTextAttr . showString "by" $ Text.Case.toUpperInitial Cartesian.Coordinates.tag
 		)

@@ -38,20 +38,28 @@ module BishBosh.Type.Mass(
 	PieceSquareValue
 ) where
 
+#ifdef USE_PRECISION
+import			BishBosh.Data.Ratio()
+#else
 import qualified	Text.XML.HXT.Arrow.Pickle	as HXT
+#endif
 
 -- | The preferred type by which to weight criteria.
 type CriterionWeight	=
-#ifdef USE_NARROW_NUMBERS
+#ifdef USE_PRECISION
+	Rational
+#else /* Floating-point */
+#	ifdef USE_NARROW_NUMBERS
 	Float
 
 instance HXT.XmlPickler Float where
 	xpickle	= HXT.xpPrim
-#else
-	Double	-- N.B.: 'Rational' is a more accurate, but slower alternative.
+#	else
+	Double
 
 instance HXT.XmlPickler Double where
 	xpickle	= HXT.xpPrim
+#	endif
 #endif
 
 -- | The preferred type by which to value criteria.

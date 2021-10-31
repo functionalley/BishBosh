@@ -51,14 +51,14 @@ hlint: $(BIN_DIR)/hlint
 
 # Serially compile with various CPP-flags & run the test-suites.
 test:
-	@for FLAG in -polyparse newtypewrappers narrownumbers unboxedarrays -hxtrelaxng -threaded; do\
+	@for FLAG in -polyparse newtypewrappers narrownumbers unboxedarrays -hxtrelaxng -threaded precision; do\
 		echo $${FLAG};\
 		stack '$@' --flag="$(PACKAGE_NAME):$${FLAG}" $(GHC_OPTIONS) || break;\
 	done
 
 # Compile with random CPP-flags & run the test-suites.
 randomTest:
-	@FLAGS=$$(shuf --echo -- hxtrelaxng -hxtrelaxng narrownumbers -narrownumbers newtypewrappers -newtypewrappers polyparse -polyparse threaded -threaded unboxedarrays -unboxedarrays | head --lines=3 | sed -e 's/\(.*\)/--flag=$(PACKAGE_NAME):\1/');\
+	@FLAGS=$$(shuf --echo -- hxtrelaxng -hxtrelaxng narrownumbers -narrownumbers newtypewrappers -newtypewrappers polyparse -polyparse precision -precision threaded -threaded unboxedarrays -unboxedarrays | head --lines=3 | sed -e 's/\(.*\)/--flag=$(PACKAGE_NAME):\1/');\
 	echo $${FLAGS};\
 	stack test $${FLAGS} $(GHC_OPTIONS)
 

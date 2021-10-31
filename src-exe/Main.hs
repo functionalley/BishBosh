@@ -42,6 +42,7 @@ import qualified	BishBosh.Input.CommandLineOption			as Input.CommandLineOption
 import qualified	BishBosh.Input.EvaluationOptions			as Input.EvaluationOptions
 import qualified	BishBosh.Input.IOOptions				as Input.IOOptions
 import qualified	BishBosh.Input.Options					as Input.Options
+import qualified	BishBosh.Input.PieceSquareTable				as Input.PieceSquareTable
 import qualified	BishBosh.Input.PGNOptions				as Input.PGNOptions
 import qualified	BishBosh.Input.UIOptions				as Input.UIOptions
 import qualified	BishBosh.Input.Verbosity				as Input.Verbosity
@@ -275,7 +276,11 @@ main	= do
 					) ["Opening", "End"]
 				) $ map (
 					\selector	-> Component.PieceSquareByCoordinatesByRank.formatForGNUPlot (
-						Property.ShowFloat.showsFloatToN' . Input.UIOptions.getNDecimalDigits . Input.IOOptions.getUIOptions $ Input.Options.getIOOptions options	-- PieceSquareValue formatter.
+						Property.ShowFloat.showsFloatToN' (
+							Input.UIOptions.getNDecimalDigits . Input.IOOptions.getUIOptions $ Input.Options.getIOOptions options	-- PieceSquareValue formatter.
+						) . (
+							realToFrac	:: Type.Mass.PieceSquareValue -> Input.PieceSquareTable.IOFormat	-- N.B.: required when compiled with 'USE_PRECISION'.
+						)
 					) (
 						showChar '\t'	-- Column-delimiter.
 					) (

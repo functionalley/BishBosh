@@ -91,6 +91,12 @@ flag polyparse
     Description:	Link with package "polyparse" when available, rather than "parsec".
     Default:		True
 
+-- Whether to use precise (rational) types than floating-point. CAVEAT: incompatible with 'narrownumbers'.
+flag precision
+    Description:	Use precise numerical types.
+    Manual:		True
+    Default:		False
+
 -- Concurrency is used to implement Pondering, & parallelism is used when searching through archived games.
 flag threaded
     Description:	Build for parallel runtime.
@@ -271,6 +277,9 @@ Library
 
     if flag(narrownumbers)
         CPP-Options:		-DUSE_NARROW_NUMBERS
+    else
+        if flag(precision)
+            CPP-Options:	-DUSE_PRECISION
 
     if flag(newtypewrappers)
         CPP-Options:		-DUSE_NEWTYPE_WRAPPERS
@@ -345,9 +354,6 @@ Executable bishbosh
     if flag(hxtrelaxng)
         Build-depends:	hxt-relaxng
         CPP-Options:	-DUSE_HXTRELAXNG
-
-    if flag(narrownumbers)
-        CPP-Options:	-DUSE_NARROW_NUMBERS
 
     if flag(threaded)
         CPP-Options:	-DUSE_PARALLEL

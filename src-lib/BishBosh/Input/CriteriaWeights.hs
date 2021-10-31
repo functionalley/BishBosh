@@ -51,7 +51,6 @@ module BishBosh.Input.CriteriaWeights(
 -- * Functions
 	calculateWeightedMean,
 	normalise,
---	perturbWeights,
 -- ** Constructor
 	mkCriteriaWeights
 ) where
@@ -62,12 +61,10 @@ import qualified	BishBosh.Metric.CriterionWeight			as Metric.CriterionWeight
 import qualified	BishBosh.Metric.WeightedMeanAndCriterionValues	as Metric.WeightedMeanAndCriterionValues
 import qualified	BishBosh.Property.ShowFloat			as Property.ShowFloat
 import qualified	BishBosh.Text.ShowList				as Text.ShowList
-import qualified	BishBosh.Type.Mass				as Type.Mass
 import qualified	Control.Arrow
 import qualified	Control.DeepSeq
 import qualified	Control.Exception
 import qualified	Data.Default
-import qualified	System.Random
 import qualified	Text.XML.HXT.Arrow.Pickle			as HXT
 
 -- | Used to qualify the XML.
@@ -319,43 +316,4 @@ normalise criteriaWeights@MkCriteriaWeights {
 			weightOfPassedPawns
 		]
 	 ) -- Section.
-
-{- |
-	* Independently perturbs each /criterion-weight/ by a random value, of configurable magnitude.
-
-	* Under this transformation, /criterion-weight/s of @0@, will remain unchanged, thus those criteria deemed irrelevant remain irrelevant.
-
-	* The identity transform results from specification of a change-magnitude of zero.
--}
-perturbWeights
-	:: System.Random.RandomGen randomGen
-	=> randomGen
-	-> Type.Mass.CriterionWeight	-- ^ Positive change-magnitude; unbounded to permit values greater than 1.
-	-> Transformation
-perturbWeights _ 0 criteriaWeights	= criteriaWeights	-- The indentity transform.
-perturbWeights randomGen changeMagnitude MkCriteriaWeights {
-	getWeightOfMaterial		= weightOfMaterial,
-	getWeightOfMobility		= weightOfMobility,
-	getWeightOfPieceSquareValue	= weightOfPieceSquareValue,
-	getWeightOfCastlingPotential	= weightOfCastlingPotential,
-	getWeightOfDefence		= weightOfDefence,
-	getWeightOfDoubledPawns		= weightOfDoubledPawns,
-	getWeightOfIsolatedPawns	= weightOfIsolatedPawns,
-	getWeightOfPassedPawns		= weightOfPassedPawns
-}
-	| changeMagnitude < 0	= Control.Exception.throw $ Data.Exception.mkInvalidDatum "BishBosh.Input.CriteriaWeights.perturbWeights:\tchange-magnitude can't be negative."
-	| otherwise		= normalise MkCriteriaWeights {
-		getWeightOfMaterial		= a weightOfMaterial,
-		getWeightOfMobility		= b weightOfMobility,
-		getWeightOfPieceSquareValue	= c weightOfPieceSquareValue,
-		getWeightOfCastlingPotential	= d weightOfCastlingPotential,
-		getWeightOfDefence		= e weightOfDefence,
-		getWeightOfDoubledPawns		= f weightOfDoubledPawns,
-		getWeightOfIsolatedPawns	= g weightOfIsolatedPawns,
-		getWeightOfPassedPawns		= h weightOfPassedPawns
-	}
-	where
-		(a : b : c : d : e : f : g : h : _)	= map (
-			\r -> realToFrac . (/ r) . realToFrac	-- N.B. this always reduces the weight, & therefore can't breach Metric.CriterionWeight.CriterionWeight's permissible bounds.
-		 ) $ System.Random.randomRs (1, succ changeMagnitude) randomGen
 
