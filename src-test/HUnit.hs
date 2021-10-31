@@ -79,6 +79,5 @@ main	= mapM_ Test.HUnit.runTestTT [
 	Test.HUnit.Search.Search.testCases,
 #endif
 	Test.HUnit.Evaluation.Fitness.testCases
-
  ]
 
