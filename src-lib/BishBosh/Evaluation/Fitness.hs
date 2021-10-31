@@ -30,8 +30,6 @@
 
 module BishBosh.Evaluation.Fitness(
 -- * Types
--- ** Type-synonyms
---	WorkingType,
 -- * Constants
 --	maximumDestinations,
 	maximumDefended,
@@ -83,9 +81,6 @@ import qualified	Data.Maybe
 #ifdef USE_UNBOXED_ARRAYS
 import qualified	Data.Array.Unboxed
 #endif
-
--- | Used until the range of a result permits safe conversion to 'Metric.CriterionValue.CriterionValue'.
-type WorkingType	= Double
 
 -- | Measures the piece-square value from the perspective of the last player to move.
 measurePieceSquareValue :: (
@@ -184,7 +179,7 @@ measureValueOfMobility :: Model.Game.Game -> Metric.CriterionValue.CriterionValu
 measureValueOfMobility game	= realToFrac . uncurry (-) . (
 	measureConstriction &&& measureConstriction . Property.Opposable.getOpposite {-recent mover-}
  ) $ Model.Game.getNextLogicalColour game where
-	measureConstriction :: Attribute.LogicalColour.LogicalColour -> WorkingType
+	measureConstriction :: Attribute.LogicalColour.LogicalColour -> Type.Mass.CriterionValue
 	measureConstriction logicalColour	= recip . fromIntegral {-NPlies-} . succ {-avoid divide-by-zero-} $ Model.Game.countPliesAvailableTo logicalColour game
 
 -- | Measure the arithmetic difference between the potential to /Castle/, on either side.
@@ -192,7 +187,7 @@ measureValueOfCastlingPotential :: Model.Game.Game -> Metric.CriterionValue.Crit
 measureValueOfCastlingPotential game	= realToFrac . uncurry (-) . (
 	castlingPotential . Property.Opposable.getOpposite {-recent mover-} &&& castlingPotential
  ) $ Model.Game.getNextLogicalColour game where
-	castlingPotential :: Attribute.LogicalColour.LogicalColour -> WorkingType
+	castlingPotential :: Attribute.LogicalColour.LogicalColour -> Type.Mass.CriterionValue
 	castlingPotential	= Data.Maybe.maybe 1 {-have Castled-} (
 		(/ 2) . fromIntegral . length
 	 ) . (
@@ -209,7 +204,7 @@ measureValueOfCastlingPotential game	= realToFrac . uncurry (-) . (
 measureValueOfDoubledPawns :: Model.Game.Game -> Metric.CriterionValue.CriterionValue
 measureValueOfDoubledPawns game	= realToFrac . (
 	/ (
-		6	:: WorkingType	-- Normalise to [-1 .. 1]; the optimal scenario is all files containing one Pawn; the worst scenario is two files each containing four Pawns, all but one per file of which are counted as doubled.
+		6	:: Type.Mass.CriterionValue	-- Normalise to [-1 .. 1]; the optimal scenario is all files containing one Pawn; the worst scenario is two files each containing four Pawns, all but one per file of which are counted as doubled.
 	)
  ) . fromIntegral {-NPieces-} . uncurry (-) . (
 	countDoubledPawns &&& countDoubledPawns . Property.Opposable.getOpposite {-recent mover-}
@@ -227,7 +222,7 @@ measureValueOfDoubledPawns game	= realToFrac . (
 measureValueOfIsolatedPawns :: Model.Game.Game -> Metric.CriterionValue.CriterionValue
 measureValueOfIsolatedPawns game	= realToFrac . (
 	/ (
-		fromIntegral {-X-} Cartesian.Abscissa.xLength	:: WorkingType	-- Normalise to [-1 .. 1]; the optimal scenario is eight files each containing one Pawn & the worst scenario is all Pawns isolated (e.g. 4 alternate files of 2, 2 separate files or 4, ...).
+		fromIntegral {-X-} Cartesian.Abscissa.xLength	:: Type.Mass.CriterionValue	-- Normalise to [-1 .. 1]; the optimal scenario is eight files each containing one Pawn & the worst scenario is all Pawns isolated (e.g. 4 alternate files of 2, 2 separate files or 4, ...).
 	)
  ) . fromIntegral {-NPieces-} . uncurry (-) . (
 	countIsolatedPawns &&& countIsolatedPawns . Property.Opposable.getOpposite {-recent mover-}
@@ -247,7 +242,7 @@ measureValueOfPassedPawns game	= realToFrac . (
  ) . uncurry (-) . (
 	valuePassedPawns . Property.Opposable.getOpposite {-recent mover-} &&& valuePassedPawns
  ) $ Model.Game.getNextLogicalColour game where
-	valuePassedPawns :: Attribute.LogicalColour.LogicalColour -> WorkingType
+	valuePassedPawns :: Attribute.LogicalColour.LogicalColour -> Type.Mass.CriterionValue
 	valuePassedPawns logicalColour	= Data.List.foldl' (
 		\acc -> (acc +) . recip {-value increases exponentially as distance to promotion decreases-} . fromIntegral . abs . subtract (
 			Cartesian.Ordinate.lastRank logicalColour
@@ -285,7 +280,7 @@ maximumDefended	= 70
 measureValueOfDefence :: Model.Game.Game -> Metric.CriterionValue.CriterionValue
 measureValueOfDefence game	= realToFrac . (
 	/ (
-		fromIntegral {-NPieces-} maximumDefended	:: WorkingType	-- Normalise.
+		fromIntegral {-NPieces-} maximumDefended	:: Type.Mass.CriterionValue	-- Normalise.
 	)
  ) . fromIntegral {-NPieces-} . uncurry (-) . (
 	(! Property.Opposable.getOpposite {-recent mover-} nextLogicalColour) &&& (! nextLogicalColour)
