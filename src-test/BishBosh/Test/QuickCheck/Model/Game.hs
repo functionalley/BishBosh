@@ -332,7 +332,7 @@ results	= sequence [
 		 ) && not (
 			Property.Null.isNull game
 		 ) ==> Test.QuickCheck.label "Game.prop_measurePieceSquareValueIncrementally" . (
-			< recip 10000000	-- Tolerance for floating-point errors.
+			< recip 1000000	-- Tolerance for floating-point errors.
 		 ) . abs . uncurry (-) $ (
 			Evaluation.Fitness.measurePieceSquareValue pieceSquareByCoordinatesByRank &&& Evaluation.Fitness.measurePieceSquareValueIncrementally (
 				Evaluation.Fitness.measurePieceSquareValue pieceSquareByCoordinatesByRank oldGame
