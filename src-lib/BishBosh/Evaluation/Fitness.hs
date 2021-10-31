@@ -98,12 +98,12 @@ measurePieceSquareValue :: (
 	-> Model.Game.Game
 	-> pieceSquareValue
 {-# SPECIALISE measurePieceSquareValue :: Component.PieceSquareByCoordinatesByRank.PieceSquareByCoordinatesByRank Type.Mass.PieceSquareValue -> Model.Game.Game -> Type.Mass.PieceSquareValue #-}
-measurePieceSquareValue pieceSquareByCoordinatesByRank game
-	| Attribute.LogicalColour.isBlack $ Model.Game.getNextLogicalColour game	= difference
-	| otherwise									= negate difference	-- Represent the piece-square value from Black's perspective.
-	where
-		[blacksPieceSquareValue, whitesPieceSquareValue]	= Data.Array.IArray.elems . State.Board.sumPieceSquareValueByLogicalColour pieceSquareByCoordinatesByRank $ Model.Game.getBoard game
-		difference						= whitesPieceSquareValue - blacksPieceSquareValue
+measurePieceSquareValue pieceSquareByCoordinatesByRank game	= (
+	if Attribute.LogicalColour.isBlack $ Model.Game.getNextLogicalColour game
+		then id
+		else negate	-- Represent the piece-square value from Black's perspective.
+ ) $ whitesPieceSquareValue - blacksPieceSquareValue where
+	[blacksPieceSquareValue, whitesPieceSquareValue]	= Data.Array.IArray.elems . State.Board.sumPieceSquareValueByLogicalColour pieceSquareByCoordinatesByRank $ Model.Game.getBoard game
 
 {- |
 	* Measures the piece-square value from the perspective of the last player to move.
@@ -124,19 +124,18 @@ measurePieceSquareValueIncrementally :: (
 	-> pieceSquareValue
 {-# SPECIALISE measurePieceSquareValueIncrementally :: Type.Mass.PieceSquareValue -> Component.PieceSquareByCoordinatesByRank.PieceSquareByCoordinatesByRank Type.Mass.PieceSquareValue -> Model.Game.Game -> Type.Mass.PieceSquareValue #-}
 measurePieceSquareValueIncrementally previousPieceSquareValue pieceSquareByCoordinatesByRank game
-	| Attribute.MoveType.isQuiet $ Component.QualifiedMove.getMoveType qualifiedMove	= let
-		findPieceSquareValues coordinatesList	= Component.PieceSquareByCoordinatesByRank.findPieceSquareValues (
-			State.Board.getNPieces $ Model.Game.getBoard game	-- N.B.: no capture occurred.
+	| Attribute.MoveType.isSimple $ Component.QualifiedMove.getMoveType qualifiedMove	= let
+		findPieceSquareValue	= uncurry (
+			Component.PieceSquareByCoordinatesByRank.findPieceSquareValue pieceSquareByCoordinatesByRank
 		 ) (
-			Property.Opposable.getOpposite $ Model.Game.getNextLogicalColour game	-- The last player to move.
+			State.Board.getNPieces {- N.B.: no capture occurred-} . Model.Game.getBoard &&& Property.Opposable.getOpposite . Model.Game.getNextLogicalColour $ game	{-the last player to move-}
 		 ) (
 			Component.Turn.getRank turn	-- N.B.: no promotion occurred.
-		 ) coordinatesList pieceSquareByCoordinatesByRank
-
-		(destination, source)					= Component.Move.getDestination &&& Component.Move.getSource $ Component.QualifiedMove.getMove qualifiedMove
-		[destinationPieceSquareValue, sourcePiecesquareValue]	= findPieceSquareValues [destination, source]
-	in (destinationPieceSquareValue - sourcePiecesquareValue) - previousPieceSquareValue {-from the previous player's perspective-}
-	| otherwise					= measurePieceSquareValue pieceSquareByCoordinatesByRank game	-- N.B.: though Castling, En-passant, & promotion, can also be calculated, the returns don't justify the effort.
+		 )
+	in uncurry (-) (
+		findPieceSquareValue . Component.Move.getDestination &&& findPieceSquareValue . Component.Move.getSource $ Component.QualifiedMove.getMove qualifiedMove
+	) - previousPieceSquareValue {-from the previous player's perspective-}
+	| otherwise	= measurePieceSquareValue pieceSquareByCoordinatesByRank game	-- N.B.: though non-simple (Castling, En-passant, promotion) can be calculated, the returns don't justify the effort.
 	where
 		Just turn	= Model.Game.maybeLastTurn game
 		qualifiedMove	= Component.Turn.getQualifiedMove turn

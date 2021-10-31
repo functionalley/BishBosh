@@ -130,6 +130,7 @@ New Module				| Purpose
 	+ Avoided potential divide-by-zero @ **BishBosh.Input.CriteriaWeights.getWeightOfMaterial** / **BishBosh.Input.RankValues.calculateMaximumTotalValue** @.
 	+ Guarded against starting from a persisted, but terminated, game.
 	+ Added guards to function **BishBosh.Component.Piece.promote**.
+	+ Amended **BishBosh.Evaluation.Fitness.measurePieceSquareValueIncrementally** to forward Castling moves to **measurePieceSquareValue**.
 	+ Polymorphism:
 		* Replaced the polymorphic type **distance** in **BishBosh.Component.Vector**, with two concrete types **BishBosh.Type.Length.[XY]**. Removed the type **BishBosh.Type.Length.Distance**.
 		* Replaced the polymorphic type-parameters **x** & **y** with newtypes to:

@@ -411,7 +411,7 @@ sumPieceSquareValueByLogicalColour :: (
 sumPieceSquareValueByLogicalColour pieceSquareByCoordinatesByRank MkBoard {
 	getCoordinatesByRankByLogicalColour	= coordinatesByRankByLogicalColour,
 	getNPieces				= nPieces
-} = Attribute.LogicalColour.listArrayByLogicalColour $ Component.Accountant.sumPieceSquareValueByLogicalColour nPieces pieceSquareByCoordinatesByRank coordinatesByRankByLogicalColour
+} = Attribute.LogicalColour.listArrayByLogicalColour $ Component.Accountant.sumPieceSquareValueByLogicalColour pieceSquareByCoordinatesByRank nPieces coordinatesByRankByLogicalColour
 
 {- |
 	* Lists the source-/coordinates/ from which the referenced destination can be attacked.

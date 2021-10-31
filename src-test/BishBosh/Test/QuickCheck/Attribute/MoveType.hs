@@ -61,6 +61,12 @@ results	= sequence [
 		f = Test.QuickCheck.label "MoveType.prop_isQuiet" . uncurry (==) . (
 			Attribute.MoveType.isQuiet &&& not . uncurry (||) . (Attribute.MoveType.isCapture &&& Attribute.MoveType.isPromotion)
 		 )
+	in Test.QuickCheck.quickCheckWithResult Test.QuickCheck.stdArgs { Test.QuickCheck.maxSuccess = 64} f,
+	let
+		f :: Attribute.MoveType.MoveType -> Test.QuickCheck.Property
+		f = Test.QuickCheck.label "MoveType.prop_isSimple" . uncurry (==) . (
+			Attribute.MoveType.isSimple &&& uncurry (&&) . (Attribute.MoveType.isQuiet &&& not . Attribute.MoveType.isCastle)
+		 )
 	in Test.QuickCheck.quickCheckWithResult Test.QuickCheck.stdArgs { Test.QuickCheck.maxSuccess = 64} f
  ]
 

@@ -30,33 +30,36 @@ module BishBosh.Test.QuickCheck.Model.Game(
 
 import			Control.Arrow((&&&))
 import			Data.Array.IArray((!))
-import qualified	BishBosh.Attribute.MoveType			as Attribute.MoveType
-import qualified	BishBosh.Attribute.Rank				as Attribute.Rank
-import qualified	BishBosh.Cartesian.Coordinates			as Cartesian.Coordinates
-import qualified	BishBosh.Cartesian.Ordinate			as Cartesian.Ordinate
-import qualified	BishBosh.Component.Move				as Component.Move
-import qualified	BishBosh.Component.Piece			as Component.Piece
-import qualified	BishBosh.Component.QualifiedMove		as Component.QualifiedMove
-import qualified	BishBosh.Component.Turn				as Component.Turn
-import qualified	BishBosh.Model.Game				as Model.Game
-import qualified	BishBosh.Property.FixedMembership		as Property.FixedMembership
-import qualified	BishBosh.Property.ForsythEdwards		as Property.ForsythEdwards
-import qualified	BishBosh.Property.Null				as Property.Null
-import qualified	BishBosh.Property.Opposable			as Property.Opposable
-import qualified	BishBosh.Property.Reflectable			as Property.Reflectable
-import qualified	BishBosh.Rule.DrawReason			as Rule.DrawReason
-import qualified	BishBosh.State.Board				as State.Board
-import qualified	BishBosh.State.CastleableRooksByLogicalColour	as State.CastleableRooksByLogicalColour
-import qualified	BishBosh.State.CoordinatesByRankByLogicalColour	as State.CoordinatesByRankByLogicalColour
-import qualified	BishBosh.State.MaybePieceByCoordinates		as State.MaybePieceByCoordinates
-import qualified	BishBosh.StateProperty.Seeker			as StateProperty.Seeker
-import qualified	BishBosh.State.TurnsByLogicalColour		as State.TurnsByLogicalColour
-import qualified	BishBosh.Type.Count				as Type.Count
+import qualified	BishBosh.Attribute.MoveType				as Attribute.MoveType
+import qualified	BishBosh.Attribute.Rank					as Attribute.Rank
+import qualified	BishBosh.Cartesian.Coordinates				as Cartesian.Coordinates
+import qualified	BishBosh.Cartesian.Ordinate				as Cartesian.Ordinate
+import qualified	BishBosh.Component.Move					as Component.Move
+import qualified	BishBosh.Component.Piece				as Component.Piece
+import qualified	BishBosh.Component.QualifiedMove			as Component.QualifiedMove
+import qualified	BishBosh.Component.Turn					as Component.Turn
+import qualified	BishBosh.Evaluation.Fitness				as Evaluation.Fitness
+import qualified	BishBosh.Input.EvaluationOptions			as Input.EvaluationOptions
+import qualified	BishBosh.Model.Game					as Model.Game
+import qualified	BishBosh.Property.FixedMembership			as Property.FixedMembership
+import qualified	BishBosh.Property.ForsythEdwards			as Property.ForsythEdwards
+import qualified	BishBosh.Property.Null					as Property.Null
+import qualified	BishBosh.Property.Opposable				as Property.Opposable
+import qualified	BishBosh.Property.Reflectable				as Property.Reflectable
+import qualified	BishBosh.Rule.DrawReason				as Rule.DrawReason
+import qualified	BishBosh.State.Board					as State.Board
+import qualified	BishBosh.State.CastleableRooksByLogicalColour		as State.CastleableRooksByLogicalColour
+import qualified	BishBosh.State.CoordinatesByRankByLogicalColour		as State.CoordinatesByRankByLogicalColour
+import qualified	BishBosh.State.MaybePieceByCoordinates			as State.MaybePieceByCoordinates
+import qualified	BishBosh.StateProperty.Seeker				as StateProperty.Seeker
+import qualified	BishBosh.State.TurnsByLogicalColour			as State.TurnsByLogicalColour
+import qualified	BishBosh.Test.QuickCheck.Input.EvaluationOptions	as Test.QuickCheck.Input.EvaluationOptions
+import qualified	BishBosh.Type.Count					as Type.Count
 import qualified	Data.Array.IArray
 import qualified	Data.Default
 import qualified	Data.Foldable
 import qualified	Data.List
-import qualified	Data.Map					as Map
+import qualified	Data.Map						as Map
 import qualified	Data.Maybe
 import qualified	Data.Ord
 import qualified	System.Random
@@ -321,6 +324,22 @@ results	= sequence [
 				(/= Cartesian.Ordinate.yMin) &&& (/= Cartesian.Ordinate.yMax)
 			) . Cartesian.Coordinates.getY . fst {-coordinates-}
 		 ) . StateProperty.Seeker.findPieces Component.Piece.isPawn . State.Board.getCoordinatesByRankByLogicalColour $ Model.Game.getBoard game
-	in Test.QuickCheck.quickCheckWithResult Test.QuickCheck.stdArgs { Test.QuickCheck.maxSuccess = 256 } f
+	in Test.QuickCheck.quickCheckWithResult Test.QuickCheck.stdArgs { Test.QuickCheck.maxSuccess = 256 } f,
+	let
+		f :: Test.QuickCheck.Input.EvaluationOptions.EvaluationOptions -> Model.Game.Game -> Test.QuickCheck.Property
+		f evaluationOptions game	= Data.Maybe.isJust (
+			Input.EvaluationOptions.getMaybePieceSquareByCoordinatesByRank evaluationOptions
+		 ) && not (
+			Property.Null.isNull game
+		 ) ==> Test.QuickCheck.label "Game.prop_measurePieceSquareValueIncrementally" . (
+			< recip 10000000	-- Tolerance for floating-point errors.
+		 ) . abs . uncurry (-) $ (
+			Evaluation.Fitness.measurePieceSquareValue pieceSquareByCoordinatesByRank &&& Evaluation.Fitness.measurePieceSquareValueIncrementally (
+				Evaluation.Fitness.measurePieceSquareValue pieceSquareByCoordinatesByRank oldGame
+			) pieceSquareByCoordinatesByRank
+		 ) game where
+			pieceSquareByCoordinatesByRank	= Data.Maybe.fromJust $ Input.EvaluationOptions.getMaybePieceSquareByCoordinatesByRank evaluationOptions
+			(oldGame, _) : _		= Model.Game.rollBack game
+	in Test.QuickCheck.quickCheckWithResult Test.QuickCheck.stdArgs { Test.QuickCheck.maxSuccess = 2048 } f
  ]
 

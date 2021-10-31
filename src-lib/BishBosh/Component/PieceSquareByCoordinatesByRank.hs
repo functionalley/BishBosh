@@ -37,7 +37,6 @@ module BishBosh.Component.PieceSquareByCoordinatesByRank(
 	gnuPlotComment,
 -- * Functions
 	findPieceSquareValue,
-	findPieceSquareValues,
 	interpolatePieceSquareValues,
 	formatForGNUPlot,
 -- ** Constructor
@@ -93,39 +92,19 @@ mkPieceSquareByCoordinatesByRank	= MkPieceSquareByCoordinatesByRank . Attribute.
 
 -- | Find the piece-square value, at a stage in the game's lifetime defined by the total number of pieces remaining, for the specified /rank/ & /coordinates/.
 findPieceSquareValue
-	:: Type.Count.NPieces				-- ^ The progress through the game.
+	:: PieceSquareByCoordinatesByRank pieceSquareValue
+	-> Type.Count.NPieces				-- ^ The progress through the game.
 	-> Attribute.LogicalColour.LogicalColour	-- ^ The /piece/'s /logical colour/.
 	-> Attribute.Rank.Rank				-- ^ The /piece/'s /rank/.
 	-> Cartesian.Coordinates.Coordinates		-- ^ The /piece/'s location.
-	-> PieceSquareByCoordinatesByRank pieceSquareValue
 	-> pieceSquareValue
-findPieceSquareValue nPieces logicalColour rank coordinates MkPieceSquareByCoordinatesByRank { deconstruct = byRank }	= (
+findPieceSquareValue MkPieceSquareByCoordinatesByRank { deconstruct = byRank } nPieces logicalColour rank	= (
 	(!) ||| (
 		\byNPiecesByCoordinates	-> (! nPieces) . (byNPiecesByCoordinates !)
 	) $ byRank ! rank
- ) $ (
-	if Attribute.LogicalColour.isBlack logicalColour
-		then Property.Reflectable.reflectOnX
-		else id
- ) coordinates
-
--- | Find the piece-square values, at a stage in the game's lifetime defined by the total number of pieces remaining, for the specified /rank/ & list of /coordinates/.
-findPieceSquareValues
-	:: Type.Count.NPieces				-- ^ The progress through the game.
-	-> Attribute.LogicalColour.LogicalColour	-- ^ The /piece/'s /logical colour/.
-	-> Attribute.Rank.Rank				-- ^ The /piece/'s /rank/.
-	-> [Cartesian.Coordinates.Coordinates]		-- ^ The locations of interest for the specified /piece/.
-	-> PieceSquareByCoordinatesByRank pieceSquareValue
-	-> [pieceSquareValue]
-findPieceSquareValues nPieces logicalColour rank coordinatesList MkPieceSquareByCoordinatesByRank { deconstruct = byRank }	= (
-	(!) ||| (
-		\byNPiecesByCoordinates	-> (! nPieces) . (byNPiecesByCoordinates !)
-	) $ byRank ! rank
- ) `map` (
-	if Attribute.LogicalColour.isBlack logicalColour
-		then map Property.Reflectable.reflectOnX
-		else id
- ) coordinatesList
+ ) . if Attribute.LogicalColour.isBlack logicalColour
+	then Property.Reflectable.reflectOnX
+	else id
 
 -- | Given the bounds over which two piece-square values vary as the game progresses from opening to end, return linearly interpolated values for all stages.
 interpolatePieceSquareValues

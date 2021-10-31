@@ -165,9 +165,11 @@ instance StateProperty.Seeker.Seeker CoordinatesByRankByLogicalColour {-CAVEAT: 
 	 ) byLogicalColour
 
 instance Component.Accountant.Accountant CoordinatesByRankByLogicalColour where
-	sumPieceSquareValueByLogicalColour nPieces pieceSquareByCoordinatesByRank MkCoordinatesByRankByLogicalColour { deconstruct = byLogicalColour }	= map (
+	sumPieceSquareValueByLogicalColour pieceSquareByCoordinatesByRank nPieces MkCoordinatesByRankByLogicalColour { deconstruct = byLogicalColour }	= map (
 		\(logicalColour, byRank) -> Data.List.foldl' (
-			\acc -> Data.List.foldl' (+) acc . ($ pieceSquareByCoordinatesByRank) . uncurry (Component.PieceSquareByCoordinatesByRank.findPieceSquareValues nPieces logicalColour) 
+			\acc (rank, coordinatesList) -> Data.List.foldl' (
+				\acc' -> (+ acc') . Component.PieceSquareByCoordinatesByRank.findPieceSquareValue pieceSquareByCoordinatesByRank nPieces logicalColour rank
+			) acc coordinatesList
 		) 0 $ Data.Array.IArray.assocs byRank
 	 ) $ Data.Array.IArray.assocs byLogicalColour
 

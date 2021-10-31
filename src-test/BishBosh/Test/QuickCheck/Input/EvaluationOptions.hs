@@ -90,7 +90,7 @@ results	= sequence [
 	let
 		f :: Input.EvaluationOptions.EvaluationOptions Rational {-precision is required-} -> State.Board.Board -> Test.QuickCheck.Property
 		f evaluationOptions board	= Data.Maybe.isJust maybePieceSquareByCoordinatesByRank ==> Test.QuickCheck.label "EvaluationOptions.prop_sumPieceSquareValueByLogicalColour" . uncurry (==) $ (
-			Component.Accountant.sumPieceSquareValueByLogicalColour nPieces pieceSquareByCoordinatesByRank . State.Board.getCoordinatesByRankByLogicalColour &&& Component.Accountant.sumPieceSquareValueByLogicalColour nPieces pieceSquareByCoordinatesByRank . State.Board.getMaybePieceByCoordinates
+			Component.Accountant.sumPieceSquareValueByLogicalColour pieceSquareByCoordinatesByRank nPieces . State.Board.getCoordinatesByRankByLogicalColour &&& Component.Accountant.sumPieceSquareValueByLogicalColour pieceSquareByCoordinatesByRank nPieces . State.Board.getMaybePieceByCoordinates
 		 ) board where
 			maybePieceSquareByCoordinatesByRank	= Input.EvaluationOptions.getMaybePieceSquareByCoordinatesByRank evaluationOptions
 			pieceSquareByCoordinatesByRank		= Data.Maybe.fromJust maybePieceSquareByCoordinatesByRank

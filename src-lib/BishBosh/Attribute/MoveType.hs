@@ -49,6 +49,7 @@ module BishBosh.Attribute.MoveType(
 	isCapture,
 	isPromotion,
 	isQuiet,
+	isSimple,
 	isAcyclic,
 -- ** Query
 	getMaybeExplicitlyTakenRank,
@@ -232,6 +233,14 @@ isQuiet Normal {
 	getMaybePromotionRank	= Nothing
 }			= True
 isQuiet	moveType	= isCastle moveType
+
+-- | The simplest type of move.
+isSimple :: MoveType -> Bool
+isSimple Normal {
+	getMaybeTakenRank	= Nothing,
+	getMaybePromotionRank	= Nothing
+}		= True
+isSimple _	= False	-- Neither Castling nor En-passant qualifies.
 
 {- |
 	* Whether the /move/ can't be a member of a repeated cycle.

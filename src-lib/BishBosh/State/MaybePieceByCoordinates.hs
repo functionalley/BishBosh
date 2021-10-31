@@ -277,12 +277,12 @@ instance StateProperty.Seeker.Seeker MaybePieceByCoordinates where
 	 ] -- List-comprehension.
 
 instance Component.Accountant.Accountant MaybePieceByCoordinates where
-	sumPieceSquareValueByLogicalColour nPieces pieceSquareByCoordinatesByRank = (
+	sumPieceSquareValueByLogicalColour pieceSquareByCoordinatesByRank nPieces = (
 		\(b, w) -> [b, w]
 	 ) . Data.List.foldl' (
 		\(b, w) (coordinates, piece) -> let
 			logicalColour		= Component.Piece.getLogicalColour piece
-			pieceSquareValue	= Component.PieceSquareByCoordinatesByRank.findPieceSquareValue nPieces logicalColour (Component.Piece.getRank piece) coordinates pieceSquareByCoordinatesByRank 
+			pieceSquareValue	= Component.PieceSquareByCoordinatesByRank.findPieceSquareValue pieceSquareByCoordinatesByRank nPieces logicalColour (Component.Piece.getRank piece) coordinates
 		in if Attribute.LogicalColour.isBlack logicalColour
 			then let b' = b + pieceSquareValue in b' `seq` (b', w)
 			else let w' = w + pieceSquareValue in w' `seq` (b, w')
