@@ -58,7 +58,7 @@ test:
 
 # Compile with random CPP-flags & run the test-suites.
 randomTest:
-	@FLAGS=$$(shuf --echo -- hxtrelaxng -hxtrelaxng narrownumbers -narrownumbers newtypewrappers -newtypewrappers polyparse -polyparse precision -precision threaded -threaded unboxedarrays -unboxedarrays | head --lines=3 | sed -e 's/\(.*\)/--flag=$(PACKAGE_NAME):\1/');\
+	FLAGS=$$(shuf --echo -- hxtrelaxng narrownumbers newtypewrappers polyparse precision threaded unboxedarrays | head --lines=3 | sed -e '1s/^/-/' -e 's/\(.*\)/--flag=$(PACKAGE_NAME):\1/');\
 	echo $${FLAGS};\
 	stack test $${FLAGS} $(GHC_OPTIONS)
 
