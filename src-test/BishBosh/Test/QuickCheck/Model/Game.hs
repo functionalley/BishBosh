@@ -1,3 +1,4 @@
+{-# LANGUAGE CPP #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 {-
 	Copyright (C) 2018 Dr. Alistair Ward
@@ -29,11 +30,8 @@ module BishBosh.Test.QuickCheck.Model.Game(
 ) where
 
 import			Control.Arrow((&&&))
-import			Data.Array.IArray((!))
 import qualified	BishBosh.Attribute.MoveType				as Attribute.MoveType
 import qualified	BishBosh.Attribute.Rank					as Attribute.Rank
-import qualified	BishBosh.Cartesian.Coordinates				as Cartesian.Coordinates
-import qualified	BishBosh.Cartesian.Ordinate				as Cartesian.Ordinate
 import qualified	BishBosh.Component.Move					as Component.Move
 import qualified	BishBosh.Component.Piece				as Component.Piece
 import qualified	BishBosh.Component.QualifiedMove			as Component.QualifiedMove
@@ -213,24 +211,6 @@ results	= sequence [
 	in Test.QuickCheck.quickCheckWithResult Test.QuickCheck.stdArgs { Test.QuickCheck.maxSuccess = 2048 } f,
 	let
 		f :: Model.Game.Game -> Test.QuickCheck.Property
-		f = Test.QuickCheck.label "Game.prop_(getNPawnsByFileByLogicalColour => countPawnsByFileByLogicalColour)" . uncurry (==) . (
-			State.Board.getNPawnsByFileByLogicalColour &&& StateProperty.Seeker.countPawnsByFileByLogicalColour . State.Board.getCoordinatesByRankByLogicalColour
-		 ) . Model.Game.getBoard
-	in Test.QuickCheck.quickCheckWithResult Test.QuickCheck.stdArgs { Test.QuickCheck.maxSuccess = 256 } f,
-	let
-		f :: Model.Game.Game -> Test.QuickCheck.Property
-		f = Test.QuickCheck.label "Game.prop_countPawnsByFileByLogicalColour" . uncurry (==) . (
-			StateProperty.Seeker.countPawnsByFileByLogicalColour . State.Board.getMaybePieceByCoordinates &&& StateProperty.Seeker.countPawnsByFileByLogicalColour . State.Board.getCoordinatesByRankByLogicalColour
-		 ) . Model.Game.getBoard
-	in Test.QuickCheck.quickCheckWithResult Test.QuickCheck.stdArgs { Test.QuickCheck.maxSuccess = 256 } f,
-	let
-		f :: Model.Game.Game -> Test.QuickCheck.Property
-		f = Test.QuickCheck.label "Game.prop_(summariseNPawnsByLogicalColour vs getNPiecesDifferenceByRank)" . uncurry (==) . (
-			uncurry (-) . ((! maxBound) &&& (! minBound)) . StateProperty.Seeker.summariseNPawnsByLogicalColour &&& (! Attribute.Rank.Pawn) . State.Board.getNPiecesDifferenceByRank
-		 ) . Model.Game.getBoard
-	in Test.QuickCheck.quickCheckWithResult Test.QuickCheck.stdArgs { Test.QuickCheck.maxSuccess = 256 } f,
-	let
-		f :: Model.Game.Game -> Test.QuickCheck.Property
 		f = Test.QuickCheck.label "Game.prop_getNPawnsByFileByLogicalColour/non-zero" . Data.Foldable.all (
 			Data.Foldable.all (> 0)
 		 ) . State.Board.getNPawnsByFileByLogicalColour . Model.Game.getBoard
@@ -318,22 +298,25 @@ results	= sequence [
 			maybePieceByCoordinates	= State.Board.getMaybePieceByCoordinates board
 	in Test.QuickCheck.quickCheckWithResult Test.QuickCheck.stdArgs { Test.QuickCheck.maxSuccess = 1024 } f,
 	let
-		f :: Model.Game.Game -> Test.QuickCheck.Property
-		f game	= Test.QuickCheck.label "Game.prop_pawnOrdinates" . all (
-			uncurry (&&) . (
-				(/= Cartesian.Ordinate.yMin) &&& (/= Cartesian.Ordinate.yMax)
-			) . Cartesian.Coordinates.getY . fst {-coordinates-}
-		 ) . StateProperty.Seeker.findPieces Component.Piece.isPawn . State.Board.getCoordinatesByRankByLogicalColour $ Model.Game.getBoard game
-	in Test.QuickCheck.quickCheckWithResult Test.QuickCheck.stdArgs { Test.QuickCheck.maxSuccess = 256 } f,
-	let
 		f :: Test.QuickCheck.Input.EvaluationOptions.EvaluationOptions -> Model.Game.Game -> Test.QuickCheck.Property
 		f evaluationOptions game	= Data.Maybe.isJust (
 			Input.EvaluationOptions.getMaybePieceSquareByCoordinatesByRank evaluationOptions
 		 ) && not (
 			Property.Null.isNull game
-		 ) ==> Test.QuickCheck.label "Game.prop_measurePieceSquareValueIncrementally" . (
-			< recip 1000000	-- Tolerance for floating-point errors.
-		 ) . abs . uncurry (-) $ (
+		 ) ==> Test.QuickCheck.label "Game.prop_measurePieceSquareValueIncrementally" .
+#ifdef USE_PRECISION
+		 uncurry (==)
+#else
+		 (
+			< recip 
+#	if USE_NARROW_NUMBERS
+			100000
+#	else
+			10000000000
+#	endif
+		 ) . abs . uncurry (-)	-- Tolerance for floating-point errors.
+#endif
+		 $ (
 			Evaluation.Fitness.measurePieceSquareValue pieceSquareByCoordinatesByRank &&& Evaluation.Fitness.measurePieceSquareValueIncrementally (
 				Evaluation.Fitness.measurePieceSquareValue pieceSquareByCoordinatesByRank oldGame
 			) pieceSquareByCoordinatesByRank

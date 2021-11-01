@@ -72,6 +72,7 @@ flag hxtrelaxng
     Default:		True
 
 -- Whether to use narrower numerical types than machine-defaults. CAVEAT: this option increases both the space allocated & the execution-time.
+-- CAVEAT: incompatble with the flag 'precision'.
 flag narrownumbers
     Description:	Use narrow numerical types.
     Manual:		True
@@ -91,9 +92,9 @@ flag polyparse
     Description:	Link with package "polyparse" when available, rather than "parsec".
     Default:		True
 
--- Whether to use precise (rational) types than floating-point. CAVEAT: incompatible with 'narrownumbers'.
+-- Whether to use precise (rational) types rather than floating-point. CAVEAT: incompatible with 'narrownumbers'.
 flag precision
-    Description:	Use precise numerical types.
+    Description:	Use precise numerical types. CAVEAT: this is incompatible with either 'unboxedarrays' or 'narrownumbers'.
     Manual:		True
     Default:		False
 
@@ -104,6 +105,7 @@ flag threaded
     Default:		True
 
 -- Whether to use unboxed arrays where possible.
+-- CAVEAT: incompatble with the flag 'precision'.
 flag unboxedarrays
     Description:	Use unboxed arrays.
     Manual:		True
@@ -115,9 +117,56 @@ flag unix
     Description:	Link with package "unix" when available.
     Default:		True
 
-Library
+common commonStanza
     Default-language:	Haskell2010
-    GHC-options:	-O2 -Wall -fno-warn-tabs -fno-warn-unused-top-binds -Wno-all-missed-specialisations
+
+    Build-depends:
+        base		== 4.*,
+        containers	^>= 0.6.2,
+        data-default	^>= 0.7.1,
+        filepath	^>= 1.4.2
+
+    GHC-options:	-Wall -Wredundant-constraints -fno-warn-tabs
+
+common exeStanza
+    Hs-source-dirs:	src-exe
+    GHC-options:	-O2
+    Autogen-modules:	Paths_bishbosh
+    Other-modules:	Paths_bishbosh
+    Build-depends:
+        bishbosh,
+        hxt	^>= 9.3.1
+
+    if impl(ghc >= 7.0) && flag(llvm)
+        GHC-options:	-fllvm
+
+common profStanza
+    if impl(ghc >= 7.4.1)
+        GHC-prof-options:	-fprof-auto -fprof-cafs
+
+        if flag(threaded)
+            GHC-prof-options:	-fno-prof-count-entries
+    else
+        GHC-prof-options:	-auto-all -caf-all
+
+common testStanza
+    Hs-source-dirs:	src-test
+    Build-depends:
+        array		^>= 0.5.1.1,
+        bishbosh,
+        mtl		^>= 2.2.2,
+        random		^>= 1.1,
+        toolshed	^>= 0.18.0
+
+    if flag(polyparse)
+        Build-depends:	polyparse ^>= 1.13
+        CPP-Options:	-DUSE_POLYPARSE='L'
+    else
+        Build-depends:	parsec ^>= 3.1.14.0
+
+Library
+    Import:		commonStanza, profStanza
+    GHC-options:	-O2 -fno-warn-unused-top-binds -Wno-all-missed-specialisations
     Hs-source-dirs:	src-lib
 
     Exposed-modules:
@@ -245,65 +294,46 @@ Library
         BishBosh.UI.SetObject
 
     Build-depends:
-        array >= 0.5.1.1,
-        base >= 4.9 && < 5.0,
-        containers,
-        data-default,
-        deepseq >= 1.4.1,
-        extra,
-        factory >= 0.3.1,
-        filepath,
-        hxt,
-        mtl,
-        process >= 1.6.4,
-        random,
-        time,
-        toolshed >= 0.18
+        array		^>= 0.5.1.1,
+        deepseq		^>= 1.4.1,
+        extra		^>= 1.7.4,
+        factory		^>= 0.3.1,
+        hxt		^>= 9.3.1,
+        mtl		^>= 2.2.2,
+        process		^>= 1.6.4,
+        random		^>= 1.1,
+        time		^>= 1.9.3,
+        toolshed	^>= 0.18.0
 
-    if impl(ghc >= 7.0)
-        if flag(llvm)
-            GHC-options:	-fllvm
+    if impl(ghc >= 7.0) && flag(llvm)
+        GHC-options:	-fllvm
 
-        if impl(ghc >= 7.4.1)
-            GHC-prof-options:	-fprof-auto -fprof-cafs
-
-            if flag(threaded)
-                GHC-prof-options:	-fno-prof-count-entries
-
-            if impl(ghc >= 8.0)
-                GHC-options:	-Wredundant-constraints
-        else
-            GHC-prof-options:	-auto-all -caf-all
-
-    if flag(narrownumbers)
-        CPP-Options:		-DUSE_NARROW_NUMBERS
+    if flag(precision)
+        CPP-Options:	-DUSE_PRECISION
     else
-        if flag(precision)
-            CPP-Options:	-DUSE_PRECISION
+        if flag(narrownumbers)
+            CPP-Options:	-DUSE_NARROW_NUMBERS
+
+        if flag(unboxedarrays)
+            CPP-Options:	-DUSE_UNBOXED_ARRAYS
 
     if flag(newtypewrappers)
         CPP-Options:		-DUSE_NEWTYPE_WRAPPERS
 
     if flag(polyparse)
-        Build-depends:		polyparse
+        Build-depends:		polyparse ^>= 1.13
         CPP-Options:		-DUSE_POLYPARSE='L'
         Exposed-modules:	BishBosh.Text.Poly
     else
-        Build-depends:		parsec
+        Build-depends:		parsec ^>= 3.1.14.0
 
     if flag(threaded)
         Build-depends:		parallel >= 3.0
         CPP-Options:		-DUSE_PARALLEL
 
-    if flag(unboxedarrays)
-        CPP-Options:		-DUSE_UNBOXED_ARRAYS
-
 Executable bishbosh
-    Default-language:	Haskell2010
-    GHC-options:	-O2 -Wall -fno-warn-tabs
-    Hs-source-dirs:	src-exe
-    Main-is:		Main.hs
-    Autogen-modules:	Paths_bishbosh
+    Import:	commonStanza, exeStanza, profStanza
+    Main-is:	Main.hs
 
     Other-modules:
         BishBosh.Concurrent.Pondering
@@ -312,100 +342,62 @@ Executable bishbosh
         BishBosh.State.PlayState
         BishBosh.UI.CECP
         BishBosh.UI.Raw
-        Paths_bishbosh
 
     if flag(unix)
         Other-modules:	BishBosh.Concurrent.SignalHandlers
 
     Build-depends:
-        array >= 0.5.1.1,
-        base >= 4.9 && < 5.0,
-        bishbosh,
-        containers,
-        data-default,
-        deepseq >= 1.4.1,
-        directory,
-        extra,
-        factory >= 0.3.1,
-        filepath,
-        hxt,
-        mtl,
-        random,
-        toolshed >= 0.18
+        array		^>= 0.5.1.1,
+        deepseq		^>= 1.4.1,
+        directory	^>= 1.3.6,
+        extra		^>= 1.7.4,
+        factory		^>= 0.3.1,
+        mtl		^>= 2.2.2,
+        random		^>= 1.1,
+        toolshed	^>= 0.18.0
 
     if impl(ghc >= 7.0)
-        if flag(llvm)
-            GHC-options:	-fllvm
-
         if flag(threaded)
             GHC-options:	-rtsopts "-with-rtsopts=-N -H100M"
 
         if impl(ghc >= 7.4.1)
-            GHC-prof-options:	-fprof-auto -fprof-cafs -rtsopts -with-rtsopts=-H100M
-
-            if flag(threaded)
-                GHC-prof-options:	-fno-prof-count-entries
-
-            if impl(ghc >= 8.0)
-                GHC-options:	-Wredundant-constraints
-        else
-            GHC-prof-options:	-auto-all -caf-all
+            GHC-prof-options:	-rtsopts -with-rtsopts=-H100M
 
     if flag(hxtrelaxng)
-        Build-depends:	hxt-relaxng
+        Build-depends:	hxt-relaxng ^>= 9.1.5
         CPP-Options:	-DUSE_HXTRELAXNG
 
     if flag(threaded)
-        CPP-Options:	-DUSE_PARALLEL
         GHC-options:	-threaded
 
-    if flag(unboxedarrays)
+    if flag(unboxedarrays) && !flag(precision)
         CPP-Options:	-DUSE_UNBOXED_ARRAYS
 
 -- N.B.: The Haskell package 'unix' may be available on MS-Windows, but building it will probably be laborious.
     if flag(unix)
         Other-modules:	BishBosh.Concurrent.SignalHandlers
-        Build-depends:	unix
+        Build-depends:	unix ^>= 2.7.2
+
         CPP-Options:	-DUSE_UNIX
 
 -- This application coordinates a duel between two independently configured instances of 'bishbosh'.
 Executable duel
-    Default-language:	Haskell2010
-    GHC-options:	-O2 -Wall -fno-warn-tabs
-    Hs-source-dirs:	src-exe
-    Main-is:		Duel.hs
-    Autogen-modules:	Paths_bishbosh
+    Import:	commonStanza, exeStanza
+    Main-is:	Duel.hs
 
     Other-modules:
         Duel.Data.Options
         Duel.IO.Logger
         Duel.Process.Handles
         Duel.Process.Intermediary
-        Paths_bishbosh
 
-    Build-depends:
-        base >= 4.9 && < 5.0,
-        bishbosh,
-        containers,
-        data-default,
-        filepath,
-        hxt,
-        process >= 1.6.4
+    Build-depends:	process ^>= 1.6.4
 
     CPP-Options:	-DMOVE_NOTATION='S'
 
-    if impl(ghc >= 7.0)
-        if flag(llvm)
-            GHC-options:	-fllvm
-
-        if impl(ghc >= 8.0)
-            GHC-options:	-Wredundant-constraints
-
 -- Static unit-tests of the library.
 Test-Suite hunit-tests
-    Default-language:	Haskell2010
-    GHC-options:	-Wall -fno-warn-tabs
-    Hs-source-dirs:	src-test
+    Import:		commonStanza, testStanza
     Main-is:		HUnit.hs
     Type:		exitcode-stdio-1.0
     Autogen-modules:	Paths_bishbosh
@@ -436,34 +428,14 @@ Test-Suite hunit-tests
         Paths_bishbosh
 
     Build-depends:
-        array >= 0.5.1.1,
-        base >= 4.9 && < 5.0,
-        bishbosh,
-        containers,
-        data-default,
-        filepath,
         HUnit,
-        hxt,
-        mtl,
-        random,
-        toolshed >= 0.18
-
-    if impl(ghc >= 8.0)
-        GHC-options:	-Wredundant-constraints
-
-    if flag(polyparse)
-        Build-depends:	polyparse
-        CPP-Options:	-DUSE_POLYPARSE='L'
-    else
-        Build-depends:	parsec
+        hxt	^>= 9.3.1
 
 -- Random unit-tests of the library.
 Test-Suite quickcheck-tests
-    Default-language:	Haskell2010
-    GHC-options:	-Wall -fno-warn-tabs
-    Hs-source-dirs:	src-test
-    Main-is:		QuickCheck.hs
-    Type:		exitcode-stdio-1.0
+    Import:	commonStanza, testStanza
+    Main-is:	QuickCheck.hs
+    Type:	exitcode-stdio-1.0
 
     Other-modules:
         BishBosh.Test.QuickCheck.Attribute.CaptureMoveSortAlgorithm
@@ -522,6 +494,7 @@ Test-Suite quickcheck-tests
         BishBosh.Test.QuickCheck.State.Position
         BishBosh.Test.QuickCheck.StateProperty.Censor
         BishBosh.Test.QuickCheck.StateProperty.Hashable
+        BishBosh.Test.QuickCheck.StateProperty.Seeker
         BishBosh.Test.QuickCheck.State.TurnsByLogicalColour
         BishBosh.Test.QuickCheck.Text.Encoding
         BishBosh.Test.QuickCheck.Time.StopWatch
@@ -533,32 +506,18 @@ Test-Suite quickcheck-tests
         BishBosh.Test.QuickCheck.UI.SetObject
 
     Build-depends:
-        array >= 0.5.1.1,
-        base >= 4.9 && < 5.0,
-        bishbosh,
-        containers,
-        data-default,
-        deepseq >= 1.4.1,
-        extra,
-        filepath,
-        mtl,
-        QuickCheck >= 2.8.2,
-        random,
-        toolshed >= 0.18
-
-    if impl(ghc >= 8.0)
-        GHC-options:	-Wredundant-constraints
+        deepseq		^>= 1.4.1,
+        extra		^>= 1.7.4,
+        QuickCheck	^>= 2.13.2
 
     if flag(newtypewrappers)
         CPP-Options:	-DUSE_NEWTYPE_WRAPPERS
 
-    if flag(polyparse)
-        Build-depends:	polyparse
-        CPP-Options:	-DUSE_POLYPARSE='L'
-    else
-        Build-depends:	parsec
+    if flag(precision)
+        CPP-Options:	-DUSE_PRECISION
+    elif flag(narrownumbers)
+        CPP-Options:	-DUSE_NARROW_NUMBERS
 
     if flag(threaded)
-        CPP-Options:	-DUSE_PARALLEL
         GHC-options:	-threaded
 
