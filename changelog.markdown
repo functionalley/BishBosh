@@ -120,6 +120,7 @@ New Module				| Purpose
 * Features:
 	+ Added a Boolean configuration-option **BishBosh.Input.NativeUIOptions.getDepictFigurine** to specify whether the native UI should depict pieces using Unicode figurines rather than merely ASCII letters.
 	+ **duel** now accumulates the frequency-distribution of games played in order to detect duplicates & warn when there's insufficient randomness.
+	+ Added the runtime ability to set the position using *Extended Position Description*.
 * Efficiency:
 	+ Reimplemented function **BishBosh.Cartesian.Abscissa.getAdjacents** to promote memoisation.
 	+ Made **BishBosh.Cartesian.Coordinates** & **BishBosh.Attribute.Direction** strict.

@@ -27,6 +27,9 @@
 -}
 
 module BishBosh.Property.ForsythEdwards(
+-- * Types
+-- ** Type-synonyms
+--	FEN,
 -- * Type-classes
 	ReadsFEN(..),
 	ShowsFEN(..),
@@ -47,13 +50,16 @@ class Property.ExtendedPositionDescription.ShowsEPD a => ShowsFEN a where
 	showsFEN	:: a -> ShowS	-- ^ Stringify a FEN-datum.
 	showsFEN	= Property.ExtendedPositionDescription.showsEPD	-- Default implementation.
 
+-- | Self-documentation.
+type FEN	= String
+
 -- | Read from FEN.
-readFEN	:: ReadsFEN a => String -> a
-readFEN s	= case readsFEN s of
+readFEN	:: ReadsFEN a => FEN -> a
+readFEN fen	= case readsFEN fen of
 	[(a, _)]	-> a
-	_		-> error . showString "BishBosh.Property.ForsythEdwards.readFEN:\tfailed to parse " $ shows s "."
+	_		-> error . showString "BishBosh.Property.ForsythEdwards.readFEN:\tfailed to parse " $ shows fen "."
 
 -- | Display in FEN.
-showFEN	:: ShowsFEN a => a -> String
+showFEN	:: ShowsFEN a => a -> FEN
 showFEN a	= showsFEN a ""
 

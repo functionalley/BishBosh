@@ -38,8 +38,9 @@ module BishBosh.Component.Piece(
 	),
 -- * Constants
 --	tag,
-	nPiecesPerSide,
 	range,
+	nPiecesPerSide,
+	epdCharacterSet,	
 --	attackVectorsByRankByLogicalColour,
 --	attackDirectionsByRankByLogicalColour,
 --	attackDestinationsByCoordinatesByRankByLogicalColour,
@@ -138,6 +139,10 @@ instance Read Piece where
 
 instance Show Piece where
 	showsPrec _	= Property.ForsythEdwards.showsFEN
+
+-- | The constant set of permissible characters in an EPD.
+epdCharacterSet	:: Property.ExtendedPositionDescription.EPD
+epdCharacterSet	= concatMap Property.ExtendedPositionDescription.showEPD range
 
 instance Property.ExtendedPositionDescription.ReadsEPD Piece where
 	readsEPD s	= case Data.List.Extra.trimStart s of

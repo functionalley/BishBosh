@@ -25,10 +25,15 @@
 -}
 
 module BishBosh.Property.ExtendedPositionDescription(
+-- * Types
+-- ** Type-synonyms
+	EPD,
 -- * Type-classes
 	ReadsEPD(..),
 	ShowsEPD(..),
 -- * Constants
+	tag,
+	rankSeparator,
 	showsNullField,
 	showsSeparator,
 -- * Functions
@@ -44,14 +49,24 @@ class ReadsEPD a where
 class ShowsEPD a where
 	showsEPD	:: a -> ShowS	-- ^ Stringify a EPD-datum.
 
+-- | Self-documentation.
+type EPD	= String
+
+-- | Input-format.
+tag :: String
+tag	= "epd"
+
+rankSeparator :: Char
+rankSeparator	= '/'
+
 -- | Read from EPD.
-readEPD	:: ReadsEPD a => String -> a
-readEPD s	= case readsEPD s of
+readEPD	:: ReadsEPD a => EPD -> a
+readEPD epd	= case readsEPD epd of
 	[(a, _)]	-> a
-	_		-> error . showString "BishBosh.Property.ExtendedPositionDescription.readEPD:\tfailed to parse " $ shows s "."
+	_		-> error . showString "BishBosh.Property.ExtendedPositionDescription.readEPD:\tfailed to parse " $ shows epd "."
 
 -- | Display in EPD.
-showEPD	:: ShowsEPD a => a -> String
+showEPD	:: ShowsEPD a => a -> EPD
 showEPD a	= showsEPD a ""
 
 -- | The standard way to denote the absence of a field.

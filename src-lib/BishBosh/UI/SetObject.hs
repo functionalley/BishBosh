@@ -19,41 +19,61 @@
 {- |
  [@AUTHOR@]	Dr. Alistair Ward
 
- [@DESCRIPTION@]	Defines the fields a user can mutate.
+ [@DESCRIPTION@]	Defines the things a user can mutate at runtime.
 -}
 
 module BishBosh.UI.SetObject (
 -- * Types
 -- ** Data-types
 	SetObject(..),
+-- * Constants
+	searchDepthTag,
 -- * Functions
 	autoComplete,
 -- ** Constructors
+	mkEPD,
 	mkSearchDepth
  ) where
 
-import qualified	BishBosh.Data.Exception		as Data.Exception
-import qualified	BishBosh.Input.SearchOptions	as Input.SearchOptions
-import qualified	BishBosh.Text.AutoComplete	as Text.AutoComplete
-import qualified	BishBosh.Type.Count		as Type.Count
+
+import qualified	BishBosh.Data.Exception				as Data.Exception
+import qualified	BishBosh.Input.SearchOptions			as Input.SearchOptions
+import qualified	BishBosh.Model.Game				as Model.Game
+import qualified	BishBosh.Property.ExtendedPositionDescription	as Property.ExtendedPositionDescription
+import qualified	BishBosh.Text.AutoComplete			as Text.AutoComplete
+import qualified	BishBosh.Type.Count				as Type.Count
 import qualified	Control.Arrow
 import qualified	Control.DeepSeq
 import qualified	Control.Exception
 import qualified	Data.List.Extra
 
--- | The fields a user can mutate; currently there's only one.
-newtype SetObject	= SearchDepth Type.Count.NPlies	deriving Eq
+-- | Input-format.
+searchDepthTag :: String
+searchDepthTag		= Input.SearchOptions.searchDepthTag
+
+-- | The sum-type of fields a user can mutate.
+data SetObject
+	= EPD Model.Game.Game		-- ^ Define the position.
+	| SearchDepth Type.Count.NPlies	-- ^ Set the number of plies to to search ahead for the optimal move.
+	deriving Eq
 
 instance Control.DeepSeq.NFData SetObject where
-	rnf (SearchDepth searchDepth)		= Control.DeepSeq.rnf searchDepth
+	rnf (EPD epd)			= Control.DeepSeq.rnf epd
+	rnf (SearchDepth searchDepth)	= Control.DeepSeq.rnf searchDepth
 
 instance Show SetObject where
-	showsPrec _ (SearchDepth searchDepth)	= showString Input.SearchOptions.searchDepthTag . showChar ' ' . shows searchDepth
+	showsPrec _ (EPD epd)			= showString Property.ExtendedPositionDescription.tag . showChar ' ' . Property.ExtendedPositionDescription.showsEPD epd
+	showsPrec _ (SearchDepth searchDepth)	= showString searchDepthTag . showChar ' ' . shows searchDepth
 
 instance Read SetObject where
 	readsPrec precedence s	= case Control.Arrow.first Data.List.Extra.lower `map` lex s of
-		[("searchdepth", s')]		-> Control.Arrow.first (mkSearchDepth . fromInteger) `map` readsPrec precedence s'
-		_				-> []	-- No parse.
+		[("epd", epd)]		-> Control.Arrow.first EPD `map` Property.ExtendedPositionDescription.readsEPD epd
+		[("searchdepth", s')]	-> Control.Arrow.first (mkSearchDepth . fromInteger) `map` readsPrec precedence s'
+		_			-> []	-- No parse.
+
+-- | Constructor.
+mkEPD :: Model.Game.Game -> SetObject
+mkEPD	= EPD
 
 -- | Smart constructor.
 mkSearchDepth :: Type.Count.NPlies -> SetObject
@@ -63,5 +83,5 @@ mkSearchDepth searchDepth
 
 -- | Replace the first word of the specified string with the name of a command of which it is an unambiguous case-insensitive prefix.
 autoComplete :: ShowS
-autoComplete	= Text.AutoComplete.autoComplete [Input.SearchOptions.searchDepthTag]
+autoComplete	= Text.AutoComplete.autoComplete [Property.ExtendedPositionDescription.tag, searchDepthTag]
 

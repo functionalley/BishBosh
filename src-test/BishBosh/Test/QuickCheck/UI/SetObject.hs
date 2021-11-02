@@ -28,13 +28,17 @@ module BishBosh.Test.QuickCheck.UI.SetObject (
 	results
 ) where
 
+import			BishBosh.Test.QuickCheck.Model.Game()
 import qualified	BishBosh.Input.SearchOptions	as Input.SearchOptions
 import qualified	BishBosh.UI.SetObject		as UI.SetObject
 import qualified	Test.QuickCheck
 import qualified	ToolShed.Test.ReversibleIO
 
 instance Test.QuickCheck.Arbitrary UI.SetObject.SetObject where
-	arbitrary	= fmap (UI.SetObject.mkSearchDepth . (+ Input.SearchOptions.minimumSearchDepth) . fromInteger . (`mod` 4)) Test.QuickCheck.arbitrary
+	arbitrary	= Test.QuickCheck.oneof [
+--		UI.SetObject.mkEPD <$> Test.QuickCheck.arbitrary,	-- CAVEAT: this is problematic, since move-information is irretrievably lost from the game in the conversion to EPD.
+		Test.QuickCheck.elements $ map UI.SetObject.mkSearchDepth $ take 4 [Input.SearchOptions.minimumSearchDepth .. ]
+	 ]
 
 -- | The constant test-results for this data-type.
 results :: IO [Test.QuickCheck.Result]
@@ -54,6 +58,4 @@ results	= sequence [
 		f setObject	= Test.QuickCheck.label "SetObject.prop_readTrailingGarbage" . ToolShed.Test.ReversibleIO.readTrailingGarbage (`elem` (".-+eEoOxX" ++ ['0' .. '9'])) setObject
 	in Test.QuickCheck.quickCheckWithResult Test.QuickCheck.stdArgs { Test.QuickCheck.maxSuccess = 1024} f
  ]
-
-
 

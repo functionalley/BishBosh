@@ -35,8 +35,6 @@ module BishBosh.State.MaybePieceByCoordinates(
 --	Transformation,
 -- ** Data-types
 	MaybePieceByCoordinates(),
--- * Constants
---	rankSeparator,
 -- * Functions
 	inferMoveType,
 	findBlockingPiece,
@@ -118,9 +116,6 @@ newtype MaybePieceByCoordinates	= MkMaybePieceByCoordinates {
 } deriving (Eq, Ord)
 
 -- | Used to separate the /ranks/ of the /board/ as represented by the IO-format <https://en.wikipedia.org/wiki/Forsyth%E2%80%93Edwards_Notation>.
-rankSeparator :: Char
-rankSeparator	= '/'
-
 -- | Chops a list into a 2-D list.
 listToRaster :: [a] -> [[a]]
 listToRaster	= Data.List.Extra.chunksOf $ fromIntegral Cartesian.Abscissa.xLength {-CAVEAT: this also depends on the raster-order-}
@@ -145,16 +140,18 @@ instance Property.ExtendedPositionDescription.ReadsEPD MaybePieceByCoordinates w
 							[(i, "")]	-> replicate i Nothing	-- Expand the runlength-code so that each row has the same length.
 							_		-> [Just piece | (piece, []) <- Property.ExtendedPositionDescription.readsEPD [c]] -- List-comprehension.
 					)
-				) . Text.ShowList.splitOn (== rankSeparator)
+				) . Text.ShowList.splitOn (== Property.ExtendedPositionDescription.rankSeparator)
 			 ) . span (
-				`elem` rankSeparator : concatMap Property.ExtendedPositionDescription.showEPD Component.Piece.range ++ concatMap show [1 .. Cartesian.Abscissa.xLength]
+				`elem` (
+					Property.ExtendedPositionDescription.rankSeparator : Component.Piece.epdCharacterSet ++ concatMap show [1 .. Cartesian.Abscissa.xLength]
+				)
 			 ) $ Data.List.Extra.trimStart s
 
 instance Property.ExtendedPositionDescription.ShowsEPD MaybePieceByCoordinates where
 	showsEPD MkMaybePieceByCoordinates { deconstruct = byCoordinates }	= foldr1 (
 		>>>	-- Render the line with the highest y-coordinate first.
 	 ) . Data.List.intersperse (
-		showChar rankSeparator	-- Separate the lines.
+		showChar Property.ExtendedPositionDescription.rankSeparator	-- Separate the lines.
 	 ) . map (
 		foldr1 (.) . concatMap (
 			\(runLength, maybePiece) -> Data.Maybe.maybe [
@@ -170,7 +167,7 @@ instance Property.ForsythEdwards.ReadsFEN MaybePieceByCoordinates
 instance Property.ForsythEdwards.ShowsFEN MaybePieceByCoordinates
 
 instance Data.Default.Default MaybePieceByCoordinates where
-	def = Property.ForsythEdwards.readFEN . Data.List.intercalate [rankSeparator] $ map ($ Attribute.LogicalColour.Black) [
+	def = Property.ForsythEdwards.readFEN . Data.List.intercalate [Property.ExtendedPositionDescription.rankSeparator] $ map ($ Attribute.LogicalColour.Black) [
 		showNobility,
 		showPawnRow
 	 ] ++ replicate 4 "8" ++ map ($ Attribute.LogicalColour.White) [

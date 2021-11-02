@@ -350,31 +350,32 @@ readMove positionHashQualifiedMoveTree randomGen	= slave where
 				 ) >>= System.IO.hPutStrLn System.IO.stderr
 
 				eventLoop
-			onCommand (UI.Command.Set setObject)
-				| fullyManual	= do
-					Control.Monad.when (verbosity >= Data.Default.def) . System.IO.hPutStrLn System.IO.stderr . Text.ShowPrefix.showsPrefixWarning $ shows UI.Command.setTag " requires an automated opponent."
+			onCommand (UI.Command.Set setObject)	= Control.Exception.catchJust (
+				\e -> if Data.Exception.isBadData e
+					then Just $ show e
+					else Nothing
+			 ) (
+				do
+					Control.Monad.when (verbosity == maxBound) . System.IO.hPutStrLn System.IO.stderr . Text.ShowPrefix.showsPrefixInfo . showString "setting " $ shows setObject "."
 
-					return {-to IO-monad-} playState
-				| otherwise					= Control.Exception.catchJust (
-					\e -> if Data.Exception.isBadData e
-						then Just $ show e
-						else Nothing
-				) (
-					do
-						Control.Monad.when (verbosity == maxBound) . System.IO.hPutStrLn System.IO.stderr . Text.ShowPrefix.showsPrefixInfo . showString "setting " $ shows setObject "."
+					case setObject of
+						UI.SetObject.EPD game'	-> slave runningWatch $ State.PlayState.reconstructPositionHashQuantifiedGameTree game' playState	-- Recurse.
+						UI.SetObject.SearchDepth searchDepth
+							| fullyManual	-> do
+								Control.Monad.when (verbosity >= Data.Default.def) . System.IO.hPutStrLn System.IO.stderr . Text.ShowPrefix.showsPrefixWarning $ shows UI.Command.setTag " requires an automated opponent."
 
-						slave runningWatch playState {
-							State.PlayState.getOptions	= Control.DeepSeq.force $ case setObject of
-								UI.SetObject.SearchDepth searchDepth	-> options {
+								eventLoop
+							| otherwise	-> slave runningWatch playState {
+								State.PlayState.getOptions	= Control.DeepSeq.force $ options {
 									Input.Options.getSearchOptions	= Input.SearchOptions.setSearchDepth searchDepth $ Input.Options.getSearchOptions options
 								}
-						}
-				) (
-					\s -> do
-						Control.Monad.unless (verbosity == minBound) . System.IO.hPutStrLn System.IO.stderr $ Text.ShowPrefix.showsPrefixError s
+							} -- Recurse.
+			 ) (
+				\s -> do
+					Control.Monad.unless (verbosity == minBound) . System.IO.hPutStrLn System.IO.stderr $ Text.ShowPrefix.showsPrefixError s
 
-						eventLoop
-				)
+					eventLoop
+			 )
 			onCommand UI.Command.Swap
 				| fullyManual	= do
 					Control.Monad.when (verbosity >= Data.Default.def) . System.IO.hPutStrLn System.IO.stderr . Text.ShowPrefix.showsPrefixWarning . showString " there aren't any " $ shows Input.SearchOptions.searchDepthTag " to swap."

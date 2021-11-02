@@ -249,31 +249,35 @@ readMove positionHashQualifiedMoveTree randomGen runningWatch playState	= let
 			 ) >>= System.IO.hPutStrLn System.IO.stderr
 
 			eventLoop
-		onCommand (UI.Command.Set setObject)
-			| fullyManual	= do
-				System.IO.hPutStrLn System.IO.stderr . Text.ShowColouredPrefix.showsPrefixWarning $ shows UI.Command.setTag " requires an automated opponent."
+		onCommand (UI.Command.Set setObject)	= Control.Exception.catchJust (
+			\e -> if Data.Exception.isBadData e
+				then Just $ show e
+				else Nothing
+		 ) (
+			do
+				Control.Monad.when (verbosity == maxBound) . System.IO.hPutStrLn System.IO.stderr . Text.ShowColouredPrefix.showsPrefixInfo . showString "setting " $ shows setObject "."
 
-				return {-to IO-monad-} playState
-			| otherwise	= Control.Exception.catchJust (
-				\e -> if Data.Exception.isBadData e
-					then Just $ show e
-					else Nothing
-			) (
-				do
-					Control.Monad.when (verbosity == maxBound) . System.IO.hPutStrLn System.IO.stderr . Text.ShowColouredPrefix.showsPrefixInfo . showString "setting " $ shows setObject "."
+				case setObject of
+					UI.SetObject.EPD game'	-> do
+						Control.Monad.when (verbosity == maxBound) . putStrLn $ show2D game'
 
-					readMove positionHashQualifiedMoveTree randomGen runningWatch playState {
-						State.PlayState.getOptions	= Control.DeepSeq.force $ case setObject of
-							UI.SetObject.SearchDepth searchDepth	-> options {
+						readMove positionHashQualifiedMoveTree randomGen runningWatch $ State.PlayState.reconstructPositionHashQuantifiedGameTree game' playState	-- Recurse.
+					UI.SetObject.SearchDepth searchDepth
+						| fullyManual	-> do
+							System.IO.hPutStrLn System.IO.stderr . Text.ShowColouredPrefix.showsPrefixWarning $ shows setObject " requires an automated opponent."
+
+							eventLoop
+						| otherwise	-> readMove positionHashQualifiedMoveTree randomGen runningWatch playState {
+							State.PlayState.getOptions	= Control.DeepSeq.force $ options {
 								Input.Options.getSearchOptions	= Input.SearchOptions.setSearchDepth searchDepth $ Input.Options.getSearchOptions options
 							}
-					} -- Recurse.
-			) (
-				\s -> do
-					Control.Monad.unless (verbosity == minBound) . System.IO.hPutStrLn System.IO.stderr $ Text.ShowColouredPrefix.showsPrefixError s
+						} -- Recurse.
+		 ) (
+			\s -> do
+				Control.Monad.unless (verbosity == minBound) . System.IO.hPutStrLn System.IO.stderr $ Text.ShowColouredPrefix.showsPrefixError s
 
-					eventLoop
-			)
+				eventLoop
+		 )
 		onCommand UI.Command.Swap
 			| fullyManual	= do
 				Control.Monad.when (verbosity >= Data.Default.def) . System.IO.hPutStrLn System.IO.stderr . Text.ShowColouredPrefix.showsPrefixWarning . showString " there aren't any " $ shows Input.SearchOptions.searchDepthTag " to swap."

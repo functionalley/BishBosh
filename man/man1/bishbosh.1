@@ -110,7 +110,7 @@ Command	Arguments	Description
 :restart		Start a new game.
 :rollBack	[Int]	Roll-back the optionally specified number of plies (half moves), defaulting to "\fB2\fR" when there's one manual player & "\fB1\fR" when both players are manual.
 :save		Save the current game-state in "\fB~/.bishbosh\fR"; this is automatic unless explicitly un-configured.
-:set	\fBsearchDepth\fR \fIInt\fR	Mutate the value of "\fBsearchDepth\fR", (see "\fBsearchOptions\fR" in \fBsection-5\fR of the man-pages).
+:set	object	Specify "\fBEPD\fR <String>" to define the position using \fBExtended Position Description\fR or "\fBsearchDepth\fR <Int>" to define the number of plies to search.
 :swap		Swap sides. If the moves of one side were automated, then this will cause automation of the moves of the other side.
 .TE
 .SS Hardware-requirements.

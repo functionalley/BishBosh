@@ -53,13 +53,13 @@ module BishBosh.UI.Command (
  ) where
 
 import qualified	BishBosh.Data.List
-import qualified	BishBosh.Input.Options		as Input.Options
-import qualified	BishBosh.Input.SearchOptions	as Input.SearchOptions
-import qualified	BishBosh.Text.AutoComplete	as Text.AutoComplete
-import qualified	BishBosh.Type.Count		as Type.Count
-import qualified	BishBosh.UI.PrintObject		as UI.PrintObject
-import qualified	BishBosh.UI.ReportObject	as UI.ReportObject
-import qualified	BishBosh.UI.SetObject		as UI.SetObject
+import qualified	BishBosh.Input.Options				as Input.Options
+import qualified	BishBosh.Property.ExtendedPositionDescription	as Property.ExtendedPositionDescription
+import qualified	BishBosh.Text.AutoComplete			as Text.AutoComplete
+import qualified	BishBosh.Type.Count				as Type.Count
+import qualified	BishBosh.UI.PrintObject				as UI.PrintObject
+import qualified	BishBosh.UI.ReportObject			as UI.ReportObject
+import qualified	BishBosh.UI.SetObject				as UI.SetObject
 import qualified	Control.Arrow
 import qualified	Control.DeepSeq
 import qualified	Data.List
@@ -126,21 +126,22 @@ reportArgs	= Data.List.intercalate alternationTag $ map show UI.ReportObject.ran
 -- | The format of the argument to the runtime-command /set/.
 setArgs :: String
 setArgs	= Data.List.intercalate alternationTag [
-	showString Input.SearchOptions.searchDepthTag " <Int>"
+	showString Property.ExtendedPositionDescription.tag " <EPD>",
+	showString UI.SetObject.searchDepthTag " <Int>"
  ]
 
 -- | The sum-type of commands that a user may issue.
 data Command
-	= Hint						-- ^ Request a move-suggestion.
-	| Print UI.PrintObject.PrintObject		-- ^ Print the requested static data.
-	| Quit						-- ^ Terminate this application.
-	| Report UI.ReportObject.ReportObject		-- ^ Report on the requested dynamic data.
-	| Resign					-- ^ Admit defeat.
-	| Restart					-- ^ Abandon the current game, & start afresh.
-	| RollBack (Maybe Type.Count.NPlies)		-- ^ Roll-back the optionally specified number of plies.
-	| Save						-- ^ Persist the current game-state.
-	| Set UI.SetObject.SetObject			-- ^ I.E. mutate a configuration-value.
-	| Swap						-- ^ Swap options between the two sides; which causes the players to swap sides.
+	= Hint					-- ^ Request a move-suggestion.
+	| Print UI.PrintObject.PrintObject	-- ^ Print the requested static data.
+	| Quit					-- ^ Terminate this application.
+	| Report UI.ReportObject.ReportObject	-- ^ Report on the requested dynamic data.
+	| Resign				-- ^ Admit defeat.
+	| Restart				-- ^ Abandon the current game, & start afresh.
+	| RollBack (Maybe Type.Count.NPlies)	-- ^ Roll-back the optionally specified number of plies.
+	| Save					-- ^ Persist the current game-state.
+	| Set UI.SetObject.SetObject		-- ^ I.E. mutate something.
+	| Swap					-- ^ Swap options between the two sides; which causes the players to swap sides.
 	deriving (Eq, Show)
 
 instance Control.DeepSeq.NFData Command where
@@ -186,7 +187,7 @@ commands	= [
 	), (
 		setTag,
 		Just setArgs,
-		showString "Mutate " Input.Options.tag
+		"Mutate something"
 	), (
 		swapTag,
 		Nothing,

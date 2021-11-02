@@ -29,7 +29,6 @@ module BishBosh.UI.ReportObject (
 -- * Constants
 --	availableMovesTag,
 --	boardTag,
---	epdTag,
 --	fenTag,
 --	gameTag,
 --	maxPositionInstancesTag,
@@ -41,9 +40,10 @@ module BishBosh.UI.ReportObject (
 	autoComplete
  ) where
 
-import qualified	BishBosh.Component.Move			as Component.Move
-import qualified	BishBosh.Property.FixedMembership	as Property.FixedMembership
-import qualified	BishBosh.Text.AutoComplete		as Text.AutoComplete
+import qualified	BishBosh.Component.Move				as Component.Move
+import qualified	BishBosh.Property.ExtendedPositionDescription	as Property.ExtendedPositionDescription
+import qualified	BishBosh.Property.FixedMembership		as Property.FixedMembership
+import qualified	BishBosh.Text.AutoComplete			as Text.AutoComplete
 import qualified	Control.Arrow
 import qualified	Control.DeepSeq
 import qualified	Data.List.Extra
@@ -55,10 +55,6 @@ availableMovesTag	= "availableMoves"
 -- | Input-format.
 boardTag :: String
 boardTag		= "board"
-
--- | Input-format.
-epdTag :: String
-epdTag			= "epd"
 
 -- | Input-format.
 fenTag :: String
@@ -103,7 +99,7 @@ instance Control.DeepSeq.NFData ReportObject where
 instance Show ReportObject where
 	show AvailableMoves		= availableMovesTag
 	show Board			= boardTag
-	show EPD			= epdTag
+	show EPD			= Property.ExtendedPositionDescription.tag
 	show FEN			= fenTag
 	show Game			= gameTag
 	show MaxPositionInstances	= maxPositionInstancesTag
@@ -136,7 +132,7 @@ autoComplete :: ShowS
 autoComplete	= Text.AutoComplete.autoComplete [
 	availableMovesTag,
 	boardTag,
-	epdTag,
+	Property.ExtendedPositionDescription.tag,
 	fenTag,
 	gameTag,
 	maxPositionInstancesTag,
