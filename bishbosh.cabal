@@ -431,6 +431,8 @@ Test-Suite hunit-tests
         HUnit,
         hxt	^>= 9.3.1
 
+--    CPP-Options:	-DUSE_BRATKO_KOPEC
+
 -- Random unit-tests of the library.
 Test-Suite quickcheck-tests
     Import:	commonStanza, testStanza

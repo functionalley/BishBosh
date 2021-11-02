@@ -1,4 +1,3 @@
-{-# LANGUAGE CPP #-}
 {-
 	Copyright (C) 2021 Dr. Alistair Ward
 
@@ -42,15 +41,12 @@ import qualified	BishBosh.Test.HUnit.Input.Options					as Test.HUnit.Input.Optio
 import qualified	BishBosh.Test.HUnit.Model.Game						as Test.HUnit.Model.Game
 import qualified	BishBosh.Test.HUnit.Model.GameTree					as Test.HUnit.Model.GameTree
 import qualified	BishBosh.Test.HUnit.Model.PositionHashTree				as Test.HUnit.Model.PositionHashTree
+import qualified	BishBosh.Test.HUnit.Search.Search					as Test.HUnit.Search.Search
 import qualified	BishBosh.Test.HUnit.State.Board						as Test.HUnit.State.Board
 import qualified	BishBosh.Test.HUnit.Text.AutoComplete					as Test.HUnit.Text.AutoComplete
 import qualified	BishBosh.Test.HUnit.Time.GameClock					as Test.HUnit.Time.GameClock
 import qualified	BishBosh.Test.HUnit.Time.StopWatch					as Test.HUnit.Time.StopWatch
 import qualified	Test.HUnit
-
-#ifdef USE_SEARCH
-import qualified	BishBosh.Test.HUnit.Search.Search					as Test.HUnit.Search.Search
-#endif
 
 -- | Entry-point to the test-suite.
 main :: IO ()
@@ -75,9 +71,7 @@ main	= mapM_ Test.HUnit.runTestTT [
 	Test.HUnit.ContextualNotation.PGN.testCases,
 	Test.HUnit.ContextualNotation.PositionHashQualifiedMoveTree.testCases,
 	Test.HUnit.Input.Options.testCases,
-#ifdef USE_SEARCH
-	Test.HUnit.Search.Search.testCases,
-#endif
-	Test.HUnit.Evaluation.Fitness.testCases
+	Test.HUnit.Evaluation.Fitness.testCases,
+	Test.HUnit.Search.Search.testCases
  ]
 

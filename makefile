@@ -45,7 +45,7 @@ hlint: $(BIN_DIR)/hlint
 		src-exe/ +RTS -N -RTS
 	@$@ -j	--cpp-define 'USE_NEWTYPE_WRAPPERS'\
 		--cpp-define 'USE_POLYPARSE=L'\
-		--cpp-define 'USE_SEARCH'\
+		--cpp-define 'USE_BRATKO_KOPEC'\
 		--ignore 'Use tuple-section'\
 		src-test/ +RTS -N -RTS
 
