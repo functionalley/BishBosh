@@ -36,6 +36,7 @@ module BishBosh.StateProperty.Seeker(
 	summariseNPawnsByLogicalColour
 ) where
 
+import			Control.Arrow((***))
 import qualified	BishBosh.Attribute.LogicalColour	as Attribute.LogicalColour
 import qualified	BishBosh.Cartesian.Coordinates		as Cartesian.Coordinates
 import qualified	BishBosh.Component.Piece		as Component.Piece
@@ -79,14 +80,16 @@ class Seeker seeker where
 		* N.B.: files lacking any @Pawn@, don't feature in the results.
 	-}
 	countPawnsByFileByLogicalColour :: seeker -> NPiecesByFileByLogicalColour
-	countPawnsByFileByLogicalColour	= Attribute.LogicalColour.listArrayByLogicalColour . (
-		\(mB, mW) -> [mB, mW]
+	countPawnsByFileByLogicalColour	= (
+		\(mB, mW) -> Attribute.LogicalColour.listArrayByLogicalColour [mB, mW]
 	 ) . foldr (
-		\(coordinates, piece) -> (
-			if Attribute.LogicalColour.isBlack $ Component.Piece.getLogicalColour piece
-				then Control.Arrow.first
-				else Control.Arrow.second
-		) $ accumulatePawnsByFile (Cartesian.Coordinates.getX coordinates)
+		(
+			\(x, isBlack) -> (
+				if isBlack then Control.Arrow.first else Control.Arrow.second	-- Select the appropriate map.
+			) $ accumulatePawnsByFile x
+		) . (
+			Cartesian.Coordinates.getX *** Attribute.LogicalColour.isBlack . Component.Piece.getLogicalColour
+		)
 	 ) Property.Empty.empty . findPieces Component.Piece.isPawn
 
 -- | Locate all /piece/s on the board.
