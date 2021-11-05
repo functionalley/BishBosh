@@ -142,7 +142,7 @@ instance Data.Default.Default (PieceSquareTable pieceSquareValue) where
 		getPieceSquareValueByCoordinatesByRank	= Property.Empty.empty
 	}
 
--- The format of the values when read or written.
+-- | The format of the values when read or written.
 type IOFormat	= Double
 
 instance (

@@ -96,7 +96,7 @@ class Seeker seeker where
 findAllPieces :: Seeker seeker => seeker -> [Component.Piece.LocatedPiece]
 findAllPieces	= findPieces $ const True
 
--- | Collapses 'NPawnsByFileByLogicalColour' into the total number of /Pawn/s on either side.
+-- | Resolves 'NPiecesByFileByLogicalColour' into the total number of /Pawn/s on either side.
 summariseNPawnsByLogicalColour :: Seeker seeker => seeker -> Attribute.LogicalColour.ArrayByLogicalColour Type.Count.NPieces
 summariseNPawnsByLogicalColour	= Data.Array.IArray.amap (
 	Data.Foldable.foldl' (+) 0

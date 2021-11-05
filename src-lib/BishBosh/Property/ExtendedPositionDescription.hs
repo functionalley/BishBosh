@@ -56,6 +56,7 @@ type EPD	= String
 tag :: String
 tag	= "epd"
 
+-- | The delimiter between each row of data.
 rankSeparator :: Char
 rankSeparator	= '/'
 

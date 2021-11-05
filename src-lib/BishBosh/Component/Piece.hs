@@ -40,7 +40,7 @@ module BishBosh.Component.Piece(
 --	tag,
 	range,
 	nPiecesPerSide,
-	epdCharacterSet,	
+	epdCharacterSet,
 --	attackVectorsByRankByLogicalColour,
 --	attackDirectionsByRankByLogicalColour,
 --	attackDestinationsByCoordinatesByRankByLogicalColour,

@@ -308,7 +308,7 @@ results	= sequence [
 		 uncurry (==)
 #else
 		 (
-			< recip 
+			< recip
 #	if USE_NARROW_NUMBERS
 			100000
 #	else

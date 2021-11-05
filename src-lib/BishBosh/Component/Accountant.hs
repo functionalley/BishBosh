@@ -30,6 +30,7 @@ module BishBosh.Component.Accountant(
 import qualified	BishBosh.Component.PieceSquareByCoordinatesByRank	as Component.PieceSquareByCoordinatesByRank
 import qualified	BishBosh.Type.Count					as Type.Count
 
+-- | An interface which may be implemented by data which can total piece-square values.
 class Accountant accountant where
 	-- | Calculate the total value of the /coordinates/ occupied by the /piece/s of either side.
 	sumPieceSquareValueByLogicalColour
