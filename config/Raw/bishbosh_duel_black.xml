@@ -31,16 +31,17 @@
 		<criteriaWeights material="1" mobility="0" pieceSquareValue="0.1" castlingPotential="0" defence="0" doubledPawns="0" isolatedPawns="0" passedPawns="0"/>	<!-- N.B. only those criteria under test need be non-zero -->
 		&pieceSquareTables_Rofchade;
 	</evaluationOptions>
-	<searchOptions captureMoveSortAlgorithm="MVVLVA" retireKillerMovesAfter="3" usePondering="False">	<!-- CAVEAT: pondering uses time more productively used by the other instance -->
+	<searchOptions captureMoveSortAlgorithm="MVVLVA" retireKillerMovesAfter="3" sortOnStandardOpeningMoveFrequency="True" usePondering="False">	<!-- CAVEAT: pondering uses time more productively used by the other instance -->
 		&transpositions;
+		<standardOpeningOptions preferVictories="False"/>	<!-- maximise randomness -->
 		<searchDepthByLogicalColour>
 			<byLogicalColour logicalColour="Black" searchDepth="3"/>
 		</searchDepthByLogicalColour>
 	</searchOptions>
 	<ioOptions>
-		&pgnOptions_SCID;	<!-- CAVEAT: specification of a PGN-database is required for non-determininstic behaviour -->
+		&pgnOptions_SCID; &pgnOptions_FICS;	<!-- CAVEAT: specification of a PGN-database is required for non-deterministic behaviour -->
 		<persistence filePath="/dev/null" automatic="False"/>	<!-- CAVEAT: otherwise the game may already have started -->
-		<uiOptions moveNotation="Smith">	<!-- CAVEAT: coordinate with the opponent defined in 'bishbosh_duel_white.txt' & 'bishbosh.cabal' -->
+		<uiOptions moveNotation="Smith">	<!-- CAVEAT: coordinate with the opponent defined in 'bishbosh_duel_white.txt' & the compilation-flag in 'bishbosh.cabal' -->
 			<nativeUIOptions/>
 		</uiOptions>
 	</ioOptions>

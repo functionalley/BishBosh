@@ -26,7 +26,7 @@
 		&criteriaWeights;
 		&pieceSquareTables_symmetric;
 	</evaluationOptions>
-	<searchOptions captureMoveSortAlgorithm="MVVLVA" retireKillerMovesAfter="3">
+	<searchOptions captureMoveSortAlgorithm="MVVLVA" retireKillerMovesAfter="3" sortOnStandardOpeningMoveFrequency="True">
 		&transpositions;
 		<standardOpeningOptions preferVictories="False"/>	<!-- the SCID PGN-database only contains standard-openings -->
 		<searchDepthByLogicalColour>

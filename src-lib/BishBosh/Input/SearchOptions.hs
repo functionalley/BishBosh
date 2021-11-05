@@ -252,7 +252,7 @@ instance Show SearchOptions where
 
 instance Data.Default.Default SearchOptions where
 	def = MkSearchOptions {
-		getSortOnStandardOpeningMoveFrequency	= True,
+		getSortOnStandardOpeningMoveFrequency	= False,	-- CAVEAT: this can only be True if a PGN database has been defined; which is currently unknown.
 		getMaybeCaptureMoveSortAlgorithm	= Nothing,
 		getMaybeMinimumHammingDistance		= Nothing,
 		getMaybeRetireKillerMovesAfter		= Nothing,
