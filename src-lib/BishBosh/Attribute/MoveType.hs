@@ -45,7 +45,6 @@ module BishBosh.Attribute.MoveType(
 -- ** Predicates
 	isCastle,
 	isEnPassant,
---	isNormal,
 	isCapture,
 	isPromotion,
 	isQuiet,
@@ -210,11 +209,6 @@ isEnPassant :: MoveType -> Bool
 isEnPassant EnPassant	= True
 isEnPassant _		= False
 
--- | Whether the /move/ was neither @EnPassant@ nor @Castle@.
-isNormal :: MoveType -> Bool
-isNormal (Normal _ _)	= True
-isNormal _		= False
-
 -- | Whether a piece was captured, including @Pawn@s taken En-passant.
 isCapture :: MoveType -> Bool
 {-# INLINE isCapture #-}
@@ -248,11 +242,7 @@ isSimple _	= False	-- Neither Castling nor En-passant qualifies.
 	* CAVEAT: one can't infer from a negative result that the move can be repeated, since the mover may have been a @Pawn@.
 -}
 isAcyclic :: MoveType -> Bool
-isAcyclic Normal {
-	getMaybeTakenRank	= Nothing,
-	getMaybePromotionRank	= Nothing
-}		= False
-isAcyclic _	= True
+isAcyclic	= not . isSimple	-- Neither capture, promotion, castling nor en-passant can be repeated.
 
 -- | Query whether a /piece/ was explicitly taken, excluding @Pawn@s taken En-passant.
 getMaybeExplicitlyTakenRank :: MoveType -> Maybe Attribute.Rank.Rank
