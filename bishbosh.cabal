@@ -26,7 +26,7 @@ Synopsis:	Plays chess.
 Build-type:	Simple
 Description:	A chess-game which can be rendered in a terminal (emulator) in raw ASCII, or used as an engine by @xboard@.
 Category:	Game
-Tested-with:	GHC == 8.0, GHC == 8.2, GHC == 8.4, GHC == 8.8, GHC == 8.10
+Tested-with:	GHC == 8.0, GHC == 8.2, GHC == 8.4, GHC == 8.6, GHC == 8.8, GHC == 8.10
 Homepage:	https://functionalley.com/BishBosh/bishbosh.html
 Maintainer:	mailto:bishbosh@functionalley.com
 Bug-reports:	mailto:bishbosh@functionalley.com
@@ -300,7 +300,7 @@ Library
         factory		^>= 0.3.1,
         hxt		^>= 9.3.1,
         mtl		^>= 2.2.2,
-        process,
+        process		>= 1.6.4,
         random,
         time,
         toolshed	^>= 0.18.0
@@ -391,7 +391,7 @@ Executable duel
         Duel.Process.Handles
         Duel.Process.Intermediary
 
-    Build-depends:	process
+    Build-depends:	process >= 1.6.4
 
     CPP-Options:	-DMOVE_NOTATION='S'
 
