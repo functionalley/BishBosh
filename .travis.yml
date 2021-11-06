@@ -1,8 +1,9 @@
 language: haskell
 ghc:
-  - 7.8
   - 8.0
   - 8.2
+  - 8.4
+  - 8.6
   - 8.8
 cabal: "2.4"
 # script: cabal configure --enable-tests --verbose && cabal build && cabal test	# Exceeds both 10-min/module & 50-min limit for job.
