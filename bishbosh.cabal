@@ -79,6 +79,7 @@ flag narrownumbers
     Default:		False
 
 -- Whether, to wrap common types in 'newtype' for increased type-safety. CAVEAT: there's a ~10% performance-penalty.
+-- CAVEAT: partly incompatible with 'narrownumbers'.
 flag newtypewrappers
     Description:	Wrap common types in newtype for increased type-safety.
     Manual:		True
@@ -92,7 +93,8 @@ flag polyparse
     Description:	Link with package "polyparse" when available, rather than "parsec".
     Default:		True
 
--- Whether to use precise (rational) types rather than floating-point. CAVEAT: incompatible with 'narrownumbers'.
+-- Whether to use precise (rational) types rather than floating-point.
+-- CAVEAT: conceptually incompatible with 'narrownumbers'.
 flag precision
     Description:	Use precise numerical types. CAVEAT: this is incompatible with either 'unboxedarrays' or 'narrownumbers'.
     Manual:		True
@@ -105,7 +107,7 @@ flag threaded
     Default:		True
 
 -- Whether to use unboxed arrays where possible.
--- CAVEAT: incompatble with the flag 'precision'.
+-- CAVEAT: incompatible with the flag 'precision', & to some extent 'newtypewrappers'.
 flag unboxedarrays
     Description:	Use unboxed arrays.
     Manual:		True
@@ -370,9 +372,6 @@ Executable bishbosh
     if flag(threaded)
         GHC-options:	-threaded
 
-    if flag(unboxedarrays) && !flag(precision)
-        CPP-Options:	-DUSE_UNBOXED_ARRAYS
-
 -- N.B.: The Haskell package 'unix' may be available on MS-Windows, but building it will probably be laborious.
     if flag(unix)
         Other-modules:	BishBosh.Concurrent.SignalHandlers
@@ -502,6 +501,7 @@ Test-Suite quickcheck-tests
         BishBosh.Test.QuickCheck.Time.StopWatch
         BishBosh.Test.QuickCheck.Type.Count
         BishBosh.Test.QuickCheck.Type.Length
+        BishBosh.Test.QuickCheck.Type.Mass
         BishBosh.Test.QuickCheck.UI.Command
         BishBosh.Test.QuickCheck.UI.PrintObject
         BishBosh.Test.QuickCheck.UI.ReportObject

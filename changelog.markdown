@@ -146,3 +146,7 @@ New Module				| Purpose
 	+ Added a method **BishBosh.StateProperty.Seeker.countPawnsByFileByLogicalColour** including a default implementation, & relocated the implementation from module **BishBosh.State.CoordinatesByRankByLogicalColour**.
 	+ Added a type-class **BishBosh.Component.Account.Accountant**, with a single method used to sum piece-square values; thus permiting a common interface between the implementations in **BishBosh.State.CoordinatesByRankByLogicalColour** & **BishBosh.State.MaybePieceByCoordinates**.
 
+## 0.1.3.0
+* Efficiency:
+	+ Replaced the polymorphic type-parameter **pieceSquareValue** with a newtype, to then implement unboxed arrays without cluttering interfaces with type-constraint **Data.Array.Unboxed.IArray Data.Array.Unboxed.UArray pieceSquareValue**; performance-improvement was regrettably insignificant.
+

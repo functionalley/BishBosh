@@ -279,17 +279,14 @@ instance Component.Accountant.Accountant MaybePieceByCoordinates where
 	 ) . Data.List.foldl' (
 		\(b, w) (coordinates, piece) -> let
 			logicalColour		= Component.Piece.getLogicalColour piece
-			pieceSquareValue	= Component.PieceSquareByCoordinatesByRank.findPieceSquareValue pieceSquareByCoordinatesByRank nPieces logicalColour (Component.Piece.getRank piece) coordinates
+			pieceSquareValue	= realToFrac $! Component.PieceSquareByCoordinatesByRank.findPieceSquareValue pieceSquareByCoordinatesByRank nPieces logicalColour (Component.Piece.getRank piece) coordinates
 		in if Attribute.LogicalColour.isBlack logicalColour
 			then let b' = b + pieceSquareValue in b' `seq` (b', w)
 			else let w' = w + pieceSquareValue in w' `seq` (b, w')
 	 ) (0, 0) . StateProperty.Seeker.findAllPieces
 
 -- | Dereference the array.
-dereference
-	:: Cartesian.Coordinates.Coordinates
-	-> MaybePieceByCoordinates
-	-> Maybe Component.Piece.Piece
+dereference :: Cartesian.Coordinates.Coordinates -> MaybePieceByCoordinates -> Maybe Component.Piece.Piece
 {-# INLINE dereference #-}
 dereference coordinates MkMaybePieceByCoordinates { deconstruct = byCoordinates }	= byCoordinates ! coordinates
 
@@ -306,7 +303,7 @@ inferMoveType move maybePromotionRank maybePieceByCoordinates@MkMaybePieceByCoor
 			else let
 				destination	= Component.Move.getDestination move
 			in Attribute.MoveType.mkNormalMoveType (
-				fmap Component.Piece.getRank $ byCoordinates ! destination	-- Record the rank of any piece which was taken; the logical colour is inferred to be the opposite of 'sourcePiece'.
+				Component.Piece.getRank <$> byCoordinates ! destination	-- Record the rank of any piece which was taken; the logical colour is inferred to be the opposite of 'sourcePiece'.
 			) $ if Component.Piece.isPawnPromotion destination sourcePiece
 				then maybePromotionRank <|> Just Attribute.Rank.defaultPromotionRank
 				else Nothing
@@ -478,18 +475,12 @@ findAttackerInDirection destinationLogicalColour direction destination	= (=<<) (
  ) . findBlockingPiece direction destination
 
 -- | Whether the specified /coordinates/ are unoccupied.
-isVacant
-	:: Cartesian.Coordinates.Coordinates
-	-> MaybePieceByCoordinates
-	-> Bool
+isVacant :: Cartesian.Coordinates.Coordinates -> MaybePieceByCoordinates -> Bool
 {-# INLINE isVacant #-}
 isVacant coordinates MkMaybePieceByCoordinates { deconstruct = byCoordinates }	= Data.Maybe.isNothing $ byCoordinates ! coordinates
 
 -- | Whether the specified /coordinates/ are occupied.
-isOccupied
-	:: Cartesian.Coordinates.Coordinates
-	-> MaybePieceByCoordinates
-	-> Bool
+isOccupied :: Cartesian.Coordinates.Coordinates -> MaybePieceByCoordinates -> Bool
 {-# INLINE isOccupied #-}
 isOccupied coordinates	= not . isVacant coordinates
 
@@ -524,10 +515,7 @@ isObstructed source destination	= not . isClear source destination
 	* CAVEAT: assumes that the /move/ is valid;
 	otherwise one would also need to confirm that the opponent's @Pawn@ had just double-advanced into the appropriate position.
 -}
-isEnPassantMove
-	:: Component.Move.Move
-	-> MaybePieceByCoordinates
-	-> Bool
+isEnPassantMove :: Component.Move.Move -> MaybePieceByCoordinates -> Bool
 isEnPassantMove move maybePieceByCoordinates@MkMaybePieceByCoordinates { deconstruct = byCoordinates }
 	| Just piece	<- byCoordinates ! source
 	, let logicalColour	= Component.Piece.getLogicalColour piece

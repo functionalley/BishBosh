@@ -31,12 +31,23 @@
 module BishBosh.Type.Mass(
 -- * Types
 -- ** Type-synonyms
+	Base,
 	CriterionWeight,
 	CriterionValue,
 	WeightedMean,
 	RankValue,
-	PieceSquareValue
+	PieceSquareValue(),
+-- * Functions
+-- ** Constructors
+--	mkPieceSquareValue
 ) where
+
+#ifdef USE_NEWTYPE_WRAPPERS
+import qualified	BishBosh.Data.Exception		as Data.Exception
+import qualified	BishBosh.Data.Num		as Data.Num
+import qualified	Control.DeepSeq
+import qualified	Control.Exception
+#endif
 
 #ifdef USE_PRECISION
 import			BishBosh.Data.Ratio()
@@ -44,8 +55,8 @@ import			BishBosh.Data.Ratio()
 import qualified	Text.XML.HXT.Arrow.Pickle	as HXT
 #endif
 
--- | The preferred type by which to weight criteria.
-type CriterionWeight	=
+-- | The underling type.
+type Base	=
 #ifdef USE_PRECISION
 	Rational
 #else /* Floating-point */
@@ -62,19 +73,49 @@ instance HXT.XmlPickler Double where
 #	endif
 #endif
 
--- | The preferred type by which to value criteria.
+-- | The type by which to weight criteria.
+type CriterionWeight	= Base
+
+-- | The type by which to value criteria.
 type CriterionValue	= CriterionWeight
 
--- | The preferred type by which to represent fitness.
+-- | The type by which to represent fitness.
 type WeightedMean	= CriterionValue
 
--- | The preferred type by which to represent the value of a /rank/.
-type RankValue		= CriterionValue
+-- | The type by which to represent the value of a /rank/.
+type RankValue		= Base
 
-{- |
-	* The preferred type by which to represent a /piece-square/ value.
+-- | The type by which to represent a /piece-square/ value.
+#ifdef USE_NEWTYPE_WRAPPERS
+newtype PieceSquareValue = MkPieceSquareValue Base deriving (Eq, Ord)
 
-	* CAVEAT: performance of 'BishBosh.Evaluation.Fitness.interpolatePieceSquareValues' suffers from use of 'Rational'.
--}
-type PieceSquareValue	= CriterionValue
+instance Show PieceSquareValue where
+	showsPrec precision (MkPieceSquareValue pieceSquareValue)	= showsPrec precision pieceSquareValue
+
+instance Num PieceSquareValue where
+	MkPieceSquareValue l + MkPieceSquareValue r	= mkPieceSquareValue $! l + r
+	MkPieceSquareValue l * MkPieceSquareValue r	= MkPieceSquareValue $! l * r
+	abs (MkPieceSquareValue pieceSquareValue)	= MkPieceSquareValue $! abs pieceSquareValue	-- N.B.: if the operand is valid, then this is equivalent to 'id'.
+	signum (MkPieceSquareValue pieceSquareValue)	= MkPieceSquareValue $! signum pieceSquareValue
+	fromInteger					= mkPieceSquareValue . fromInteger
+	negate (MkPieceSquareValue pieceSquareValue)	= mkPieceSquareValue $! negate pieceSquareValue	-- CAVEAT: only valid for '0'.
+
+instance Fractional PieceSquareValue where
+	MkPieceSquareValue l / MkPieceSquareValue r	= mkPieceSquareValue $! l / r	-- CAVEAT: it's hard to concoct a scenario in which neither the numerator, denominator nor result are invalid.
+	fromRational					= mkPieceSquareValue . fromRational
+
+instance Real PieceSquareValue where
+	toRational (MkPieceSquareValue pieceSquareValue)	= toRational pieceSquareValue
+
+instance Control.DeepSeq.NFData PieceSquareValue where
+	rnf (MkPieceSquareValue pieceSquareValue)	= Control.DeepSeq.rnf pieceSquareValue
+
+-- | Smart constructor.
+mkPieceSquareValue :: Base -> PieceSquareValue
+mkPieceSquareValue pieceSquareValue
+	| Data.Num.inClosedUnitInterval pieceSquareValue	= MkPieceSquareValue pieceSquareValue
+	| otherwise						= Control.Exception.throw . Data.Exception.mkOutOfBounds . showString "BishBosh.Type.Mass.mkPieceSquareValue:\t" $ shows pieceSquareValue " must be within the closed unit-interval [0,1]."
+#else
+type PieceSquareValue	= Base
+#endif
 

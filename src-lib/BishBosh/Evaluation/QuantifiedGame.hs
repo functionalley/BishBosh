@@ -1,4 +1,3 @@
-{-# LANGUAGE CPP, FlexibleContexts #-}
 {-
 	Copyright (C) 2018 Dr. Alistair Ward
 
@@ -71,10 +70,6 @@ import qualified	Control.Exception
 import qualified	Data.Maybe
 import qualified	Data.Ord
 
-#ifdef USE_UNBOXED_ARRAYS
-import qualified	Data.Array.Unboxed
-#endif
-
 -- | The selected /game/ & the criteria against which it was quantified.
 data QuantifiedGame	= MkQuantifiedGame {
 	getGame					:: Model.Game.Game,	-- ^ The /game/ resulting from a sequence of /turn/s.
@@ -99,17 +94,11 @@ getFitness :: QuantifiedGame -> Type.Mass.WeightedMean
 getFitness MkQuantifiedGame { getWeightedMeanAndCriterionValues = weightedMeanAndCriterionValues }	= Metric.WeightedMeanAndCriterionValues.getWeightedMean weightedMeanAndCriterionValues
 
 -- | Constructor.
-fromGame :: (
-#ifdef USE_UNBOXED_ARRAYS
-	Data.Array.Unboxed.IArray	Data.Array.Unboxed.UArray pieceSquareValue,	-- Requires 'FlexibleContexts'. The unboxed representation of the array-element must be defined (& therefore must be of fixed size).
-#endif
-	Fractional			pieceSquareValue,
-	Real				pieceSquareValue
- )
-	=> Maybe pieceSquareValue	-- ^ The value for the specified game.
-	-> Model.Game.Game		-- ^ The current state of the /game/.
-	-> Input.EvaluationOptions.Reader pieceSquareValue QuantifiedGame
-fromGame maybePieceSquareValue game	= MkQuantifiedGame game `fmap` Evaluation.Fitness.evaluateFitness maybePieceSquareValue game
+fromGame
+	:: Maybe Type.Mass.Base	-- ^ The piece-square value difference for the specified game.
+	-> Model.Game.Game	-- ^ The current state of the /game/.
+	-> Input.EvaluationOptions.Reader QuantifiedGame
+fromGame maybePieceSquareValueDifference game	= MkQuantifiedGame game <$> Evaluation.Fitness.evaluateFitness maybePieceSquareValueDifference game
 
 -- | Retrieve the /turn/ used to generate the selected /game/.
 getLastTurn :: QuantifiedGame -> Component.Turn.Turn

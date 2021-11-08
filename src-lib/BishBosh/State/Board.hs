@@ -1,4 +1,4 @@
-{-# LANGUAGE CPP, FlexibleContexts #-}
+{-# LANGUAGE CPP #-}
 {-
 	Copyright (C) 2018 Dr. Alistair Ward
 
@@ -102,10 +102,6 @@ import qualified	Data.List
 import qualified	Data.Map.Strict						as Map
 import qualified	Data.Maybe
 import qualified	ToolShed.Data.List
-
-#ifdef USE_UNBOXED_ARRAYS
-import qualified	Data.Array.Unboxed
-#endif
 
 -- | The type of a function which transforms a /board/.
 type Transformation	= Board -> Board
@@ -382,32 +378,16 @@ movePiece move maybeMoveType board@MkBoard {
 		(source, destination)	= Component.Move.getSource &&& Component.Move.getDestination $ move	-- Deconstruct.
 
 -- | Calculate the total value of the /coordinates/ occupied by the /piece/s of either side, at a stage in the game's life-span defined by the total number of pieces remaining.
-sumPieceSquareValueByLogicalColour :: (
-#ifdef USE_UNBOXED_ARRAYS
-	Data.Array.Unboxed.IArray	Data.Array.Unboxed.UArray pieceSquareValue,	-- Requires 'FlexibleContexts'. The unboxed representation of the array-element must be defined (& therefore must be of fixed size).
-#endif
-	Num				pieceSquareValue
- )
-	=> Component.PieceSquareByCoordinatesByRank.PieceSquareByCoordinatesByRank pieceSquareValue
+sumPieceSquareValueByLogicalColour
+	:: Component.PieceSquareByCoordinatesByRank.PieceSquareByCoordinatesByRank
 	-> Board
 	->
-#ifdef USE_UNBOXED_ARRAYS
+#if defined(USE_UNBOXED_ARRAYS) && !defined(USE_PRECISION)
 	Attribute.LogicalColour.UArrayByLogicalColour
 #else
 	Attribute.LogicalColour.ArrayByLogicalColour
 #endif
-		pieceSquareValue
-{-# SPECIALISE sumPieceSquareValueByLogicalColour
-	:: Component.PieceSquareByCoordinatesByRank.PieceSquareByCoordinatesByRank Type.Mass.PieceSquareValue
-	-> Board
-	->
-#ifdef USE_UNBOXED_ARRAYS
-	Attribute.LogicalColour.UArrayByLogicalColour
-#else
-	Attribute.LogicalColour.ArrayByLogicalColour
-#endif
-		Type.Mass.PieceSquareValue
- #-}
+		Type.Mass.Base	-- ^ Sum of PieceSquareValues.
 sumPieceSquareValueByLogicalColour pieceSquareByCoordinatesByRank MkBoard {
 	getCoordinatesByRankByLogicalColour	= coordinatesByRankByLogicalColour,
 	getNPieces				= nPieces

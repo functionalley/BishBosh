@@ -168,7 +168,7 @@ instance Component.Accountant.Accountant CoordinatesByRankByLogicalColour where
 	sumPieceSquareValueByLogicalColour pieceSquareByCoordinatesByRank nPieces MkCoordinatesByRankByLogicalColour { deconstruct = byLogicalColour }	= map (
 		\(logicalColour, byRank) -> Data.List.foldl' (
 			\acc (rank, coordinatesList) -> Data.List.foldl' (
-				\acc' -> (+ acc') . Component.PieceSquareByCoordinatesByRank.findPieceSquareValue pieceSquareByCoordinatesByRank nPieces logicalColour rank
+				\acc' -> (+ acc') . realToFrac . Component.PieceSquareByCoordinatesByRank.findPieceSquareValue pieceSquareByCoordinatesByRank nPieces logicalColour rank
 			) acc coordinatesList
 		) 0 $ Data.Array.IArray.assocs byRank
 	 ) $ Data.Array.IArray.assocs byLogicalColour

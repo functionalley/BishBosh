@@ -35,11 +35,9 @@ import			BishBosh.Test.QuickCheck.Input.EvaluationOptions()
 import			BishBosh.Test.QuickCheck.Input.SearchOptions()
 import			BishBosh.Test.QuickCheck.Model.Game()
 import qualified	BishBosh.Evaluation.PositionHashQuantifiedGameTree	as Evaluation.PositionHashQuantifiedGameTree
-import qualified	BishBosh.Input.EvaluationOptions			as Input.EvaluationOptions
 import qualified	BishBosh.Property.Empty					as Property.Empty
 import qualified	BishBosh.Search.SearchState				as Search.SearchState
 import qualified	BishBosh.Type.Crypto					as Type.Crypto
-import qualified	BishBosh.Type.Mass					as Type.Mass
 import qualified	Data.Bits
 import qualified	System.Random
 import qualified	Test.QuickCheck
@@ -55,11 +53,7 @@ instance forall positionHash. (
  ) => Test.QuickCheck.Arbitrary (Search.SearchState.SearchState positionHash) where
 	{-# SPECIALISE instance Test.QuickCheck.Arbitrary SearchState #-}
 	arbitrary	= do
-		evaluationOptions	<- Test.QuickCheck.arbitrary
-
 		Search.SearchState.initialise <$> (
-			Evaluation.PositionHashQuantifiedGameTree.mkPositionHashQuantifiedGameTree (
-				evaluationOptions	:: Input.EvaluationOptions.EvaluationOptions Type.Mass.PieceSquareValue
-			) <$> Test.QuickCheck.arbitrary {-SearchOptions-} <*> Test.QuickCheck.arbitrary {-Zobrist-} <*> return {-to Gen-monad-} Property.Empty.empty {-MoveFrequency-} <*> Test.QuickCheck.arbitrary {-Game-}
+			Evaluation.PositionHashQuantifiedGameTree.mkPositionHashQuantifiedGameTree <$> Test.QuickCheck.arbitrary {-EvaluationOptions-} <*> Test.QuickCheck.arbitrary {-SearchOptions-} <*> Test.QuickCheck.arbitrary {-Zobrist-} <*> return {-to Gen-monad-} Property.Empty.empty {-MoveFrequency-} <*> Test.QuickCheck.arbitrary {-Game-}
 		 )
 

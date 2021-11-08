@@ -93,15 +93,15 @@ randomSeedTag		= "randomSeed"
 type RandomSeed	= Int
 
 -- | Defines the application's options.
-data Options pieceSquareValue	= MkOptions {
-	getMaybeMaximumPlies	:: Maybe Type.Count.NPlies,					-- ^ The maximum number of plies before the game is terminated; required for profiling the application.
-	getMaybeRandomSeed	:: Maybe RandomSeed,						-- ^ Optionally seed the pseudo-random number-generator to produce a repeatable sequence.
-	getEvaluationOptions	:: Input.EvaluationOptions.EvaluationOptions pieceSquareValue,	-- ^ The single set of options by which all automated /move/s are evaluated.
-	getSearchOptions	:: Input.SearchOptions.SearchOptions,				-- ^ The options by which to automatically select /move/s.
-	getIOOptions		:: Input.IOOptions.IOOptions					-- ^ The /ioOptions/ by which to receive commands & present results.
+data Options	= MkOptions {
+	getMaybeMaximumPlies	:: Maybe Type.Count.NPlies,			-- ^ The maximum number of plies before the game is terminated; required for profiling the application.
+	getMaybeRandomSeed	:: Maybe RandomSeed,				-- ^ Optionally seed the pseudo-random number-generator to produce a repeatable sequence.
+	getEvaluationOptions	:: Input.EvaluationOptions.EvaluationOptions,	-- ^ The single set of options by which all automated /move/s are evaluated.
+	getSearchOptions	:: Input.SearchOptions.SearchOptions,		-- ^ The options by which to automatically select /move/s.
+	getIOOptions		:: Input.IOOptions.IOOptions			-- ^ The /ioOptions/ by which to receive commands & present results.
 } deriving (Eq, Show)
 
-instance Control.DeepSeq.NFData pieceSquareValue => Control.DeepSeq.NFData (Options pieceSquareValue) where
+instance Control.DeepSeq.NFData Options where
 	rnf MkOptions {
 		getMaybeMaximumPlies	= maybeMaximumPlies,
 		getMaybeRandomSeed	= maybeRandomSeed,
@@ -110,7 +110,7 @@ instance Control.DeepSeq.NFData pieceSquareValue => Control.DeepSeq.NFData (Opti
 		getIOOptions		= ioOptions
 	} = Control.DeepSeq.rnf (maybeMaximumPlies, maybeRandomSeed, evaluationOptions, searchOptions, ioOptions)
 
-instance (Real pieceSquareValue, Show pieceSquareValue) => Property.ShowFloat.ShowFloat (Options pieceSquareValue) where
+instance Property.ShowFloat.ShowFloat Options where
 	showsFloat fromDouble MkOptions {
 		getMaybeMaximumPlies	= maybeMaximumPlies,
 		getMaybeRandomSeed	= maybeRandomSeed,
@@ -134,7 +134,7 @@ instance (Real pieceSquareValue, Show pieceSquareValue) => Property.ShowFloat.Sh
 		)
 	 ]
 
-instance Data.Default.Default (Options pieceSquareValue) where
+instance Data.Default.Default Options where
 	def = MkOptions {
 		getMaybeMaximumPlies	= Nothing,
 		getMaybeRandomSeed	= Nothing,
@@ -143,12 +143,7 @@ instance Data.Default.Default (Options pieceSquareValue) where
 		getIOOptions		= Data.Default.def
 	}
 
-instance (
-	Fractional	pieceSquareValue,
-	Ord		pieceSquareValue,
-	Real		pieceSquareValue,
-	Show		pieceSquareValue
- ) => HXT.XmlPickler (Options pieceSquareValue) where
+instance HXT.XmlPickler Options where
 	xpickle	= HXT.xpElem tag . HXT.xpWrap (
 		\(a, b, c, d, e) -> mkOptions a b c d e,	-- Construct.
 		\MkOptions {
@@ -174,10 +169,10 @@ instance (
 mkOptions
 	:: Maybe Type.Count.NPlies	-- ^ The maximum number of plies before the game is terminated; required for profiling the application.
 	-> Maybe RandomSeed		-- ^ Optionally seed the pseudo-random number-generator to produce a repeatable sequence.
-	-> Input.EvaluationOptions.EvaluationOptions pieceSquareValue
+	-> Input.EvaluationOptions.EvaluationOptions
 	-> Input.SearchOptions.SearchOptions
 	-> Input.IOOptions.IOOptions
-	-> Options pieceSquareValue
+	-> Options
 mkOptions maybeMaximumPlies maybeRandomSeed evaluationOptions searchOptions ioOptions
 	| Just maximumPlies	<- maybeMaximumPlies
 	, maximumPlies <= 0	= Control.Exception.throw . Data.Exception.mkOutOfBounds . showString "BishBosh.Input.Options.mkOptions:\t" . showString maximumPliesTag . Text.ShowList.showsAssociation $ shows maximumPlies " must exceed zero."
@@ -193,22 +188,22 @@ mkOptions maybeMaximumPlies maybeRandomSeed evaluationOptions searchOptions ioOp
 	}
 
 -- | The type of a function used to transform 'Options'.
-type Transformation pieceSquareValue	= Options pieceSquareValue -> Options pieceSquareValue
+type Transformation	= Options -> Options
 
 -- | Mutator.
-setMaybeOutputConfigFilePath :: Maybe System.FilePath.FilePath -> Transformation pieceSquareValue
+setMaybeOutputConfigFilePath :: Maybe System.FilePath.FilePath -> Transformation
 setMaybeOutputConfigFilePath maybeOutputConfigFilePath options@MkOptions { getIOOptions	= ioOptions }	= options {
 	getIOOptions	= Input.IOOptions.setMaybeOutputConfigFilePath maybeOutputConfigFilePath ioOptions
 }
 
 -- | Mutator.
-setMaybeRandomSeed :: Maybe RandomSeed -> Transformation pieceSquareValue
+setMaybeRandomSeed :: Maybe RandomSeed -> Transformation
 setMaybeRandomSeed maybeRandomSeed options	= options {
 	getMaybeRandomSeed	= maybeRandomSeed
 }
 
 -- | Mutator.
-setMaybePersistence :: Maybe (System.FilePath.FilePath, Bool) -> Transformation pieceSquareValue
+setMaybePersistence :: Maybe (System.FilePath.FilePath, Bool) -> Transformation
 setMaybePersistence maybePersistence options@MkOptions { getIOOptions = ioOptions }	= options {
 	getIOOptions	= ioOptions {
 		Input.IOOptions.getMaybePersistence	= maybePersistence
@@ -216,25 +211,25 @@ setMaybePersistence maybePersistence options@MkOptions { getIOOptions = ioOption
 }
 
 -- | Mutator.
-setVerbosity :: Input.Verbosity.Verbosity -> Transformation pieceSquareValue
+setVerbosity :: Input.Verbosity.Verbosity -> Transformation
 setVerbosity verbosity options@MkOptions { getIOOptions = ioOptions }	= options {
 	getIOOptions	= Input.IOOptions.setVerbosity verbosity ioOptions
 }
 
 -- | Mutator.
-setEitherNativeUIOrCECPOptions :: Input.UIOptions.EitherNativeUIOrCECPOptions -> Transformation pieceSquareValue
+setEitherNativeUIOrCECPOptions :: Input.UIOptions.EitherNativeUIOrCECPOptions -> Transformation
 setEitherNativeUIOrCECPOptions eitherNativeUIOrCECPOptions options@MkOptions { getIOOptions = ioOptions }	= options {
 	getIOOptions	= Input.IOOptions.setEitherNativeUIOrCECPOptions eitherNativeUIOrCECPOptions ioOptions
 }
 
 -- | Mutator.
-setMaybePrintMoveTree :: Maybe Property.Arboreal.Depth -> Transformation pieceSquareValue
+setMaybePrintMoveTree :: Maybe Property.Arboreal.Depth -> Transformation
 setMaybePrintMoveTree maybePrintMoveTree options@MkOptions { getIOOptions = ioOptions }	= options {
 	getIOOptions	= Input.IOOptions.setMaybePrintMoveTree maybePrintMoveTree ioOptions
 }
 
 -- | Mutator.
-swapSearchDepth :: Transformation pieceSquareValue
+swapSearchDepth :: Transformation
 swapSearchDepth options@MkOptions { getSearchOptions = searchOptions }	= options {
 	getSearchOptions	= Input.SearchOptions.swapSearchDepth searchOptions
 }

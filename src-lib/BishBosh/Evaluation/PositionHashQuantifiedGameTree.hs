@@ -1,4 +1,3 @@
-{-# LANGUAGE CPP, FlexibleContexts #-}
 {-
 	Copyright (C) 2018 Dr. Alistair Ward
 
@@ -83,16 +82,11 @@ import qualified	BishBosh.Property.Arboreal			as Property.Arboreal
 import qualified	BishBosh.Property.Null				as Property.Null
 import qualified	BishBosh.StateProperty.Hashable			as StateProperty.Hashable
 import qualified	BishBosh.Type.Crypto				as Type.Crypto
-import qualified	BishBosh.Type.Mass				as Type.Mass
 import qualified	Control.Arrow
 import qualified	Control.Monad.Reader
 import qualified	Data.Bits
 import qualified	Data.Maybe
 import qualified	Data.Tree
-
-#ifdef USE_UNBOXED_ARRAYS
-import qualified	Data.Array.Unboxed
-#endif
 
 -- | Define a node in the tree to contain the hash of a /game/ & an evaluation of the fitness of that /game/.
 data NodeLabel positionHash	= MkNodeLabel {
@@ -144,22 +138,16 @@ fromBarePositionHashQuantifiedGameTree :: BarePositionHashQuantifiedGameTree pos
 fromBarePositionHashQuantifiedGameTree	= MkPositionHashQuantifiedGameTree
 
 -- | Constructor.
-mkPositionHashQuantifiedGameTree :: (
-#ifdef USE_UNBOXED_ARRAYS
-	Data.Array.Unboxed.IArray	Data.Array.Unboxed.UArray pieceSquareValue,	-- Requires 'FlexibleContexts'. The unboxed representation of the array-element must be defined (& therefore must be of fixed size).
-#endif
-	Data.Bits.Bits			positionHash,
-	Fractional			pieceSquareValue,
-	Real				pieceSquareValue
- )
-	=> Input.EvaluationOptions.EvaluationOptions pieceSquareValue
+mkPositionHashQuantifiedGameTree
+	:: Data.Bits.Bits positionHash
+	=> Input.EvaluationOptions.EvaluationOptions
 	-> Input.SearchOptions.SearchOptions
 	-> Component.Zobrist.Zobrist positionHash
 	-> Model.GameTree.MoveFrequency
 	-> Model.Game.Game	-- ^ The current state of the /game/.
 	-> PositionHashQuantifiedGameTree positionHash
 {-# SPECIALISE mkPositionHashQuantifiedGameTree
-	:: Input.EvaluationOptions.EvaluationOptions Type.Mass.PieceSquareValue
+	:: Input.EvaluationOptions.EvaluationOptions
 	-> Input.SearchOptions.SearchOptions
 	-> Component.Zobrist.Zobrist Type.Crypto.PositionHash
 	-> Model.GameTree.MoveFrequency
@@ -173,7 +161,7 @@ mkPositionHashQuantifiedGameTree evaluationOptions searchOptions zobrist moveFre
 		in Data.Tree.Node {
 			Data.Tree.rootLabel	= MkNodeLabel apexPositionHash $ Control.Monad.Reader.runReader (
 				Evaluation.QuantifiedGame.fromGame Nothing seedGame
-			) evaluationOptions,	-- Neither the previous positionHash nor the previous pieceSquareValue, are available to support incremental construction.
+			) evaluationOptions,	-- Neither the previous positionHash nor the previous pieceSquareValueDifference, are available to support incremental construction.
 			Data.Tree.subForest	= map (
 				Data.Maybe.maybe (
 					let
@@ -190,28 +178,26 @@ mkPositionHashQuantifiedGameTree evaluationOptions searchOptions zobrist moveFre
 					in slave
 				) (
 					\pieceSquareByCoordinatesByRank -> let
-						slave pieceSquareValue positionHash game Data.Tree.Node {
+						slave pieceSquareValueDifference positionHash game Data.Tree.Node {
 							Data.Tree.rootLabel	= game',
 							Data.Tree.subForest	= gameForest'
 						} = Data.Tree.Node {
 							Data.Tree.rootLabel	= MkNodeLabel positionHash' $ Control.Monad.Reader.runReader (
-								Evaluation.QuantifiedGame.fromGame (Just pieceSquareValue') game'
+								Evaluation.QuantifiedGame.fromGame (Just pieceSquareValueDifference') game'
 							) evaluationOptions,
-							Data.Tree.subForest	= map (slave pieceSquareValue' positionHash' game') gameForest'	-- Recurse.
+							Data.Tree.subForest	= map (slave pieceSquareValueDifference' positionHash' game') gameForest'	-- Recurse.
 						} where
-							pieceSquareValue'	= Evaluation.Fitness.measurePieceSquareValueIncrementally pieceSquareValue pieceSquareByCoordinatesByRank game'
-							positionHash'		= Model.Game.updateIncrementalPositionHash game positionHash game' zobrist
-					in slave $ Evaluation.Fitness.measurePieceSquareValue pieceSquareByCoordinatesByRank seedGame
+							pieceSquareValueDifference'	= Evaluation.Fitness.measurePieceSquareValueDifferenceIncrementally pieceSquareValueDifference pieceSquareByCoordinatesByRank game'
+							positionHash'			= Model.Game.updateIncrementalPositionHash game positionHash game' zobrist
+					in slave $ Evaluation.Fitness.measurePieceSquareValueDifference pieceSquareByCoordinatesByRank seedGame
 				) (
 					Input.EvaluationOptions.getMaybePieceSquareByCoordinatesByRank evaluationOptions
 				) apexPositionHash seedGame
 			) $ Data.Tree.subForest bareGameTree
 		}
-		else fmap (
-			uncurry MkNodeLabel . (
-				(`StateProperty.Hashable.hash` zobrist) &&& (`Control.Monad.Reader.runReader` evaluationOptions) . Evaluation.QuantifiedGame.fromGame Nothing
-			)
-		) bareGameTree
+		else uncurry MkNodeLabel . (
+			(`StateProperty.Hashable.hash` zobrist) &&& (`Control.Monad.Reader.runReader` evaluationOptions) . Evaluation.QuantifiedGame.fromGame Nothing
+		) <$> bareGameTree
  ) where
 	bareGameTree	= Model.GameTree.deconstruct . Model.GameTree.sortGameTree (
 		Input.SearchOptions.getMaybeCaptureMoveSortAlgorithm searchOptions
@@ -240,7 +226,7 @@ reduce
 	:: Data.RoseTree.IsMatch (NodeLabel positionHash)
 	-> PositionHashQuantifiedGameTree positionHash
 	-> Maybe (PositionHashQuantifiedGameTree positionHash)
-reduce isMatch MkPositionHashQuantifiedGameTree { deconstruct = barePositionHashQuantifiedGameTree }	= MkPositionHashQuantifiedGameTree `fmap` Data.RoseTree.reduce isMatch barePositionHashQuantifiedGameTree
+reduce isMatch MkPositionHashQuantifiedGameTree { deconstruct = barePositionHashQuantifiedGameTree }	= MkPositionHashQuantifiedGameTree <$> Data.RoseTree.reduce isMatch barePositionHashQuantifiedGameTree
 
 -- | Forward request.
 traceRoute

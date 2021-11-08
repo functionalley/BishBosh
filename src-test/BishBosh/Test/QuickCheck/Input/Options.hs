@@ -24,9 +24,6 @@
 -}
 
 module BishBosh.Test.QuickCheck.Input.Options(
--- * Types
--- ** Type-synonyms
---	Options,
 -- * Constants
 	results
 ) where
@@ -37,23 +34,14 @@ import			BishBosh.Test.QuickCheck.Input.SearchOptions()
 import qualified	BishBosh.Input.IOOptions	as Input.IOOptions
 import qualified	BishBosh.Input.Options		as Input.Options
 import qualified	BishBosh.Input.SearchOptions	as Input.SearchOptions
-import qualified	BishBosh.Type.Mass		as Type.Mass
 import qualified	Test.QuickCheck
 
--- | Defines a concrete type for testing.
-type Options	= Input.Options.Options Type.Mass.PieceSquareValue
-
-instance (
-	Fractional	pieceSquareValue,
-	Ord		pieceSquareValue,
-	Show		pieceSquareValue
- ) => Test.QuickCheck.Arbitrary (Input.Options.Options pieceSquareValue) where
-	{-# SPECIALISE instance Test.QuickCheck.Arbitrary Options #-}
+instance Test.QuickCheck.Arbitrary Input.Options.Options where
 	arbitrary	= do
 		(maybeMaximumPlies, maybeRandomSeed, evaluationOptions, searchOptions, ioOptions)	<- Test.QuickCheck.arbitrary
 
 		return {-to Gen-monad-} $ Input.Options.mkOptions (
-			fmap (fromInteger . succ . abs) maybeMaximumPlies
+			fromInteger . succ . abs <$> maybeMaximumPlies
 		 ) maybeRandomSeed evaluationOptions (
 			if null $ Input.IOOptions.getPGNOptionsList ioOptions
 				then searchOptions {
@@ -66,7 +54,7 @@ instance (
 results :: IO [Test.QuickCheck.Result]
 results	= sequence [
 	let
-		f :: Options -> Test.QuickCheck.Property
+		f :: Input.Options.Options -> Test.QuickCheck.Property
 		f options	= Test.QuickCheck.label "Options.prop_swapSearchDepth" $ Input.Options.swapSearchDepth (Input.Options.swapSearchDepth options) == options
 	in Test.QuickCheck.quickCheckWithResult Test.QuickCheck.stdArgs { Test.QuickCheck.maxSuccess = 32 } f
  ]

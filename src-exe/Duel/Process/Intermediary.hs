@@ -62,7 +62,6 @@ import qualified	BishBosh.Rule.GameTerminationReason	as Rule.GameTerminationReas
 import qualified	BishBosh.Text.ShowList			as Text.ShowList
 import qualified	BishBosh.Time.GameClock			as Time.GameClock
 import qualified	BishBosh.Type.Count			as Type.Count
-import qualified	BishBosh.Type.Mass			as Type.Mass
 import qualified	BishBosh.UI.Command			as UI.Command
 import qualified	BishBosh.UI.ReportObject		as UI.ReportObject
 import qualified	Control.Exception
@@ -331,9 +330,7 @@ initialise options
 							] configFilePath
 							>>> HXT.arr (
 								\inputOptions -> (
-									Input.SearchOptions.identifyAutomatedPlayers $ Input.Options.getSearchOptions (
-										inputOptions	:: Input.Options.Options Type.Mass.PieceSquareValue	-- Arbitrary concrete type.
-									),
+									Input.SearchOptions.identifyAutomatedPlayers $ Input.Options.getSearchOptions inputOptions,
 									Input.UIOptions.getMoveNotation . Input.IOOptions.getUIOptions $ Input.Options.getIOOptions inputOptions,
 									null . Input.IOOptions.getPGNOptionsList $ Input.Options.getIOOptions inputOptions
 								)

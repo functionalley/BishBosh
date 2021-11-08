@@ -1,4 +1,3 @@
-{-# LANGUAGE CPP, FlexibleContexts #-}
 {-
 	Copyright (C) 2018 Dr. Alistair Ward
 
@@ -34,8 +33,8 @@ module BishBosh.Evaluation.Fitness(
 --	maximumDestinations,
 	maximumDefended,
 -- * Functions
-	measurePieceSquareValue,
-	measurePieceSquareValueIncrementally,
+	measurePieceSquareValueDifference,
+	measurePieceSquareValueDifferenceIncrementally,
 	measureValueOfMaterial,
 --	measureValueOfMobility,
 	measureValueOfCastlingPotential,
@@ -78,49 +77,33 @@ import qualified	Data.List
 import qualified	Data.Map.Strict						as Map
 import qualified	Data.Maybe
 
-#ifdef USE_UNBOXED_ARRAYS
-import qualified	Data.Array.Unboxed
-#endif
-
--- | Measures the piece-square value from the perspective of the last player to move.
-measurePieceSquareValue :: (
-#ifdef USE_UNBOXED_ARRAYS
-	Data.Array.Unboxed.IArray	Data.Array.Unboxed.UArray pieceSquareValue,	-- Requires 'FlexibleContexts'. The unboxed representation of the array-element must be defined (& therefore must be of fixed size).
-#endif
-	Num				pieceSquareValue
- )
-	=> Component.PieceSquareByCoordinatesByRank.PieceSquareByCoordinatesByRank pieceSquareValue
+-- | Measures the difference in piece-square value between players, from the perspective of the last player to move.
+measurePieceSquareValueDifference
+	:: Component.PieceSquareByCoordinatesByRank.PieceSquareByCoordinatesByRank
 	-> Model.Game.Game
-	-> pieceSquareValue
-{-# SPECIALISE measurePieceSquareValue :: Component.PieceSquareByCoordinatesByRank.PieceSquareByCoordinatesByRank Type.Mass.PieceSquareValue -> Model.Game.Game -> Type.Mass.PieceSquareValue #-}
-measurePieceSquareValue pieceSquareByCoordinatesByRank game	= (
-	if Attribute.LogicalColour.isBlack $ Model.Game.getNextLogicalColour game
+	-> Type.Mass.Base
+measurePieceSquareValueDifference pieceSquareByCoordinatesByRank game	= (
+	if Attribute.LogicalColour.isBlack $! Model.Game.getNextLogicalColour game
 		then id
-		else negate	-- Represent the piece-square value from Black's perspective.
- ) $ whitesPieceSquareValue - blacksPieceSquareValue where
+		else negate	-- Represent the piece-square value difference from Black's perspective.
+ ) $! whitesPieceSquareValue - blacksPieceSquareValue where
 	[blacksPieceSquareValue, whitesPieceSquareValue]	= Data.Array.IArray.elems . State.Board.sumPieceSquareValueByLogicalColour pieceSquareByCoordinatesByRank $ Model.Game.getBoard game
 
 {- |
-	* Measures the piece-square value from the perspective of the last player to move.
+	* Measures the difference in piece-square value between players, from the perspective of the last player to move.
 
 	* The previous value is provided, to enable calculation by difference.
 
-	* N.B.: because of diminishing returns, the piece-square value for everything but quiet moves is calculated from scratch.
+	* N.B.: because of diminishing returns, the piece-square value for everything but simple moves is calculated from scratch.
 -}
-measurePieceSquareValueIncrementally :: (
-#ifdef USE_UNBOXED_ARRAYS
-	Data.Array.Unboxed.IArray	Data.Array.Unboxed.UArray pieceSquareValue,	-- Requires 'FlexibleContexts'. The unboxed representation of the array-element must be defined (& therefore must be of fixed size).
-#endif
-	Num				pieceSquareValue
- )
-	=> pieceSquareValue	-- ^ The value before the last move was applied, & therefore also from the perspective of the previous player.
-	-> Component.PieceSquareByCoordinatesByRank.PieceSquareByCoordinatesByRank pieceSquareValue
+measurePieceSquareValueDifferenceIncrementally
+	:: Type.Mass.Base	-- ^ The difference between players in the piece-square value, before the last move was applied & therefore also from the perspective of the previous player.
+	-> Component.PieceSquareByCoordinatesByRank.PieceSquareByCoordinatesByRank
 	-> Model.Game.Game
-	-> pieceSquareValue
-{-# SPECIALISE measurePieceSquareValueIncrementally :: Type.Mass.PieceSquareValue -> Component.PieceSquareByCoordinatesByRank.PieceSquareByCoordinatesByRank Type.Mass.PieceSquareValue -> Model.Game.Game -> Type.Mass.PieceSquareValue #-}
-measurePieceSquareValueIncrementally previousPieceSquareValue pieceSquareByCoordinatesByRank game
-	| Attribute.MoveType.isSimple $ Component.QualifiedMove.getMoveType qualifiedMove	= let
-		findPieceSquareValue	= uncurry (
+	-> Type.Mass.Base
+measurePieceSquareValueDifferenceIncrementally previousPieceSquareValueDifference pieceSquareByCoordinatesByRank game
+	| Attribute.MoveType.isSimple $! Component.QualifiedMove.getMoveType qualifiedMove	= let
+		findPieceSquareValue	= realToFrac . uncurry (
 			Component.PieceSquareByCoordinatesByRank.findPieceSquareValue pieceSquareByCoordinatesByRank
 		 ) (
 			State.Board.getNPieces {- N.B.: no capture occurred-} . Model.Game.getBoard &&& Property.Opposable.getOpposite . Model.Game.getNextLogicalColour $ game	{-the last player to move-}
@@ -129,8 +112,8 @@ measurePieceSquareValueIncrementally previousPieceSquareValue pieceSquareByCoord
 		 )
 	in uncurry (-) (
 		findPieceSquareValue . Component.Move.getDestination &&& findPieceSquareValue . Component.Move.getSource $ Component.QualifiedMove.getMove qualifiedMove
-	) - previousPieceSquareValue {-from the previous player's perspective-}
-	| otherwise	= measurePieceSquareValue pieceSquareByCoordinatesByRank game	-- N.B.: though non-simple (Castling, En-passant, promotion) can be calculated, the returns don't justify the effort.
+	) - previousPieceSquareValueDifference {-from the previous player's perspective-}
+	| otherwise	= measurePieceSquareValueDifference pieceSquareByCoordinatesByRank game	-- N.B.: though non-simple (Castling, En-passant, promotion) can be calculated, the returns don't justify the effort.
 	where
 		Just turn	= Model.Game.maybeLastTurn game
 		qualifiedMove	= Component.Turn.getQualifiedMove turn
@@ -144,7 +127,7 @@ measureValueOfMaterial
 measureValueOfMaterial rankValues maximumTotalRankValue game	= realToFrac . (
 	/ maximumTotalRankValue	-- Normalise.
  ) . (
-	if Attribute.LogicalColour.isBlack $ Model.Game.getNextLogicalColour game
+	if Attribute.LogicalColour.isBlack $! Model.Game.getNextLogicalColour game
 		then id		-- White just moved.
 		else negate	-- Black just moved.
  ) . Data.List.foldl' (
@@ -178,7 +161,7 @@ measureValueOfMaterial rankValues maximumTotalRankValue game	= realToFrac . (
 measureValueOfMobility :: Model.Game.Game -> Metric.CriterionValue.CriterionValue
 measureValueOfMobility game	= realToFrac . uncurry (-) . (
 	measureConstriction &&& measureConstriction . Property.Opposable.getOpposite {-recent mover-}
- ) $ Model.Game.getNextLogicalColour game where
+ ) $! Model.Game.getNextLogicalColour game where
 	measureConstriction :: Attribute.LogicalColour.LogicalColour -> Type.Mass.CriterionValue
 	measureConstriction logicalColour	= recip . fromIntegral {-NPlies-} . succ {-avoid divide-by-zero-} $ Model.Game.countPliesAvailableTo logicalColour game
 
@@ -298,18 +281,11 @@ measureValueOfDefence game	= realToFrac . (
 
 	* Many possible criteria aren't measured because they're, either currently or imminently, represented by those that are, typically by 'measureValueOfMaterial'.
 -}
-evaluateFitness :: (
-#ifdef USE_UNBOXED_ARRAYS
-	Data.Array.Unboxed.IArray	Data.Array.Unboxed.UArray pieceSquareValue,	-- Requires 'FlexibleContexts'. The unboxed representation of the array-element must be defined (& therefore must be of fixed size).
-#endif
-	Fractional			pieceSquareValue,
-	Real				pieceSquareValue
- )
-	=> Maybe pieceSquareValue	-- ^ An optional value for the specified game.
+evaluateFitness
+	:: Maybe Type.Mass.Base	-- ^ An optional piece-square value difference for the specified game.
 	-> Model.Game.Game
-	-> Input.EvaluationOptions.Reader pieceSquareValue Metric.WeightedMeanAndCriterionValues.WeightedMeanAndCriterionValues
-{-# SPECIALISE evaluateFitness :: Maybe Type.Mass.PieceSquareValue -> Model.Game.Game -> Input.EvaluationOptions.Reader Type.Mass.PieceSquareValue Metric.WeightedMeanAndCriterionValues.WeightedMeanAndCriterionValues #-}
-evaluateFitness maybePieceSquareValue game
+	-> Input.EvaluationOptions.Reader Metric.WeightedMeanAndCriterionValues.WeightedMeanAndCriterionValues
+evaluateFitness maybePieceSquareValueDifference game
 	| Just gameTerminationReason <- Model.Game.getMaybeTerminationReason game	= return {-to Reader-monad-} $ Metric.WeightedMeanAndCriterionValues.mkWeightedMeanAndCriterionValues (
 		if Rule.GameTerminationReason.isCheckMate gameTerminationReason
 			then 1	-- The last player to move, has won.
@@ -320,14 +296,14 @@ evaluateFitness maybePieceSquareValue game
 		rankValuePair				<- Control.Monad.Reader.asks $ Input.EvaluationOptions.getRankValues &&& Input.EvaluationOptions.getMaximumTotalRankValue
 		maybePieceSquareByCoordinatesByRank	<- Control.Monad.Reader.asks Input.EvaluationOptions.getMaybePieceSquareByCoordinatesByRank
 
-		return {-to Reader-monad-} $ Input.CriteriaWeights.calculateWeightedMean criteriaWeights (
+		return {-to Reader-monad-} $! Input.CriteriaWeights.calculateWeightedMean criteriaWeights (
 			uncurry measureValueOfMaterial rankValuePair game
 		 ) (
 			measureValueOfMobility game
 		 ) (
 			Data.Maybe.maybe 0 (
-				realToFrac . (/ fromIntegral Component.Piece.nPiecesPerSide)
-			) $ maybePieceSquareValue <|> fmap (`measurePieceSquareValue` game) maybePieceSquareByCoordinatesByRank
+				realToFrac . (/ fromIntegral Component.Piece.nPiecesPerSide)	-- Normalise.
+			) $ maybePieceSquareValueDifference <|> fmap (`measurePieceSquareValueDifference` game) maybePieceSquareByCoordinatesByRank
 		 ) (
 			measureValueOfCastlingPotential game
 		 ) (

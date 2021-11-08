@@ -27,16 +27,17 @@ module BishBosh.Test.QuickCheck.Evaluation.PositionHashQuantifiedGameTree(
 	results
 ) where
 
+import			BishBosh.Test.QuickCheck.Input.EvaluationOptions()
 import			BishBosh.Test.QuickCheck.Input.SearchOptions()
 import			BishBosh.Test.QuickCheck.Model.Game()
 import qualified	BishBosh.Evaluation.PositionHashQuantifiedGameTree	as Evaluation.PositionHashQuantifiedGameTree
 import qualified	BishBosh.Evaluation.QuantifiedGame			as Evaluation.QuantifiedGame
+import qualified	BishBosh.Input.EvaluationOptions			as Input.EvaluationOptions
 import qualified	BishBosh.Input.SearchOptions				as Input.SearchOptions
 import qualified	BishBosh.Model.Game					as Model.Game
 import qualified	BishBosh.Property.Empty					as Property.Empty
 import qualified	BishBosh.State.Position					as State.Position
 import qualified	BishBosh.Test.QuickCheck.Component.Zobrist		as Test.QuickCheck.Component.Zobrist
-import qualified	BishBosh.Test.QuickCheck.Input.EvaluationOptions	as Test.QuickCheck.Input.EvaluationOptions
 import qualified	BishBosh.Type.Crypto					as Type.Crypto
 import qualified	BishBosh.Type.Mass					as Type.Mass
 import qualified	Data.List.Extra
@@ -50,7 +51,7 @@ results :: IO [Test.QuickCheck.Result]
 results	= sequence [
 	let
 		f
-			:: Test.QuickCheck.Input.EvaluationOptions.EvaluationOptions
+			:: Input.EvaluationOptions.EvaluationOptions
 			-> Input.SearchOptions.SearchOptions
 			-> Test.QuickCheck.Component.Zobrist.Zobrist
 			-> Model.Game.Game
@@ -68,7 +69,7 @@ results	= sequence [
 	in Test.QuickCheck.quickCheckWithResult Test.QuickCheck.stdArgs { Test.QuickCheck.maxSuccess = 32 } f,
 	let
 		f
-			:: Test.QuickCheck.Input.EvaluationOptions.EvaluationOptions
+			:: Input.EvaluationOptions.EvaluationOptions
 			-> Input.SearchOptions.SearchOptions
 			-> Test.QuickCheck.Component.Zobrist.Zobrist
 			-> Model.Game.Game

@@ -29,35 +29,35 @@ module BishBosh.Test.QuickCheck.Model.Game(
 	results
 ) where
 
+import			BishBosh.Test.QuickCheck.Input.EvaluationOptions()
 import			Control.Arrow((&&&))
-import qualified	BishBosh.Attribute.MoveType				as Attribute.MoveType
-import qualified	BishBosh.Attribute.Rank					as Attribute.Rank
-import qualified	BishBosh.Component.Move					as Component.Move
-import qualified	BishBosh.Component.Piece				as Component.Piece
-import qualified	BishBosh.Component.QualifiedMove			as Component.QualifiedMove
-import qualified	BishBosh.Component.Turn					as Component.Turn
-import qualified	BishBosh.Evaluation.Fitness				as Evaluation.Fitness
-import qualified	BishBosh.Input.EvaluationOptions			as Input.EvaluationOptions
-import qualified	BishBosh.Model.Game					as Model.Game
-import qualified	BishBosh.Property.FixedMembership			as Property.FixedMembership
-import qualified	BishBosh.Property.ForsythEdwards			as Property.ForsythEdwards
-import qualified	BishBosh.Property.Null					as Property.Null
-import qualified	BishBosh.Property.Opposable				as Property.Opposable
-import qualified	BishBosh.Property.Reflectable				as Property.Reflectable
-import qualified	BishBosh.Rule.DrawReason				as Rule.DrawReason
-import qualified	BishBosh.State.Board					as State.Board
-import qualified	BishBosh.State.CastleableRooksByLogicalColour		as State.CastleableRooksByLogicalColour
-import qualified	BishBosh.State.CoordinatesByRankByLogicalColour		as State.CoordinatesByRankByLogicalColour
-import qualified	BishBosh.State.MaybePieceByCoordinates			as State.MaybePieceByCoordinates
-import qualified	BishBosh.StateProperty.Seeker				as StateProperty.Seeker
-import qualified	BishBosh.State.TurnsByLogicalColour			as State.TurnsByLogicalColour
-import qualified	BishBosh.Test.QuickCheck.Input.EvaluationOptions	as Test.QuickCheck.Input.EvaluationOptions
-import qualified	BishBosh.Type.Count					as Type.Count
+import qualified	BishBosh.Attribute.MoveType			as Attribute.MoveType
+import qualified	BishBosh.Attribute.Rank				as Attribute.Rank
+import qualified	BishBosh.Component.Move				as Component.Move
+import qualified	BishBosh.Component.Piece			as Component.Piece
+import qualified	BishBosh.Component.QualifiedMove		as Component.QualifiedMove
+import qualified	BishBosh.Component.Turn				as Component.Turn
+import qualified	BishBosh.Evaluation.Fitness			as Evaluation.Fitness
+import qualified	BishBosh.Input.EvaluationOptions		as Input.EvaluationOptions
+import qualified	BishBosh.Model.Game				as Model.Game
+import qualified	BishBosh.Property.FixedMembership		as Property.FixedMembership
+import qualified	BishBosh.Property.ForsythEdwards		as Property.ForsythEdwards
+import qualified	BishBosh.Property.Null				as Property.Null
+import qualified	BishBosh.Property.Opposable			as Property.Opposable
+import qualified	BishBosh.Property.Reflectable			as Property.Reflectable
+import qualified	BishBosh.Rule.DrawReason			as Rule.DrawReason
+import qualified	BishBosh.State.Board				as State.Board
+import qualified	BishBosh.State.CastleableRooksByLogicalColour	as State.CastleableRooksByLogicalColour
+import qualified	BishBosh.State.CoordinatesByRankByLogicalColour	as State.CoordinatesByRankByLogicalColour
+import qualified	BishBosh.State.MaybePieceByCoordinates		as State.MaybePieceByCoordinates
+import qualified	BishBosh.StateProperty.Seeker			as StateProperty.Seeker
+import qualified	BishBosh.State.TurnsByLogicalColour		as State.TurnsByLogicalColour
+import qualified	BishBosh.Type.Count				as Type.Count
 import qualified	Data.Array.IArray
 import qualified	Data.Default
 import qualified	Data.Foldable
 import qualified	Data.List
-import qualified	Data.Map						as Map
+import qualified	Data.Map					as Map
 import qualified	Data.Maybe
 import qualified	Data.Ord
 import qualified	System.Random
@@ -78,7 +78,7 @@ instance Test.QuickCheck.Arbitrary Model.Game.Game where
 	 in Test.QuickCheck.arbitrary >>= (
 		\randomGens -> (
 			play Data.Default.def . (`take` ToolShed.System.Random.randomGens (System.Random.mkStdGen randomGens))
-		) `fmap` Test.QuickCheck.choose (1 :: Int, 64)
+		) <$> Test.QuickCheck.choose (1 :: Int, 64)
 	 )
 
 -- | The constant test-results for this data-type.
@@ -298,7 +298,7 @@ results	= sequence [
 			maybePieceByCoordinates	= State.Board.getMaybePieceByCoordinates board
 	in Test.QuickCheck.quickCheckWithResult Test.QuickCheck.stdArgs { Test.QuickCheck.maxSuccess = 1024 } f,
 	let
-		f :: Test.QuickCheck.Input.EvaluationOptions.EvaluationOptions -> Model.Game.Game -> Test.QuickCheck.Property
+		f :: Input.EvaluationOptions.EvaluationOptions -> Model.Game.Game -> Test.QuickCheck.Property
 		f evaluationOptions game	= Data.Maybe.isJust (
 			Input.EvaluationOptions.getMaybePieceSquareByCoordinatesByRank evaluationOptions
 		 ) && not (
@@ -317,12 +317,11 @@ results	= sequence [
 		 ) . abs . uncurry (-)	-- Tolerance for floating-point errors.
 #endif
 		 $ (
-			Evaluation.Fitness.measurePieceSquareValue pieceSquareByCoordinatesByRank &&& Evaluation.Fitness.measurePieceSquareValueIncrementally (
-				Evaluation.Fitness.measurePieceSquareValue pieceSquareByCoordinatesByRank oldGame
-			) pieceSquareByCoordinatesByRank
+			measurePieceSquareValueDifference' &&& Evaluation.Fitness.measurePieceSquareValueDifferenceIncrementally (measurePieceSquareValueDifference' oldGame) pieceSquareByCoordinatesByRank
 		 ) game where
-			pieceSquareByCoordinatesByRank	= Data.Maybe.fromJust $ Input.EvaluationOptions.getMaybePieceSquareByCoordinatesByRank evaluationOptions
-			(oldGame, _) : _		= Model.Game.rollBack game
+			pieceSquareByCoordinatesByRank		= Data.Maybe.fromJust $ Input.EvaluationOptions.getMaybePieceSquareByCoordinatesByRank evaluationOptions
+			measurePieceSquareValueDifference'	= Evaluation.Fitness.measurePieceSquareValueDifference pieceSquareByCoordinatesByRank
+			(oldGame, _) : _			= Model.Game.rollBack game
 	in Test.QuickCheck.quickCheckWithResult Test.QuickCheck.stdArgs { Test.QuickCheck.maxSuccess = 2048 } f
  ]
 

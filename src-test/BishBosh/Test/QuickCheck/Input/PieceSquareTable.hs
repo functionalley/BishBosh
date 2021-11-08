@@ -24,32 +24,19 @@
 -}
 
 module BishBosh.Test.QuickCheck.Input.PieceSquareTable(
--- * Types
--- ** Type-synonyms
---	PieceSquareTable,
 -- * Constants
 	results
 ) where
 
 import			BishBosh.Test.QuickCheck.Attribute.Rank()
-import qualified	BishBosh.Attribute.Rank			as Attribute.Rank
+import			BishBosh.Test.QuickCheck.Type.Mass()
 import qualified	BishBosh.Cartesian.Coordinates		as Cartesian.Coordinates
 import qualified	BishBosh.Input.PieceSquareTable		as Input.PieceSquareTable
 import qualified	BishBosh.Property.FixedMembership	as Property.FixedMembership
 import qualified	BishBosh.Type.Mass			as Type.Mass
-import qualified	Data.List
 import qualified	Test.QuickCheck
-import			Test.QuickCheck((==>))
 
--- | Defines a concrete type for testing.
-type PieceSquareTable	= Input.PieceSquareTable.PieceSquareTable Type.Mass.PieceSquareValue
-
-instance (
-	Fractional	pieceSquareValue,
-	Ord		pieceSquareValue,
-	Show		pieceSquareValue
- ) => Test.QuickCheck.Arbitrary (Input.PieceSquareTable.PieceSquareTable pieceSquareValue) where
-	{-# SPECIALISE instance Test.QuickCheck.Arbitrary PieceSquareTable #-}
+instance Test.QuickCheck.Arbitrary Input.PieceSquareTable.PieceSquareTable where
 	arbitrary	= do
 		reflectOnY	<- Test.QuickCheck.arbitrary
 
@@ -71,11 +58,7 @@ instance (
 results :: IO [Test.QuickCheck.Result]
 results	= sequence [
 	let
-		f :: Input.PieceSquareTable.Assocs Attribute.Rank.Rank Type.Mass.PieceSquareValue -> Test.QuickCheck.Property
-		f assocs	= length (Data.List.nub $ concatMap snd assocs) > 1 ==> Test.QuickCheck.label "PieceSquareTable.prop_closedUnitInterval" . Input.PieceSquareTable.inClosedUnitInterval $ Input.PieceSquareTable.normaliseToUnitInterval assocs
-	in Test.QuickCheck.quickCheckWithResult Test.QuickCheck.stdArgs { Test.QuickCheck.maxSuccess = 256 } f,
-	let
-		f :: (Int, Int, Int, Int) -> Test.QuickCheck.Property
+		f :: (Type.Mass.PieceSquareValue, Type.Mass.PieceSquareValue, Type.Mass.PieceSquareValue, Type.Mass.PieceSquareValue) -> Test.QuickCheck.Property
 		f (a, b, c, d)	= Test.QuickCheck.label "PieceSquareTable.prop_mirror" . (== l) . Input.PieceSquareTable.unmirror $ Input.PieceSquareTable.mirror l where
 			l	= [a, b, c, d]
 	in Test.QuickCheck.quickCheckWithResult Test.QuickCheck.stdArgs { Test.QuickCheck.maxSuccess = 16 } f

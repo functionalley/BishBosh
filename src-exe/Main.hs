@@ -90,11 +90,8 @@ import qualified	GHC.Conc
 #endif
 
 #ifdef USE_UNIX
-import qualified	BishBosh.Concurrent.SignalHandlers	as Concurrent.SignalHandlers
+import qualified	BishBosh.Concurrent.SignalHandlers			as Concurrent.SignalHandlers
 #endif
-
--- Define concrete types to resolve the underlying polymorphic functions.
-type Options	= Input.Options.Options Type.Mass.PieceSquareValue
 
 writeXMLToFile
 	:: HXT.XmlPickler pickleable
@@ -152,7 +149,7 @@ main	= do
 		optDescrList :: [
 			G.OptDescr (
 				Maybe (Input.CommandLineOption.Flag, Maybe String {-optional value-}),	-- Record command-line specifications.
-				Input.CommandLineOption.CommandLineOption Options			-- Defines the action to take on receipt of a command-line option.
+				Input.CommandLineOption.CommandLineOption Input.Options.Options			-- Defines the action to take on receipt of a command-line option.
 			) -- Pair.
 		 ]
 		optDescrList	= [
@@ -235,12 +232,12 @@ main	= do
 			defaultRandomSeed	= 0
 
 -- Unary options-mutators.
-			setPrintMoveTree, setVerbosity, setOutputConfigFilePath	:: String -> Input.CategorisedCommandLineOptions.OptionsMutator Options
+			setPrintMoveTree, setVerbosity, setOutputConfigFilePath	:: String -> Input.CategorisedCommandLineOptions.OptionsMutator Input.Options.Options
 			setPrintMoveTree	= Input.Options.setMaybePrintMoveTree . Just . Input.CommandLineOption.readArg
 			setVerbosity		= Input.Options.setVerbosity . Input.CommandLineOption.readArg
 			setOutputConfigFilePath	= Input.Options.setMaybeOutputConfigFilePath . Just
 
-			setRandomSeed :: Maybe String -> Input.CategorisedCommandLineOptions.OptionsMutator Options
+			setRandomSeed :: Maybe String -> Input.CategorisedCommandLineOptions.OptionsMutator Input.Options.Options
 			setRandomSeed	= Input.Options.setMaybeRandomSeed . Just . Data.Maybe.maybe defaultRandomSeed Input.CommandLineOption.readBoundedIntegral
 
 -- Nullary I/O-actions.
@@ -259,14 +256,14 @@ main	= do
 				showsVersion :: Data.Version.Version -> ShowS
 				showsVersion	= foldr (.) id . Data.List.intersperse (showChar '.') . map shows . Data.Version.versionBranch
 
-			checkPickler	= Control.Monad.void . HXT.runX $ HXT.constA (Data.Default.def :: Options) >>> HXT.checkPickler HXT.xpickle
+			checkPickler	= Control.Monad.void . HXT.runX $ HXT.constA (Data.Default.def :: Input.Options.Options) >>> HXT.checkPickler HXT.xpickle
 
 			generateDTD :: Maybe String -> Input.CategorisedCommandLineOptions.IOAction
-			generateDTD hxtTraceLevel	= Control.Monad.void . HXT.runX $ HXT.constA (undefined :: Options) >>> HXT.xpickleWriteDTD HXT.xpickle [
+			generateDTD hxtTraceLevel	= Control.Monad.void . HXT.runX $ HXT.constA (undefined :: Input.Options.Options) >>> HXT.xpickleWriteDTD HXT.xpickle [
 				HXT.withTrace $ Data.Maybe.maybe 0 Input.CommandLineOption.readBoundedIntegral hxtTraceLevel	-- Valid values in closed interval [0, 4]
 			 ] "-" {-stdout-}	-- CAVEAT: this DTD requires manual correction of defaulted attributes, which are erroneously defined as 'REQUIRED' rather than 'IMPLIED'.
 
-			formatPieceSquareTableForGNUPlot :: Input.CategorisedCommandLineOptions.ContextualIOAction Options
+			formatPieceSquareTableForGNUPlot :: Input.CategorisedCommandLineOptions.ContextualIOAction Input.Options.Options
 			formatPieceSquareTableForGNUPlot options	= Data.Maybe.maybe (
 				Control.Exception.throwIO $ Data.Exception.mkNullDatum "the piece-square table is undefined."
 			 ) (
@@ -279,7 +276,7 @@ main	= do
 						Property.ShowFloat.showsFloatToN' (
 							Input.UIOptions.getNDecimalDigits . Input.IOOptions.getUIOptions $ Input.Options.getIOOptions options	-- PieceSquareValue formatter.
 						) . (
-							realToFrac	:: Type.Mass.PieceSquareValue -> Input.PieceSquareTable.IOFormat	-- N.B.: required when compiled with 'USE_PRECISION'.
+							realToFrac	:: Type.Mass.PieceSquareValue -> Input.PieceSquareTable.IOFormat
 						)
 					) (
 						showChar '\t'	-- Column-delimiter.
@@ -332,9 +329,9 @@ main	= do
 							hxtTraceLevel :: Int
 							hxtTraceLevel	= fromEnum preVerbosity `min` 2	{-CAVEAT: HXT trace-levels 3 & 4 are too verbose-}
 
-							processInputOptions :: Options -> IO Options
+							processInputOptions :: Input.Options.Options -> IO Input.Options.Options
 							processInputOptions options	= let
-								options' :: Options
+								options' :: Input.Options.Options
 								options'	= (
 									\o -> (
 										if Data.Maybe.isNothing . Input.IOOptions.getMaybePersistence $ Input.Options.getIOOptions o
@@ -428,7 +425,7 @@ main	= do
 									) (
 										\absolutePGNDatabaseFilePath -> either (
 											Control.Exception.throw . Data.Exception.mkParseFailure
-										) id `fmap` ContextualNotation.PGNDatabase.parseIO absolutePGNDatabaseFilePath (
+										) id <$> ContextualNotation.PGNDatabase.parseIO absolutePGNDatabaseFilePath (
 											Input.PGNOptions.getMaybeDecompressor pgnOptions
 										) (
 											Input.PGNOptions.getIsStrictlySequential pgnOptions
@@ -449,7 +446,7 @@ main	= do
 								 ) Property.Empty.empty {-QualifiedMoveForest-} (Input.IOOptions.getPGNOptionsList ioOptions)
 
 								let
-									maybeApplicationTerminationReason	= State.PlayState.getMaybeApplicationTerminationReason (playState :: State.PlayState.PlayState Type.Mass.PieceSquareValue Type.Crypto.PositionHash)
+									maybeApplicationTerminationReason	= State.PlayState.getMaybeApplicationTerminationReason (playState :: State.PlayState.PlayState Type.Crypto.PositionHash)
 								 in Control.Monad.when (
 									verbosity /= minBound && Data.Maybe.isJust maybeApplicationTerminationReason
 								 ) . System.IO.hPutStrLn System.IO.stderr . showsInfoPrefix . showString "application terminated " $ shows (Data.Maybe.fromJust maybeApplicationTerminationReason) "."

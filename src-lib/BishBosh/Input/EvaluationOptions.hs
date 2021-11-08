@@ -69,6 +69,7 @@ import qualified	BishBosh.Type.Mass					as Type.Mass
 import qualified	Control.DeepSeq
 import qualified	Control.Exception
 import qualified	Control.Monad.Reader
+import qualified	Data.Array.IArray
 import qualified	Data.Default
 import qualified	Data.Foldable
 import qualified	Data.Maybe
@@ -94,21 +95,19 @@ pieceSquareTableEndGameTag	= showString Input.PieceSquareTable.tag "EndGame"
 type IncrementalEvaluation	= Bool
 
 -- | A pair of piece-square tables representing the opening & end-games respectively.
-type PieceSquareTablePair pieceSquareValue	= (Input.PieceSquareTable.PieceSquareTable pieceSquareValue, Input.PieceSquareTable.PieceSquareTable pieceSquareValue)
+type PieceSquareTablePair	= (Input.PieceSquareTable.PieceSquareTable, Input.PieceSquareTable.PieceSquareTable)
 
 -- | Defines the options related to the automatic selection of /move/s.
-data EvaluationOptions pieceSquareValue	= MkEvaluationOptions {
-	getRankValues				:: Input.RankValues.RankValues,				-- ^ The static value associated with each /piece/'s /rank/.
-	getMaximumTotalRankValue		:: Type.Mass.RankValue,					-- ^ Used to normalise the total value of pieces. Derived from 'getRankValues'.
-	getCriteriaWeights			:: Input.CriteriaWeights.CriteriaWeights,		-- ^ The weights applied to each of the heterogeneous criterion-values used to select a /move/.
-	getIncrementalEvaluation		:: IncrementalEvaluation,				-- ^ Whether to generate position-hashes & evaluate the piece-square value, from the previous value or from scratch.
-	getMaybePieceSquareTablePair		:: Maybe (PieceSquareTablePair pieceSquareValue),	-- ^ A optional pair of piece-square tables representing the opening & end-games respectively.
-	getMaybePieceSquareByCoordinatesByRank	:: Maybe (
-		Component.PieceSquareByCoordinatesByRank.PieceSquareByCoordinatesByRank pieceSquareValue
-	)												-- ^ The optional value for each rank of /piece/, when occupying each coordinate, at each phase of the game.
+data EvaluationOptions	= MkEvaluationOptions {
+	getRankValues				:: Input.RankValues.RankValues,								-- ^ The static value associated with each /piece/'s /rank/.
+	getMaximumTotalRankValue		:: Type.Mass.RankValue,									-- ^ Used to normalise the total value of pieces. Derived from 'getRankValues'.
+	getCriteriaWeights			:: Input.CriteriaWeights.CriteriaWeights,						-- ^ The weights applied to each of the heterogeneous criterion-values used to select a /move/.
+	getIncrementalEvaluation		:: IncrementalEvaluation,								-- ^ Whether to generate position-hashes & evaluate the piece-square value, from the previous value or from scratch.
+	getMaybePieceSquareTablePair		:: Maybe PieceSquareTablePair,								-- ^ A optional pair of piece-square tables representing the opening & end-games respectively.
+	getMaybePieceSquareByCoordinatesByRank	:: Maybe Component.PieceSquareByCoordinatesByRank.PieceSquareByCoordinatesByRank	-- ^ The optional value for each rank of /piece/, when occupying each coordinate, at each phase of the game.
 } deriving (Eq, Show)
 
-instance Control.DeepSeq.NFData pieceSquareValue => Control.DeepSeq.NFData (EvaluationOptions pieceSquareValue) where
+instance Control.DeepSeq.NFData EvaluationOptions where
 	rnf MkEvaluationOptions {
 --		getRankValues				= rankValues,
 		getMaximumTotalRankValue		= maximumTotalValue,
@@ -118,7 +117,7 @@ instance Control.DeepSeq.NFData pieceSquareValue => Control.DeepSeq.NFData (Eval
 		getMaybePieceSquareByCoordinatesByRank	= maybePieceSquareByCoordinatesByRank
 	} = Control.DeepSeq.rnf (maximumTotalValue, criteriaWeights, incrementalEvaluation, maybePieceSquareByCoordinatesByRank)
 
-instance (Real pieceSquareValue, Show pieceSquareValue) => Property.ShowFloat.ShowFloat (EvaluationOptions pieceSquareValue) where
+instance Property.ShowFloat.ShowFloat EvaluationOptions where
 	showsFloat fromDouble MkEvaluationOptions {
 		getRankValues				= rankValues,
 --		getMaximumTotalRankValue		= maximumTotalValue,
@@ -146,7 +145,7 @@ instance (Real pieceSquareValue, Show pieceSquareValue) => Property.ShowFloat.Sh
 		]
 	 ) maybePieceSquareTablePair
 
-instance Data.Default.Default (EvaluationOptions pieceSquareValue) where
+instance Data.Default.Default EvaluationOptions where
 	def = MkEvaluationOptions {
 		getRankValues				= rankValues,
 		getMaximumTotalRankValue		= Input.RankValues.calculateMaximumTotalValue rankValues,
@@ -157,12 +156,7 @@ instance Data.Default.Default (EvaluationOptions pieceSquareValue) where
 	} where
 		rankValues	= Data.Default.def
 
-instance (
-	Fractional	pieceSquareValue,
-	Ord		pieceSquareValue,
-	Real		pieceSquareValue,
-	Show		pieceSquareValue
- ) => HXT.XmlPickler (EvaluationOptions pieceSquareValue) where
+instance HXT.XmlPickler EvaluationOptions where
 	xpickle	= HXT.xpDefault def . HXT.xpElem tag . HXT.xpWrap (
 		\(a, b, c, d) -> mkEvaluationOptions a b c d,	-- Construct.
 		\MkEvaluationOptions {
@@ -184,27 +178,26 @@ instance (
 		def	= Data.Default.def
 
 -- | Convert a /PieceSquareTablePair/ to a single linearly interpolated array.
-fromPieceSquareTablePair :: Fractional pieceSquareValue => PieceSquareTablePair pieceSquareValue -> Component.PieceSquareByCoordinatesByRank.PieceSquareByCoordinatesByRank pieceSquareValue
+fromPieceSquareTablePair :: PieceSquareTablePair -> Component.PieceSquareByCoordinatesByRank.PieceSquareByCoordinatesByRank
 fromPieceSquareTablePair pieceSquareTablePair	= Component.PieceSquareByCoordinatesByRank.mkPieceSquareByCoordinatesByRank $ \rank -> (
-	\(openingGamePieceSquareValuesByCoordinates, maybeEndGamePieceSquareValuesByCoordinates) -> Data.Maybe.maybe (
-		Left openingGamePieceSquareValuesByCoordinates
+	\(openingGamePieceSquareValueByCoordinates, maybeEndGamePieceSquareValueByCoordinates) -> Data.Maybe.maybe (
+		Left openingGamePieceSquareValueByCoordinates
 	) (
 		Right . Cartesian.Coordinates.listArrayByCoordinates . zipWith Component.PieceSquareByCoordinatesByRank.interpolatePieceSquareValues (
-			Data.Foldable.toList openingGamePieceSquareValuesByCoordinates
-		) . Data.Foldable.toList
-	) maybeEndGamePieceSquareValuesByCoordinates
+			Data.Array.IArray.elems openingGamePieceSquareValueByCoordinates
+		) . Data.Array.IArray.elems
+	) maybeEndGamePieceSquareValueByCoordinates
  ) $ (
 	 Data.Maybe.fromJust {-values for the openingGame must be specified-} . Input.PieceSquareTable.dereference rank *** Input.PieceSquareTable.dereference rank
  ) pieceSquareTablePair
 
 -- | Smart constructor.
 mkEvaluationOptions
-	:: Fractional pieceSquareValue
-	=> Input.RankValues.RankValues				-- ^ The static value associated with each /piece/'s /rank/.
-	-> Input.CriteriaWeights.CriteriaWeights		-- ^ The weights applied to the values of the criteria used to select a /move/.
+	:: Input.RankValues.RankValues			-- ^ The static value associated with each /piece/'s /rank/.
+	-> Input.CriteriaWeights.CriteriaWeights	-- ^ The weights applied to the values of the criteria used to select a /move/.
 	-> IncrementalEvaluation
-	-> Maybe (PieceSquareTablePair pieceSquareValue)	-- ^ The value to each type of piece, of each square, during normal play & the end-game.
-	-> EvaluationOptions pieceSquareValue
+	-> Maybe PieceSquareTablePair			-- ^ The value to each type of piece, of each square, during normal play & the end-game.
+	-> EvaluationOptions
 mkEvaluationOptions rankValues criteriaWeights incrementalEvaluation maybePieceSquareTablePair
 	| Just (pieceSquareTable, _)	<- maybePieceSquareTablePair
 	, let undefinedRanks	= Input.PieceSquareTable.findUndefinedRanks pieceSquareTable
@@ -220,10 +213,10 @@ mkEvaluationOptions rankValues criteriaWeights incrementalEvaluation maybePieceS
 		getCriteriaWeights			= criteriaWeights,
 		getIncrementalEvaluation		= incrementalEvaluation,
 		getMaybePieceSquareTablePair		= maybePieceSquareTablePair,
-		getMaybePieceSquareByCoordinatesByRank	= fromPieceSquareTablePair `fmap` maybePieceSquareTablePair	-- Infer.
+		getMaybePieceSquareByCoordinatesByRank	= fromPieceSquareTablePair <$> maybePieceSquareTablePair	-- Infer.
 	} where
 		maximumTotalRankValue	= Input.RankValues.calculateMaximumTotalValue rankValues
 
 -- | Self-documentation.
-type Reader pieceSquareValue	= Control.Monad.Reader.Reader (EvaluationOptions pieceSquareValue)
+type Reader	= Control.Monad.Reader.Reader EvaluationOptions
 

@@ -1,4 +1,3 @@
-{-# LANGUAGE CPP, FlexibleContexts #-}
 {-
 	Copyright (C) 2018 Dr. Alistair Ward
 
@@ -58,10 +57,8 @@ import qualified	BishBosh.Search.SearchState					as Search.SearchState
 import qualified	BishBosh.State.PlayState					as State.PlayState
 import qualified	BishBosh.Text.ShowColouredPrefix				as Text.ShowColouredPrefix
 import qualified	BishBosh.Type.Crypto						as Type.Crypto
-import qualified	BishBosh.Type.Mass						as Type.Mass
 import qualified	BishBosh.UI.CECP						as UI.CECP
 import qualified	BishBosh.UI.Raw							as UI.Raw
-import qualified	Control.DeepSeq
 import qualified	Control.Exception
 import qualified	Control.Monad
 import qualified	Data.Bits
@@ -72,36 +69,25 @@ import qualified	System.IO
 import qualified	System.Random
 import			System.FilePath((</>))
 
-#ifdef USE_UNBOXED_ARRAYS
-import qualified	Data.Array.Unboxed
-#endif
-
 -- | Plays the game according to the specified configuration.
 play :: (
-	Control.DeepSeq.NFData		pieceSquareValue,
-#ifdef USE_UNBOXED_ARRAYS
-	Data.Array.Unboxed.IArray	Data.Array.Unboxed.UArray pieceSquareValue,	-- Requires 'FlexibleContexts'. The unboxed representation of the array-element must be defined (& therefore must be of fixed size).
-#endif
-	Data.Bits.FiniteBits		positionHash,
-	Fractional			pieceSquareValue,
-	Ord				positionHash,
-	Real				pieceSquareValue,
-	Show				pieceSquareValue,
-	System.Random.Random		positionHash,
-	System.Random.RandomGen		randomGen
+	Data.Bits.FiniteBits	positionHash,
+	Ord			positionHash,
+	System.Random.Random	positionHash,
+	System.Random.RandomGen	randomGen
  )
 	=> Input.Verbosity.Verbosity
 	-> randomGen
-	-> Input.Options.Options pieceSquareValue
+	-> Input.Options.Options
 	-> ContextualNotation.QualifiedMoveForest.QualifiedMoveForest	-- ^ Standard openings.
-	-> IO (State.PlayState.PlayState pieceSquareValue positionHash)
+	-> IO (State.PlayState.PlayState positionHash)
 {-# SPECIALISE play
 	:: System.Random.RandomGen randomGen
 	=> Input.Verbosity.Verbosity
 	-> randomGen
-	-> Input.Options.Options Type.Mass.PieceSquareValue
+	-> Input.Options.Options
 	-> ContextualNotation.QualifiedMoveForest.QualifiedMoveForest
-	-> IO (State.PlayState.PlayState Type.Mass.PieceSquareValue Type.Crypto.PositionHash)
+	-> IO (State.PlayState.PlayState Type.Crypto.PositionHash)
  #-}
 play verbosity randomGen options qualifiedMoveForest	= Data.Maybe.maybe (
 	return {-to IO-monad-} Data.Default.def {-game-}

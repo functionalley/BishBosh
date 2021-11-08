@@ -31,7 +31,6 @@ module BishBosh.Test.HUnit.Input.Options(
 import			Control.Category((>>>))
 import qualified	BishBosh.Data.Exception	as Data.Exception
 import qualified	BishBosh.Input.Options	as Input.Options
-import qualified	BishBosh.Type.Mass	as Type.Mass
 import qualified	Control.Exception
 import qualified	Data.List
 import qualified	Data.Maybe
@@ -80,9 +79,7 @@ testCases	= Test.HUnit.test [
 
 				(== Just (head optionsList)) (
 					(HXT.unpickleDoc HXT.xpickle . HXT.pickleDoc HXT.xpickle) =<< Data.Maybe.listToMaybe (
-						optionsList :: [
-							Input.Options.Options Type.Mass.PieceSquareValue
-						]
+						optionsList :: [Input.Options.Options]
 					)
 				 ) @? "Input.Options.pickler failed."
 		 ) . Data.Maybe.listToMaybe

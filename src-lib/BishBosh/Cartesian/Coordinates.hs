@@ -34,7 +34,7 @@ module BishBosh.Cartesian.Coordinates(
 -- ** Type-synonyms
 --	Transformation,
 	ArrayByCoordinates,
---	UArrayByCoordinates,
+	UArrayByCoordinates,
 -- * Constants
 	tag,
 	topLeft,
@@ -259,7 +259,7 @@ maybeTranslateX
 	:: (Type.Length.X -> Type.Length.X)	-- ^ Translation.
 	-> Coordinates
 	-> Maybe Coordinates
-maybeTranslateX transformation coordinates@MkCoordinates { getX = x }	= (\x' -> coordinates { getX = x' }) `fmap` Cartesian.Abscissa.maybeTranslate transformation x
+maybeTranslateX transformation coordinates@MkCoordinates { getX = x }	= (\x' -> coordinates { getX = x' }) <$> Cartesian.Abscissa.maybeTranslate transformation x
 
 {- |
 	* Translate the specified ordinate.
@@ -274,7 +274,7 @@ maybeTranslateY
 	:: (Type.Length.Y -> Type.Length.Y)	-- ^ Translation.
 	-> Coordinates
 	-> Maybe Coordinates
-maybeTranslateY transformation coordinates@MkCoordinates { getY = y }	= (\y' -> coordinates { getY = y' }) `fmap` Cartesian.Ordinate.maybeTranslate transformation y
+maybeTranslateY transformation coordinates@MkCoordinates { getY = y }	= (\y' -> coordinates { getY = y' }) <$> Cartesian.Ordinate.maybeTranslate transformation y
 
 {- |
 	* Construct /coordinates/ relative to 'minBound'.
