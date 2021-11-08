@@ -207,13 +207,12 @@ findNextOnymousQualifiedMovesForPosition :: Data.Bits.Bits positionHash => FindM
 {-# SPECIALISE findNextOnymousQualifiedMovesForPosition :: FindMatch Type.Crypto.PositionHash #-}
 findNextOnymousQualifiedMovesForPosition requiredGame positionHashQualifiedMoveTree
 	| cantConverge requiredGame positionHashQualifiedMoveTree	= []	-- The game we're required to match has fewer pieces than any defined in the tree.
-	| otherwise							= slave nPiecesDiffByLogicalColour $ getTree positionHashQualifiedMoveTree
+	| otherwise							= slave (
+		(
+			uncurry (***) . (id &&& id) $ (Component.Piece.nPiecesPerSide -)	-- Find the number of pieces at the apex of the tree, in excess of the requiredGame, to be taken before a match can be found.
+		) . StateProperty.Censor.countPiecesByLogicalColour . State.Board.getCoordinatesByRankByLogicalColour . Model.Game.getBoard $ requiredGame
+	) $ getTree positionHashQualifiedMoveTree
 	where
-		nPiecesDiffByLogicalColour :: (Type.Count.NPieces, Type.Count.NPieces)
-		(requiredPositionHash, nPiecesDiffByLogicalColour)	= (`StateProperty.Hashable.hash` getZobrist positionHashQualifiedMoveTree) &&& (
-			uncurry (***) . (id &&& id) $ (Component.Piece.nPiecesPerSide -)	-- Find the excess pieces on either side, to be taken before a match can be found.
-		 ) . StateProperty.Censor.countPiecesByLogicalColour . State.Board.getCoordinatesByRankByLogicalColour . Model.Game.getBoard $ requiredGame
-
 		slave (nPiecesDiffOpponent, nPiecesDiffMover) Data.Tree.Node {
 			Data.Tree.rootLabel	= MkNodeLabel { getPositionHash = positionHash },
 			Data.Tree.subForest	= forest
@@ -221,8 +220,10 @@ findNextOnymousQualifiedMovesForPosition requiredGame positionHashQualifiedMoveT
 			case nPiecesDiffMover `compare` 0 of	-- N.B. equivalent to 'signum' to slightly better performance.
 				GT	-> id		-- This node can't match, but there may be a match further down the tree.
 				EQ
-					| positionHash == requiredPositionHash	-> (map onymiseQualifiedMove forest ++) -- The position matches, so one can select any move from the forest.
-					| otherwise				-> id					-- This node doesn't match, but there may be a match further down the tree.
+					| positionHash == StateProperty.Hashable.hash requiredGame (
+						getZobrist positionHashQualifiedMoveTree
+					)		-> (map onymiseQualifiedMove forest ++) -- The position matches, so one can select any move from the forest.
+					| otherwise	-> id					-- This node doesn't match, but there may be a match further down the tree.
 				_	-> const []	-- Terminate the recursion, since from here down the tree, the mover has insufficient pieces to match the required game.
 		 ) $ concatMap (
 			\node@Data.Tree.Node {
