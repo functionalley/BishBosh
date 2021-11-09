@@ -61,15 +61,15 @@ instance Show CriterionWeight where
 	showsPrec precedence (MkCriterionWeight criterionWeight)	= showsPrec precedence criterionWeight
 
 instance Num CriterionWeight where
-	MkCriterionWeight l + MkCriterionWeight r	= mkCriterionWeight $ l + r
-	MkCriterionWeight l * MkCriterionWeight r	= MkCriterionWeight $ l * r
-	abs (MkCriterionWeight criterionWeight)		= MkCriterionWeight $ abs criterionWeight	-- N.B.: if the operand is valid, then this is equivalent to 'id'.
-	signum (MkCriterionWeight criterionWeight)	= MkCriterionWeight $ signum criterionWeight
+	MkCriterionWeight l + MkCriterionWeight r	= mkCriterionWeight $! l + r
+	MkCriterionWeight l * MkCriterionWeight r	= MkCriterionWeight $! l * r
+	abs (MkCriterionWeight criterionWeight)		= MkCriterionWeight $! abs criterionWeight	-- N.B.: if the operand is valid, then this is equivalent to 'id'.
+	signum (MkCriterionWeight criterionWeight)	= MkCriterionWeight $! signum criterionWeight
 	fromInteger					= mkCriterionWeight . fromInteger
-	negate (MkCriterionWeight criterionWeight)	= mkCriterionWeight $ negate criterionWeight	-- CAVEAT: only valid for '0'.
+	negate (MkCriterionWeight criterionWeight)	= mkCriterionWeight $! negate criterionWeight	-- CAVEAT: only valid for '0'.
 
 instance Fractional CriterionWeight where
-	MkCriterionWeight l / MkCriterionWeight r	= mkCriterionWeight $ l / r	-- CAVEAT: it's hard to concoct a scenario in which neither the numerator, denominator nor result are invalid.
+	MkCriterionWeight l / MkCriterionWeight r	= mkCriterionWeight $! l / r	-- CAVEAT: it's hard to concoct a scenario in which neither the numerator, denominator nor result are invalid.
 	fromRational					= mkCriterionWeight . fromRational
 
 instance Real CriterionWeight where

@@ -76,7 +76,7 @@ instance Property.ShowFloat.ShowFloat WeightedMeanAndCriterionValues where
 		getWeightedMean		= weightedMean,
 		getCriterionValues	= criterionValues
 	} = Text.ShowList.showsAssociationList' [
-		(weightedMeanTag, fromDouble $ realToFrac weightedMean),
+		(weightedMeanTag, fromDouble $! realToFrac weightedMean),
 		(criterionValuesTag, Text.ShowList.showsFormattedList' (fromDouble . realToFrac) criterionValues)
 	 ]
 

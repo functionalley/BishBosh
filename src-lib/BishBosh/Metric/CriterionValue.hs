@@ -53,15 +53,15 @@ instance Show CriterionValue where
 	showsPrec precedence (MkCriterionValue criterionValue)	= showsPrec precedence criterionValue
 
 instance Num CriterionValue where
-	MkCriterionValue l + MkCriterionValue r		= mkCriterionValue $ l + r
-	MkCriterionValue l * MkCriterionValue r		= MkCriterionValue $ l * r
-	abs (MkCriterionValue criterionValue)		= MkCriterionValue $ abs criterionValue
-	signum (MkCriterionValue criterionValue)	= MkCriterionValue $ signum criterionValue
+	MkCriterionValue l + MkCriterionValue r		= mkCriterionValue $! l + r
+	MkCriterionValue l * MkCriterionValue r		= MkCriterionValue $! l * r
+	abs (MkCriterionValue criterionValue)		= MkCriterionValue $! abs criterionValue
+	signum (MkCriterionValue criterionValue)	= MkCriterionValue $! signum criterionValue
 	fromInteger					= mkCriterionValue . fromInteger
-	negate (MkCriterionValue criterionValue)	= MkCriterionValue $ negate criterionValue
+	negate (MkCriterionValue criterionValue)	= MkCriterionValue $! negate criterionValue
 
 instance Fractional CriterionValue where
-	MkCriterionValue l / MkCriterionValue r	= mkCriterionValue $ l / r	-- CAVEAT: it's hard to concoct a scenario in which neither the numerator, denominator nor result are invalid.
+	MkCriterionValue l / MkCriterionValue r	= mkCriterionValue $! l / r	-- CAVEAT: it's hard to concoct a scenario in which neither the numerator, denominator nor result are invalid.
 	fromRational				= mkCriterionValue . fromRational
 
 instance Real CriterionValue where
