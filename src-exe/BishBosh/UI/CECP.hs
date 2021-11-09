@@ -242,7 +242,7 @@ readMove positionHashQualifiedMoveTree randomGen	= slave where
 								) (
 									flip (ContextualNotation.StandardAlgebraic.showTurn explicitEnpassant) game
 								) . Model.Game.maybeLastTurn $ Evaluation.QuantifiedGame.getGame quantifiedGame
-								else Notation.MoveNotation.showNotation moveNotation $ Evaluation.QuantifiedGame.getLastTurn (quantifiedGame :: Evaluation.QuantifiedGame.QuantifiedGame)
+								else Notation.MoveNotation.showNotation moveNotation $ Evaluation.QuantifiedGame.getLastTurn quantifiedGame
 							_		-> Control.Exception.throwIO . Data.Exception.mkRequestFailure . showString "BishBosh.UI.CECP.readMove.slave.onCommand:\tunexpectedly failed to find any moves; " $ shows game "."	-- CAVEAT: the game should have been terminated.
 				 ) (
 					\(qualifiedMove, _) -> putStrLn . showString hintTag . showChar ' ' $ if displaySAN

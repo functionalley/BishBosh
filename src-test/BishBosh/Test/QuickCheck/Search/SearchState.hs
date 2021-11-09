@@ -1,4 +1,3 @@
-{-# LANGUAGE ScopedTypeVariables #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 {-
 	Copyright (C) 2018 Dr. Alistair Ward
@@ -45,7 +44,7 @@ import qualified	Test.QuickCheck
 -- | A suitable concrete type for testing.
 type SearchState	= Search.SearchState.SearchState Type.Crypto.PositionHash
 
-instance forall positionHash. (
+instance (
 	Data.Bits.FiniteBits	positionHash,
 	Num			positionHash,
 	Show			positionHash,
