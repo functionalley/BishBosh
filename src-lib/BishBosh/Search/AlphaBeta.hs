@@ -44,6 +44,7 @@ module BishBosh.Search.AlphaBeta(
 --	addNPositionsToResult
  ) where
 
+import			BishBosh.Evaluation.QuantifiedGame((<=>))
 import			BishBosh.Model.Game((=~))
 import			Control.Applicative((<|>))
 import			Control.Arrow((&&&))
@@ -194,9 +195,9 @@ negaMax initialSearchDepth initialSearchState	= do
 						getNPositionsEvaluated	= 0
 					}
 					else Data.Maybe.maybe selectMaxUsingTranspositions (
-						\betaQuantifiedGame -> if Evaluation.QuantifiedGame.compareFitness transposedQuantifiedGame betaQuantifiedGame == LT
-							then selectMaxUsingTranspositions
-							else MkResult {
+						\betaQuantifiedGame -> case transposedQuantifiedGame <=> betaQuantifiedGame of
+							LT	-> selectMaxUsingTranspositions
+							_	-> MkResult {
 								getDynamicMoveData	= dynamicMoveData,
 								getQuantifiedGame	= Control.Exception.assert (betaQuantifiedGame == getQuantifiedGame selectMaxUsingTranspositions) betaQuantifiedGame,
 								getNPositionsEvaluated	= 0
@@ -238,7 +239,7 @@ negaMax initialSearchDepth initialSearchState	= do
 						maybeAlphaQuantifiedGame' <|> Just quantifiedGame''	-- CAVEAT: guard against exhausting all nodes without defining alpha.
 					) remainingNodes						-- Skip this node & recurse through the remaining moves at this depth.
 					| Just betaQuantifiedGame	<- maybeBetaQuantifiedGame	-- Beta-cutoff can't occur until beta has been defined.
-					, let fitnessComparedWithBeta	= Evaluation.QuantifiedGame.compareFitness quantifiedGame'' betaQuantifiedGame
+					, let fitnessComparedWithBeta	= quantifiedGame'' <=> betaQuantifiedGame
 					, fitnessComparedWithBeta /= LT	= result'' {
 						getDynamicMoveData	= let
 							game''	= Evaluation.QuantifiedGame.getGame quantifiedGame''
@@ -255,12 +256,10 @@ negaMax initialSearchDepth initialSearchState	= do
 						getNPositionsEvaluated result''
 					) $ let
 						isFitter	= Data.Maybe.maybe True {-alpha is undefined => anything qualifies-} (
-							\alphaQuantifiedGame -> case quantifiedGame'' `Evaluation.QuantifiedGame.compareFitness` alphaQuantifiedGame of
+							\alphaQuantifiedGame -> case quantifiedGame'' <=> alphaQuantifiedGame of
 								LT	-> False
 								GT	-> True
-								EQ	-> uncurry (<) . (
-									($ quantifiedGame'') &&& ($ alphaQuantifiedGame)
-								 ) $ getNPlies . Evaluation.QuantifiedGame.getGame	-- Prefer a shorter move-sequence.
+								EQ	-> uncurry (<) . (($ quantifiedGame'') &&& ($ alphaQuantifiedGame)) $ getNPlies . Evaluation.QuantifiedGame.getGame	-- Prefer a shorter move-sequence.
 						 ) maybeAlphaQuantifiedGame'
 					in selectMax (
 						(

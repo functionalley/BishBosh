@@ -39,7 +39,7 @@ module BishBosh.Evaluation.QuantifiedGame(
 -- * Constants
 	unboundedInterval,
 -- * Functions
-	compareFitness,
+	(<=>),
 -- ** Accessors
 	getFitness,
 -- ** Constructors
@@ -93,6 +93,12 @@ instance Property.Null.Null QuantifiedGame where
 getFitness :: QuantifiedGame -> Type.Mass.WeightedMean
 getFitness MkQuantifiedGame { getWeightedMeanAndCriterionValues = weightedMeanAndCriterionValues }	= Metric.WeightedMeanAndCriterionValues.getWeightedMean weightedMeanAndCriterionValues
 
+infix 4 <=>	-- Same as (>).
+
+-- | Space-ship operator, like in Perl.
+(<=>) :: QuantifiedGame -> QuantifiedGame -> Ordering
+(<=>)	= Data.Ord.comparing getFitness
+
 -- | Constructor.
 fromGame
 	:: Maybe Type.Mass.Base	-- ^ The piece-square value difference for the specified game.
@@ -116,10 +122,6 @@ getLatestTurns nPlies MkQuantifiedGame { getGame = game }	= fromIntegral nPlies 
 -- | Represent the /fitness/ of the /game/ resulting from a future /move/ by the opponent, from the perspective of the current player.
 negateFitness :: QuantifiedGame -> QuantifiedGame
 negateFitness quantifiedGame@MkQuantifiedGame { getWeightedMeanAndCriterionValues = weightedMeanAndCriterionValues }	= quantifiedGame { getWeightedMeanAndCriterionValues = Metric.WeightedMeanAndCriterionValues.negateWeightedMean weightedMeanAndCriterionValues }
-
--- | Compares fitness.
-compareFitness :: QuantifiedGame -> QuantifiedGame -> Ordering
-compareFitness	= Data.Ord.comparing getFitness
 
 {- |
 	* The open interval in which to search for better solutions.
