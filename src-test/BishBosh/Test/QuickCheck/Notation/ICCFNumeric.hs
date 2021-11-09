@@ -43,7 +43,7 @@ instance Test.QuickCheck.Arbitrary Notation.ICCFNumeric.ICCFNumeric where
 	arbitrary	= do
 		move	<- Test.QuickCheck.arbitrary
 
-		Notation.ICCFNumeric.mkICCFNumeric move `fmap` if abs (
+		Notation.ICCFNumeric.mkICCFNumeric move <$> if abs (
 			Cartesian.Vector.getXDistance (Component.Move.measureDistance move)
 		 ) <= 1 && (
 			Cartesian.Coordinates.getY . Component.Move.getSource &&& Cartesian.Coordinates.getY . Component.Move.getDestination $ move

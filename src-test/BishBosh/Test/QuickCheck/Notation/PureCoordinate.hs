@@ -44,7 +44,7 @@ instance Test.QuickCheck.Arbitrary Notation.PureCoordinate.PureCoordinate where
 	arbitrary	= do
 		move	<- Test.QuickCheck.arbitrary
 
-		Notation.PureCoordinate.mkPureCoordinate move `fmap` if abs (
+		Notation.PureCoordinate.mkPureCoordinate move <$> if abs (
 			Cartesian.Vector.getXDistance (Component.Move.measureDistance move)
 		 ) <= 1 && (
 			Cartesian.Coordinates.getY . Component.Move.getSource &&& Cartesian.Coordinates.getY . Component.Move.getDestination $ move

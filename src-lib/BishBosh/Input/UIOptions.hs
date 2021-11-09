@@ -213,12 +213,12 @@ type Transformation	= UIOptions -> UIOptions
 -- | Mutator.
 updateCECPFeature :: Input.CECPFeatures.Feature -> Transformation
 updateCECPFeature feature uiOptions@MkUIOptions { getEitherNativeUIOrCECPOptions = eitherNativeUIOrCECPOptions }	= uiOptions {
-	getEitherNativeUIOrCECPOptions	= Input.CECPOptions.updateFeature feature `fmap` eitherNativeUIOrCECPOptions
+	getEitherNativeUIOrCECPOptions	= Input.CECPOptions.updateFeature feature <$> eitherNativeUIOrCECPOptions
 }
 
 -- | Mutator.
 deleteCECPFeature :: Input.CECPFeatures.Feature -> Transformation
 deleteCECPFeature feature uiOptions@MkUIOptions { getEitherNativeUIOrCECPOptions = eitherNativeUIOrCECPOptions }	= uiOptions {
-	getEitherNativeUIOrCECPOptions	= Input.CECPOptions.deleteFeature feature `fmap` eitherNativeUIOrCECPOptions
+	getEitherNativeUIOrCECPOptions	= Input.CECPOptions.deleteFeature feature <$> eitherNativeUIOrCECPOptions
 }
 

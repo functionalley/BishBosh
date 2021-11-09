@@ -77,7 +77,7 @@ traceRoute isMatch	= slave . Data.Tree.subForest where
 		\Data.Tree.Node {
 			Data.Tree.rootLabel	= rootLabel,
 			Data.Tree.subForest	= subForest
-		} -> (rootLabel :) `fmap` slave subForest remainingData {-recurse-}
+		} -> (rootLabel :) <$> slave subForest remainingData {-recurse-}
 	 )
 	slave _ _				= Just []
 
@@ -97,7 +97,7 @@ promote isMatch	= slave where
 			\forest'' -> match {
 				Data.Tree.subForest	= forest''
 			} : mismatches ++ remainingNodes
-		 ) `fmap` slave remainingData forest'	-- Recurse.
+		 ) <$> slave remainingData forest'	-- Recurse.
 		_											-> Nothing	-- Match-failure.
 	slave _ forest				= Just forest	-- Data exhausted => Terminate normally.
 

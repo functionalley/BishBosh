@@ -37,7 +37,7 @@ import qualified	Test.QuickCheck
 import qualified	ToolShed.Test.ReversibleIO
 
 instance Test.QuickCheck.Arbitrary Component.QualifiedMove.QualifiedMove where
-	arbitrary	= uncurry Component.QualifiedMove.mkQualifiedMove `fmap` Test.QuickCheck.arbitrary	-- CAVEAT: the move & moveType are unlikely to be compatible.
+	arbitrary	= uncurry Component.QualifiedMove.mkQualifiedMove <$> Test.QuickCheck.arbitrary	-- CAVEAT: the move & moveType are unlikely to be compatible.
 
 -- | The constant test-results for this data-type.
 results :: IO [Test.QuickCheck.Result]

@@ -43,9 +43,9 @@ instance Test.QuickCheck.Arbitrary UI.Command.Command where
 			UI.Command.Save,
 			UI.Command.Swap
 		], -- Nullary commands
-		UI.Command.Print `fmap` Test.QuickCheck.arbitrary,
+		UI.Command.Print <$> Test.QuickCheck.arbitrary,
 		fmap UI.Command.RollBack . Test.QuickCheck.elements $ Nothing : map Just [1 .. 10],
-		UI.Command.Set `fmap` Test.QuickCheck.arbitrary
+		UI.Command.Set <$> Test.QuickCheck.arbitrary
 	 ]
 
 -- | The constant test-results for this data-type.

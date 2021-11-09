@@ -36,7 +36,7 @@ import qualified	Test.QuickCheck
 import qualified	ToolShed.Test.ReversibleIO
 
 instance Test.QuickCheck.Arbitrary Rule.Result.Result where
-	arbitrary	= Rule.Result.mkResult `fmap` Test.QuickCheck.oneof [fmap Just Test.QuickCheck.arbitrary, return {-to Gen-monad-} Nothing]
+	arbitrary	= Rule.Result.mkResult <$> Test.QuickCheck.oneof [fmap Just Test.QuickCheck.arbitrary, return {-to Gen-monad-} Nothing]
 
 -- | The constant test-results for this data-type.
 results :: IO [Test.QuickCheck.Result]
