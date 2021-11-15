@@ -76,9 +76,7 @@ instance Test.QuickCheck.Arbitrary Model.Game.Game where
 			) . Data.Maybe.fromJust . ToolShed.System.Random.select randomGen $ Model.Game.findQualifiedMovesAvailableToNextPlayer game
 		play game _				= game	-- Terminate recursion.
 	 in Test.QuickCheck.arbitrary >>= (
-		\randomGens -> (
-			play Data.Default.def . (`take` ToolShed.System.Random.randomGens (System.Random.mkStdGen randomGens))
-		) <$> Test.QuickCheck.choose (1 :: Int, 64)
+		\randomGens -> play Data.Default.def . (`take` ToolShed.System.Random.randomGens (System.Random.mkStdGen randomGens)) <$> Test.QuickCheck.choose (1 :: Int, 64)
 	 )
 
 -- | The constant test-results for this data-type.
