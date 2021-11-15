@@ -151,8 +151,8 @@ mergePGNDatabase pgnDatabase MkQualifiedMoveForest { deconstruct = initialForest
 	mkCompositeIdentifier	= unwords . map snd {-value-} . ContextualNotation.PGN.getIdentificationTagPairs
 
 	merge
-		:: OnymousResult				-- ^ The name of this move-sequence, & the result.
-		-> [Component.QualifiedMove.QualifiedMove]	-- ^ A chronological sequence of /qualified move/s.
+		:: OnymousResult					-- ^ The name of this move-sequence, & the result.
+		-> Component.QualifiedMove.QualifiedMoveSequence	-- ^ A chronological sequence of /qualified move/s.
 		-> [QualifiedMoveTree]
 		-> [QualifiedMoveTree]
 	merge onymousResult qualifiedMoves@(qualifiedMove : remainingQualifiedMoves) forest	= case span (
@@ -172,7 +172,7 @@ mergePGNDatabase pgnDatabase MkQualifiedMoveForest { deconstruct = initialForest
 		_ {-no match-}						-> mkLinkedList onymousResult qualifiedMoves : forest
 	merge _ [] forest					= forest
 
-	mkLinkedList :: OnymousResult -> [Component.QualifiedMove.QualifiedMove] -> QualifiedMoveTree
+	mkLinkedList :: OnymousResult -> Component.QualifiedMove.QualifiedMoveSequence -> QualifiedMoveTree
 	mkLinkedList onymousResult ~(qualifiedMove : remainingQualifiedMoves)
 		| null remainingQualifiedMoves	= Data.Tree.Node {
 			Data.Tree.rootLabel	= (qualifiedMove, Just onymousResult),

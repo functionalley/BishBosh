@@ -24,6 +24,8 @@
 
 module BishBosh.Component.QualifiedMove(
 -- * Types
+-- * Type-synonyms
+	QualifiedMoveSequence,
 -- ** Data-types
 	QualifiedMove(
 --		MkQualifiedMove,
@@ -68,4 +70,7 @@ instance Property.Reflectable.ReflectableOnX QualifiedMove where
 -- | Constructor.
 mkQualifiedMove	:: Component.Move.Move -> Attribute.MoveType.MoveType -> QualifiedMove
 mkQualifiedMove	= MkQualifiedMove
+
+-- | A sequence of QualifiedMoves applied to a game.
+type QualifiedMoveSequence	= [QualifiedMove]
 

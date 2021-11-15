@@ -50,8 +50,8 @@ module BishBosh.Evaluation.PositionHashQuantifiedGameTree(
 	reduce,
 	traceRoute,
 	resign,
-	traceMatchingMoves,
-	promoteMatchingMoves,
+	traceMatchingMoveSequence,
+	promoteMatchingMoveSequence,
 	sortNonCaptureMoves,
 -- ** Accessors
 	getRootQuantifiedGame',
@@ -237,11 +237,11 @@ traceRoute
 traceRoute isMatch MkPositionHashQuantifiedGameTree { deconstruct = barePositionHashQuantifiedGameTree }	= Data.RoseTree.traceRoute isMatch barePositionHashQuantifiedGameTree
 
 -- | Follow the specified move-sequence down the /positionHashQuantifiedGameTree/.
-traceMatchingMoves
+traceMatchingMoveSequence
 	:: PositionHashQuantifiedGameTree positionHash
-	-> [Component.QualifiedMove.QualifiedMove]
+	-> Component.QualifiedMove.QualifiedMoveSequence
 	-> Maybe [NodeLabel positionHash]	-- ^ Returns 'Nothing', on failure to match a move.
-traceMatchingMoves MkPositionHashQuantifiedGameTree { deconstruct = barePositionHashQuantifiedGameTree }	= Data.RoseTree.traceRoute equalsLastQualifiedMove barePositionHashQuantifiedGameTree
+traceMatchingMoveSequence MkPositionHashQuantifiedGameTree { deconstruct = barePositionHashQuantifiedGameTree }	= Data.RoseTree.traceRoute equalsLastQualifiedMove barePositionHashQuantifiedGameTree
 
 -- | Amend the apex-game to reflect the resignation of the next player.
 resign :: PositionHashQuantifiedGameTree positionHash -> PositionHashQuantifiedGameTree positionHash
@@ -263,11 +263,11 @@ type Forest positionHash	= [BarePositionHashQuantifiedGameTree positionHash]
 
 	* N.B.: this can be used to dynamically re-order the forest when a transposition is detected.
 -}
-promoteMatchingMoves
-	:: [Component.QualifiedMove.QualifiedMove]	-- ^ The list of qualifiedMoves, which should be promoted at successively deeper levels in the tree.
+promoteMatchingMoveSequence
+	:: Component.QualifiedMove.QualifiedMoveSequence	-- ^ The list of qualifiedMoves, which should be promoted at successively deeper levels in the tree.
 	-> Forest positionHash
-	-> Maybe (Forest positionHash)		-- ^ Returns 'Nothing' on failure to match a move.
-promoteMatchingMoves	= Data.RoseTree.promote equalsLastQualifiedMove
+	-> Maybe (Forest positionHash)				-- ^ Returns 'Nothing' on failure to match a move.
+promoteMatchingMoveSequence	= Data.RoseTree.promote equalsLastQualifiedMove
 
 {- |
 	* Sorts the forest, starting just after any initial capture-moves.
