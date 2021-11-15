@@ -197,14 +197,7 @@ readMove :: forall positionHash randomGen. (
 	-> Time.StopWatch.StopWatch
 	-> State.PlayState.PlayState positionHash
 	-> IO (State.PlayState.PlayState positionHash)
-{-# SPECIALISE readMove
-	:: System.Random.RandomGen randomGen
-	=> ContextualNotation.PositionHashQualifiedMoveTree.PositionHashQualifiedMoveTree Type.Crypto.PositionHash
-	-> randomGen
-	-> Time.StopWatch.StopWatch
-	-> State.PlayState.PlayState Type.Crypto.PositionHash
-	-> IO (State.PlayState.PlayState Type.Crypto.PositionHash)
- #-}
+{-# SPECIALISE readMove :: ContextualNotation.PositionHashQualifiedMoveTree.PositionHashQualifiedMoveTree Type.Crypto.PositionHash -> System.Random.StdGen -> Time.StopWatch.StopWatch -> State.PlayState.PlayState Type.Crypto.PositionHash -> IO (State.PlayState.PlayState Type.Crypto.PositionHash) #-}
 readMove positionHashQualifiedMoveTree randomGen	= slave where
 	slave runningWatch playState	= let
 		(game, options)			= State.PlayState.getGame &&& State.PlayState.getOptions $ playState
@@ -1013,21 +1006,15 @@ readMove positionHashQualifiedMoveTree randomGen	= slave where
 
 -- | Plays the game.
 takeTurns :: forall positionHash randomGen. (
-	Data.Bits.Bits			positionHash,
-	Ord				positionHash,
-	System.Random.RandomGen		randomGen
+	Data.Bits.Bits		positionHash,
+	Ord			positionHash,
+	System.Random.RandomGen	randomGen
  )
 	=> ContextualNotation.PositionHashQualifiedMoveTree.PositionHashQualifiedMoveTree positionHash
 	-> randomGen
 	-> State.PlayState.PlayState positionHash
 	-> IO (State.PlayState.PlayState positionHash)
-{-# SPECIALISE takeTurns
-	:: System.Random.RandomGen randomGen
-	=> ContextualNotation.PositionHashQualifiedMoveTree.PositionHashQualifiedMoveTree Type.Crypto.PositionHash
-	-> randomGen
-	-> State.PlayState.PlayState Type.Crypto.PositionHash
-	-> IO (State.PlayState.PlayState Type.Crypto.PositionHash)
- #-}
+{-# SPECIALISE takeTurns :: ContextualNotation.PositionHashQualifiedMoveTree.PositionHashQualifiedMoveTree Type.Crypto.PositionHash -> System.Random.StdGen -> State.PlayState.PlayState Type.Crypto.PositionHash -> IO (State.PlayState.PlayState Type.Crypto.PositionHash) #-}
 takeTurns positionHashQualifiedMoveTree randomGen playState	= do
 	mVar	<- Control.Concurrent.newEmptyMVar
 

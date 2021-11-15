@@ -102,14 +102,7 @@ readMove :: forall positionHash randomGen. (
 	-> Time.StopWatch.StopWatch
 	-> State.PlayState.PlayState positionHash
 	-> IO (State.PlayState.PlayState positionHash)
-{-# SPECIALISE readMove
-	:: System.Random.RandomGen randomGen
-	=> ContextualNotation.PositionHashQualifiedMoveTree.PositionHashQualifiedMoveTree Type.Crypto.PositionHash
-	-> randomGen
-	-> Time.StopWatch.StopWatch
-	-> State.PlayState.PlayState Type.Crypto.PositionHash
-	-> IO (State.PlayState.PlayState Type.Crypto.PositionHash)
- #-}
+{-# SPECIALISE readMove :: ContextualNotation.PositionHashQualifiedMoveTree.PositionHashQualifiedMoveTree Type.Crypto.PositionHash -> System.Random.StdGen -> Time.StopWatch.StopWatch -> State.PlayState.PlayState Type.Crypto.PositionHash -> IO (State.PlayState.PlayState Type.Crypto.PositionHash) #-}
 readMove positionHashQualifiedMoveTree randomGen runningWatch playState	= let
 	(game, options)			= State.PlayState.getGame &&& State.PlayState.getOptions $ playState
 	(searchOptions, ioOptions)	= Input.Options.getSearchOptions &&& Input.Options.getIOOptions $ options
@@ -356,13 +349,7 @@ takeTurns :: forall positionHash randomGen. (
 	-> randomGen
 	-> State.PlayState.PlayState positionHash
 	-> IO (State.PlayState.PlayState positionHash)
-{-# SPECIALISE takeTurns
-	:: System.Random.RandomGen randomGen
-	=> ContextualNotation.PositionHashQualifiedMoveTree.PositionHashQualifiedMoveTree Type.Crypto.PositionHash
-	-> randomGen
-	-> State.PlayState.PlayState Type.Crypto.PositionHash
-	-> IO (State.PlayState.PlayState Type.Crypto.PositionHash)
- #-}
+{-# SPECIALISE takeTurns :: ContextualNotation.PositionHashQualifiedMoveTree.PositionHashQualifiedMoveTree Type.Crypto.PositionHash -> System.Random.StdGen -> State.PlayState.PlayState Type.Crypto.PositionHash -> IO (State.PlayState.PlayState Type.Crypto.PositionHash) #-}
 takeTurns positionHashQualifiedMoveTree randomGen playState	= let
 	options	= State.PlayState.getOptions playState
 
@@ -425,7 +412,10 @@ takeTurns positionHashQualifiedMoveTree randomGen playState	= let
 								 ) . System.IO.hPutStrLn System.IO.stderr $ Text.ShowColouredPrefix.showsPrefixInfo "failed to find any suitable archived move."
 
 								let
-									search ss	= Control.Monad.Reader.runReader (Search.Search.search searchDepth' ss) searchOptions'
+									search ss	= Control.Monad.Reader.runReader (
+										Search.Search.search searchDepth' ss
+									 ) searchOptions'
+
 									searchResult	= search $ State.PlayState.getSearchState playState'
 
 								Data.Maybe.maybe (

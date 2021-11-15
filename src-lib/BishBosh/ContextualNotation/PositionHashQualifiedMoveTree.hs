@@ -335,15 +335,7 @@ maybeRandomlySelectOnymousQualifiedMove :: (
 	-> Model.Game.Game
 	-> PositionHashQualifiedMoveTree positionHash
 	-> Maybe (Component.QualifiedMove.QualifiedMove, [ContextualNotation.QualifiedMoveForest.Name])
-{-# SPECIALISE maybeRandomlySelectOnymousQualifiedMove
-	:: System.Random.RandomGen randomGen
-	=> randomGen
-	-> PreferVictories
-	-> MatchSwitches
-	-> Model.Game.Game
-	-> PositionHashQualifiedMoveTree Type.Crypto.PositionHash
-	-> Maybe (Component.QualifiedMove.QualifiedMove, [ContextualNotation.QualifiedMoveForest.Name])
- #-}
+{-# SPECIALISE maybeRandomlySelectOnymousQualifiedMove :: System.Random.StdGen -> PreferVictories -> MatchSwitches -> Model.Game.Game -> PositionHashQualifiedMoveTree Type.Crypto.PositionHash -> Maybe (Component.QualifiedMove.QualifiedMove, [ContextualNotation.QualifiedMoveForest.Name]) #-}
 maybeRandomlySelectOnymousQualifiedMove randomGen preferVictories matchSwitches game positionHashQualifiedMoveTree	= case findNextOnymousQualifiedMoves matchSwitches game positionHashQualifiedMoveTree of
 	[]			-> Nothing
 	onymousQualifiedMoves	-> fmap (

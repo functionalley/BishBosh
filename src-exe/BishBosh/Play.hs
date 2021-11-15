@@ -81,14 +81,7 @@ play :: (
 	-> Input.Options.Options
 	-> ContextualNotation.QualifiedMoveForest.QualifiedMoveForest	-- ^ Standard openings.
 	-> IO (State.PlayState.PlayState positionHash)
-{-# SPECIALISE play
-	:: System.Random.RandomGen randomGen
-	=> Input.Verbosity.Verbosity
-	-> randomGen
-	-> Input.Options.Options
-	-> ContextualNotation.QualifiedMoveForest.QualifiedMoveForest
-	-> IO (State.PlayState.PlayState Type.Crypto.PositionHash)
- #-}
+{-# SPECIALISE play :: Input.Verbosity.Verbosity -> System.Random.StdGen -> Input.Options.Options -> ContextualNotation.QualifiedMoveForest.QualifiedMoveForest -> IO (State.PlayState.PlayState Type.Crypto.PositionHash) #-}
 play verbosity randomGen options qualifiedMoveForest	= Data.Maybe.maybe (
 	return {-to IO-monad-} Data.Default.def {-game-}
  ) (
