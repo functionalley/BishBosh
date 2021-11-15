@@ -44,8 +44,7 @@ module BishBosh.Search.AlphaBeta(
 --	addNPositionsToResult
  ) where
 
-import			BishBosh.Evaluation.QuantifiedGame((<=>))
-import			BishBosh.Model.Game((=~))
+import			BishBosh.Evaluation.QuantifiedGame((<=>), (===))
 import			Control.Applicative((<|>))
 import			Control.Arrow((&&&))
 import qualified	BishBosh.Component.QualifiedMove			as Component.QualifiedMove
@@ -74,7 +73,7 @@ import qualified	Data.Tree
 
 -- | The type returned by 'negaMax'.
 data Result positionHash	= MkResult {
-	getDynamicMoveData	:: Search.DynamicMoveData.DynamicMoveData positionHash,	-- ^ Killer moves & transpositions.
+	getDynamicMoveData	:: Search.DynamicMoveData.DynamicMoveData positionHash,	-- ^ Killer moves & Transpositions.
 	getQuantifiedGame	:: Evaluation.QuantifiedGame.QuantifiedGame,
 	getNPositionsEvaluated	:: Type.Count.NPositions				-- ^ The total number of nodes analysed, before making the selection.
 }
@@ -118,7 +117,7 @@ findTranspositionTerminalQuantifiedGame
 	-> Search.TranspositionValue.TranspositionValue Component.QualifiedMove.QualifiedMove
 	-> Evaluation.QuantifiedGame.QuantifiedGame
 findTranspositionTerminalQuantifiedGame positionHashQuantifiedGameTree transpositionValue	= Data.Maybe.maybe (
-	Control.Exception.throw . Data.Exception.mkSearchFailure . showString "BishBosh.Search.AlphaBeta.findTranspositionTerminalQuantifiedGame:\tEvaluation.PositionHashQuantifiedGameTree.traceMatchingMoves failed; " . shows transpositionValue . showString ":\n" $ (
+	Control.Exception.throw . Data.Exception.mkSearchFailure . showString "BishBosh.Search.AlphaBeta.findTranspositionTerminalQuantifiedGame:\tEvaluation.PositionHashQuantifiedGameTree.traceMatchingMoveSequence failed; " . shows transpositionValue . showString ":\n" $ (
 		Notation.MoveNotation.showsNotationFloatToNDecimals Data.Default.def {-move-notation-} 3 {-decimal digits-} $ Property.Arboreal.prune (fromIntegral inferredSearchDepth) positionHashQuantifiedGameTree
 	 ) ""
  ) (
@@ -127,7 +126,7 @@ findTranspositionTerminalQuantifiedGame positionHashQuantifiedGameTree transposi
 			then Evaluation.QuantifiedGame.negateFitness	-- The opponent made the last move in the list, & therefore defined the fitness.
 			else id
 	) . Evaluation.PositionHashQuantifiedGameTree.getQuantifiedGame . last
- ) . Evaluation.PositionHashQuantifiedGameTree.traceMatchingMoves positionHashQuantifiedGameTree $ Search.TranspositionValue.getQualifiedMoves transpositionValue	where
+ ) . Evaluation.PositionHashQuantifiedGameTree.traceMatchingMoveSequence positionHashQuantifiedGameTree $ Search.TranspositionValue.getQualifiedMoves transpositionValue	where
 	inferredSearchDepth	= Search.TranspositionValue.inferSearchDepth transpositionValue
 
 -- | Record a qualifiedMove-sequence in the transposition-table.
@@ -148,7 +147,7 @@ updateTranspositions isOptimal nPlies positionHash turns positionHashQuantifiedG
 
 	* /alpha/ is the minimum fitness of which the maximising player is assured.
 
-	* /beta/ is the maximum fitness of which the minimising player is assured.
+	* /beta/ is the maximum fitness which the minimising player will tolerate.
 -}
 negaMax
 	:: Ord positionHash
@@ -163,13 +162,8 @@ negaMax initialSearchDepth initialSearchState	= do
 
 	let
 		getNPlies	= State.TurnsByLogicalColour.getNPlies . Model.Game.getTurnsByLogicalColour	-- Abbreviate.
-{-
-		descend
-			:: Evaluation.QuantifiedGame.OpenInterval
-			-> Type.Count.NPlies
-			-> Search.SearchState.SearchState positionHash
-			-> Result positionHash
--}
+
+		descend :: Ord positionHash => Evaluation.QuantifiedGame.OpenInterval -> Type.Count.NPlies -> Search.SearchState.SearchState positionHash -> Result positionHash
 		descend (maybeAlphaQuantifiedGame, maybeBetaQuantifiedGame) searchDepth searchState
 			| searchDepth == 0 || Model.Game.isTerminated game	= MkResult {
 				getDynamicMoveData	= dynamicMoveData,
@@ -179,9 +173,10 @@ negaMax initialSearchDepth initialSearchState	= do
 			| useTranspositions
 			, Just transpositionValue	<- Search.Transpositions.find positionHash $ Search.DynamicMoveData.getTranspositions dynamicMoveData	-- Look for a previously encountered position with a matching positionHash.
 			, let
+--				selectMaxUsingTranspositions :: Result positionHash
 				selectMaxUsingTranspositions	= selectMaxWithSorter $ Data.Maybe.fromMaybe (
-					Control.Exception.throw . Data.Exception.mkSearchFailure . showString "BishBosh.Search.AlphaBeta.negaMax.descend:\tEvaluation.PositionHashQuantifiedGameTree.promoteMatchingMoves failed; " $ shows transpositionValue "."	-- N.B.: perhaps because of hash-collision.
-				 ) . Evaluation.PositionHashQuantifiedGameTree.promoteMatchingMoves (
+					Control.Exception.throw . Data.Exception.mkSearchFailure . showString "BishBosh.Search.AlphaBeta.negaMax.descend:\tEvaluation.PositionHashQuantifiedGameTree.promoteMatchingMoveSequence failed; " $ shows transpositionValue "."	-- N.B.: perhaps because of hash-collision.
+				 ) . Evaluation.PositionHashQuantifiedGameTree.promoteMatchingMoveSequence (
 					Search.TranspositionValue.getQualifiedMoves transpositionValue
 				 ) -- For efficiency, promote moves in the positionHashQuantifiedGameTree, using the knowledge in the transposition.
 			= if Search.TranspositionValue.inferSearchDepth transpositionValue < searchDepth
@@ -195,13 +190,13 @@ negaMax initialSearchDepth initialSearchState	= do
 						getNPositionsEvaluated	= 0
 					}
 					else Data.Maybe.maybe selectMaxUsingTranspositions (
-						\betaQuantifiedGame -> case transposedQuantifiedGame <=> betaQuantifiedGame of
-							LT	-> selectMaxUsingTranspositions
-							_	-> MkResult {
+						\betaQuantifiedGame -> if uncurry (<) $ (($ transposedQuantifiedGame) &&& ($ betaQuantifiedGame)) Evaluation.QuantifiedGame.getFitness
+							then selectMaxUsingTranspositions
+							else MkResult {
 								getDynamicMoveData	= dynamicMoveData,
 								getQuantifiedGame	= Control.Exception.assert (betaQuantifiedGame == getQuantifiedGame selectMaxUsingTranspositions) betaQuantifiedGame,
 								getNPositionsEvaluated	= 0
-							}
+							} -- Beta-cutoff.
 					) maybeBetaQuantifiedGame
 			| otherwise	= selectMaxWithSorter id
 			where
@@ -212,6 +207,7 @@ negaMax initialSearchDepth initialSearchState	= do
 				game				= Evaluation.QuantifiedGame.getGame quantifiedGame	-- Prior to application of any move from the forest.
 				(nPlies, nDistinctPositions)	= getNPlies &&& State.InstancesByPosition.getNDistinctPositions . Model.Game.getInstancesByPosition $ game	-- Count the distinct positions since the last irreversible move.
 
+--				selectMaxWithSorter :: (Evaluation.PositionHashQuantifiedGameTree.Forest positionHash -> Evaluation.PositionHashQuantifiedGameTree.Forest positionHash) -> Result positionHash
 				selectMaxWithSorter forestSorter	= selectMax dynamicMoveData maybeAlphaQuantifiedGame . forestSorter . (
 					if recordKillerMoves
 						then Evaluation.PositionHashQuantifiedGameTree.sortNonCaptureMoves (
@@ -223,45 +219,35 @@ negaMax initialSearchDepth initialSearchState	= do
 						) -- Dynamically advance the evaluation of killer-moves, to just after the statically sorted capture-moves.
 						else id
 				 ) . Data.Tree.subForest $ Evaluation.PositionHashQuantifiedGameTree.deconstruct positionHashQuantifiedGameTree
-{-
-				selectMax
-					:: Search.DynamicMoveData.DynamicMoveData positionHash
-					-> Maybe Evaluation.QuantifiedGame.QuantifiedGame
-					-> [Evaluation.PositionHashQuantifiedGameTree.BarePositionHashQuantifiedGameTree positionHash]
-					-> Result positionHash
--}
+
+--				selectMax :: Search.DynamicMoveData.DynamicMoveData positionHash -> Maybe Evaluation.QuantifiedGame.QuantifiedGame -> Evaluation.PositionHashQuantifiedGameTree.Forest positionHash -> Result positionHash
 				selectMax dynamicMoveData' maybeAlphaQuantifiedGame' (node : remainingNodes)
 					| trapRepeatedPositions
-					, nDistinctPositions >= fromIntegral State.InstancesByPosition.leastCyclicPlies	-- CAVEAT: accounting for the typically (except when its the initial position) unrepeatable first distinct position.
+					, nDistinctPositions >= fromIntegral State.InstancesByPosition.leastCyclicPlies	-- CAVEAT: accounting for the typically (except the initial position) unrepeatable first distinct position.
 					, State.InstancesByPosition.getNDistinctPositions (
 						Model.Game.getInstancesByPosition . Evaluation.QuantifiedGame.getGame $ Evaluation.PositionHashQuantifiedGameTree.getRootQuantifiedGame' node	-- If the size hasn't increased, then the recently added position must have already been a member; (size == 1) during successive unrepeatable moves also, but that exception is caught above.
-					) == nDistinctPositions	= selectMax dynamicMoveData' (
+					) == nDistinctPositions		= selectMax dynamicMoveData' (
 						maybeAlphaQuantifiedGame' <|> Just quantifiedGame''	-- CAVEAT: guard against exhausting all nodes without defining alpha.
-					) remainingNodes						-- Skip this node & recurse through the remaining moves at this depth.
+					) remainingNodes						-- Skip this repetitive node & recurse through the remaining nodes at this depth.
 					| Just betaQuantifiedGame	<- maybeBetaQuantifiedGame	-- Beta-cutoff can't occur until beta has been defined.
 					, let fitnessComparedWithBeta	= quantifiedGame'' <=> betaQuantifiedGame
 					, fitnessComparedWithBeta /= LT	= result'' {
-						getDynamicMoveData	= let
-							game''	= Evaluation.QuantifiedGame.getGame quantifiedGame''
-						in (
+						getDynamicMoveData	= (
 							if recordKillerMoves && not (
-								fitnessComparedWithBeta == EQ && game'' =~ Evaluation.QuantifiedGame.getGame betaQuantifiedGame	-- CAVEAT: betaQuantifiedGame was copied in selectMaxWithSorters terminal case, from one of the open-interval's boundaries.
+								fitnessComparedWithBeta == EQ && quantifiedGame'' === betaQuantifiedGame	-- betaQuantifiedGame was copied in the terminal case of 'selectMax', from one of the open-interval's boundaries.
 							) -- Confirm that betaQuantifiedGame is beneath the current node.
-								then updateKillerMoves game''
+								then updateKillerMoves $ Evaluation.QuantifiedGame.getGame quantifiedGame''
 								else id
 						) dynamicMoveData'',
 						getQuantifiedGame	= betaQuantifiedGame
 					} -- Beta-cutoff; the solution-space is either zero or negative.
-					| otherwise	= addNPositionsToResult (
-						getNPositionsEvaluated result''
-					) $ let
+					| otherwise	= let
 						isFitter	= Data.Maybe.maybe True {-alpha is undefined => anything qualifies-} (
-							\alphaQuantifiedGame -> case quantifiedGame'' <=> alphaQuantifiedGame of
-								LT	-> False
-								GT	-> True
-								EQ	-> uncurry (<) . (($ quantifiedGame'') &&& ($ alphaQuantifiedGame)) $ getNPlies . Evaluation.QuantifiedGame.getGame	-- Prefer a shorter move-sequence.
+							\alphaQuantifiedGame -> uncurry (>) $ (($ quantifiedGame'') &&& ($ alphaQuantifiedGame)) Evaluation.QuantifiedGame.getFitness
 						 ) maybeAlphaQuantifiedGame'
-					in selectMax (
+					in addNPositionsToResult (
+						getNPositionsEvaluated result''
+					) $ selectMax (
 						(
 							if useTranspositions && isFitter
 								then updateTranspositions False {-isOptimal-} nPlies positionHash {-the hash of the game before the first move in the sequence-} (
@@ -271,7 +257,7 @@ negaMax initialSearchDepth initialSearchState	= do
 						) dynamicMoveData''
 					) (
 						if isFitter
-							then Just quantifiedGame''	-- Replace the alpha solution (i.e. the lower acceptable solution-bound).
+							then Just quantifiedGame''	-- Increase the alpha solution (i.e. the lower acceptable solution-bound).
 							else maybeAlphaQuantifiedGame'
 					) remainingNodes	-- Recurse through the remaining moves at this depth.
 					where

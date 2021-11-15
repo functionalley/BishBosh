@@ -39,7 +39,6 @@ module BishBosh.Evaluation.QuantifiedGame(
 -- * Constants
 	unboundedInterval,
 -- * Functions
-	(<=>),
 -- ** Accessors
 	getFitness,
 -- ** Constructors
@@ -49,7 +48,10 @@ module BishBosh.Evaluation.QuantifiedGame(
 	getLatestTurns,
 -- ** Mutators
 	negateFitness,
-	negateInterval
+	negateInterval,
+-- ** Predicates
+	(<=>),
+	(===)
  ) where
 
 import			Control.Arrow((&&&))
@@ -93,11 +95,21 @@ instance Property.Null.Null QuantifiedGame where
 getFitness :: QuantifiedGame -> Type.Mass.WeightedMean
 getFitness MkQuantifiedGame { getWeightedMeanAndCriterionValues = weightedMeanAndCriterionValues }	= Metric.WeightedMeanAndCriterionValues.getWeightedMean weightedMeanAndCriterionValues
 
-infix 4 <=>	-- Same as (>).
-
 -- | Space-ship operator, like in Perl.
 (<=>) :: QuantifiedGame -> QuantifiedGame -> Ordering
 (<=>)	= Data.Ord.comparing getFitness
+
+infix 4 <=>	-- Same as (>).
+
+{- |
+	* Whether the games have taken the same move-sequences, & as such have the same position.
+
+	* CAVEAT: the games won't be identical if they started from different positions, but by some fluke managed to make the same sequence of moves.
+-}
+(===) :: QuantifiedGame -> QuantifiedGame -> Bool
+lhs === rhs	= uncurry (==) . (($ lhs) &&& ($ rhs)) $ Model.Game.getTurnsByLogicalColour . getGame
+
+infix 4 ===	-- Same as (==).
 
 -- | Constructor.
 fromGame
