@@ -68,10 +68,11 @@ results	= sequence [
 				Input.SearchOptions.getUsePondering			= Input.SearchOptions.getUsePondering defaultSearchOptions,
 				Input.SearchOptions.getStandardOpeningOptions		= Input.SearchOptions.getStandardOpeningOptions defaultSearchOptions,
 				Input.SearchOptions.getSearchDepthByLogicalColour	= Input.SearchOptions.getSearchDepthByLogicalColour defaultSearchOptions
-
 			}
 
-			getQuantifiedGames	= Search.Search.getQuantifiedGames . Control.Monad.Reader.runReader (Search.Search.search (Input.SearchOptions.minimumSearchDepth + fromIntegral (searchDepth `mod` 3)) searchState)
+			getQuantifiedGames	= Search.Search.getQuantifiedGames . Control.Monad.Reader.runReader (
+				Search.Search.search (Input.SearchOptions.minimumSearchDepth + fromIntegral (searchDepth `mod` 3)) searchState
+			 )
 	in Test.QuickCheck.quickCheckWithResult Test.QuickCheck.stdArgs { Test.QuickCheck.maxSuccess = 128 } f
  ]
 

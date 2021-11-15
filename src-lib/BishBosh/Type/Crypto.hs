@@ -1,6 +1,6 @@
 {-# LANGUAGE CPP #-}
 {-
-	Copyright (C) 2018 Dr. Alistair Ward
+	Copyright (C) 2021 Dr. Alistair Ward
 
 	This file is part of BishBosh.
 
@@ -22,7 +22,7 @@
 
  [@DESCRIPTION@]
 
-	* Defines suitable concrete types with which to specialise miscellaneous type-parameters.
+	* Defines suitable types for various quantities.
 
 	* CAVEAT: use of narrow numeric types, results in marginally slower performance without any reduction in space-requirements.
 -}
@@ -30,7 +30,7 @@
 module BishBosh.Type.Crypto(
 -- * Types
 -- ** Type-synonyms
-	PositionHash,
+	PositionHash
 ) where
 
 import qualified	Data.Word
