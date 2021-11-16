@@ -40,7 +40,7 @@ instance Test.QuickCheck.Arbitrary Model.GameTree.GameTree where
 	arbitrary	= do
 		depth	<- Test.QuickCheck.elements [1 .. 3]
 
-		fmap (Property.Arboreal.prune depth . Model.GameTree.fromGame) Test.QuickCheck.arbitrary
+		Property.Arboreal.prune depth . Model.GameTree.fromGame <$> Test.QuickCheck.arbitrary
 
 -- | The constant test-results for this data-type.
 results :: IO [Test.QuickCheck.Result]

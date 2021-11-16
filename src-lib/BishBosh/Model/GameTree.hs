@@ -148,7 +148,7 @@ instance Data.Default.Default GameTree where
 	def	= fromGame Data.Default.def
 
 instance Property.Arboreal.Prunable GameTree where
-	prune depth MkGameTree { deconstruct = bareGameTree }	= MkGameTree $ Property.Arboreal.prune depth bareGameTree
+	prune depth MkGameTree { deconstruct = bareGameTree }	= MkGameTree $ Data.RoseTree.prune depth bareGameTree
 
 instance Notation.MoveNotation.ShowNotation GameTree where
 	showsNotation moveNotation MkGameTree {
@@ -185,11 +185,11 @@ fromGame	= MkGameTree . Data.Tree.unfoldTree (
 	* N.B.: some of the /game-state/s may have identical positions, reached by different sequences of /move/s.
 -}
 countGames :: Property.Arboreal.Depth -> Type.Count.NGames
-countGames depth	= Data.RoseTree.countTerminalNodes . deconstruct $ Property.Arboreal.prune depth (Data.Default.def :: GameTree)
+countGames depth	= Data.RoseTree.countTerminalNodes . Data.RoseTree.prune depth . deconstruct $ (Data.Default.def :: GameTree)
 
 -- | Counts the number of possible positions in chess, down to the specified depth. N.B.: some of these may be transpositions.
 countPositions :: Property.Arboreal.Depth -> Type.Count.NPositions
-countPositions depth	= fromIntegral . pred {-the apex is constructed without moving-} . Data.Foldable.length . deconstruct $ Property.Arboreal.prune depth (Data.Default.def :: GameTree)
+countPositions depth	= fromIntegral . pred {-the apex is constructed without moving-} . Data.Foldable.length . Data.RoseTree.prune depth . deconstruct $ (Data.Default.def :: GameTree)
 
 -- | Trace the route down the tree which matches the specified list of turns.
 traceRoute

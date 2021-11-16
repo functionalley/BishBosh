@@ -35,6 +35,7 @@ module BishBosh.Data.RoseTree(
 -- ** Mutators
 	promote,
 	reduce,
+	prune,
 	mapForest
 ) where
 
@@ -110,6 +111,18 @@ reduce isMatch Data.Tree.Node { Data.Tree.subForest = subForest }	= Data.List.fi
 
 -- | The type of a function which changes the structure (but not the type) of the specified tree.
 type Transformation a	= Data.Tree.Tree a -> Data.Tree.Tree a
+
+-- | Remove branches after the specified depth.
+prune :: Int -> Transformation a
+prune depth tree@Data.Tree.Node { Data.Tree.subForest = forest }
+	| depth < 0	= error "BishBosh.Data.RoseTree.prune:\tdepth can't be negative."
+	| otherwise	= tree {
+		Data.Tree.subForest	= if depth == 0
+			then []
+			else map (
+				prune $ pred depth	-- Recurse.
+			) forest
+	}
 
 {- |
 	* Apply an arbitrary mapping to all subForests; cf. 'fmap' which applies an arbitrary function to all 'Data.Tree.rootLabel's.

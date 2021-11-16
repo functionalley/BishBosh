@@ -123,7 +123,7 @@ newtype PositionHashQuantifiedGameTree positionHash	= MkPositionHashQuantifiedGa
 } deriving Eq
 
 instance Property.Arboreal.Prunable (PositionHashQuantifiedGameTree positionHash) where
-	prune depth MkPositionHashQuantifiedGameTree { deconstruct = barePositionHashQuantifiedGameTree }	= MkPositionHashQuantifiedGameTree $ Property.Arboreal.prune depth barePositionHashQuantifiedGameTree
+	prune depth MkPositionHashQuantifiedGameTree { deconstruct = barePositionHashQuantifiedGameTree }	= MkPositionHashQuantifiedGameTree $ Data.RoseTree.prune depth barePositionHashQuantifiedGameTree
 
 instance Notation.MoveNotation.ShowNotationFloat (PositionHashQuantifiedGameTree positionHash) where
 	showsNotationFloat moveNotation showsDouble MkPositionHashQuantifiedGameTree { deconstruct = barePositionHashQuantifiedGameTree } = showString $ (

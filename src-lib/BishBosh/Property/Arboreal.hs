@@ -31,23 +31,10 @@ module BishBosh.Property.Arboreal(
 	Depth
 ) where
 
-import qualified	Data.Tree
-
 -- | A distance down the tree.
 type Depth	= Int
 
 -- | An interface which tree-like data can support.
 class Prunable tree where
 	prune	:: Depth -> tree -> tree	-- ^ Remove branches after the specified depth.
-
-instance Prunable (Data.Tree.Tree a) where
-	prune depth tree@Data.Tree.Node { Data.Tree.subForest = forest }
-		| depth < 0	= error "BishBosh.Property.Arboreal.prune:\tdepth can't be negative."
-		| otherwise	= tree {
-			Data.Tree.subForest	= if depth == 0
-				then []
-				else map (
-					prune $ pred depth	-- Recurse.
-				) forest
-		}
 
