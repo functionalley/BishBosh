@@ -34,7 +34,9 @@ module BishBosh.Cartesian.Coordinates(
 -- ** Type-synonyms
 --	Transformation,
 	ArrayByCoordinates,
+#ifdef USE_UNBOXED_ARRAYS
 	UArrayByCoordinates,
+#endif
 -- * Constants
 	tag,
 	topLeft,
@@ -95,7 +97,6 @@ import qualified	BishBosh.Type.Length				as Type.Length
 import qualified	Control.DeepSeq
 import qualified	Control.Exception
 import qualified	Data.Array.IArray
-import qualified	Data.Array.Unboxed
 import qualified	Data.Foldable
 import qualified	Data.List
 import qualified	Data.Map					as Map
@@ -103,6 +104,10 @@ import qualified	Data.Maybe
 
 #ifdef USE_PARALLEL
 import qualified	Control.Parallel.Strategies
+#endif
+
+#ifdef USE_UNBOXED_ARRAYS
+import qualified	Data.Array.Unboxed
 #endif
 
 -- | Used to qualify XML.
@@ -473,8 +478,10 @@ isEnPassantRank logicalColour MkCoordinates { getY = y }	= y == Cartesian.Ordina
 -- | A boxed array indexed by /coordinates/, of arbitrary elements.
 type ArrayByCoordinates	= Data.Array.IArray.Array Coordinates
 
+#ifdef USE_UNBOXED_ARRAYS
 -- | An unboxed array indexed by /coordinates/, of fixed-size elements.
 type UArrayByCoordinates	= Data.Array.Unboxed.UArray Coordinates
+#endif
 
 -- | Array-constructor from an ordered list of elements.
 listArrayByCoordinates :: Data.Array.IArray.IArray a e => [e] -> a Coordinates e

@@ -1,4 +1,4 @@
-{-# LANGUAGE LambdaCase #-}
+{-# LANGUAGE CPP, LambdaCase #-}
 {-
 	Copyright (C) 2018 Dr. Alistair Ward
 
@@ -31,7 +31,9 @@ module BishBosh.Attribute.LogicalColour(
 -- * Types
 -- ** Type-synonyms
 	ArrayByLogicalColour,
+#ifdef USE_UNBOXED_ARRAYS
 	UArrayByLogicalColour,
+#endif
 -- ** Data-types
 	LogicalColour(..),
 -- * Constants
@@ -55,10 +57,13 @@ import qualified	BishBosh.Type.Count				as Type.Count
 import qualified	Control.DeepSeq
 import qualified	Control.Exception
 import qualified	Data.Array.IArray
-import qualified	Data.Array.Unboxed
 import qualified	Data.List.Extra
 import qualified	Text.XML.HXT.Arrow.Pickle			as HXT
 import qualified	Text.XML.HXT.Arrow.Pickle.Schema
+
+#ifdef USE_UNBOXED_ARRAYS
+import qualified	Data.Array.Unboxed
+#endif
 
 -- | Used to qualify XML.
 tag :: String
@@ -131,8 +136,10 @@ isWhite	= not . isBlack
 -- | A boxed array indexed by /logical colour/, of arbitrary elements.
 type ArrayByLogicalColour	= Data.Array.IArray.Array LogicalColour
 
+#ifdef USE_UNBOXED_ARRAYS
 -- | An unboxed array indexed by /logical colour/, of fixed-size values.
 type UArrayByLogicalColour	= Data.Array.Unboxed.UArray LogicalColour
+#endif
 
 -- | Array-constructor from an ordered list of elements.
 listArrayByLogicalColour :: Data.Array.IArray.IArray a e => [e] -> a LogicalColour e
