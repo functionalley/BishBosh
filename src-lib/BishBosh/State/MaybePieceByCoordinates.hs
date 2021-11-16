@@ -263,7 +263,7 @@ instance StateProperty.Mutator.Mutator MaybePieceByCoordinates where
 -}
 instance StateProperty.Seeker.Seeker MaybePieceByCoordinates where
 	findProximateKnights logicalColour destination MkMaybePieceByCoordinates { deconstruct = byCoordinates }	= filter (
-		(== Just knight) . (byCoordinates !)
+		Data.Maybe.maybe False (== knight) . (byCoordinates !)
 	 ) $ Component.Piece.findAttackDestinations destination knight where
 		knight	= Component.Piece.mkKnight logicalColour
 
@@ -435,7 +435,7 @@ show2D
 	-> Bool					-- ^ Whether to depict figurines.
 	-> (Type.Length.X, Type.Length.Y)	-- ^ The origin from which axes are labelled.
 	-> MaybePieceByCoordinates
-	-> String		-- ^ The output suitable for display on a terminal.
+	-> String				-- ^ The output suitable for display on a terminal.
 show2D boardColumnMagnification colourScheme depictFigurine (xOrigin, yOrigin) maybePieceByCoordinates	= shows2D boardColumnMagnification colourScheme depictFigurine (xOrigin, yOrigin) maybePieceByCoordinates ""
 
 -- | Extract the pieces from the board, discarding their coordinates.
@@ -452,10 +452,11 @@ findBlockingPiece
 	-> Cartesian.Coordinates.Coordinates	-- ^ The starting point.
 	-> MaybePieceByCoordinates
 	-> Maybe Component.Piece.LocatedPiece
-findBlockingPiece direction source MkMaybePieceByCoordinates { deconstruct = byCoordinates }	= Data.Maybe.listToMaybe [
-	(coordinates, piece) |
-		(coordinates, Just piece)	<- map (id &&& (byCoordinates !)) $ Cartesian.Coordinates.extrapolate direction source
- ] -- List-comprehension.
+findBlockingPiece direction source MkMaybePieceByCoordinates { deconstruct = byCoordinates }	= slave $ Cartesian.Coordinates.extrapolate direction source where
+	slave (coordinates : remainder)	= case byCoordinates ! coordinates of
+		Nothing		-> slave remainder			-- Recurse.
+		maybePiece	-> (,) coordinates <$> maybePiece	-- Terminate with success.
+	slave []			= Nothing			-- Terminate with failure.
 
 {- |
 	* Find the /coordinates/ of any attacker who can strike the specified /coordinates/, in a straight line along the specified /direction/ (as seen by the target).
@@ -468,11 +469,9 @@ findAttackerInDirection
 	-> Cartesian.Coordinates.Coordinates					-- ^ The defender's square.
 	-> MaybePieceByCoordinates
 	-> Maybe (Cartesian.Coordinates.Coordinates, Attribute.Rank.Rank)	-- ^ Any opposing /piece/ which can attack the specified square from the specified /direction/.
-findAttackerInDirection destinationLogicalColour direction destination	= (=<<) (
-	\(source, sourcePiece) -> if Component.Piece.getLogicalColour sourcePiece /= destinationLogicalColour && Component.Piece.canAttackAlong source destination sourcePiece
-		then Just (source, Component.Piece.getRank sourcePiece)
-		else Nothing
- ) . findBlockingPiece direction destination
+findAttackerInDirection destinationLogicalColour direction destination maybePieceByCoordinates	= findBlockingPiece direction destination maybePieceByCoordinates >>= \locatedPiece@(source, sourcePiece) -> if Component.Piece.getLogicalColour sourcePiece /= destinationLogicalColour && Component.Piece.canAttackAlong source destination sourcePiece
+	then Just $ Control.Arrow.second Component.Piece.getRank locatedPiece
+	else Nothing
 
 -- | Whether the specified /coordinates/ are unoccupied.
 isVacant :: Cartesian.Coordinates.Coordinates -> MaybePieceByCoordinates -> Bool
@@ -496,7 +495,6 @@ isClear
 	-> Cartesian.Coordinates.Coordinates	-- ^ Destination.
 	-> MaybePieceByCoordinates
 	-> Bool
-{-# INLINABLE isClear #-}	-- N.B.: required to ensure specialisation of 'Cartesian.Coordinates.interpolate'.
 isClear source destination maybePieceByCoordinates	= Control.Exception.assert (
 	source /= destination && Property.Orientated.isStraight (Component.Move.mkMove source destination)
  ) . all (`isVacant` maybePieceByCoordinates) . init {-discard the destination-} $ Cartesian.Coordinates.interpolate source destination
