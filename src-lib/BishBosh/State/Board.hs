@@ -179,12 +179,26 @@ instance StateProperty.Hashable.Hashable Board where
 	listRandoms MkBoard { getCoordinatesByRankByLogicalColour = coordinatesByRankByLogicalColour }	= StateProperty.Hashable.listRandoms coordinatesByRankByLogicalColour
 
 instance StateProperty.Mutator.Mutator Board where
-	defineCoordinates maybePiece coordinates MkBoard { getMaybePieceByCoordinates = maybePieceByCoordinates }	= fromMaybePieceByCoordinates $ StateProperty.Mutator.defineCoordinates maybePiece coordinates maybePieceByCoordinates
+	defineCoordinates maybePiece coordinates MkBoard {
+		getMaybePieceByCoordinates	= maybePieceByCoordinates
+	} = fromMaybePieceByCoordinates $ StateProperty.Mutator.defineCoordinates maybePiece coordinates maybePieceByCoordinates
+
+	movePiece move sourcePiece maybePromotionRank eitherPassingPawnsDestinationOrMaybeTakenRank MkBoard {
+		getMaybePieceByCoordinates	= maybePieceByCoordinates
+	} = fromMaybePieceByCoordinates $ StateProperty.Mutator.movePiece move sourcePiece maybePromotionRank eitherPassingPawnsDestinationOrMaybeTakenRank maybePieceByCoordinates
 
 instance StateProperty.Seeker.Seeker Board where
-	findProximateKnights logicalColour coordinates MkBoard { getCoordinatesByRankByLogicalColour = coordinatesByRankByLogicalColour }	= StateProperty.Seeker.findProximateKnights logicalColour coordinates coordinatesByRankByLogicalColour -- Forward the request.
-	findPieces predicate MkBoard { getCoordinatesByRankByLogicalColour = coordinatesByRankByLogicalColour }					= StateProperty.Seeker.findPieces predicate coordinatesByRankByLogicalColour	-- Forward the request.
-	countPawnsByFileByLogicalColour	MkBoard { getCoordinatesByRankByLogicalColour = coordinatesByRankByLogicalColour }			= StateProperty.Seeker.countPawnsByFileByLogicalColour coordinatesByRankByLogicalColour	-- Forward the request.
+	findProximateKnights logicalColour coordinates MkBoard {
+		getCoordinatesByRankByLogicalColour	= coordinatesByRankByLogicalColour
+	} = StateProperty.Seeker.findProximateKnights logicalColour coordinates coordinatesByRankByLogicalColour -- Forward the request.
+
+	findPieces predicate MkBoard {
+		getCoordinatesByRankByLogicalColour	= coordinatesByRankByLogicalColour
+	} = StateProperty.Seeker.findPieces predicate coordinatesByRankByLogicalColour	-- Forward the request.
+
+	countPawnsByFileByLogicalColour	MkBoard {
+		getCoordinatesByRankByLogicalColour	= coordinatesByRankByLogicalColour
+	} = StateProperty.Seeker.countPawnsByFileByLogicalColour coordinatesByRankByLogicalColour	-- Forward the request.
 
 -- | Constructor.
 fromMaybePieceByCoordinates :: State.MaybePieceByCoordinates.MaybePieceByCoordinates -> Board
@@ -242,11 +256,12 @@ movePiece move maybeMoveType board@MkBoard {
 
 		eitherPassingPawnsDestinationOrMaybeTakenPiece	= fmap (Component.Piece.mkPiece opponentsLogicalColour) <$> eitherPassingPawnsDestinationOrMaybeTakenRank
 
+		movePiece' :: StateProperty.Mutator.Mutator mutator => mutator -> mutator
+		movePiece'	= StateProperty.Mutator.movePiece move sourcePiece maybePromotionRank eitherPassingPawnsDestinationOrMaybeTakenRank
+		 
 		board'@MkBoard { getMaybePieceByCoordinates = maybePieceByCoordinates' }	= MkBoard {
-			getMaybePieceByCoordinates	= State.MaybePieceByCoordinates.movePiece move destinationPiece (
-				Just ||| const Nothing $ eitherPassingPawnsDestinationOrMaybeTakenRank
-			) maybePieceByCoordinates,
-			getCoordinatesByRankByLogicalColour	= State.CoordinatesByRankByLogicalColour.movePiece move sourcePiece maybePromotionRank eitherPassingPawnsDestinationOrMaybeTakenRank coordinatesByRankByLogicalColour,
+			getMaybePieceByCoordinates			= movePiece' maybePieceByCoordinates,
+			getCoordinatesByRankByLogicalColour		= movePiece' coordinatesByRankByLogicalColour,
 			getNDefendersByCoordinatesByLogicalColour	= (
 				\(nBlackDefendersByCoordinates, nWhiteDefendersByCoordinates)	-> Attribute.LogicalColour.listArrayByLogicalColour [nBlackDefendersByCoordinates, nWhiteDefendersByCoordinates]
 			) . foldr (

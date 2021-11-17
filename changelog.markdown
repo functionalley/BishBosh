@@ -149,4 +149,5 @@ New Module				| Purpose
 ## 0.1.3.0
 * Efficiency:
 	+ Replaced the polymorphic type-parameter **pieceSquareValue** with a newtype, to then implement unboxed arrays without cluttering interfaces with type-constraint **Data.Array.Unboxed.IArray Data.Array.Unboxed.UArray pieceSquareValue**; performance-improvement was regrettably insignificant.
-
+* Structural:
+	+ Added method **BishBosh.StateProperty.Mutator.movePiece** & implemented whole class in module **BishBosh.State.CoordinatesByRankByLogicalColour**.

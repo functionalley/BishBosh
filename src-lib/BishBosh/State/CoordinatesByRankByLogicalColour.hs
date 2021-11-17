@@ -30,6 +30,7 @@ module BishBosh.State.CoordinatesByRankByLogicalColour(
 -- * Types
 -- ** Type-synonyms
 --	CoordinatesByRank,
+	BareCoordinatesByRankByLogicalColour,
 	CoordinatesByLogicalColour,
 --	Transformation,
 -- ** Data-types
@@ -48,8 +49,9 @@ module BishBosh.State.CoordinatesByRankByLogicalColour(
 -- ** Constructor
 	fromMaybePieceByCoordinates,
 -- ** Mutators
---	deleteCoordinates,
-	movePiece,
+--	deleteCoordinatesFromRank,
+--	mapCoordinates,
+--	purgeCoordinates,
 	sortCoordinates
 ) where
 
@@ -72,10 +74,10 @@ import qualified	BishBosh.Property.Opposable				as Property.Opposable
 import qualified	BishBosh.State.MaybePieceByCoordinates			as State.MaybePieceByCoordinates
 import qualified	BishBosh.StateProperty.Censor				as StateProperty.Censor
 import qualified	BishBosh.StateProperty.Hashable				as StateProperty.Hashable
+import qualified	BishBosh.StateProperty.Mutator				as StateProperty.Mutator
 import qualified	BishBosh.StateProperty.Seeker				as StateProperty.Seeker
 import qualified	Control.Arrow
 import qualified	Control.DeepSeq
-import qualified	Control.Exception
 import qualified	Data.Array.IArray
 import qualified	Data.Foldable
 import qualified	Data.List
@@ -85,13 +87,16 @@ import qualified	Data.Maybe
 -- | The /coordinate/s of all the pieces of one /rank/.
 type CoordinatesByRank	= Attribute.Rank.ArrayByRank [Cartesian.Coordinates.Coordinates]
 
+-- | The /coordinate/s of all the pieces of one /rank/, for both logical colours.
+type BareCoordinatesByRankByLogicalColour	= Attribute.LogicalColour.ArrayByLogicalColour CoordinatesByRank
+
 {- |
 	* This structure allows one to determine the set of /coordinates/ where a type of /piece/ is located.
 
 	* CAVEAT: the list of /coordinates/ is unordered, so test for equality using @ deconstruct . sortCoordinates @.
 -}
 newtype CoordinatesByRankByLogicalColour	= MkCoordinatesByRankByLogicalColour {
-	deconstruct	:: Attribute.LogicalColour.ArrayByLogicalColour CoordinatesByRank
+	deconstruct	:: BareCoordinatesByRankByLogicalColour
 }
 
 instance Control.DeepSeq.NFData CoordinatesByRankByLogicalColour where
@@ -136,6 +141,50 @@ instance StateProperty.Hashable.Hashable CoordinatesByRankByLogicalColour where
 			(rank, coordinatesList)	<- Data.Array.IArray.assocs byRank,
 			coordinates		<- coordinatesList
 	 ] -- List-comprehension.
+
+instance StateProperty.Mutator.Mutator CoordinatesByRankByLogicalColour where
+	defineCoordinates maybePiece coordinates	= MkCoordinatesByRankByLogicalColour . (
+		\byLogicalColour -> Data.Maybe.maybe byLogicalColour (
+			\piece -> let
+				logicalColour	= Component.Piece.getLogicalColour piece
+				byRank		= byLogicalColour ! logicalColour
+			in byLogicalColour // [
+				(
+					logicalColour,
+					byRank // [
+						id &&& (coordinates :) . (byRank !) $ Component.Piece.getRank piece	-- Prepend.
+					] -- Singleton.
+				) -- Pair.
+			] -- Singleton.
+		) maybePiece
+	 ) . deconstruct . purgeCoordinates coordinates
+
+	movePiece move sourcePiece maybePromotionRank eitherPassingPawnsDestinationOrMaybeTakenRank MkCoordinatesByRankByLogicalColour {
+		deconstruct	= byLogicalColour
+	} = MkCoordinatesByRankByLogicalColour $ byLogicalColour // (
+		(:) . (`deleteOpponentsCoordinates` Attribute.Rank.Pawn) ||| Data.Maybe.maybe id {-quiet move-} (
+			(:) . deleteOpponentsCoordinates destination
+		) $ eitherPassingPawnsDestinationOrMaybeTakenRank
+	 ) [
+		let
+			byRank	= byLogicalColour ! logicalColour
+		in (
+			logicalColour,
+			byRank // Data.Maybe.maybe (
+				return {-to List-monad-} . Control.Arrow.second (destination :)	-- Add the destination to the mover.
+			) (
+				\promotionRank -> (:) (
+					promotionRank,
+					destination : byRank ! promotionRank	-- Add the destination to the mover's promoted rank.
+				) . return {-to List-monad-}
+			) maybePromotionRank (
+				id &&& Data.List.delete (Component.Move.getSource move) . (byRank !) $ Component.Piece.getRank sourcePiece
+			)
+		) -- Pair.
+	 ] where
+		destination					= Component.Move.getDestination move
+		logicalColour					= Component.Piece.getLogicalColour sourcePiece
+		deleteOpponentsCoordinates coordinates rank	= id &&& deleteCoordinatesFromRank coordinates rank . (byLogicalColour !) $ Property.Opposable.getOpposite logicalColour
 
 {- |
 	* Find any @Knight@s of the specified /logical colour/, in attack-range around the specified /coordinates/.
@@ -218,8 +267,8 @@ getKingsCoordinates
 	-> CoordinatesByRankByLogicalColour
 	-> Cartesian.Coordinates.Coordinates
 {-# INLINE getKingsCoordinates #-}
-getKingsCoordinates logicalColour MkCoordinatesByRankByLogicalColour { deconstruct = byLogicalColour }	= Control.Exception.assert (not $ null coordinates) $ head coordinates {-there should be exactly one-} where
-	coordinates	= byLogicalColour ! logicalColour ! Attribute.Rank.King
+getKingsCoordinates logicalColour MkCoordinatesByRankByLogicalColour { deconstruct = byLogicalColour }	= coordinates where
+	[coordinates]	= byLogicalColour ! logicalColour ! Attribute.Rank.King	-- CAVEAT: there should be exactly one.
 
 -- | Locate all /piece/s of the specified /logical colour/.
 findPiecesOfColour
@@ -265,50 +314,26 @@ findPassedPawnCoordinatesByLogicalColour MkCoordinatesByRankByLogicalColour { de
  ) Property.FixedMembership.members where
 	findPawns	= (! Attribute.Rank.Pawn) . (byLogicalColour !)
 
--- | Self-documentation.
-type Transformation	= CoordinatesByRankByLogicalColour -> CoordinatesByRankByLogicalColour
-
 -- | Remove the specified /coordinates/ from those recorded for the specified /rank/.
-deleteCoordinates
+deleteCoordinatesFromRank
 	:: Cartesian.Coordinates.Coordinates
 	-> Attribute.Rank.Rank
 	-> CoordinatesByRank
 	-> CoordinatesByRank
-deleteCoordinates coordinates rank byRank	= byRank // [(rank, Data.List.delete coordinates $ byRank ! rank)]
+deleteCoordinatesFromRank coordinates rank byRank	= byRank // [id &&& Data.List.delete coordinates . (byRank !) $ rank]
 
--- | Adjust the array to reflect a new /move/.
-movePiece
-	:: Component.Move.Move
-	-> Component.Piece.Piece						-- ^ The piece which moved.
-	-> Maybe Attribute.Rank.Rank						-- ^ The (possibly promoted) rank to place at the destination.
-	-> Either Cartesian.Coordinates.Coordinates (Maybe Attribute.Rank.Rank)	-- ^ Either the destination of any passed @Pawn@, or the /rank/ of any /piece/ taken.
-	-> Transformation
-movePiece move sourcePiece maybePromotionRank eitherPassingPawnsDestinationOrMaybeTakenRank MkCoordinatesByRankByLogicalColour { deconstruct = byLogicalColour }	= MkCoordinatesByRankByLogicalColour $ byLogicalColour // (
-	(:) . (`deleteOpponentsCoordinates` Attribute.Rank.Pawn) ||| Data.Maybe.maybe id {-quiet move-} (
-		(:) . deleteOpponentsCoordinates destination
-	) $ eitherPassingPawnsDestinationOrMaybeTakenRank
- ) [
-	let
-		byRank	= byLogicalColour ! logicalColour
-	in (
-		logicalColour,
-		byRank // Data.Maybe.maybe (
-			return {-to List-monad-} . Control.Arrow.second (destination :)	-- Add the destination to the mover.
-		) (
-			\promotionRank -> (:) (
-				promotionRank,
-				destination : byRank ! promotionRank	-- Add the destination to the mover's promoted rank.
-			) . return {-to List-monad-}
-		) maybePromotionRank (
-			id &&& Data.List.delete (Component.Move.getSource move) . (byRank !) $ Component.Piece.getRank sourcePiece
-		)
-	) -- Pair.
- ] where
-	destination					= Component.Move.getDestination move
-	logicalColour					= Component.Piece.getLogicalColour sourcePiece
-	deleteOpponentsCoordinates coordinates rank	= id &&& deleteCoordinates coordinates rank . (byLogicalColour !) $ Property.Opposable.getOpposite logicalColour
+-- | Self-documentation.
+type Transformation	= CoordinatesByRankByLogicalColour -> CoordinatesByRankByLogicalColour
+
+-- | Map the coordinate-lists.
+mapCoordinates :: ([Cartesian.Coordinates.Coordinates] -> [Cartesian.Coordinates.Coordinates]) -> Transformation
+mapCoordinates f MkCoordinatesByRankByLogicalColour { deconstruct = byLogicalColour }	= MkCoordinatesByRankByLogicalColour $ Data.Array.IArray.amap (Data.Array.IArray.amap f) byLogicalColour
+
+-- | Purge the specified /coordinates/ regardless of the /rank/ or /logical colour/ of any incumbent piece.
+purgeCoordinates :: Cartesian.Coordinates.Coordinates -> Transformation
+purgeCoordinates coordinates	= mapCoordinates $ Data.List.delete coordinates
 
 -- | Independently sort each list of /coordinates/.
 sortCoordinates :: Transformation
-sortCoordinates MkCoordinatesByRankByLogicalColour { deconstruct = byLogicalColour }	= MkCoordinatesByRankByLogicalColour $ Data.Array.IArray.amap (Data.Array.IArray.amap Data.List.sort) byLogicalColour
+sortCoordinates	= mapCoordinates Data.List.sort
 

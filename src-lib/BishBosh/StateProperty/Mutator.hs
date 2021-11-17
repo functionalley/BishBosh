@@ -34,23 +34,37 @@ module BishBosh.StateProperty.Mutator(
 	removePiece
 ) where
 
+import qualified	BishBosh.Attribute.Rank		as Attribute.Rank
 import qualified	BishBosh.Cartesian.Coordinates	as Cartesian.Coordinates
+import qualified	BishBosh.Component.Move		as Component.Move
 import qualified	BishBosh.Component.Piece	as Component.Piece
 import qualified	BishBosh.Property.Empty		as Property.Empty
 
 {- |
-	* Defines the specified /coordinates/, by either placing or removing a /piece/.
+	* An interface which may be implemented by data which can mutate the board.
 
-	* CAVEAT: this function should only be used to construct custom scenarios, since /piece/s don't normally spring into existence.
-
-	* CAVEAT: doesn't validate the request, so @King@s can be placed /in check/ & @Pawn@s can be placed behind their starting rank or unpromoted on their last /rank/.
-
-	* CAVEAT: this function isn't called during normal play.
+	* CAVEAT: doesn't validate requests, so @King@s can be placed /in check/ & @Pawn@s can be placed behind their starting rank or unpromoted on their last /rank/.
 -}
 class Mutator mutator where
+	{- |
+		* Defines the specified /coordinates/, by either placing or removing a /piece/.
+
+		* CAVEAT: this function should only be used to construct custom scenarios, since /piece/s don't normally spring into existence.
+
+		* CAVEAT: this function isn't called during normal play.
+	-}
 	defineCoordinates
 		:: Maybe Component.Piece.Piece		-- ^ The optional /piece/ to place (or remove if @Nothing@ is specified).
 		-> Cartesian.Coordinates.Coordinates	-- ^ The /coordinates/ to define.
+		-> mutator
+		-> mutator
+
+	-- | Move the specified piece, accounting for promotions & casualties.
+	movePiece
+		:: Component.Move.Move							-- ^ The source & destination /coordinates/.
+		-> Component.Piece.Piece						-- ^ The /piece/ which moved.
+		-> Maybe Attribute.Rank.Rank						-- ^ The (possibly promoted) /rank/ to place at the destination.
+		-> Either Cartesian.Coordinates.Coordinates (Maybe Attribute.Rank.Rank)	-- ^ Either the /coordinates/ of any @Pawn@ which was just captured en-passant, or the /rank/ of any /piece/ taken.
 		-> mutator
 		-> mutator
 
@@ -93,5 +107,4 @@ removePiece
 	-> mutator
 	-> mutator
 removePiece	= defineCoordinates Nothing
-
 

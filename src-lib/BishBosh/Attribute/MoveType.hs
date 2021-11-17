@@ -52,7 +52,8 @@ module BishBosh.Attribute.MoveType(
 	isAcyclic,
 -- ** Query
 	getMaybeExplicitlyTakenRank,
-	getMaybeImplicitlyTakenRank
+	getMaybeImplicitlyTakenRank,
+	getMaybePromotedRank
 ) where
 
 import qualified	BishBosh.Attribute.Rank			as Attribute.Rank
@@ -217,8 +218,7 @@ isCapture moveType				= isEnPassant moveType
 
 -- | Whether the /move/ includes @Pawn@-promotion.
 isPromotion :: MoveType -> Bool
-isPromotion Normal { getMaybePromotionRank = Just _ }	= True
-isPromotion _						= False
+isPromotion = Data.Maybe.isJust . getMaybePromotedRank
 
 -- | <https://www.chessprogramming.org/Quiet_Moves>.
 isQuiet :: MoveType -> Bool
@@ -253,6 +253,11 @@ getMaybeExplicitlyTakenRank _							= Nothing
 getMaybeImplicitlyTakenRank :: MoveType -> Maybe Attribute.Rank.Rank
 getMaybeImplicitlyTakenRank EnPassant	= Just Attribute.Rank.Pawn
 getMaybeImplicitlyTakenRank moveType	= getMaybeExplicitlyTakenRank moveType
+
+-- | Query the rank to which a piece was promoted.
+getMaybePromotedRank :: MoveType -> Maybe Attribute.Rank.Rank
+getMaybePromotedRank Normal { getMaybePromotionRank = maybePromotionRank }	= maybePromotionRank
+getMaybePromotedRank _								= Nothing
 
 -- | Returns the mutator required to adjust the number of pieces after a move.
 nPiecesMutator :: Enum nPieces => MoveType -> (nPieces -> nPieces)

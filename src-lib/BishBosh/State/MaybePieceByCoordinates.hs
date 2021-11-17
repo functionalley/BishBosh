@@ -31,8 +31,6 @@
 
 module BishBosh.State.MaybePieceByCoordinates(
 -- * Types
--- ** Type-synonyms
---	Transformation,
 -- ** Data-types
 	MaybePieceByCoordinates(),
 -- * Functions
@@ -46,8 +44,6 @@ module BishBosh.State.MaybePieceByCoordinates(
 -- ** Accessors
 	dereference,
 --	getPieces,
--- ** Mutators
-	movePiece,
 -- ** Predicates
 	isVacant,
 	isOccupied,
@@ -57,7 +53,7 @@ module BishBosh.State.MaybePieceByCoordinates(
 ) where
 
 import			Control.Applicative((<|>))
-import			Control.Arrow((&&&), (***))
+import			Control.Arrow((&&&), (***), (|||))
 import			Control.Category((>>>))
 import			Data.Array.IArray((!), (//))
 import qualified	BishBosh.Attribute.ANSIColourCode			as Attribute.ANSIColourCode
@@ -250,9 +246,25 @@ instance StateProperty.Hashable.Hashable MaybePieceByCoordinates where
 	 ] -- List-comprehension.
 
 instance StateProperty.Mutator.Mutator MaybePieceByCoordinates where
-	defineCoordinates maybePiece coordinates MkMaybePieceByCoordinates { deconstruct = byCoordinates }	= Control.Exception.assert (
+	defineCoordinates maybePiece coordinates MkMaybePieceByCoordinates {
+		deconstruct	= byCoordinates
+	} = Control.Exception.assert (
 		Data.Maybe.isJust maybePiece || Data.Maybe.isJust (byCoordinates ! coordinates)
 	 ) . MkMaybePieceByCoordinates $ byCoordinates // [(coordinates, maybePiece)]
+
+	movePiece move sourcePiece maybePromotionRank eitherPassingPawnsDestinationOrMaybeTakenRank MkMaybePieceByCoordinates {
+		deconstruct	= byCoordinates
+	} = MkMaybePieceByCoordinates $ byCoordinates // (
+		(:) . flip (,) Nothing {-take en-passant-} ||| const id $ eitherPassingPawnsDestinationOrMaybeTakenRank
+	 ) [
+		(
+			Component.Move.getSource move,
+			Nothing	-- Remove the piece from the source.
+		), (
+			Component.Move.getDestination move,
+			Just $ Data.Maybe.maybe sourcePiece (`Component.Piece.promote` sourcePiece) maybePromotionRank	-- Place the piece at the destination, removing any opposing incumbent as a side-effect.
+		)
+	 ]
 
 {- |
 	* Find any @Knight@s of the specified /logical colour/, in attack-range around the specified /coordinates/.
@@ -263,7 +275,7 @@ instance StateProperty.Mutator.Mutator MaybePieceByCoordinates where
 -}
 instance StateProperty.Seeker.Seeker MaybePieceByCoordinates where
 	findProximateKnights logicalColour destination MkMaybePieceByCoordinates { deconstruct = byCoordinates }	= filter (
-		Data.Maybe.maybe False (== knight) . (byCoordinates !)
+		(== Just knight) . (byCoordinates !)
 	 ) $ Component.Piece.findAttackDestinations destination knight where
 		knight	= Component.Piece.mkKnight logicalColour
 
@@ -521,29 +533,4 @@ isEnPassantMove move maybePieceByCoordinates@MkMaybePieceByCoordinates { deconst
 	| otherwise	= False	-- No piece.
 	where
 		(source, destination)	= Component.Move.getSource &&& Component.Move.getDestination $ move
-
--- | Self-documentation.
-type Transformation	= MaybePieceByCoordinates -> MaybePieceByCoordinates
-
-{- |
-	* Adjust the array to reflect a move.
-
-	* CAVEAT: regrettably this allocates an entire array.
--}
-movePiece
-	:: Component.Move.Move
-	-> Component.Piece.Piece			-- ^ The (possibly promoted) piece to place at the destination.
-	-> Maybe Cartesian.Coordinates.Coordinates	-- ^ Destination of any En-passant @Pawn@.
-	-> Transformation
-movePiece move destinationPiece maybeEnPassantDestination MkMaybePieceByCoordinates { deconstruct = byCoordinates }	= MkMaybePieceByCoordinates $ byCoordinates // Data.Maybe.maybe id (
-	(:) . flip (,) Nothing	-- Take the Pawn en-passant.
- ) maybeEnPassantDestination [
-	(
-		Component.Move.getSource move,
-		Nothing	-- Remove the piece from the source.
-	), (
-		Component.Move.getDestination move,
-		Just destinationPiece	-- Place the piece at the destination, removing any opposing incumbent as a side-effect.
-	)
- ]
 
