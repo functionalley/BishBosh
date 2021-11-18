@@ -46,8 +46,6 @@ module BishBosh.State.CoordinatesByRankByLogicalColour(
 -- ** Accessors
 	getKingsCoordinates,
 	dereference,
--- ** Constructor
-	fromMaybePieceByCoordinates,
 -- ** Mutators
 --	deleteCoordinatesFromRank,
 --	mapCoordinates,
@@ -72,16 +70,17 @@ import qualified	BishBosh.Property.Empty					as Property.Empty
 import qualified	BishBosh.Property.FixedMembership			as Property.FixedMembership
 import qualified	BishBosh.Property.Opposable				as Property.Opposable
 import qualified	BishBosh.Property.SelfValidating			as Property.SelfValidating
-import qualified	BishBosh.State.MaybePieceByCoordinates			as State.MaybePieceByCoordinates
 import qualified	BishBosh.StateProperty.Censor				as StateProperty.Censor
 import qualified	BishBosh.StateProperty.Hashable				as StateProperty.Hashable
 import qualified	BishBosh.StateProperty.Mutator				as StateProperty.Mutator
 import qualified	BishBosh.StateProperty.Seeker				as StateProperty.Seeker
+import qualified	BishBosh.StateProperty.View				as StateProperty.View
 import qualified	Control.Arrow
 import qualified	Control.DeepSeq
 import qualified	Data.Array.IArray
 import qualified	Data.Foldable
 import qualified	Data.List
+import qualified	Data.List.Extra
 import qualified	Data.Map.Strict						as Map
 import qualified	Data.Maybe
 
@@ -214,6 +213,17 @@ instance StateProperty.Seeker.Seeker CoordinatesByRankByLogicalColour {-CAVEAT: 
 		) Property.Empty.empty . (! Attribute.Rank.Pawn)
 	 ) byLogicalColour
 
+instance StateProperty.View.View CoordinatesByRankByLogicalColour where
+	fromAssocs	= MkCoordinatesByRankByLogicalColour . Data.Array.IArray.accumArray (
+		flip const	-- Replace the default.
+	 ) (
+		Attribute.Rank.listArrayByRank $ repeat []	-- Default.
+	 ) (minBound, maxBound) . map (
+		Control.Arrow.second $ Data.Array.IArray.accumArray (++) [] {-default-} (minBound, maxBound) . Data.List.Extra.groupSort {-by Rank-}	-- Construct the ArrayByRank.
+	 ) . Data.List.Extra.groupSort {-by LogicalColour-} . map (
+		\(coordinates, piece) -> (Component.Piece.getLogicalColour piece, (Component.Piece.getRank piece, coordinates))	-- Reorder the components.
+	 )
+
 instance Component.Accountant.Accountant CoordinatesByRankByLogicalColour where
 	sumPieceSquareValueByLogicalColour pieceSquareByCoordinatesByRank nPieces MkCoordinatesByRankByLogicalColour { deconstruct = byLogicalColour }	= map (
 		\(logicalColour, byRank) -> Data.List.foldl' (
@@ -234,19 +244,6 @@ instance Property.SelfValidating.SelfValidating CoordinatesByRankByLogicalColour
 			)
 		]
 	 ]
-
--- | Constructor.
-fromMaybePieceByCoordinates :: State.MaybePieceByCoordinates.MaybePieceByCoordinates -> CoordinatesByRankByLogicalColour
-fromMaybePieceByCoordinates maybePieceByCoordinates	= MkCoordinatesByRankByLogicalColour . (
-	\(b, w) -> Attribute.LogicalColour.listArrayByLogicalColour $ map (
-		Data.Array.IArray.accumArray (++) [] (minBound, maxBound) . map (Control.Arrow.first Component.Piece.getRank)
-	) [b, w]
- ) $ Data.List.partition (
-	Component.Piece.isBlack . fst {-piece-}
- ) [
-	(piece, [coordinates]) |
-		(coordinates, piece)	<- StateProperty.Seeker.findAllPieces maybePieceByCoordinates
- ] -- List-comprehension.
 
 -- | Dereference the array.
 dereference

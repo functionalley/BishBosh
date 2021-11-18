@@ -87,6 +87,7 @@ import qualified	BishBosh.StateProperty.Censor				as StateProperty.Censor
 import qualified	BishBosh.StateProperty.Hashable				as StateProperty.Hashable
 import qualified	BishBosh.StateProperty.Mutator				as StateProperty.Mutator
 import qualified	BishBosh.StateProperty.Seeker				as StateProperty.Seeker
+import qualified	BishBosh.StateProperty.View				as StateProperty.View
 import qualified	BishBosh.Text.ShowList					as Text.ShowList
 import qualified	BishBosh.Type.Length					as Type.Length
 import qualified	Control.Arrow
@@ -285,6 +286,9 @@ instance StateProperty.Seeker.Seeker MaybePieceByCoordinates where
 			(coordinates, Just piece)	<- Data.Array.IArray.assocs byCoordinates,
 			predicate piece
 	 ] -- List-comprehension.
+
+instance StateProperty.View.View MaybePieceByCoordinates where
+	fromAssocs	= MkMaybePieceByCoordinates . Data.Array.IArray.accumArray (flip const) Nothing {-default-} (minBound, maxBound) . map (Control.Arrow.second Just)
 
 instance Component.Accountant.Accountant MaybePieceByCoordinates where
 	sumPieceSquareValueByLogicalColour pieceSquareByCoordinatesByRank nPieces = (

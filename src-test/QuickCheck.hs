@@ -67,6 +67,7 @@ import qualified	BishBosh.Test.QuickCheck.StateProperty.Censor					as Test.Quick
 import qualified	BishBosh.Test.QuickCheck.StateProperty.Hashable					as Test.QuickCheck.StateProperty.Hashable
 import qualified	BishBosh.Test.QuickCheck.StateProperty.Mutator					as Test.QuickCheck.StateProperty.Mutator
 import qualified	BishBosh.Test.QuickCheck.StateProperty.Seeker					as Test.QuickCheck.StateProperty.Seeker
+import qualified	BishBosh.Test.QuickCheck.StateProperty.View					as Test.QuickCheck.StateProperty.View
 import qualified	BishBosh.Test.QuickCheck.State.TurnsByLogicalColour				as Test.QuickCheck.State.TurnsByLogicalColour
 import qualified	BishBosh.Test.QuickCheck.Text.Encoding						as Test.QuickCheck.Text.Encoding
 import qualified	BishBosh.Test.QuickCheck.UI.Command						as Test.QuickCheck.UI.Command
@@ -111,8 +112,9 @@ main	= mapM_ (
 	Test.QuickCheck.State.TurnsByLogicalColour.results,
 	Test.QuickCheck.StateProperty.Censor.results,
 	Test.QuickCheck.StateProperty.Hashable.results,
-	Test.QuickCheck.StateProperty.Mutator.results,
 	Test.QuickCheck.StateProperty.Seeker.results,
+	Test.QuickCheck.StateProperty.View.results,
+	Test.QuickCheck.StateProperty.Mutator.results,
 	Test.QuickCheck.Model.Game.results,
 	Test.QuickCheck.Model.GameTree.results,
 	Test.QuickCheck.Model.MoveFrequency.results,

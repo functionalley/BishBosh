@@ -152,4 +152,5 @@ New Module				| Purpose
 * Structural:
 	+ Added method **BishBosh.StateProperty.Mutator.movePiece** & implemented whole type-class in module **BishBosh.State.CoordinatesByRankByLogicalColour**.
 	+ Implemented type-class **BishBosh.Property.SelfValidating.SelfValidating** in modules **BishBosh.State.{MaybePieceByCoordinates, CoordinatesByRankByLogicalColour, Board}**.
+	+ Created a new type-class **BishBosh.StateProperty.View.View**, which is implemented in **BishBosh.State.{MaybePieceByCoordinates, CoordinatesByRankByLogicalColour}**, & abstracts construction of a view & translation between views.
 

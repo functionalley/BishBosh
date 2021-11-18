@@ -91,6 +91,7 @@ import qualified	BishBosh.StateProperty.Censor				as StateProperty.Censor
 import qualified	BishBosh.StateProperty.Hashable				as StateProperty.Hashable
 import qualified	BishBosh.StateProperty.Mutator				as StateProperty.Mutator
 import qualified	BishBosh.StateProperty.Seeker				as StateProperty.Seeker
+import qualified	BishBosh.StateProperty.View				as StateProperty.View
 import qualified	BishBosh.Type.Count					as Type.Count
 import qualified	BishBosh.Type.Mass					as Type.Mass
 import qualified	Control.Arrow
@@ -209,7 +210,7 @@ fromMaybePieceByCoordinates :: State.MaybePieceByCoordinates.MaybePieceByCoordin
 fromMaybePieceByCoordinates maybePieceByCoordinates	= board where
 	board@MkBoard { getCoordinatesByRankByLogicalColour = coordinatesByRankByLogicalColour }	= MkBoard {
 		getMaybePieceByCoordinates			= maybePieceByCoordinates,
-		getCoordinatesByRankByLogicalColour		= State.CoordinatesByRankByLogicalColour.fromMaybePieceByCoordinates maybePieceByCoordinates,				-- Infer.
+		getCoordinatesByRankByLogicalColour		= StateProperty.View.translate maybePieceByCoordinates,									-- Infer.
 		getNDefendersByCoordinatesByLogicalColour	= countDefendersByCoordinatesByLogicalColour board,									-- Infer.
 		getNPiecesDifferenceByRank			= StateProperty.Censor.countPieceDifferenceByRank coordinatesByRankByLogicalColour,					-- Infer.
 		getNPawnsByFileByLogicalColour			= StateProperty.Seeker.countPawnsByFileByLogicalColour coordinatesByRankByLogicalColour,				-- Infer.

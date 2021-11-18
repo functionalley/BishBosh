@@ -175,12 +175,6 @@ results	= sequence [
 	in Test.QuickCheck.quickCheckWithResult Test.QuickCheck.stdArgs { Test.QuickCheck.maxSuccess = 256 } f,
 	let
 		f :: Model.Game.Game -> Test.QuickCheck.Property
-		f	= Test.QuickCheck.label "Game.prop_mkCoordinatesByRankByLogicalColour" . uncurry (==) . (
-			State.CoordinatesByRankByLogicalColour.deconstruct . State.CoordinatesByRankByLogicalColour.sortCoordinates . State.Board.getCoordinatesByRankByLogicalColour &&& State.CoordinatesByRankByLogicalColour.deconstruct . State.CoordinatesByRankByLogicalColour.sortCoordinates . State.CoordinatesByRankByLogicalColour.fromMaybePieceByCoordinates . State.Board.getMaybePieceByCoordinates
-		 ) . Model.Game.getBoard
-	in Test.QuickCheck.quickCheckWithResult Test.QuickCheck.stdArgs { Test.QuickCheck.maxSuccess = 256 } f,
-	let
-		f :: Model.Game.Game -> Test.QuickCheck.Property
 		f	= Test.QuickCheck.label "Game.prop_getCoordinatesByRankByLogicalColour/unique" . all (
 			(== 1) . length
 		 ) . ToolShed.Data.Foldable.gather . State.CoordinatesByRankByLogicalColour.listCoordinates . State.Board.getCoordinatesByRankByLogicalColour . Model.Game.getBoard

@@ -277,6 +277,7 @@ Library
         BishBosh.StateProperty.Hashable
         BishBosh.StateProperty.Mutator
         BishBosh.StateProperty.Seeker
+        BishBosh.StateProperty.View
         BishBosh.State.TurnsByLogicalColour
         BishBosh.Text.AutoComplete
         BishBosh.Text.Case
@@ -497,6 +498,7 @@ Test-Suite quickcheck-tests
         BishBosh.Test.QuickCheck.StateProperty.Hashable
         BishBosh.Test.QuickCheck.StateProperty.Mutator
         BishBosh.Test.QuickCheck.StateProperty.Seeker
+        BishBosh.Test.QuickCheck.StateProperty.View
         BishBosh.Test.QuickCheck.State.TurnsByLogicalColour
         BishBosh.Test.QuickCheck.Text.Encoding
         BishBosh.Test.QuickCheck.Time.StopWatch

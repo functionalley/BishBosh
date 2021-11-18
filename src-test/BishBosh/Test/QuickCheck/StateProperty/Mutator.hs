@@ -45,10 +45,12 @@ import qualified	BishBosh.State.Board				as State.Board
 import qualified	BishBosh.State.CoordinatesByRankByLogicalColour	as State.CoordinatesByRankByLogicalColour
 import qualified	BishBosh.State.MaybePieceByCoordinates		as State.MaybePieceByCoordinates
 import qualified	BishBosh.StateProperty.Mutator			as StateProperty.Mutator
+import qualified	BishBosh.StateProperty.View			as StateProperty.View
 import qualified	Data.Default
 import qualified	Data.Maybe
 import qualified	Test.QuickCheck
 
+-- | Facilitate comparison.
 normalise :: State.CoordinatesByRankByLogicalColour.CoordinatesByRankByLogicalColour -> State.CoordinatesByRankByLogicalColour.BareCoordinatesByRankByLogicalColour
 normalise	= State.CoordinatesByRankByLogicalColour.deconstruct . State.CoordinatesByRankByLogicalColour.sortCoordinates
 
@@ -60,7 +62,7 @@ results	= sequence [
 		f maybePiece coordinates = let
 			defineCoordinates :: StateProperty.Mutator.Mutator mutator => mutator -> mutator
 			defineCoordinates	= StateProperty.Mutator.defineCoordinates maybePiece coordinates
-		 in Test.QuickCheck.label "Mutator.prop_defineCoordinates" . uncurry (==) $ (normalise . State.CoordinatesByRankByLogicalColour.fromMaybePieceByCoordinates . defineCoordinates . State.Board.getMaybePieceByCoordinates &&& normalise . defineCoordinates . State.Board.getCoordinatesByRankByLogicalColour) Data.Default.def
+		 in Test.QuickCheck.label "Mutator.prop_defineCoordinates" . uncurry (==) $ (normalise . StateProperty.View.translate . defineCoordinates . State.Board.getMaybePieceByCoordinates &&& normalise . defineCoordinates . State.Board.getCoordinatesByRankByLogicalColour) Data.Default.def
 	in Test.QuickCheck.quickCheckWithResult Test.QuickCheck.stdArgs { Test.QuickCheck.maxSuccess = 128 } f,
 	let
 		f :: Model.Game.Game -> Test.QuickCheck.Property
@@ -80,7 +82,7 @@ results	= sequence [
 					then Left . Component.Move.getDestination . Component.QualifiedMove.getMove . Component.Turn.getQualifiedMove . Data.Maybe.fromJust $ Model.Game.maybeLastTurn game
 					else Right $ Attribute.MoveType.getMaybeExplicitlyTakenRank moveType
 			in uncurry (==) $ (
-				normalise . State.CoordinatesByRankByLogicalColour.fromMaybePieceByCoordinates . movePiece . State.Board.getMaybePieceByCoordinates &&& normalise . movePiece . State.Board.getCoordinatesByRankByLogicalColour
+				normalise . StateProperty.View.translate . movePiece . State.Board.getMaybePieceByCoordinates &&& normalise . movePiece . State.Board.getCoordinatesByRankByLogicalColour
 			) board
 		 ) $ Model.Game.findQualifiedMovesAvailableToNextPlayer game
 	in Test.QuickCheck.quickCheckWithResult Test.QuickCheck.stdArgs { Test.QuickCheck.maxSuccess = 128 } f
