@@ -45,6 +45,7 @@ import qualified	BishBosh.Property.ForsythEdwards		as Property.ForsythEdwards
 import qualified	BishBosh.Property.Null				as Property.Null
 import qualified	BishBosh.Property.Opposable			as Property.Opposable
 import qualified	BishBosh.Property.Reflectable			as Property.Reflectable
+import qualified	BishBosh.Property.SelfValidating		as Property.SelfValidating
 import qualified	BishBosh.Rule.DrawReason			as Rule.DrawReason
 import qualified	BishBosh.State.Board				as State.Board
 import qualified	BishBosh.State.CastleableRooksByLogicalColour	as State.CastleableRooksByLogicalColour
@@ -320,6 +321,10 @@ results	= sequence [
 			pieceSquareByCoordinatesByRank		= Data.Maybe.fromJust $ Input.EvaluationOptions.getMaybePieceSquareByCoordinatesByRank evaluationOptions
 			measurePieceSquareValueDifference'	= Evaluation.Fitness.measurePieceSquareValueDifference pieceSquareByCoordinatesByRank
 			(oldGame, _) : _			= Model.Game.rollBack game
-	in Test.QuickCheck.quickCheckWithResult Test.QuickCheck.stdArgs { Test.QuickCheck.maxSuccess = 2048 } f
+	in Test.QuickCheck.quickCheckWithResult Test.QuickCheck.stdArgs { Test.QuickCheck.maxSuccess = 2048 } f,
+	let
+		f :: Model.Game.Game -> Test.QuickCheck.Property
+		f	= Test.QuickCheck.label "Game.prop_isValid" . Property.SelfValidating.isValid . Model.Game.getBoard
+	in Test.QuickCheck.quickCheckWithResult Test.QuickCheck.stdArgs { Test.QuickCheck.maxSuccess = 256 } f
  ]
 

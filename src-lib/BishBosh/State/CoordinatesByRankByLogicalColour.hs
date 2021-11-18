@@ -71,6 +71,7 @@ import qualified	BishBosh.Component.Zobrist				as Component.Zobrist
 import qualified	BishBosh.Property.Empty					as Property.Empty
 import qualified	BishBosh.Property.FixedMembership			as Property.FixedMembership
 import qualified	BishBosh.Property.Opposable				as Property.Opposable
+import qualified	BishBosh.Property.SelfValidating			as Property.SelfValidating
 import qualified	BishBosh.State.MaybePieceByCoordinates			as State.MaybePieceByCoordinates
 import qualified	BishBosh.StateProperty.Censor				as StateProperty.Censor
 import qualified	BishBosh.StateProperty.Hashable				as StateProperty.Hashable
@@ -132,7 +133,7 @@ instance StateProperty.Censor.Censor CoordinatesByRankByLogicalColour where
 
 			bishops	= blackBishops ++ whiteBishops
 
-	hasBothKings MkCoordinatesByRankByLogicalColour { deconstruct = byLogicalColour }	= not $ Data.Foldable.any (null . (! Attribute.Rank.King)) byLogicalColour	-- CAVEAT: true for more than one King per side also.
+	hasBothKings MkCoordinatesByRankByLogicalColour { deconstruct = byLogicalColour }	= Data.Foldable.all ((== 1) . length . (! Attribute.Rank.King)) byLogicalColour	-- CAVEAT: false for more than one King per side also.
 
 instance StateProperty.Hashable.Hashable CoordinatesByRankByLogicalColour where
 	listRandoms MkCoordinatesByRankByLogicalColour { deconstruct = byLogicalColour } zobrist	= [
@@ -221,6 +222,18 @@ instance Component.Accountant.Accountant CoordinatesByRankByLogicalColour where
 			) acc coordinatesList
 		) 0 $ Data.Array.IArray.assocs byRank
 	 ) $ Data.Array.IArray.assocs byLogicalColour
+
+instance Property.SelfValidating.SelfValidating CoordinatesByRankByLogicalColour where
+	findInvalidity selfValidator	= concatMap ($ selfValidator) [
+		StateProperty.Censor.findInvalidity,
+		StateProperty.Seeker.findInvalidity,
+		Property.SelfValidating.findErrors [
+			(
+				not . all ((== 1) . length) . Data.List.group . Data.List.sort . listCoordinates,
+				"there can't be any duplicate coordinates regardless of logical colour or ranks."
+			)
+		]
+	 ]
 
 -- | Constructor.
 fromMaybePieceByCoordinates :: State.MaybePieceByCoordinates.MaybePieceByCoordinates -> CoordinatesByRankByLogicalColour

@@ -84,6 +84,7 @@ import qualified	BishBosh.Property.FixedMembership			as Property.FixedMembership
 import qualified	BishBosh.Property.ForsythEdwards			as Property.ForsythEdwards
 import qualified	BishBosh.Property.Opposable				as Property.Opposable
 import qualified	BishBosh.Property.Reflectable				as Property.Reflectable
+import qualified	BishBosh.Property.SelfValidating			as Property.SelfValidating
 import qualified	BishBosh.State.CoordinatesByRankByLogicalColour		as State.CoordinatesByRankByLogicalColour
 import qualified	BishBosh.State.MaybePieceByCoordinates			as State.MaybePieceByCoordinates
 import qualified	BishBosh.StateProperty.Censor				as StateProperty.Censor
@@ -199,6 +200,9 @@ instance StateProperty.Seeker.Seeker Board where
 	countPawnsByFileByLogicalColour	MkBoard {
 		getCoordinatesByRankByLogicalColour	= coordinatesByRankByLogicalColour
 	} = StateProperty.Seeker.countPawnsByFileByLogicalColour coordinatesByRankByLogicalColour	-- Forward the request.
+
+instance Property.SelfValidating.SelfValidating Board where
+	findInvalidity	= Property.SelfValidating.findInvalidity . (getMaybePieceByCoordinates &&& getCoordinatesByRankByLogicalColour)
 
 -- | Constructor.
 fromMaybePieceByCoordinates :: State.MaybePieceByCoordinates.MaybePieceByCoordinates -> Board

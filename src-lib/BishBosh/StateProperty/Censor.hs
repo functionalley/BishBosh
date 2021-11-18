@@ -27,11 +27,16 @@ module BishBosh.StateProperty.Censor(
 -- ** Type-synonyms
 	NPiecesByRank,
 -- * Type-classes
-	Censor(..)
+	Censor(..),
+-- * Functions
+	findInvalidity
 ) where
 
-import qualified	BishBosh.Attribute.Rank	as Attribute.Rank
-import qualified	BishBosh.Type.Count	as Type.Count
+import			Control.Arrow((&&&), (***))
+import qualified	BishBosh.Attribute.Rank			as Attribute.Rank
+import qualified	BishBosh.Component.Piece		as Component.Piece
+import qualified	BishBosh.Property.SelfValidating	as Property.SelfValidating
+import qualified	BishBosh.Type.Count			as Type.Count
 
 -- | The difference in the number of /piece/s of each /rank/ held by either side.
 type NPiecesByRank	= Attribute.Rank.ArrayByRank Type.Count.NPieces
@@ -48,4 +53,18 @@ class Censor censor where
 	hasInsufficientMaterial		:: censor -> Bool					-- ^ Whether insufficient material remains on the board, to force check-mate; <https://en.wikipedia.org/wiki/Draw_(chess)>.
 
 	hasBothKings			:: censor -> Bool					-- ^ Whether there's exactly one @King@ of each /logical colour/.
+
+-- | Self-validate.
+findInvalidity :: Censor censor => censor -> [String]
+findInvalidity	= Property.SelfValidating.findErrors [
+	(
+		not . hasBothKings,
+		"there must be exactly one King of each logical colour."
+	), (
+		uncurry (||) . uncurry (***) (
+			id &&& id $ (> Component.Piece.nPiecesPerSide)
+		) . countPiecesByLogicalColour,
+		"there are too many pieces of at least one logical colour."
+	)
+ ]
 

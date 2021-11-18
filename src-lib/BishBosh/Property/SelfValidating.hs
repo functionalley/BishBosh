@@ -32,6 +32,8 @@ module BishBosh.Property.SelfValidating(
 	isInvalid
  ) where
 
+import	Control.Arrow((***))
+
 {- |
 	* This class serves data-types which must preserve compatibility beyond that which can be guarded by a smart-constructor.
 
@@ -42,6 +44,9 @@ class SelfValidating a where
 
 instance SelfValidating a => SelfValidating [a] where
 	findInvalidity	= concatMap findInvalidity
+
+instance (SelfValidating a, SelfValidating b) => SelfValidating (a, b) where
+	findInvalidity	= uncurry (++) . (findInvalidity *** findInvalidity)
 
 -- | Predicate.
 isValid	:: SelfValidating a => a -> Bool

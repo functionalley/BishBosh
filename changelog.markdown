@@ -27,7 +27,7 @@
 
 ## 0.0.0.8
 * Corrected the parsing of FEN when an Enpassant-destination defined on file **b** was erroneously interpreted as a bishop in the previous **CastleableRooks** field.
-* Added parent class **BishBosh.Property.ExtendedPositionDescription.EPD** for **Property.ForsythEdwards.FEN**, for which the latter typically has a default implementation of both methods.
+* Added parent type-class **BishBosh.Property.ExtendedPositionDescription.EPD** for **Property.ForsythEdwards.FEN**, for which the latter typically has a default implementation of both methods.
 
 ## 0.1.0.0
 ### Bug-fixes:
@@ -68,10 +68,10 @@ Module				| Purpose
 **Component.CastlingMove**	| Forked from module **Component.Move**.
 **Data.Enum**			| Currently single-function.
 **Data.Foldable**		| Currently single-function.
-**Property.FixedMembership**	| Defines a class to which sum-types can conform.
+**Property.FixedMembership**	| Defines a type-class to which sum-types can conform.
 **StateProperty.Censor**	| Relocated from directory **State/**.
-**StateProperty.Mutator**	| defines a class to express the dual implementations within **State.Board**.
-**StateProperty.Seeker**	| defines a class to express the dual implementations within **State.Board**.
+**StateProperty.Mutator**	| defines a type-class to express the dual implementations within **State.Board**.
+**StateProperty.Seeker**	| defines a type-class to express the dual implementations within **State.Board**.
 **Text.Case**			| Forked from **Text.ShowList** to contain case-related operations.
 **Text.Prefix**			| Forked from **Text.ShowList** to define the constant prefixes of log-messages.
 -----------------------------------------
@@ -96,11 +96,11 @@ New Module				| Purpose
 **BishBosh.Time.GameClock**		| Contains two **BishBosh.Time.StopWatch**es to enable module **Duel.Process.Intermediary** to measure the time used by each player.
 **BishBosh.Property.Switchable**	| Exports a type-class, which both **BishBosh.Time.StopWatch** & **BishBosh.Time.GameClock** implement, to expose their functionality.
 **BishBosh.Property.SelfValidating**	| Exports a type-class, which both **BishBosh.Time.GameClock** & **Duel.Data.Options** implement, to validate themselves.
-**BishBosh.Type.Countable**		| Defines newtypes to enhance type-safety, replacing type-synonyms for **Int**. There is a performance-degradation, so this enhancement can be disabled using a new cabal-flag.
+**BishBosh.Type.Countable**		| Defines *newtype*s to enhance type-safety, replacing type-synonyms for **Int**. There is a performance-degradation, so this enhancement can be disabled using a new cabal-flag.
 **BishBosh.Type.Crypto**		| Self-documentation.
-**BishBosh.Type.Length**		| Replaced the polymorphic type-parameters **row** & **column** with newtypes to enhance type-safety.
+**BishBosh.Type.Length**		| Replaced the polymorphic type-parameters **row** & **column** with *newtype*s to enhance type-safety.
 **BishBosh.Type.Mass**			| Self-documentation.
-**BishBosh.Metric.RankValue**		| Replaced the polymorphic type-parameter **rankValue**, with a newtype & a smart-constructor to guard permissible bounds.
+**BishBosh.Metric.RankValue**		| Replaced the polymorphic type-parameter **rankValue**, with a *newtype* & a smart-constructor to guard permissible bounds.
 
 ### Duel:
 * Added command-line option **--verifyConfiguration**, to request that the mutual compatibility of the two configuration-files be verified before forwarding each to a forked instance of **bishbosh**.
@@ -110,7 +110,7 @@ New Module				| Purpose
 * Refactored functions **BishBosh.ContextualNotation.PositionHashQualifiedMoveTree.findNextOnymousQualifiedMovesForPosition**, **BishBosh.Model.MoveFrequency.insertMoves** & **BishBosh.Model.GameTree.toMoveFrequency**.
 * Evaluation-criteria:
 	+ Moved **BishBosh.Attribute.**{**CriterionValue**, **CriterionWeight**, **WeightedMeanAndCriterionValues**} to a new directory **Metric/**
-	+ Implemented classes [**Num**, **Fractional**, **Real**] for data-types **BishBosh.Metric.**{**CriterionValue.CriterionValue**, **CriterionWeight.CriterionWeight**}, nullifying the requirement for exports.
+	+ Implemented type-classes [**Num**, **Fractional**, **Real**] for data-types **BishBosh.Metric.**{**CriterionValue.CriterionValue**, **CriterionWeight.CriterionWeight**}, nullifying the requirement for exports.
 	+ Replaced the pointless polymorphic payloads in data-types **BishBosh.Metric.**{**CriterionValue.CriterionValue**, **CriterionWeight.CriterionWeight**, **WeightedMeanAndCriterionValues.WeightedMeanAndCriterionValues**} with concrete types.
 * Moved **BishBosh.Attribute.RankValues** to **BishBosh.Input**.
 * Checked that (with the possible exception of the King) the Queen is configured as the most valuable rank.
@@ -134,7 +134,7 @@ New Module				| Purpose
 	+ Amended **BishBosh.Evaluation.Fitness.measurePieceSquareValueIncrementally** to forward Castling moves to **measurePieceSquareValue**.
 	+ Polymorphism:
 		* Replaced the polymorphic type **distance** in **BishBosh.Component.Vector**, with two concrete types **BishBosh.Type.Length.[XY]**. Removed the type **BishBosh.Type.Length.Distance**.
-		* Replaced the polymorphic type-parameters **x** & **y** with newtypes to:
+		* Replaced the polymorphic type-parameters **x** & **y** with *newtype*s to:
 			+ eliminate the fragile **RULE** pragmas required to switch to memoised function-implementations for specific type-parameters,
 			+ eliminate chains of **SPECIALISE** pragmas down the call-stack to hot-spots.
 			+ allow external calls from [**Text.ParserCombinators.Poly.Lazy.runParser**, **Text.ParserCombinators.Parsec.parse**], to access specialised implementations (see previous items),
@@ -148,6 +148,8 @@ New Module				| Purpose
 
 ## 0.1.3.0
 * Efficiency:
-	+ Replaced the polymorphic type-parameter **pieceSquareValue** with a newtype, to then implement unboxed arrays without cluttering interfaces with type-constraint **Data.Array.Unboxed.IArray Data.Array.Unboxed.UArray pieceSquareValue**; performance-improvement was regrettably insignificant.
+	+ Replaced the polymorphic type-parameter **pieceSquareValue** with a *newtype*, to then implement *unboxed* arrays without cluttering interfaces with type-constraint **Data.Array.Unboxed.IArray Data.Array.Unboxed.UArray pieceSquareValue**; performance-improvement was regrettably insignificant.
 * Structural:
-	+ Added method **BishBosh.StateProperty.Mutator.movePiece** & implemented whole class in module **BishBosh.State.CoordinatesByRankByLogicalColour**.
+	+ Added method **BishBosh.StateProperty.Mutator.movePiece** & implemented whole type-class in module **BishBosh.State.CoordinatesByRankByLogicalColour**.
+	+ Implemented type-class **BishBosh.Property.SelfValidating.SelfValidating** in modules **BishBosh.State.{MaybePieceByCoordinates, CoordinatesByRankByLogicalColour, Board}**.
+

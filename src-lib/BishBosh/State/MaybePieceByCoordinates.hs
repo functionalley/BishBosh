@@ -82,6 +82,7 @@ import qualified	BishBosh.Property.ForsythEdwards			as Property.ForsythEdwards
 import qualified	BishBosh.Property.Opposable				as Property.Opposable
 import qualified	BishBosh.Property.Orientated				as Property.Orientated
 import qualified	BishBosh.Property.Reflectable				as Property.Reflectable
+import qualified	BishBosh.Property.SelfValidating			as Property.SelfValidating
 import qualified	BishBosh.StateProperty.Censor				as StateProperty.Censor
 import qualified	BishBosh.StateProperty.Hashable				as StateProperty.Hashable
 import qualified	BishBosh.StateProperty.Mutator				as StateProperty.Mutator
@@ -296,6 +297,9 @@ instance Component.Accountant.Accountant MaybePieceByCoordinates where
 			then let b' = b + pieceSquareValue in b' `seq` (b', w)
 			else let w' = w + pieceSquareValue in w' `seq` (b, w')
 	 ) (0, 0) . StateProperty.Seeker.findAllPieces
+
+instance Property.SelfValidating.SelfValidating MaybePieceByCoordinates where
+	findInvalidity	= uncurry (++) . (StateProperty.Censor.findInvalidity &&& StateProperty.Seeker.findInvalidity)
 
 -- | Dereference the array.
 dereference :: Cartesian.Coordinates.Coordinates -> MaybePieceByCoordinates -> Maybe Component.Piece.Piece

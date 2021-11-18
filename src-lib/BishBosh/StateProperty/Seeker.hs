@@ -33,19 +33,25 @@ module BishBosh.StateProperty.Seeker(
 -- * Functions
 	accumulatePawnsByFile,
 	findAllPieces,
-	summariseNPawnsByLogicalColour
+	summariseNPawnsByLogicalColour,
+	findInvalidity
 ) where
 
-import			Control.Arrow((***))
+import			Control.Arrow((&&&), (***))
+import			Data.Array.IArray((!))
 import qualified	BishBosh.Attribute.LogicalColour	as Attribute.LogicalColour
+import qualified	BishBosh.Attribute.Rank			as Attribute.Rank
 import qualified	BishBosh.Cartesian.Coordinates		as Cartesian.Coordinates
+import qualified	BishBosh.Cartesian.Ordinate		as Cartesian.Ordinate
 import qualified	BishBosh.Component.Piece		as Component.Piece
 import qualified	BishBosh.Property.Empty			as Property.Empty
+import qualified	BishBosh.Property.SelfValidating	as Property.SelfValidating
 import qualified	BishBosh.Type.Count			as Type.Count
 import qualified	BishBosh.Type.Length			as Type.Length
 import qualified	Control.Arrow
 import qualified	Data.Array.IArray
 import qualified	Data.Foldable
+import qualified	Data.List
 import qualified	Data.Map.Strict				as Map
 
 -- | The number of /piece/s in each file, for each /logical colour/.
@@ -102,3 +108,22 @@ summariseNPawnsByLogicalColour	= Data.Array.IArray.amap (
 	Data.Foldable.foldl' (+) 0
  ) . countPawnsByFileByLogicalColour
 
+-- | Self-validate.
+findInvalidity :: Seeker seeker => seeker -> [String]
+findInvalidity	= Property.SelfValidating.findErrors [
+	(
+		uncurry (||) . uncurry (***) (
+			id &&& id $ (> Attribute.Rank.initialAllocationByRankPerSide ! Attribute.Rank.Pawn) . fromIntegral . length
+		) . Data.List.partition (
+			Attribute.LogicalColour.isBlack . Component.Piece.getLogicalColour
+		) . map snd {-piece-} . findPieces Component.Piece.isPawn,
+		"there are too many Pawns of at least one logical colour."
+	), (
+		any (
+			uncurry (||) . uncurry (&&&) (
+				(==) *** (==) $ Cartesian.Ordinate.yBounds
+			) . Cartesian.Coordinates.getY . fst {-coordinates-}
+		) . findPieces Component.Piece.isPawn,
+		"no Pawn can exist on either of the terminal ranks."
+	)
+ ]
