@@ -175,7 +175,6 @@ Library
         BishBosh.Attribute.ANSIColourCode
         BishBosh.Attribute.CaptureMoveSortAlgorithm
         BishBosh.Attribute.ColourScheme
-        BishBosh.Attribute.Direction
         BishBosh.Attribute.LogicalColour
         BishBosh.Attribute.LogicalColourOfSquare
         BishBosh.Attribute.MoveType
@@ -209,6 +208,11 @@ Library
         BishBosh.Data.Num
         BishBosh.Data.Ratio
         BishBosh.Data.RoseTree
+        BishBosh.Direction.Diagonal
+        BishBosh.Direction.Direction
+        BishBosh.Direction.Horizontal
+        BishBosh.Direction.Parallel
+        BishBosh.Direction.Vertical
         BishBosh.Evaluation.Fitness
         BishBosh.Evaluation.PositionHashQuantifiedGameTree
         BishBosh.Evaluation.QuantifiedGame
@@ -403,7 +407,6 @@ Test-Suite hunit-tests
     Autogen-modules:	Paths_bishbosh
 
     Other-modules:
-        BishBosh.Test.HUnit.Attribute.Direction
         BishBosh.Test.HUnit.Attribute.LogicalColour
         BishBosh.Test.HUnit.Attribute.Rank
         BishBosh.Test.HUnit.Cartesian.Coordinates
@@ -415,6 +418,7 @@ Test-Suite hunit-tests
         BishBosh.Test.HUnit.ContextualNotation.PGN
         BishBosh.Test.HUnit.ContextualNotation.PositionHashQualifiedMoveTree
         BishBosh.Test.HUnit.ContextualNotation.StandardAlgebraic
+        BishBosh.Test.HUnit.Direction.Direction
         BishBosh.Test.HUnit.Evaluation.Fitness
         BishBosh.Test.HUnit.Input.Options
         BishBosh.Test.HUnit.Model.Game
@@ -441,7 +445,6 @@ Test-Suite quickcheck-tests
 
     Other-modules:
         BishBosh.Test.QuickCheck.Attribute.CaptureMoveSortAlgorithm
-        BishBosh.Test.QuickCheck.Attribute.Direction
         BishBosh.Test.QuickCheck.Attribute.LogicalColour
         BishBosh.Test.QuickCheck.Attribute.MoveType
         BishBosh.Test.QuickCheck.Attribute.Rank
@@ -459,6 +462,7 @@ Test-Suite quickcheck-tests
         BishBosh.Test.QuickCheck.ContextualNotation.StandardAlgebraic
         BishBosh.Test.QuickCheck.Data.Foldable
         BishBosh.Test.QuickCheck.Data.Integral
+        BishBosh.Test.QuickCheck.Direction.Direction
         BishBosh.Test.QuickCheck.Evaluation.PositionHashQuantifiedGameTree
         BishBosh.Test.QuickCheck.Input.CECPFeatures
         BishBosh.Test.QuickCheck.Input.CECPOptions

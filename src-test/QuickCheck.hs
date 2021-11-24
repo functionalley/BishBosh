@@ -24,7 +24,6 @@
 
 module Main(main) where
 
-import qualified	BishBosh.Test.QuickCheck.Attribute.Direction					as Test.QuickCheck.Attribute.Direction
 import qualified	BishBosh.Test.QuickCheck.Attribute.LogicalColour				as Test.QuickCheck.Attribute.LogicalColour
 import qualified	BishBosh.Test.QuickCheck.Attribute.MoveType					as Test.QuickCheck.Attribute.MoveType
 import qualified	BishBosh.Test.QuickCheck.Attribute.Rank						as Test.QuickCheck.Attribute.Rank
@@ -41,6 +40,7 @@ import qualified	BishBosh.Test.QuickCheck.ContextualNotation.QualifiedMoveForest
 import qualified	BishBosh.Test.QuickCheck.ContextualNotation.StandardAlgebraic			as Test.QuickCheck.ContextualNotation.StandardAlgebraic
 import qualified	BishBosh.Test.QuickCheck.Data.Foldable						as Test.QuickCheck.Data.Foldable
 import qualified	BishBosh.Test.QuickCheck.Data.Integral						as Test.QuickCheck.Data.Integral
+import qualified	BishBosh.Test.QuickCheck.Direction.Direction					as Test.QuickCheck.Direction.Direction
 import qualified	BishBosh.Test.QuickCheck.Evaluation.PositionHashQuantifiedGameTree		as Test.QuickCheck.Evaluation.PositionHashQuantifiedGameTree
 import qualified	BishBosh.Test.QuickCheck.Input.CriteriaWeights					as Test.QuickCheck.Input.CriteriaWeights
 import qualified	BishBosh.Test.QuickCheck.Input.EvaluationOptions				as Test.QuickCheck.Input.EvaluationOptions
@@ -86,9 +86,9 @@ main	= mapM_ (
 	Test.QuickCheck.Data.Integral.results,
 	Test.QuickCheck.Text.Encoding.results,
 	Test.QuickCheck.Attribute.LogicalColour.results,
-	Test.QuickCheck.Attribute.Direction.results,
 	Test.QuickCheck.Attribute.Rank.results,
 	Test.QuickCheck.Attribute.MoveType.results,
+	Test.QuickCheck.Direction.Direction.results,
 	Test.QuickCheck.Input.EvaluationOptions.results,
 	Test.QuickCheck.Input.Options.results,
 	Test.QuickCheck.Input.PieceSquareTable.results,

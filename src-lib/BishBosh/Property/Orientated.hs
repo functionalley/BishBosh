@@ -27,13 +27,33 @@ module BishBosh.Property.Orientated (
 	Orientated(..)
 ) where
 
-import	Control.Arrow((&&&))
+import	Control.Arrow((&&&), (|||))
 
--- | An interface for vector-like data.
+{- |
+	* An interface for vector-like data.
+
+	* CAVEAT: the default implementations are mutually dependent, & could result in infinite recursion.
+-}
 class Orientated a where
-	isDiagonal	:: a -> Bool	-- ^ Whether it is diagonal wrt the edges of the board.
+	isVertical :: a -> Bool	-- ^ Whether the datum is aligned with a file of the board.
+	isVertical	= uncurry (&&) . (isParallel &&& not . isHorizontal)	-- Default implementation.
+
+	isHorizontal :: a -> Bool	-- ^ Whether the datum is aligned with a rank of the board.
+	isHorizontal	= uncurry (&&) . (isParallel &&& not . isVertical)	-- Default implementation.
+
 	isParallel	:: a -> Bool	-- ^ Whether it is parallel to an edge of the board.
+	isParallel	= uncurry (||) . (isVertical &&& isHorizontal)		-- Default implementation.
+
+	isDiagonal	:: a -> Bool	-- ^ Whether it is diagonal (45 degrees) wrt the edges of the board.
+	isDiagonal	= uncurry (&&) . (isStraight &&& not . isParallel)	-- Default implementation.
 
 	isStraight :: a -> Bool
-	isStraight	= uncurry (||) . (isParallel &&& isDiagonal)	-- Default implementation.
+	isStraight	= uncurry (||) . (isParallel &&& isDiagonal)		-- Default implementation.
+
+instance (Orientated l, Orientated r) => Orientated (Either l r) where
+	isVertical	= isVertical ||| isVertical
+	isHorizontal	= isHorizontal ||| isHorizontal
+	isDiagonal	= isDiagonal ||| isDiagonal
+	isParallel	= isParallel ||| isParallel
+	isStraight	= isStraight ||| isStraight
 

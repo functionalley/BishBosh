@@ -24,18 +24,18 @@
 
 module Main(main) where
 
-import qualified	BishBosh.Test.HUnit.Attribute.Direction					as Test.HUnit.Attribute.Direction
 import qualified	BishBosh.Test.HUnit.Attribute.LogicalColour				as Test.HUnit.Attribute.LogicalColour
 import qualified	BishBosh.Test.HUnit.Attribute.Rank					as Test.HUnit.Attribute.Rank
 import qualified	BishBosh.Test.HUnit.Cartesian.Coordinates				as Test.HUnit.Cartesian.Coordinates
 import qualified	BishBosh.Test.HUnit.Cartesian.Vector					as Test.HUnit.Cartesian.Vector
-import qualified	BishBosh.Test.HUnit.Component.Move					as Test.HUnit.Component.Move
 import qualified	BishBosh.Test.HUnit.Component.CastlingMove				as Test.HUnit.Component.CastlingMove
+import qualified	BishBosh.Test.HUnit.Component.Move					as Test.HUnit.Component.Move
 import qualified	BishBosh.Test.HUnit.Component.Piece					as Test.HUnit.Component.Piece
 import qualified	BishBosh.Test.HUnit.Component.Zobrist					as Test.HUnit.Component.Zobrist
 import qualified	BishBosh.Test.HUnit.ContextualNotation.PGN				as Test.HUnit.ContextualNotation.PGN
 import qualified	BishBosh.Test.HUnit.ContextualNotation.PositionHashQualifiedMoveTree	as Test.HUnit.ContextualNotation.PositionHashQualifiedMoveTree
 import qualified	BishBosh.Test.HUnit.ContextualNotation.StandardAlgebraic		as Test.HUnit.ContextualNotation.StandardAlgebraic
+import qualified	BishBosh.Test.HUnit.Direction.Direction					as Test.HUnit.Direction.Direction
 import qualified	BishBosh.Test.HUnit.Evaluation.Fitness					as Test.HUnit.Evaluation.Fitness
 import qualified	BishBosh.Test.HUnit.Input.Options					as Test.HUnit.Input.Options
 import qualified	BishBosh.Test.HUnit.Model.Game						as Test.HUnit.Model.Game
@@ -52,7 +52,7 @@ import qualified	Test.HUnit
 main :: IO ()
 main	= mapM_ Test.HUnit.runTestTT [
 	Test.HUnit.Text.AutoComplete.testCases,
-	Test.HUnit.Attribute.Direction.testCases,
+	Test.HUnit.Direction.Direction.testCases,
 	Test.HUnit.Attribute.LogicalColour.testCases,
 	Test.HUnit.Attribute.Rank.testCases,
 	Test.HUnit.Cartesian.Coordinates.testCases,

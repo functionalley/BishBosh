@@ -27,10 +27,10 @@ module BishBosh.Test.HUnit.Component.Move(
 	testCases
 ) where
 
-import qualified	BishBosh.Attribute.Direction		as Attribute.Direction
 import qualified	BishBosh.Cartesian.Coordinates		as Cartesian.Coordinates
 import qualified	BishBosh.Component.Move			as Component.Move
 import qualified	BishBosh.Component.QualifiedMove	as Component.QualifiedMove
+import qualified	BishBosh.Direction.Direction		as Direction.Direction
 import qualified	BishBosh.Notation.Smith			as Notation.Smith
 import qualified	Test.HUnit
 import			Test.HUnit((~?))
@@ -45,29 +45,29 @@ testCases	= Test.HUnit.test [
 		in Cartesian.Coordinates.extrapolate direction (Component.Move.getSource move) == Component.Move.interpolate move
 	) [
 		(
-			Attribute.Direction.ne,	"a1h8"
+			Direction.Direction.ne,	"a1h8"
 		), (
-			Attribute.Direction.n,	"a1a8"
+			Direction.Direction.n,	"a1a8"
 		), (
-			Attribute.Direction.e,	"a1h1"
+			Direction.Direction.e,	"a1h1"
 		), (
-			Attribute.Direction.se,	"a8h1"
+			Direction.Direction.se,	"a8h1"
 		), (
-			Attribute.Direction.s,	"a8a1"
+			Direction.Direction.s,	"a8a1"
 		), (
-			Attribute.Direction.e,	"a8h8"
+			Direction.Direction.e,	"a8h8"
 		), (
-			Attribute.Direction.sw,	"h8a1"
+			Direction.Direction.sw,	"h8a1"
 		), (
-			Attribute.Direction.s,	"h8h1"
+			Direction.Direction.s,	"h8h1"
 		), (
-			Attribute.Direction.w,	"h8a8"
+			Direction.Direction.w,	"h8a8"
 		), (
-			Attribute.Direction.nw,	"h1a8"
+			Direction.Direction.nw,	"h1a8"
 		), (
-			Attribute.Direction.n,	"h1h8"
+			Direction.Direction.n,	"h1h8"
 		), (
-			Attribute.Direction.w,	"h1a1"
+			Direction.Direction.w,	"h1a1"
 		)
 	] ~? "'BishBosh.Cartesian.Coordinates.extrapolate' is incompatible with 'BishBosh.Component.Move.interpolate'."
  ]

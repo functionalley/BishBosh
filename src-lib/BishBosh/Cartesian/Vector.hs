@@ -41,23 +41,23 @@ module BishBosh.Cartesian.Vector(
 	measureDistance,
 -- ** Predicates
 --	hasDistance,
-	isDiagonal,
-	isParallel,
-	isStraight,
 	isPawnAttack,
 	isKnightsMove,
 	isKingsMove,
 	matchesPawnDoubleAdvance
 ) where
 
-import			Control.Arrow((&&&), (***))
-import qualified	BishBosh.Attribute.Direction		as Attribute.Direction
+import			Control.Arrow((***))
 import qualified	BishBosh.Attribute.LogicalColour	as Attribute.LogicalColour
 import qualified	BishBosh.Cartesian.Coordinates		as Cartesian.Coordinates
+import qualified	BishBosh.Data.Exception			as Data.Exception
+import qualified	BishBosh.Direction.Direction		as Direction.Direction
 import qualified	BishBosh.Property.Opposable		as Property.Opposable
 import qualified	BishBosh.Property.Orientated		as Property.Orientated
+import qualified	BishBosh.Text.ShowList			as Text.ShowList
 import qualified	BishBosh.Type.Length			as Type.Length
 import qualified	Control.DeepSeq
+import qualified	Control.Exception
 
 -- | The distance between two /coordinates/.
 data Vector	= MkVector {
@@ -78,8 +78,18 @@ instance Property.Opposable.Opposable Vector where
 	} = MkVector (negate xDistance) (negate yDistance)
 
 instance Property.Orientated.Orientated Vector where
-	isDiagonal	= isDiagonal
-	isParallel	= isParallel
+	isVertical MkVector { getXDistance = xDistance }	= xDistance == 0
+
+	isHorizontal MkVector { getYDistance = yDistance }	= yDistance == 0
+
+	isParallel MkVector { getXDistance = 0 }	= True
+	isParallel MkVector { getYDistance = 0 }	= True
+	isParallel _					= False
+
+	isDiagonal MkVector {
+		getXDistance	= xDistance,
+		getYDistance	= yDistance
+	} = fromEnum (abs xDistance) == fromEnum (abs yDistance)
 
 -- | Whether the vector has a non-zero length (or a well-defined direction).
 hasDistance :: Type.Length.X -> Type.Length.Y -> Bool
@@ -92,25 +102,6 @@ measureDistance
 	-> Cartesian.Coordinates.Coordinates	-- ^ Destination.
 	-> Vector
 measureDistance source destination	= uncurry MkVector $ Cartesian.Coordinates.measureDistance source destination
-
--- | Whether the specified /vector/ is at 45 degrees to an edge of the board, i.e. any move a @Bishop@ could make.
-isDiagonal :: Vector -> Bool
-{-# INLINE isDiagonal #-}
-isDiagonal MkVector {
-	getXDistance	= xDistance,
-	getYDistance	= yDistance
-} = fromEnum (abs xDistance) == fromEnum (abs yDistance)
-
--- | Whether the specified /vector/ is parallel to an edge of the board, i.e. any move a @Rook@ could make.
-isParallel :: Vector -> Bool
-{-# INLINE isParallel #-}
-isParallel MkVector { getXDistance = 0 }	= True
-isParallel MkVector { getYDistance = 0 }	= True
-isParallel _					= False
-
--- | Whether the specified /vector/ is either parallel or at 45 degrees to an edge of the board, i.e. any move a @Queen@ could make.
-isStraight :: Vector -> Bool
-isStraight	= uncurry (||) . (isParallel &&& isDiagonal)
 
 {- |
 	* The list of attack-vectors for a @Pawn@.
@@ -215,8 +206,22 @@ maybeTranslate coordinates MkVector {
 
 	* @Nothing@ is returned for those /vector/s which don't translate into a legal /direction/ (e.g. a @Knight@'s move).
 -}
-toMaybeDirection :: Vector -> Maybe Attribute.Direction.Direction
+toMaybeDirection :: Vector -> Maybe Direction.Direction.Direction
 toMaybeDirection vector@(MkVector xDistance yDistance)
-	| isStraight vector	= Just $ Attribute.Direction.mkDirection (xDistance `compare` 0) (yDistance `compare` 0)
+	| Property.Orientated.isStraight vector	= case xDistance `compare` 0 of
+		LT	-> Just $ case ySense of
+			LT	-> Direction.Direction.sw
+			EQ	-> Direction.Direction.w
+			GT	-> Direction.Direction.nw
+		EQ	-> case ySense of
+			LT	-> Just Direction.Direction.s
+			EQ	-> Control.Exception.throw . Data.Exception.mkRequestFailure . showString "BishBosh.Cartesian.Vector.toMaybeDirection:\tundefined direction" . Text.ShowList.showsAssociation $ shows vector "."
+			GT	-> Just Direction.Direction.n
+		GT	-> Just $ case ySense of
+			LT	-> Direction.Direction.se
+			EQ	-> Direction.Direction.e
+			GT	-> Direction.Direction.ne
 	| otherwise		= Nothing
+	where
+		ySense	= yDistance `compare` 0
 

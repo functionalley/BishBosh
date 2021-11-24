@@ -58,7 +58,6 @@ import			Control.Category((>>>))
 import			Data.Array.IArray((!), (//))
 import qualified	BishBosh.Attribute.ANSIColourCode			as Attribute.ANSIColourCode
 import qualified	BishBosh.Attribute.ColourScheme				as Attribute.ColourScheme
-import qualified	BishBosh.Attribute.Direction				as Attribute.Direction
 import qualified	BishBosh.Attribute.LogicalColour			as Attribute.LogicalColour
 import qualified	BishBosh.Attribute.LogicalColourOfSquare		as Attribute.LogicalColourOfSquare
 import qualified	BishBosh.Attribute.MoveType				as Attribute.MoveType
@@ -74,6 +73,7 @@ import qualified	BishBosh.Component.Piece				as Component.Piece
 import qualified	BishBosh.Component.PieceSquareByCoordinatesByRank	as Component.PieceSquareByCoordinatesByRank
 import qualified	BishBosh.Component.Zobrist				as Component.Zobrist
 import qualified	BishBosh.Data.Exception					as Data.Exception
+import qualified	BishBosh.Direction.Direction				as Direction.Direction
 import qualified	BishBosh.Notation.Figurine				as Notation.Figurine
 import qualified	BishBosh.Property.Empty					as Property.Empty
 import qualified	BishBosh.Property.ExtendedPositionDescription		as Property.ExtendedPositionDescription
@@ -468,7 +468,7 @@ getPieces MkMaybePieceByCoordinates { deconstruct = byCoordinates }	= Data.Maybe
 	* CAVEAT: this is a performance-hotspot.
 -}
 findBlockingPiece
-	:: Attribute.Direction.Direction	-- ^ The direction in which to search.
+	:: Direction.Direction.Direction	-- ^ The direction in which to search.
 	-> Cartesian.Coordinates.Coordinates	-- ^ The starting point.
 	-> MaybePieceByCoordinates
 	-> Maybe Component.Piece.LocatedPiece
@@ -485,7 +485,7 @@ findBlockingPiece direction source MkMaybePieceByCoordinates { deconstruct = byC
 -}
 findAttackerInDirection
 	:: Attribute.LogicalColour.LogicalColour				-- ^ The defender's /logical colour/.
-	-> Attribute.Direction.Direction					-- ^ The /direction/ from the /coordinates/ of concern; the opposite /direction/ from which an attacker might strike.
+	-> Direction.Direction.Direction					-- ^ The /direction/ from the /coordinates/ of concern; the opposite /direction/ from which an attacker might strike.
 	-> Cartesian.Coordinates.Coordinates					-- ^ The defender's square.
 	-> MaybePieceByCoordinates
 	-> Maybe (Cartesian.Coordinates.Coordinates, Attribute.Rank.Rank)	-- ^ Any opposing /piece/ which can attack the specified square from the specified /direction/.

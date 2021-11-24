@@ -28,11 +28,11 @@ module BishBosh.Test.QuickCheck.Cartesian.Coordinates(
 	results
 ) where
 
-import			BishBosh.Test.QuickCheck.Attribute.Direction()
+import			BishBosh.Test.QuickCheck.Direction.Direction()
 import			Control.Arrow((&&&))
-import qualified	BishBosh.Attribute.Direction		as Attribute.Direction
 import qualified	BishBosh.Cartesian.Coordinates		as Cartesian.Coordinates
 import qualified	BishBosh.Cartesian.Vector		as Cartesian.Vector
+import qualified	BishBosh.Direction.Direction		as Direction.Direction
 import qualified	BishBosh.Property.FixedMembership	as Property.FixedMembership
 import qualified	BishBosh.Property.Orientated		as Property.Orientated
 import qualified	BishBosh.Property.Reflectable		as Property.Reflectable
@@ -108,7 +108,7 @@ results = sequence [
 		 ]
 	in Test.QuickCheck.quickCheckWithResult Test.QuickCheck.stdArgs { Test.QuickCheck.maxSuccess = 64 } f,
 	let
-		f :: Attribute.Direction.Direction -> Cartesian.Coordinates.Coordinates -> Test.QuickCheck.Property
+		f :: Direction.Direction.Direction -> Cartesian.Coordinates.Coordinates -> Test.QuickCheck.Property
 		f direction source	= Test.QuickCheck.label "Coordinates.prop_extrapolate" . (
 			\extrapolation -> let
 				destination

@@ -31,13 +31,13 @@ module BishBosh.Test.QuickCheck.Cartesian.Vector(
 
 import			BishBosh.Test.QuickCheck.Cartesian.Coordinates()
 import			Control.Arrow((&&&), (***))
-import qualified	BishBosh.Cartesian.Abscissa		as Cartesian.Abscissa
-import qualified	BishBosh.Cartesian.Coordinates		as Cartesian.Coordinates
-import qualified	BishBosh.Cartesian.Ordinate		as Cartesian.Ordinate
-import qualified	BishBosh.Cartesian.Vector		as Cartesian.Vector
-import qualified	BishBosh.Property.Opposable		as Property.Opposable
-import qualified	BishBosh.Property.Orientated		as Property.Orientated
-import qualified	BishBosh.Type.Length			as Type.Length
+import qualified	BishBosh.Cartesian.Abscissa	as Cartesian.Abscissa
+import qualified	BishBosh.Cartesian.Coordinates	as Cartesian.Coordinates
+import qualified	BishBosh.Cartesian.Ordinate	as Cartesian.Ordinate
+import qualified	BishBosh.Cartesian.Vector	as Cartesian.Vector
+import qualified	BishBosh.Property.Opposable	as Property.Opposable
+import qualified	BishBosh.Property.Orientated	as Property.Orientated
+import qualified	BishBosh.Type.Length		as Type.Length
 import qualified	Test.QuickCheck
 import			Test.QuickCheck((==>))
 
@@ -65,8 +65,20 @@ results	= sequence [
 	in Test.QuickCheck.quickCheckWithResult Test.QuickCheck.stdArgs { Test.QuickCheck.maxSuccess = 256 } f,
 	let
 		f :: Cartesian.Vector.Vector -> Test.QuickCheck.Property
-		f vector	= not (Property.Orientated.isStraight vector) ==> Test.QuickCheck.label "Vector.prop_straight" . not . uncurry (||) $ (Property.Orientated.isDiagonal &&& Property.Orientated.isParallel) vector
+		f vector	= not (Property.Orientated.isStraight vector) ==> Test.QuickCheck.label "Vector.prop_(not isStraight => not (isDiagonal || isParallel))" . not . uncurry (||) $ (Property.Orientated.isDiagonal &&& Property.Orientated.isParallel) vector
 	in Test.QuickCheck.quickCheckWithResult Test.QuickCheck.stdArgs { Test.QuickCheck.maxSuccess = 64 } f,
+	let
+		f :: Cartesian.Vector.Vector -> Test.QuickCheck.Property
+		f vector	= Property.Orientated.isDiagonal vector ==> Test.QuickCheck.label "Vector.prop_(isDiagonal => not (isHorizontal || isVertical))" . not . uncurry (||) $ (Property.Orientated.isHorizontal &&& Property.Orientated.isVertical) vector
+	in Test.QuickCheck.quickCheckWithResult Test.QuickCheck.stdArgs { Test.QuickCheck.maxSuccess = 16 } f,
+	let
+		f :: Cartesian.Vector.Vector -> Test.QuickCheck.Property
+		f vector	= Property.Orientated.isStraight vector ==> Test.QuickCheck.label "Vector.prop_(isStraight => isDiagonal /= isParallel)" . uncurry (/=) $ (Property.Orientated.isDiagonal &&& Property.Orientated.isParallel) vector
+	in Test.QuickCheck.quickCheckWithResult Test.QuickCheck.stdArgs { Test.QuickCheck.maxSuccess = 16 } f,
+	let
+		f :: Cartesian.Vector.Vector -> Test.QuickCheck.Property
+		f vector	= Property.Orientated.isParallel vector ==> Test.QuickCheck.label "Vector.prop_(isParallel => isHorizontal /= isVertical)" . uncurry (/=) $ (Property.Orientated.isHorizontal &&& Property.Orientated.isVertical) vector
+	in Test.QuickCheck.quickCheckWithResult Test.QuickCheck.stdArgs { Test.QuickCheck.maxSuccess = 16 } f,
 	let
 		f :: (Type.Length.X, Type.Length.Y) -> Cartesian.Coordinates.Coordinates -> Test.QuickCheck.Property
 		f (distanceX, distanceY) coordinates	= Test.QuickCheck.label "Vector.prop_maybeTranslate" $ Cartesian.Coordinates.maybeTranslate (deltaX *** deltaY) coordinates == (

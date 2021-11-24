@@ -39,6 +39,7 @@ module BishBosh.State.CoordinatesByRankByLogicalColour(
 		deconstruct
 	),
 -- * Functions
+--	advanceDirection,
 	findPassedPawnCoordinatesByLogicalColour,
 	findPiecesOfColour,
 	assocs,
@@ -55,7 +56,6 @@ module BishBosh.State.CoordinatesByRankByLogicalColour(
 
 import			Control.Arrow((&&&), (|||))
 import			Data.Array.IArray((!), (//))
-import qualified	BishBosh.Attribute.Direction				as Attribute.Direction
 import qualified	BishBosh.Attribute.LogicalColour			as Attribute.LogicalColour
 import qualified	BishBosh.Attribute.Rank					as Attribute.Rank
 import qualified	BishBosh.Cartesian.Abscissa				as Cartesian.Abscissa
@@ -291,6 +291,11 @@ findPiecesOfColour logicalColour MkCoordinatesByRankByLogicalColour { deconstruc
 		coordinates		<- coordinatesList
  ] -- List-comprehension.
 
+-- | The /y/-direction in which a @Pawn@ of the specified /logical colour/ advances.
+advanceDirection :: Attribute.LogicalColour.LogicalColour -> Ordering
+advanceDirection Attribute.LogicalColour.Black	= LT	-- Black moves down.
+advanceDirection _				= GT
+
 -- | A list of /coordinates/ for each /logical colour/.
 type CoordinatesByLogicalColour	= Attribute.LogicalColour.ArrayByLogicalColour [Cartesian.Coordinates.Coordinates]
 
@@ -312,7 +317,7 @@ findPassedPawnCoordinatesByLogicalColour MkCoordinatesByRankByLogicalColour { de
 		\coordinates -> all (
 			Data.Maybe.maybe True {-absence of opposition doesn't impede advance-} (
 				(
-					/= Attribute.Direction.advanceDirection logicalColour	-- Either equal or backwards is OK.
+					/= advanceDirection logicalColour	-- Either equal or backwards is OK.
 				) . (
 					{-opponent-} `compare` Cartesian.Coordinates.getY coordinates
 				) -- As a Pawn advances, it becomes "Passed" when the y-distance to the least advanced adjacent opposing Pawn, is either equal or backwards.

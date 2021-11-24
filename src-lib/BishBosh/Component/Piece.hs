@@ -79,17 +79,18 @@ module BishBosh.Component.Piece(
 
 import			Control.Arrow((&&&), (***))
 import			Data.Array.IArray((!))
-import qualified	BishBosh.Attribute.Direction			as Attribute.Direction
 import qualified	BishBosh.Attribute.LogicalColour		as Attribute.LogicalColour
 import qualified	BishBosh.Attribute.Rank				as Attribute.Rank
 import qualified	BishBosh.Cartesian.Coordinates			as Cartesian.Coordinates
 import qualified	BishBosh.Cartesian.Ordinate			as Cartesian.Ordinate
 import qualified	BishBosh.Cartesian.Vector			as Cartesian.Vector
 import qualified	BishBosh.Data.Exception				as Data.Exception
+import qualified	BishBosh.Direction.Direction			as Direction.Direction
 import qualified	BishBosh.Property.ExtendedPositionDescription	as Property.ExtendedPositionDescription
 import qualified	BishBosh.Property.FixedMembership		as Property.FixedMembership
 import qualified	BishBosh.Property.ForsythEdwards		as Property.ForsythEdwards
 import qualified	BishBosh.Property.Opposable			as Property.Opposable
+import qualified	BishBosh.Property.Orientated			as Property.Orientated
 import qualified	BishBosh.Type.Count				as Type.Count
 import qualified	Control.DeepSeq
 import qualified	Control.Exception
@@ -303,23 +304,23 @@ findAttackDestinations coordinates MkPiece {
 
 
 {- |
-	* Find the constant /direction/s of the straight lines along which each type of /piece/ can attack.
+	* The constant /direction/s of the straight lines along which each type of /piece/ can attack.
 
 	* CAVEAT: not defined for a @Knight@.
 -}
-attackDirectionsByRankByLogicalColour :: ByRankByLogicalColour [Attribute.Direction.Direction]
+attackDirectionsByRankByLogicalColour :: ByRankByLogicalColour [Direction.Direction.Direction]
 attackDirectionsByRankByLogicalColour	= mkByRankByLogicalColour Attribute.Rank.earthBound $ \logicalColour -> \case
-	Attribute.Rank.Pawn	-> Attribute.Direction.attackDirectionsForPawn logicalColour
-	Attribute.Rank.Bishop	-> Attribute.Direction.diagonals
-	Attribute.Rank.Rook	-> Attribute.Direction.parallels
-	_ {-royalty-}		-> Property.FixedMembership.members
+	Attribute.Rank.Pawn	-> Direction.Direction.attackDirectionsForPawn logicalColour
+	Attribute.Rank.Bishop	-> Direction.Direction.diagonals
+	Attribute.Rank.Rook	-> Direction.Direction.parallels
+	_ {-royalty-}		-> Property.FixedMembership.members {-directions-}
 
 {- |
 	* Get the constant /direction/s of the straight lines along which the specified /piece/ can attack.
 
 	* CAVEAT: not defined for a @Knight@.
 -}
-getAttackDirections :: Piece -> [Attribute.Direction.Direction]
+getAttackDirections :: Piece -> [Direction.Direction.Direction]
 getAttackDirections MkPiece {
 	getLogicalColour	= logicalColour,
 	getRank			= rank
@@ -343,9 +344,9 @@ canAttackAlong source destination piece	= (
 	case getRank piece of
 		Attribute.Rank.Pawn	-> Cartesian.Vector.isPawnAttack $ getLogicalColour piece
 		Attribute.Rank.Knight	-> Cartesian.Vector.isKnightsMove
-		Attribute.Rank.Bishop	-> Cartesian.Vector.isDiagonal
-		Attribute.Rank.Rook	-> Cartesian.Vector.isParallel
-		Attribute.Rank.Queen	-> Cartesian.Vector.isStraight
+		Attribute.Rank.Bishop	-> Property.Orientated.isDiagonal
+		Attribute.Rank.Rook	-> Property.Orientated.isParallel
+		Attribute.Rank.Queen	-> Property.Orientated.isStraight
 		Attribute.Rank.King	-> Cartesian.Vector.isKingsMove
  ) (
 	Cartesian.Vector.measureDistance source destination
@@ -375,9 +376,9 @@ canMoveBetween source destination piece	= (
 			in y' == 1 || Cartesian.Coordinates.isPawnsFirstRank logicalColour source && y' == 2
 		 )
 		Attribute.Rank.Knight	-> Cartesian.Vector.isKnightsMove
-		Attribute.Rank.Bishop	-> Cartesian.Vector.isDiagonal
-		Attribute.Rank.Rook	-> Cartesian.Vector.isParallel
-		Attribute.Rank.Queen	-> Cartesian.Vector.isStraight
+		Attribute.Rank.Bishop	-> Property.Orientated.isDiagonal
+		Attribute.Rank.Rook	-> Property.Orientated.isParallel
+		Attribute.Rank.Queen	-> Property.Orientated.isStraight
 		Attribute.Rank.King	-> Cartesian.Vector.isKingsMove
  ) (
 	Cartesian.Vector.measureDistance source destination

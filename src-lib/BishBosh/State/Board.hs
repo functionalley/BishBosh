@@ -67,7 +67,6 @@ module BishBosh.State.Board(
 
 import			Control.Arrow((&&&), (***), (|||))
 import			Data.Array.IArray((!), (//))
-import qualified	BishBosh.Attribute.Direction				as Attribute.Direction
 import qualified	BishBosh.Attribute.LogicalColour			as Attribute.LogicalColour
 import qualified	BishBosh.Attribute.MoveType				as Attribute.MoveType
 import qualified	BishBosh.Attribute.Rank					as Attribute.Rank
@@ -78,6 +77,7 @@ import qualified	BishBosh.Component.Move					as Component.Move
 import qualified	BishBosh.Component.Piece				as Component.Piece
 import qualified	BishBosh.Component.PieceSquareByCoordinatesByRank	as Component.PieceSquareByCoordinatesByRank
 import qualified	BishBosh.Data.Exception					as Data.Exception
+import qualified	BishBosh.Direction.Direction				as Direction.Direction
 import qualified	BishBosh.Property.Empty					as Property.Empty
 import qualified	BishBosh.Property.ExtendedPositionDescription		as Property.ExtendedPositionDescription
 import qualified	BishBosh.Property.FixedMembership			as Property.FixedMembership
@@ -263,7 +263,7 @@ movePiece move maybeMoveType board@MkBoard {
 
 		movePiece' :: StateProperty.Mutator.Mutator mutator => mutator -> mutator
 		movePiece'	= StateProperty.Mutator.movePiece move sourcePiece maybePromotionRank eitherPassingPawnsDestinationOrMaybeTakenRank
-		 
+
 		board'@MkBoard { getMaybePieceByCoordinates = maybePieceByCoordinates' }	= MkBoard {
 			getMaybePieceByCoordinates			= movePiece' maybePieceByCoordinates,
 			getCoordinatesByRankByLogicalColour		= movePiece' coordinatesByRankByLogicalColour,
@@ -316,7 +316,7 @@ movePiece move maybeMoveType board@MkBoard {
 			] {-list-comprehension-} ++ [
 				(blockingCoordinates, blockingPiece) |
 					passingPawnsDestination			<- return {-to List-monad-} ||| const [] $ eitherPassingPawnsDestinationOrMaybeTakenRank,
-					(direction, antiParallelDirection)	<- Attribute.Direction.opposites,
+					(direction, antiParallelDirection)	<- Direction.Direction.opposites,
 					(blockingCoordinates, blockingPiece)	<- case ($ direction) &&& ($ antiParallelDirection) $ ($ maybePieceByCoordinates') . (`State.MaybePieceByCoordinates.findBlockingPiece` passingPawnsDestination) of
 						(Just cp, Just cp')	-> [
 							cp |
@@ -339,7 +339,7 @@ movePiece move maybeMoveType board@MkBoard {
 			] {-list-comprehension-} ++ (destination, destinationPiece) : [
 				(blockingCoordinates, blockingPiece) |
 					let maybeExplicitlyTakenPiece	= const Nothing ||| id $ eitherPassingPawnsDestinationOrMaybeTakenPiece,
-					(direction, antiParallelDirection)	<- Attribute.Direction.opposites,
+					(direction, antiParallelDirection)	<- Direction.Direction.opposites,
 					(coordinates, piece)			<- [(source, sourcePiece), (destination, destinationPiece)],
 					(blockingCoordinates, blockingPiece)	<- case ($ direction) &&& ($ antiParallelDirection) $ ($ maybePieceByCoordinates') . (`State.MaybePieceByCoordinates.findBlockingPiece` coordinates) of
 						(Just cp, Just cp')	-> [
@@ -487,7 +487,7 @@ exposesKing logicalColour move board@MkBoard { getCoordinatesByRankByLogicalColo
 	, let maybePieceByCoordinates	= getMaybePieceByCoordinates board
 	, State.MaybePieceByCoordinates.isClear kingsCoordinates source maybePieceByCoordinates	-- Confirm that the straight line from one's own King to the start of the move, is clear.
 	, Data.Maybe.maybe True {-Knight's move-} (
-		not . Attribute.Direction.areAligned directionFromKing	-- The blocking piece has revealed any attacker.
+		not . Direction.Direction.areAligned directionFromKing	-- The blocking piece has revealed any attacker.
 	) . Cartesian.Vector.toMaybeDirection $ Component.Move.measureDistance move
 	, Just (_, attackersRank)	<- State.MaybePieceByCoordinates.findAttackerInDirection logicalColour directionFromKing source maybePieceByCoordinates	-- Confirm the existence of an obscured attacker.
 	= attackersRank `notElem` Attribute.Rank.plodders	-- Confirm sufficient range to bridge the vacated space.

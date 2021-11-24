@@ -106,8 +106,17 @@ instance Property.Opposable.Opposable Move where
 	}
 
 instance Property.Orientated.Orientated Move where
+	isVertical MkMove {
+		getSource	= source,
+		getDestination	= destination
+	} = Cartesian.Coordinates.getX source == Cartesian.Coordinates.getX destination
+
+	isHorizontal MkMove {
+		getSource	= source,
+		getDestination	= destination
+	} = Cartesian.Coordinates.getY source == Cartesian.Coordinates.getY destination
+
 	isDiagonal	= Property.Orientated.isDiagonal . measureDistance
-	isParallel	= Property.Orientated.isParallel . measureDistance
 
 instance Property.Reflectable.ReflectableOnX Move where
 	reflectOnX MkMove {

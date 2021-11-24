@@ -22,12 +22,12 @@
  [@DESCRIPTION@]	Static tests.
 -}
 
-module BishBosh.Test.HUnit.Attribute.Direction(
+module BishBosh.Test.HUnit.Direction.Direction(
 -- * Constants
 	testCases
 ) where
 
-import qualified	BishBosh.Attribute.Direction		as Attribute.Direction
+import qualified	BishBosh.Direction.Direction		as Direction.Direction
 import qualified	BishBosh.Property.FixedMembership	as Property.FixedMembership
 import qualified	Data.List
 import qualified	Test.HUnit
@@ -37,10 +37,10 @@ import			Test.HUnit((~?))
 testCases :: Test.HUnit.Test
 testCases	= Test.HUnit.test [
 	null (
-		Attribute.Direction.diagonals `Data.List.intersect` Attribute.Direction.parallels
-	) ~? "BishBosh.Attribute.Direction.[diagonal, parallels] intersect.",
+		Direction.Direction.diagonals `Data.List.intersect` Direction.Direction.parallels
+	) ~? "BishBosh.Direction.Direction.[diagonal, parallels] intersect.",
 	all (
-		(== 2) . length . Attribute.Direction.attackDirectionsForPawn
-	) Property.FixedMembership.members ~? "'BishBosh.Attribute.Direction.attackDirectionsForPawn' failed."
+		(== 2) . length . Direction.Direction.attackDirectionsForPawn
+	) Property.FixedMembership.members ~? "'BishBosh.Direction.Direction.attackDirectionsForPawn' failed."
  ]
 

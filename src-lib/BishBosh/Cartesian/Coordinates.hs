@@ -81,14 +81,15 @@ module BishBosh.Cartesian.Coordinates(
 
 import			Control.Arrow((&&&), (***))
 import			Data.Array.IArray((!))
-import qualified	BishBosh.Attribute.Direction			as Attribute.Direction
 import qualified	BishBosh.Attribute.LogicalColour		as Attribute.LogicalColour
 import qualified	BishBosh.Attribute.LogicalColourOfSquare	as Attribute.LogicalColourOfSquare
 import qualified	BishBosh.Cartesian.Abscissa			as Cartesian.Abscissa
 import qualified	BishBosh.Cartesian.Ordinate			as Cartesian.Ordinate
 import qualified	BishBosh.Data.Exception				as Data.Exception
+import qualified	BishBosh.Direction.Direction			as Direction.Direction
 import qualified	BishBosh.Property.FixedMembership		as Property.FixedMembership
 import qualified	BishBosh.Property.Opposable			as Property.Opposable
+import qualified	BishBosh.Property.Orientated			as Property.Orientated
 import qualified	BishBosh.Property.Reflectable			as Property.Reflectable
 import qualified	BishBosh.Property.Rotatable			as Property.Rotatable
 import qualified	BishBosh.Text.ShowList				as Text.ShowList
@@ -158,9 +159,9 @@ instance Property.Reflectable.ReflectableOnY Coordinates where
 	reflectOnY coordinates@MkCoordinates { getX = x }	= coordinates { getX = Cartesian.Abscissa.reflect x }
 
 instance Property.Rotatable.Rotatable Coordinates where
-	rotate90	= rotate Attribute.Direction.w
-	rotate180	= rotate Attribute.Direction.s
-	rotate270	= rotate Attribute.Direction.e
+	rotate90	= rotate Direction.Direction.w
+	rotate180	= rotate Direction.Direction.s
+	rotate270	= rotate Direction.Direction.e
 
 -- | Constant.
 topLeft :: Coordinates
@@ -304,7 +305,7 @@ advance logicalColour	= translateY $ if Attribute.LogicalColour.isBlack logicalC
 -- | Where legal, move one step towards the opponent.
 maybeAdvance
 	:: Attribute.LogicalColour.LogicalColour	-- ^ The /logical colour/ of the /piece/ which is to advance.
-	-> Coordinates				-- ^ The location from which to advanced.
+	-> Coordinates					-- ^ The location from which to advanced.
 	-> Maybe Coordinates
 maybeAdvance logicalColour	= maybeTranslateY $ if Attribute.LogicalColour.isBlack logicalColour
 	then pred
@@ -323,7 +324,7 @@ retreat	= advance . Property.Opposable.getOpposite
 -- | Where legal, move one step away from the opponent.
 maybeRetreat
 	:: Attribute.LogicalColour.LogicalColour	-- ^ The /logical colour/ of the /piece/ which is to retreat.
-	-> Coordinates				-- ^ The location from which to retreat.
+	-> Coordinates					-- ^ The location from which to retreat.
 	-> Maybe Coordinates
 maybeRetreat	= maybeAdvance . Property.Opposable.getOpposite
 
@@ -333,23 +334,40 @@ getAdjacents coordinates@MkCoordinates { getX = x }	= map (\x' -> coordinates { 
 
 -- | Generates a line of /coordinates/, starting just after the specified source & proceeding in the specified /direction/ to the edge of the board.
 extrapolate'
-	:: Attribute.Direction.Direction	-- ^ The direction in which to proceed.
-	-> Coordinates			-- ^ The point from which to start.
+	:: Direction.Direction.Direction	-- ^ The direction in which to proceed.
+	-> Coordinates				-- ^ The point from which to start.
 	-> [Coordinates]
 extrapolate' direction MkCoordinates {
 	getX	= x,
 	getY	= y
-} = zipWith MkCoordinates (
-	case Attribute.Direction.getXDirection direction of
-		GT	-> [succ x .. Cartesian.Abscissa.xMax]
-		LT	-> let startX = pred x in startX `seq` [startX, pred startX .. Cartesian.Abscissa.xMin]
-		EQ	-> repeat x
- ) (
-	case Attribute.Direction.getYDirection direction of
-		GT	-> [succ y .. Cartesian.Ordinate.yMax]
-		LT	-> let startY = pred y in startY `seq` [startY, pred startY .. Cartesian.Ordinate.yMin]
-		EQ	-> repeat y
- )
+} = uncurry (zipWith MkCoordinates) $ if Property.Orientated.isParallel direction
+	then if Property.Orientated.isVertical direction
+		then doVertical
+		else doHorizontal
+	else doDiagonal
+	where
+		xIncreasing, xDecreasing :: [Type.Length.X]
+		xIncreasing	= [succ x .. Cartesian.Abscissa.xMax]
+		xDecreasing	= let startX = pred x in startX `seq` [startX, pred startX .. Cartesian.Abscissa.xMin]
+
+		yIncreasing, yDecreasing :: [Type.Length.Y]
+		yIncreasing	= [succ y .. Cartesian.Ordinate.yMax]
+		yDecreasing	= let startY = pred y in startY `seq` [startY, pred startY .. Cartesian.Ordinate.yMin]
+
+		doVertical, doHorizontal, doDiagonal :: ([Type.Length.X], [Type.Length.Y])
+		doVertical	= (
+			repeat x,
+			if direction == Direction.Direction.s then yDecreasing else yIncreasing
+		 ) -- Pair.
+		doHorizontal	= (
+			if direction == Direction.Direction.w then xDecreasing else xIncreasing,
+			repeat y
+		 ) -- Pair.
+		doDiagonal
+			| direction == Direction.Direction.sw	= (xDecreasing,	yDecreasing)
+			| direction == Direction.Direction.se	= (xIncreasing,	yDecreasing)
+			| direction == Direction.Direction.nw	= (xDecreasing,	yIncreasing)
+			| otherwise {-NE-}			= (xIncreasing,	yIncreasing)
 
 {- |
 	* Generates a line of /coordinates/, starting just after the specified source & proceeding in the specified /direction/ to the edge of the board.
@@ -358,20 +376,20 @@ extrapolate' direction MkCoordinates {
 	In consequence, it is typically automatically avoided using a rewrite-rule to lookup an array of the results from all possible calls.
 -}
 extrapolate
-	:: Attribute.Direction.Direction	-- ^ The direction in which to proceed.
-	-> Coordinates			-- ^ The point from which to start.
+	:: Direction.Direction.Direction	-- ^ The direction in which to proceed.
+	-> Coordinates				-- ^ The point from which to start.
 	-> [Coordinates]
 extrapolate direction coordinates	= extrapolationsByDirectionByCoordinates ! coordinates ! direction
 
 -- | The constant lists of /coordinates/, extrapolated from every /coordinate/ in the /board/, in every /direction/.
-extrapolationsByDirectionByCoordinates :: ArrayByCoordinates (Attribute.Direction.ArrayByDirection [Coordinates])
+extrapolationsByDirectionByCoordinates :: ArrayByCoordinates (Direction.Direction.ArrayByDirection [Coordinates])
 extrapolationsByDirectionByCoordinates	= listArrayByCoordinates
 #ifdef USE_PARALLEL
 	. Control.Parallel.Strategies.withStrategy (Control.Parallel.Strategies.parList Control.Parallel.Strategies.rdeepseq)
 #endif
 	$ map (
-		\coordinates	-> Attribute.Direction.listArrayByDirection $ map (`extrapolate'` coordinates) Property.FixedMembership.members
-	) Property.FixedMembership.members
+		\coordinates	-> Direction.Direction.listArrayByDirection $ map (`extrapolate'` coordinates) Property.FixedMembership.members {-direction-}
+	) Property.FixedMembership.members {-coordinates-}
 
 -- | The list of /coordinates/, between every permutation of source & valid destination on the /board/.
 interpolationsByDestinationBySource :: ArrayByCoordinates (Map.Map Coordinates [Coordinates])
@@ -399,25 +417,27 @@ type Transformation	= Coordinates -> Coordinates
 
 	* CAVEAT: one can only request an integral multiple of 90 degrees.
 -}
-rotate :: Attribute.Direction.Direction -> Transformation
+rotate :: Direction.Direction.Direction -> Transformation
 rotate direction coordinates@MkCoordinates {
 	getX	= x,
 	getY	= y
-} = case Attribute.Direction.getXDirection &&& Attribute.Direction.getYDirection $ direction of
-	(EQ, GT)	-> coordinates
-	(LT, EQ)	-> MkCoordinates {
-		getX	= Cartesian.Abscissa.fromIx yDistance',
-		getY	= Cartesian.Ordinate.fromIx xDistance
-	} -- +90 degrees, i.e. anti-clockwise.
-	(EQ, LT)	-> MkCoordinates {
-		getX	= Cartesian.Abscissa.fromIx xDistance',
-		getY	= Cartesian.Ordinate.fromIx yDistance'
-	} -- 180 degrees.
-	(GT, EQ)	-> MkCoordinates {
-		getX	= Cartesian.Abscissa.fromIx yDistance,
-		getY	= Cartesian.Ordinate.fromIx xDistance'
-	} -- -90 degrees, i.e. clockwise.
-	_		-> Control.Exception.throw . Data.Exception.mkRequestFailure . showString "BishBosh.Cartesian.Coordinates.rotate:\tunable to rotate to direction" . Text.ShowList.showsAssociation $ shows direction "."
+}
+	| Property.Orientated.isDiagonal direction	= Control.Exception.throw . Data.Exception.mkRequestFailure . showString "BishBosh.Cartesian.Coordinates.rotate:\tunable to rotate to a diagonal direction" . Text.ShowList.showsAssociation $ shows direction "."
+	| Property.Orientated.isVertical direction	= if direction == Direction.Direction.s
+		then MkCoordinates {
+			getX	= Cartesian.Abscissa.fromIx xDistance',
+			getY	= Cartesian.Ordinate.fromIx yDistance'
+		} -- 180 degrees.
+		else coordinates	-- N.B.: unchanged.
+	| otherwise {-isHorizontal-}			= if direction == Direction.Direction.w
+		then MkCoordinates {
+			getX	= Cartesian.Abscissa.fromIx yDistance',
+			getY	= Cartesian.Ordinate.fromIx xDistance
+		} -- +90 degrees, i.e. anti-clockwise.
+		else MkCoordinates {
+			getX	= Cartesian.Abscissa.fromIx yDistance,
+			getY	= Cartesian.Ordinate.fromIx xDistance'
+		} -- -90 degrees, i.e. clockwise.
 	where
 		xDistance	= Cartesian.Abscissa.toIx x
 		yDistance	= Cartesian.Ordinate.toIx y
