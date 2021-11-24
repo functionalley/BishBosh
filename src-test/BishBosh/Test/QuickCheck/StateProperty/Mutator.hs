@@ -73,7 +73,7 @@ results	= sequence [
 				(move, moveType)	= Component.QualifiedMove.getMove &&& Component.QualifiedMove.getMoveType $ qualifiedMove
 				board			= Model.Game.getBoard game
 
-				movePiece :: StateProperty.Mutator.Mutator mutator => mutator -> mutator 
+				movePiece :: StateProperty.Mutator.Mutator mutator => mutator -> mutator
 				movePiece	= StateProperty.Mutator.movePiece move (
 					Data.Maybe.fromJust . State.MaybePieceByCoordinates.dereference (Component.Move.getSource move) $ State.Board.getMaybePieceByCoordinates board
 				 ) (
