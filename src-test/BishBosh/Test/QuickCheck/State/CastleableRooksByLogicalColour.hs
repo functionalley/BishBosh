@@ -28,12 +28,12 @@ module BishBosh.Test.QuickCheck.State.CastleableRooksByLogicalColour(
 	results
 ) where
 
-import			BishBosh.Test.QuickCheck.Attribute.LogicalColour()
 import			BishBosh.Test.QuickCheck.Cartesian.Coordinates()
+import			BishBosh.Test.QuickCheck.Colour.LogicalColour()
 import			Control.Arrow((&&&))
-import qualified	BishBosh.Attribute.LogicalColour		as Attribute.LogicalColour
 import qualified	BishBosh.Cartesian.Abscissa			as Cartesian.Abscissa
 import qualified	BishBosh.Cartesian.Coordinates			as Cartesian.Coordinates
+import qualified	BishBosh.Colour.LogicalColour			as Colour.LogicalColour
 import qualified	BishBosh.Property.FixedMembership		as Property.FixedMembership
 import qualified	BishBosh.Property.ForsythEdwards		as Property.ForsythEdwards
 import qualified	BishBosh.Property.Reflectable			as Property.Reflectable
@@ -89,7 +89,7 @@ results	= sequence [
 		 ) Property.FixedMembership.members
 	in Test.QuickCheck.quickCheckWithResult Test.QuickCheck.stdArgs { Test.QuickCheck.maxSuccess = 32 } f,
 	let
-		f :: Attribute.LogicalColour.LogicalColour -> Cartesian.Coordinates.Coordinates -> State.CastleableRooksByLogicalColour.CastleableRooksByLogicalColour -> Test.QuickCheck.Property
+		f :: Colour.LogicalColour.LogicalColour -> Cartesian.Coordinates.Coordinates -> State.CastleableRooksByLogicalColour.CastleableRooksByLogicalColour -> Test.QuickCheck.Property
 		f logicalColour coordinates castleableRooksByLogicalColour = coordinates `notElem` [
 			minBound,
 			Cartesian.Coordinates.bottomRight,
@@ -98,14 +98,14 @@ results	= sequence [
 		 ] ==> Test.QuickCheck.label "CastleableRooksByLogicalColour.prop_canCastleWith" . not $ State.CastleableRooksByLogicalColour.canCastleWith logicalColour coordinates castleableRooksByLogicalColour
 	in Test.QuickCheck.quickCheckWithResult Test.QuickCheck.stdArgs { Test.QuickCheck.maxSuccess = 64} f,
 	let
-		f :: Attribute.LogicalColour.LogicalColour -> Cartesian.Coordinates.Coordinates -> State.CastleableRooksByLogicalColour.CastleableRooksByLogicalColour -> Test.QuickCheck.Property
+		f :: Colour.LogicalColour.LogicalColour -> Cartesian.Coordinates.Coordinates -> State.CastleableRooksByLogicalColour.CastleableRooksByLogicalColour -> Test.QuickCheck.Property
 		f logicalColour coordinates castleableRooksByLogicalColour = State.CastleableRooksByLogicalColour.canCastleWith logicalColour coordinates castleableRooksByLogicalColour ==> Test.QuickCheck.label "CastleableRooksByLogicalColour.prop_(canCastleWith => canCastle)" $ State.CastleableRooksByLogicalColour.canCastle logicalColour castleableRooksByLogicalColour
 	in Test.QuickCheck.quickCheckWithResult Test.QuickCheck.stdArgs {
 		Test.QuickCheck.maxSuccess	= 64,
 		Test.QuickCheck.maxDiscardRatio	= 128
 	} f,
 	let
-		f :: Attribute.LogicalColour.LogicalColour -> Cartesian.Coordinates.Coordinates -> State.CastleableRooksByLogicalColour.CastleableRooksByLogicalColour -> Test.QuickCheck.Property
+		f :: Colour.LogicalColour.LogicalColour -> Cartesian.Coordinates.Coordinates -> State.CastleableRooksByLogicalColour.CastleableRooksByLogicalColour -> Test.QuickCheck.Property
 		f logicalColour coordinates castleableRooksByLogicalColour = not (State.CastleableRooksByLogicalColour.canCastle logicalColour castleableRooksByLogicalColour) ==> Test.QuickCheck.label "CastleableRooksByLogicalColour.prop_(not . canCastle => not . canCastleWith)" . not $ State.CastleableRooksByLogicalColour.canCastleWith logicalColour coordinates castleableRooksByLogicalColour
 	in Test.QuickCheck.quickCheckWithResult Test.QuickCheck.stdArgs { Test.QuickCheck.maxSuccess = 64 } f
  ]

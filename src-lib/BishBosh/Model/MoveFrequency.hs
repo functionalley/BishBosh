@@ -43,15 +43,15 @@ module BishBosh.Model.MoveFrequency(
 
 import			Control.Arrow((&&&))
 import			Data.Array.IArray((!), (//))
-import qualified	BishBosh.Attribute.LogicalColour	as Attribute.LogicalColour
-import qualified	BishBosh.Attribute.Rank			as Attribute.Rank
-import qualified	BishBosh.Property.Empty			as Property.Empty
-import qualified	BishBosh.Property.Null			as Property.Null
-import qualified	BishBosh.Type.Count			as Type.Count
+import qualified	BishBosh.Attribute.Rank		as Attribute.Rank
+import qualified	BishBosh.Colour.LogicalColour	as Colour.LogicalColour
+import qualified	BishBosh.Property.Empty		as Property.Empty
+import qualified	BishBosh.Property.Null		as Property.Null
+import qualified	BishBosh.Type.Count		as Type.Count
 import qualified	Data.Foldable
 import qualified	Data.List
 import qualified	Data.List.Extra
-import qualified	Data.Map.Strict				as Map
+import qualified	Data.Map.Strict			as Map
 import qualified	Data.Ord
 
 {- |
@@ -59,7 +59,7 @@ import qualified	Data.Ord
 
 	* CAVEAT: the /move-type/ isn't recorded.
 -}
-type InstancesByMoveByRankByLogicalColour move	= Attribute.LogicalColour.ArrayByLogicalColour (
+type InstancesByMoveByRankByLogicalColour move	= Colour.LogicalColour.ArrayByLogicalColour (
 	Attribute.Rank.ArrayByRank (
 		Map.Map move Type.Count.NPlies
 	)
@@ -71,7 +71,7 @@ newtype MoveFrequency move	= MkMoveFrequency {
 } deriving Eq
 
 instance Property.Empty.Empty (MoveFrequency move) where
-	empty	= MkMoveFrequency . Attribute.LogicalColour.listArrayByLogicalColour . repeat . Attribute.Rank.listArrayByRank $ repeat Property.Empty.empty
+	empty	= MkMoveFrequency . Colour.LogicalColour.listArrayByLogicalColour . repeat . Attribute.Rank.listArrayByRank $ repeat Property.Empty.empty
 
 instance Property.Null.Null (MoveFrequency move) where
 	isNull MkMoveFrequency { deconstruct = instancesByMoveByRankByLogicalColour }	= Data.Foldable.all (Data.Foldable.all Data.Foldable.null) instancesByMoveByRankByLogicalColour
@@ -104,10 +104,10 @@ type GetRankAndMove a move	= a -> (Attribute.Rank.Rank, move)
 -}
 insertMoves
 	:: Ord move
-	=> Attribute.LogicalColour.LogicalColour	-- ^ References the player who is required to make any one of the specified moves.
-	-> GetRankAndMove a move			-- ^ How to extract the required /rank/ & /move/ from a datum.
+	=> Colour.LogicalColour.LogicalColour	-- ^ References the player who is required to make any one of the specified moves.
+	-> GetRankAndMove a move		-- ^ How to extract the required /rank/ & /move/ from a datum.
 	-> MoveFrequency move
-	-> [a]						-- ^ The data from each of which, /rank/ & /move/ can be extracted.
+	-> [a]					-- ^ The data from each of which, /rank/ & /move/ can be extracted.
 	-> MoveFrequency move
 insertMoves logicalColour getRankAndMove MkMoveFrequency { deconstruct = instancesByMoveByRankByLogicalColour }	= MkMoveFrequency . (
 	instancesByMoveByRankByLogicalColour //
@@ -139,10 +139,10 @@ insertMoves logicalColour getRankAndMove MkMoveFrequency { deconstruct = instanc
 -}
 sortByDescendingMoveFrequency
 	:: Ord move
-	=> Attribute.LogicalColour.LogicalColour	-- ^ References the player who is required to make any one of the specified moves.
-	-> GetRankAndMove a move			-- ^ How to extract the required /rank/ & /move/ from a datum.
+	=> Colour.LogicalColour.LogicalColour	-- ^ References the player who is required to make any one of the specified moves.
+	-> GetRankAndMove a move		-- ^ How to extract the required /rank/ & /move/ from a datum.
 	-> MoveFrequency move
-	-> [a]						-- ^ The data from each of which, /rank/ & /move/ can be extracted.
+	-> [a]					-- ^ The data from each of which, /rank/ & /move/ can be extracted.
 	-> [a]
 {-# INLINE sortByDescendingMoveFrequency #-}
 sortByDescendingMoveFrequency logicalColour getRankAndMove MkMoveFrequency { deconstruct = instancesByMoveByRankByLogicalColour }	= Data.List.sortOn $ negate {-most frequent first-} . (

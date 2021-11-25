@@ -49,10 +49,10 @@ module BishBosh.Cartesian.Ordinate(
 	inBounds
 ) where
 
-import qualified	BishBosh.Attribute.LogicalColour	as Attribute.LogicalColour
-import qualified	BishBosh.Cartesian.Abscissa		as Cartesian.Abscissa
-import qualified	BishBosh.Property.Opposable		as Property.Opposable
-import qualified	BishBosh.Type.Length			as Type.Length
+import qualified	BishBosh.Cartesian.Abscissa	as Cartesian.Abscissa
+import qualified	BishBosh.Colour.LogicalColour	as Colour.LogicalColour
+import qualified	BishBosh.Property.Opposable	as Property.Opposable
+import qualified	BishBosh.Type.Length		as Type.Length
 import qualified	Control.Exception
 
 -- | The constant length of the /y/-axis.
@@ -79,24 +79,24 @@ fromIx :: Int -> Type.Length.Y
 fromIx	= (+ yMin) . fromIntegral
 
 -- | The /rank/ from which /piece/s conventionally start.
-firstRank :: Attribute.LogicalColour.LogicalColour -> Type.Length.Y
-firstRank Attribute.LogicalColour.Black	= yMax
+firstRank :: Colour.LogicalColour.LogicalColour -> Type.Length.Y
+firstRank Colour.LogicalColour.Black	= yMax
 firstRank _				= yMin
 
 -- | The final /rank/; i.e. the one on which a @Pawn@ is promoted.
-lastRank :: Attribute.LogicalColour.LogicalColour -> Type.Length.Y
+lastRank :: Colour.LogicalColour.LogicalColour -> Type.Length.Y
 lastRank	= firstRank . Property.Opposable.getOpposite
 
 -- | The /rank/ from which @Pawn@s conventionally start.
-pawnsFirstRank :: Attribute.LogicalColour.LogicalColour -> Type.Length.Y
+pawnsFirstRank :: Colour.LogicalColour.LogicalColour -> Type.Length.Y
 {-# INLINE pawnsFirstRank #-}
-pawnsFirstRank Attribute.LogicalColour.Black	= pred yMax
+pawnsFirstRank Colour.LogicalColour.Black	= pred yMax
 pawnsFirstRank _				= succ yMin
 
 -- | The /rank/ from which a @Pawn@ may capture /en-passant/.
-enPassantRank :: Attribute.LogicalColour.LogicalColour -> Type.Length.Y
+enPassantRank :: Colour.LogicalColour.LogicalColour -> Type.Length.Y
 {-# INLINE enPassantRank #-}
-enPassantRank Attribute.LogicalColour.Black	= fromIx 3
+enPassantRank Colour.LogicalColour.Black	= fromIx 3
 enPassantRank _					= fromIx 4
 
 -- | Reflects about the mid-point of the axis.

@@ -153,5 +153,6 @@ New Module				| Purpose
 	+ Added method **BishBosh.StateProperty.Mutator.movePiece** & implemented whole type-class in module **BishBosh.State.CoordinatesByRankByLogicalColour**.
 	+ Implemented type-class **BishBosh.Property.SelfValidating.SelfValidating** in modules **BishBosh.State.{MaybePieceByCoordinates, CoordinatesByRankByLogicalColour, Board}**.
 	+ Created a new type-class **BishBosh.StateProperty.View.View**, which is implemented in **BishBosh.State.{MaybePieceByCoordinates, CoordinatesByRankByLogicalColour}**, & abstracts construction of a view & translation between views.
-	+ Rewrote module **BishBosh.Attribute.Direction** to remove the 9th invalid state from the data-structure, & to express the division between *parallel* & *diagonal* instances; this degraded performance slightly. This involved adding new methods to class **BishBosh.Property.Orientated.Orientated**.
+	+ Rewrote module **BishBosh.Attribute.Direction** to remove the 9th invalid state from the data-structure, & to express the division between *parallel* & *diagonal* instances; which degraded performance slightly. Added new methods to class **BishBosh.Property.Orientated.Orientated**.
+	+ Relocated colour-related modules from **BishBosh/Attribute/** to **BishBosh/Colour/**.
 

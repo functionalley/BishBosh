@@ -27,9 +27,9 @@ module BishBosh.Test.HUnit.Cartesian.Coordinates(
 	testCases
 ) where
 
-import qualified	BishBosh.Attribute.LogicalColourOfSquare	as Attribute.LogicalColourOfSquare
-import qualified	BishBosh.Cartesian.Coordinates			as Cartesian.Coordinates
-import qualified	BishBosh.Property.FixedMembership		as Property.FixedMembership
+import qualified	BishBosh.Cartesian.Coordinates		as Cartesian.Coordinates
+import qualified	BishBosh.Colour.LogicalColourOfSquare	as Colour.LogicalColourOfSquare
+import qualified	BishBosh.Property.FixedMembership	as Property.FixedMembership
 import qualified	Data.Array.IArray
 import qualified	Data.List
 import qualified	Test.HUnit
@@ -38,12 +38,12 @@ import			Test.HUnit((~?), (~?=), (~:))
 -- | Check the sanity of the implementation, by validating a list of static test-cases.
 testCases :: Test.HUnit.Test
 testCases	= Test.HUnit.test [
-	all (Attribute.LogicalColourOfSquare.isBlack . Cartesian.Coordinates.getLogicalColourOfSquare) (
+	all (Colour.LogicalColourOfSquare.isBlack . Cartesian.Coordinates.getLogicalColourOfSquare) (
 		Cartesian.Coordinates.extrapolate maxBound {-direction-} (minBound :: Cartesian.Coordinates.Coordinates)
 	) ~? "'BishBosh.Cartesian.Coordinates.getLogicalColourOfSquare' failed to find black squares on the main diagonal.",
 	"'BishBosh.Cartesian.Coordinates.getLogicalColourOfSquare' failed to count equal numbers of black & white squares." ~: (
 		\(black, white) -> length black ~?= length white
-	) . Data.List.partition Attribute.LogicalColourOfSquare.isBlack $ map Cartesian.Coordinates.getLogicalColourOfSquare (
+	) . Data.List.partition Colour.LogicalColourOfSquare.isBlack $ map Cartesian.Coordinates.getLogicalColourOfSquare (
 		Property.FixedMembership.members	:: [Cartesian.Coordinates.Coordinates]
 	),
 	"'BishBosh.Cartesian.Coordinates' failed to visit all squares." ~: length (

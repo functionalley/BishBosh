@@ -22,7 +22,7 @@
  [@DESCRIPTION@]	Defines the physical colour used to represent each component of the board.
 -}
 
-module BishBosh.Attribute.ColourScheme (
+module BishBosh.Colour.ColourScheme (
 -- * Types
 -- ** Data-types
 	ColourScheme(
@@ -43,15 +43,15 @@ module BishBosh.Attribute.ColourScheme (
 --	mkColourScheme
 ) where
 
-import qualified	BishBosh.Attribute.PhysicalColour	as Attribute.PhysicalColour
-import qualified	BishBosh.Data.Exception			as Data.Exception
-import qualified	BishBosh.Property.Opposable		as Property.Opposable
-import qualified	BishBosh.Text.ShowList			as Text.ShowList
+import qualified	BishBosh.Colour.PhysicalColour	as Colour.PhysicalColour
+import qualified	BishBosh.Data.Exception		as Data.Exception
+import qualified	BishBosh.Property.Opposable	as Property.Opposable
+import qualified	BishBosh.Text.ShowList		as Text.ShowList
 import qualified	Control.Arrow
 import qualified	Control.DeepSeq
 import qualified	Control.Exception
 import qualified	Data.Default
-import qualified	Text.XML.HXT.Arrow.Pickle		as HXT
+import qualified	Text.XML.HXT.Arrow.Pickle	as HXT
 
 -- | Used to qualify XML.
 tag :: String
@@ -62,10 +62,10 @@ darkPieceColourTag, darkSquareColourTag, lightPieceColourTag, lightSquareColourT
 
 -- | Defines the command-line options.
 data ColourScheme	= MkColourScheme {
-	getDarkPieceColour	:: Attribute.PhysicalColour.PhysicalColour,	-- ^ The physical colour of the dark pieces.
-	getLightPieceColour	:: Attribute.PhysicalColour.PhysicalColour,	-- ^ The physical colour of the light pieces.
-	getDarkSquareColour	:: Attribute.PhysicalColour.PhysicalColour,	-- ^ The physical colour of the dark squares of the board.
-	getLightSquareColour	:: Attribute.PhysicalColour.PhysicalColour	-- ^ The physical colour of the light squares of the board.
+	getDarkPieceColour	:: Colour.PhysicalColour.PhysicalColour,	-- ^ The physical colour of the dark pieces.
+	getLightPieceColour	:: Colour.PhysicalColour.PhysicalColour,	-- ^ The physical colour of the light pieces.
+	getDarkSquareColour	:: Colour.PhysicalColour.PhysicalColour,	-- ^ The physical colour of the dark squares of the board.
+	getLightSquareColour	:: Colour.PhysicalColour.PhysicalColour		-- ^ The physical colour of the light squares of the board.
 } deriving Eq
 
 instance Control.DeepSeq.NFData ColourScheme where
@@ -105,9 +105,9 @@ instance Show ColourScheme where
 
 instance Data.Default.Default ColourScheme where
 	def = MkColourScheme {
-		getDarkPieceColour	= Attribute.PhysicalColour.blue,
+		getDarkPieceColour	= Colour.PhysicalColour.blue,
 		getLightPieceColour	= Property.Opposable.getOpposite $ getDarkPieceColour Data.Default.def,
-		getDarkSquareColour	= Attribute.PhysicalColour.black,
+		getDarkSquareColour	= Colour.PhysicalColour.black,
 		getLightSquareColour	= Property.Opposable.getOpposite $ getDarkSquareColour Data.Default.def
 	}
 
@@ -139,15 +139,15 @@ instance HXT.XmlPickler ColourScheme where
 
 -- | Smart constructor.
 mkColourScheme
-	:: Attribute.PhysicalColour.PhysicalColour	-- ^ Dark piece.
-	-> Attribute.PhysicalColour.PhysicalColour	-- ^ Light piece.
-	-> Attribute.PhysicalColour.PhysicalColour	-- ^ Dark square.
-	-> Attribute.PhysicalColour.PhysicalColour	-- ^ Light square.
+	:: Colour.PhysicalColour.PhysicalColour	-- ^ Dark piece.
+	-> Colour.PhysicalColour.PhysicalColour	-- ^ Light piece.
+	-> Colour.PhysicalColour.PhysicalColour	-- ^ Dark square.
+	-> Colour.PhysicalColour.PhysicalColour	-- ^ Light square.
 	-> ColourScheme
 mkColourScheme darkPieceColour lightPieceColour darkSquareColour lightSquareColour
-	| darkPieceColour `elem` bgColours		= Control.Exception.throw . Data.Exception.mkIncompatibleData . showString "BishBosh.Attribute.ColourScheme.mkColourScheme:\t" . showString darkPieceColourTag . Text.ShowList.showsAssociation . shows darkPieceColour . showString " must differ from the physical colour of both squares; " $ shows bgColours "."
-	| lightPieceColour `elem` bgColours		= Control.Exception.throw . Data.Exception.mkIncompatibleData . showString "BishBosh.Attribute.ColourScheme.mkColourScheme:\t" . showString lightPieceColourTag . Text.ShowList.showsAssociation . shows lightPieceColour . showString " must differ from the physical colour of both squares; " $ shows bgColours "."
-	| darkSquareColour == lightSquareColour		= Control.Exception.throw . Data.Exception.mkIncompatibleData . showString "BishBosh.Attribute.ColourScheme.mkColourScheme:\tthe physical colours of " . shows lightSquareColourTag . showString " & " $ shows darkSquareColourTag ", must differ."
+	| darkPieceColour `elem` bgColours		= Control.Exception.throw . Data.Exception.mkIncompatibleData . showString "BishBosh.Colour.ColourScheme.mkColourScheme:\t" . showString darkPieceColourTag . Text.ShowList.showsAssociation . shows darkPieceColour . showString " must differ from the physical colour of both squares; " $ shows bgColours "."
+	| lightPieceColour `elem` bgColours		= Control.Exception.throw . Data.Exception.mkIncompatibleData . showString "BishBosh.Colour.ColourScheme.mkColourScheme:\t" . showString lightPieceColourTag . Text.ShowList.showsAssociation . shows lightPieceColour . showString " must differ from the physical colour of both squares; " $ shows bgColours "."
+	| darkSquareColour == lightSquareColour		= Control.Exception.throw . Data.Exception.mkIncompatibleData . showString "BishBosh.Colour.ColourScheme.mkColourScheme:\tthe physical colours of " . shows lightSquareColourTag . showString " & " $ shows darkSquareColourTag ", must differ."
 	| otherwise					= MkColourScheme {
 		getDarkPieceColour	= darkPieceColour,
 		getLightPieceColour	= lightPieceColour,

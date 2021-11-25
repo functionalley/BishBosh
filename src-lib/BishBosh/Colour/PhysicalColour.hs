@@ -27,7 +27,7 @@
 	but is limited in practice, since the terminal (optionally) used to render the image, typically can't cope with with a large number.
 -}
 
-module BishBosh.Attribute.PhysicalColour(
+module BishBosh.Colour.PhysicalColour(
 -- * Types
 -- ** Data-types
 	PhysicalColour(),

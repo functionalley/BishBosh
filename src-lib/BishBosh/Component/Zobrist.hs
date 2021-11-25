@@ -51,12 +51,12 @@ module BishBosh.Component.Zobrist(
 
 import			Control.Arrow((***))
 import			Data.Array.IArray((!))
-import qualified	BishBosh.Attribute.LogicalColour	as Attribute.LogicalColour
-import qualified	BishBosh.Attribute.Rank			as Attribute.Rank
-import qualified	BishBosh.Cartesian.Abscissa		as Cartesian.Abscissa
-import qualified	BishBosh.Cartesian.Coordinates		as Cartesian.Coordinates
-import qualified	BishBosh.Data.Exception			as Data.Exception
-import qualified	BishBosh.Type.Length			as Type.Length
+import qualified	BishBosh.Attribute.Rank		as Attribute.Rank
+import qualified	BishBosh.Cartesian.Abscissa	as Cartesian.Abscissa
+import qualified	BishBosh.Cartesian.Coordinates	as Cartesian.Coordinates
+import qualified	BishBosh.Colour.LogicalColour	as Colour.LogicalColour
+import qualified	BishBosh.Data.Exception		as Data.Exception
+import qualified	BishBosh.Type.Length		as Type.Length
 import qualified	Control.Exception
 import qualified	Data.Array.IArray
 import qualified	Data.Bits
@@ -66,15 +66,15 @@ import qualified	System.Random
 import qualified	ToolShed.System.Random
 
 -- | Used as an index into 'getRandomByCoordinatesByRankByLogicalColour'.
-type Index	= (Attribute.LogicalColour.LogicalColour, Attribute.Rank.Rank, Cartesian.Coordinates.Coordinates)
+type Index	= (Colour.LogicalColour.LogicalColour, Attribute.Rank.Rank, Cartesian.Coordinates.Coordinates)
 
 -- | The random numbers used to generate a hash, which almost uniquely represent a /position/.
 data Zobrist positionHash	= MkZobrist {
-	getRandomForBlacksMove				:: positionHash,									-- ^ Defines a random number to apply when the next move is @Black@'s.
-	getRandomByCoordinatesByRankByLogicalColour	:: Data.Array.IArray.Array {-Boxed-} Index positionHash,				-- ^ Defines random numbers to represent all combinations of each piece at each coordinate; though @Pawn@s can't exist on the terminal ranks. N.B.: regrettably the array can't be unboxed, because 'Data.Array.Unboxed.UArray' isn't 'Foldable'; cf. 'Data.Array.IArray.Array'.
+	getRandomForBlacksMove				:: positionHash,								-- ^ Defines a random number to apply when the next move is @Black@'s.
+	getRandomByCoordinatesByRankByLogicalColour	:: Data.Array.IArray.Array {-Boxed-} Index positionHash,			-- ^ Defines random numbers to represent all combinations of each piece at each coordinate; though @Pawn@s can't exist on the terminal ranks. N.B.: regrettably the array can't be unboxed, because 'Data.Array.Unboxed.UArray' isn't 'Foldable'; cf. 'Data.Array.IArray.Array'.
 
-	getRandomByCastleableRooksXByLogicalColour	:: Attribute.LogicalColour.ArrayByLogicalColour [(Type.Length.X, positionHash)],	-- ^ Defines random numbers to represent all combinations of castleable @Rook@s.
-	getRandomByEnPassantAbscissa			:: Data.Array.IArray.Array Type.Length.X positionHash					-- ^ Defines random numbers to represent any file on which capture en-passant might be available.
+	getRandomByCastleableRooksXByLogicalColour	:: Colour.LogicalColour.ArrayByLogicalColour [(Type.Length.X, positionHash)],	-- ^ Defines random numbers to represent all combinations of castleable @Rook@s.
+	getRandomByEnPassantAbscissa			:: Data.Array.IArray.Array Type.Length.X positionHash				-- ^ Defines random numbers to represent any file on which capture en-passant might be available.
 } deriving Show
 
 instance Foldable Zobrist where
@@ -133,7 +133,7 @@ mkZobrist maybeMinimumHammingDistance randomGen
 			) . System.Random.split
 		 ) *** (
 			(
-				Attribute.LogicalColour.listArrayByLogicalColour . map (
+				Colour.LogicalColour.listArrayByLogicalColour . map (
 					zip [Cartesian.Abscissa.xMin, Cartesian.Abscissa.xMax] . System.Random.randoms
 				) . ToolShed.System.Random.randomGens *** Cartesian.Abscissa.listArrayByAbscissa . System.Random.randoms
 			) . System.Random.split
@@ -152,7 +152,7 @@ dereferenceRandomByCoordinatesByRankByLogicalColour index MkZobrist { getRandomB
 
 -- | Dereferences 'getRandomByCastleableRooksXByLogicalColour' using the specified abscissa.
 dereferenceRandomByCastleableRooksXByLogicalColour
-	:: Attribute.LogicalColour.LogicalColour
+	:: Colour.LogicalColour.LogicalColour
 	-> Type.Length.X
 	-> Zobrist positionHash
 	-> Maybe positionHash	-- ^ The existence of a result depends on whether there remain any Rooks which can castle.

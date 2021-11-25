@@ -23,30 +23,30 @@
  [@DESCRIPTION@]	Implements 'Test.QuickCheck.Arbitrary' & defines /QuickCheck/-properties.
 -}
 
-module BishBosh.Test.QuickCheck.Attribute.LogicalColour(
+module BishBosh.Test.QuickCheck.Colour.LogicalColour(
 -- * Constants
 	results
 ) where
 
 import			Control.Arrow((&&&))
-import qualified	BishBosh.Attribute.LogicalColour	as Attribute.LogicalColour
+import qualified	BishBosh.Colour.LogicalColour		as Colour.LogicalColour
 import qualified	BishBosh.Property.FixedMembership	as Property.FixedMembership
 import qualified	BishBosh.Property.ForsythEdwards	as Property.ForsythEdwards
 import qualified	BishBosh.Property.Opposable		as Property.Opposable
 import qualified	Test.QuickCheck
 
-instance Test.QuickCheck.Arbitrary Attribute.LogicalColour.LogicalColour where
+instance Test.QuickCheck.Arbitrary Colour.LogicalColour.LogicalColour where
 	arbitrary	= Test.QuickCheck.elements Property.FixedMembership.members
 
 -- | The constant test-results for this data-type.
 results :: IO [Test.QuickCheck.Result]
 results	= sequence [
 	let
-		f :: Attribute.LogicalColour.LogicalColour -> Test.QuickCheck.Property
+		f :: Colour.LogicalColour.LogicalColour -> Test.QuickCheck.Property
 		f	= Test.QuickCheck.label "LogicalColour.prop_getOpposite" . uncurry (==) . (Property.Opposable.getOpposite . Property.Opposable.getOpposite &&& id)
 	in Test.QuickCheck.quickCheckWithResult Test.QuickCheck.stdArgs { Test.QuickCheck.maxSuccess = 4 } f,
 	let
-		f :: Attribute.LogicalColour.LogicalColour -> Test.QuickCheck.Property
+		f :: Colour.LogicalColour.LogicalColour -> Test.QuickCheck.Property
 		f logicalColour	= Test.QuickCheck.label "LogicalColour.prop_fen" $ case Property.ForsythEdwards.readsFEN $ Property.ForsythEdwards.showFEN logicalColour of
 			[(logicalColour', "")]	-> logicalColour' == logicalColour
 			_			-> False

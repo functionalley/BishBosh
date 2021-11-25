@@ -54,12 +54,12 @@ module BishBosh.State.CastleableRooksByLogicalColour(
 ) where
 
 import			Control.Arrow((&&&))
-import qualified	BishBosh.Attribute.LogicalColour		as Attribute.LogicalColour
 import qualified	BishBosh.Attribute.MoveType			as Attribute.MoveType
 import qualified	BishBosh.Attribute.Rank				as Attribute.Rank
 import qualified	BishBosh.Cartesian.Abscissa			as Cartesian.Abscissa
 import qualified	BishBosh.Cartesian.Coordinates			as Cartesian.Coordinates
 import qualified	BishBosh.Cartesian.Ordinate			as Cartesian.Ordinate
+import qualified	BishBosh.Colour.LogicalColour			as Colour.LogicalColour
 import qualified	BishBosh.Component.Move				as Component.Move
 import qualified	BishBosh.Component.Piece			as Component.Piece
 import qualified	BishBosh.Component.QualifiedMove		as Component.QualifiedMove
@@ -93,18 +93,18 @@ import qualified	Data.Ord
 
 	* N.B.: both the outer list (indexed by logical colour) & the inner list of abscissae, are kept ordered, otherwise the derived instance of 'Eq' would be unpredictable.
 -}
-type AbscissaeByLogicalColour	= [(Attribute.LogicalColour.LogicalColour, [Type.Length.X])]
+type AbscissaeByLogicalColour	= [(Colour.LogicalColour.LogicalColour, [Type.Length.X])]
 
 -- | Ensure a predictable order, to facilitate '(==)'.
 sortByLogicalColour :: AbscissaeByLogicalColour -> AbscissaeByLogicalColour
 sortByLogicalColour	= Data.List.sortBy $ Data.Ord.comparing fst {-logicalColour-}
 
 -- | Update to account for the specified player castling.
-castle :: Attribute.LogicalColour.LogicalColour -> AbscissaeByLogicalColour -> AbscissaeByLogicalColour
+castle :: Colour.LogicalColour.LogicalColour -> AbscissaeByLogicalColour -> AbscissaeByLogicalColour
 castle logicalColour	= filter $ (/= logicalColour) . fst {-logicalColour-}	-- N.B.: if 'Data.List.deleteBy' took a simple predicate, it would have been ideal.
 
 -- | Update to account for the specified player losing the right to castle.
-relinquishCastlingRights :: Attribute.LogicalColour.LogicalColour -> AbscissaeByLogicalColour -> AbscissaeByLogicalColour
+relinquishCastlingRights :: Colour.LogicalColour.LogicalColour -> AbscissaeByLogicalColour -> AbscissaeByLogicalColour
 relinquishCastlingRights logicalColour	= map $ \pair@(logicalColour', _) -> (
 	if logicalColour' == logicalColour
 		then Control.Arrow.second $ const []
@@ -113,7 +113,7 @@ relinquishCastlingRights logicalColour	= map $ \pair@(logicalColour', _) -> (
 
 -- | Remove the right to castle, from the referenced @Rook@.
 removeX
-	:: Attribute.LogicalColour.LogicalColour
+	:: Colour.LogicalColour.LogicalColour
 	-> Type.Length.X
 	-> AbscissaeByLogicalColour
 	-> AbscissaeByLogicalColour
@@ -125,7 +125,7 @@ removeX logicalColour x	= map $ \pair@(logicalColour', _) -> (
 
 -- | Predicate.
 canCastleWith'
-	:: Attribute.LogicalColour.LogicalColour
+	:: Colour.LogicalColour.LogicalColour
 	-> Type.Length.X	-- ^ @Rook@'s abscissa.
 	-> AbscissaeByLogicalColour
 	-> Bool
@@ -197,7 +197,7 @@ instance Property.ExtendedPositionDescription.ShowsEPD CastleableRooksByLogicalC
 			(.) . Property.ExtendedPositionDescription.showsEPD
 		) id [
 			pieceConstructor logicalColour |
-				logicalColour			<- [Attribute.LogicalColour.White, Attribute.LogicalColour.Black],	-- N.B.: the order is standardised.
+				logicalColour			<- [Colour.LogicalColour.White, Colour.LogicalColour.Black],	-- N.B.: the order is standardised.
 				(rooksX, pieceConstructor)	<- [(Cartesian.Abscissa.xMax, Component.Piece.mkKing), (Cartesian.Abscissa.xMin, Component.Piece.mkQueen)],	-- N.B.: the order is defined as King-side (short) before Queen-side (long), which is also alphabetical.
 				canCastleWith' logicalColour rooksX assocs
 		] -- List-comprehension.
@@ -284,22 +284,22 @@ fromTurnsByLogicalColour turnsByLogicalColour	= MkCastleableRooksByLogicalColour
 	haveMovedTo coordinates		= any $ (== coordinates) . Component.Move.getDestination . Component.QualifiedMove.getMove . Component.Turn.getQualifiedMove
 
 -- | Predicate.
-hasCastled :: Attribute.LogicalColour.LogicalColour -> CastleableRooksByLogicalColour -> Bool
+hasCastled :: Colour.LogicalColour.LogicalColour -> CastleableRooksByLogicalColour -> Bool
 hasCastled logicalColour MkCastleableRooksByLogicalColour { getAssocs = assocs }	= all ((/= logicalColour) . fst) assocs
 
 -- | Predicate.
-canCastle :: Attribute.LogicalColour.LogicalColour -> CastleableRooksByLogicalColour -> Bool
+canCastle :: Colour.LogicalColour.LogicalColour -> CastleableRooksByLogicalColour -> Bool
 canCastle logicalColour MkCastleableRooksByLogicalColour { getAssocs = assocs }	= Data.Maybe.maybe False {-has castled-} (not . null) $ lookup logicalColour assocs
 
 -- | Infer the @Rook@'s ordinate from the /piece/'s /logical colour/.
-inferRooksOrdinate :: Attribute.LogicalColour.LogicalColour -> Type.Length.Y
+inferRooksOrdinate :: Colour.LogicalColour.LogicalColour -> Type.Length.Y
 inferRooksOrdinate logicalColour
-	| Attribute.LogicalColour.isBlack logicalColour	= Cartesian.Ordinate.yMax
+	| Colour.LogicalColour.isBlack logicalColour	= Cartesian.Ordinate.yMax
 	| otherwise					= Cartesian.Ordinate.yMin
 
 -- | Predicate.
 canCastleWith
-	:: Attribute.LogicalColour.LogicalColour
+	:: Colour.LogicalColour.LogicalColour
 	-> Cartesian.Coordinates.Coordinates	-- ^ @Rook@'s coordinates.
 	-> CastleableRooksByLogicalColour
 	-> Bool
@@ -308,7 +308,7 @@ canCastleWith logicalColour rookSource MkCastleableRooksByLogicalColour { getAss
  ) $ lookup logicalColour assocs
 
 -- | Find the abscissae of all @Rook@s of the specified /logical colour/, which can still participate in castling.
-locateForLogicalColour :: Attribute.LogicalColour.LogicalColour -> CastleableRooksByLogicalColour -> Maybe [Type.Length.X]
+locateForLogicalColour :: Colour.LogicalColour.LogicalColour -> CastleableRooksByLogicalColour -> Maybe [Type.Length.X]
 {-# INLINE locateForLogicalColour #-}
 locateForLogicalColour logicalColour MkCastleableRooksByLogicalColour { getAssocs = assocs }	= lookup logicalColour assocs
 
@@ -329,7 +329,7 @@ unify MkCastleableRooksByLogicalColour { getAssocs = assocs }	= MkCastleableRook
 
 -- | Update with the latest /turn/.
 takeTurn
-	:: Attribute.LogicalColour.LogicalColour	-- ^ Defines the side who took the specified turn.
+	:: Colour.LogicalColour.LogicalColour	-- ^ Defines the side who took the specified turn.
 	-> Component.Turn.Turn
 	-> Transformation
 takeTurn logicalColour turn MkCastleableRooksByLogicalColour { getAssocs = assocs }	= MkCastleableRooksByLogicalColour $ (

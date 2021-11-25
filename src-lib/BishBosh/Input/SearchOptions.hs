@@ -81,7 +81,7 @@ module BishBosh.Input.SearchOptions(
 import			BishBosh.Data.Bool()		-- For 'HXT.xpickle'.
 import			Control.Arrow((***))
 import qualified	BishBosh.Attribute.CaptureMoveSortAlgorithm	as Attribute.CaptureMoveSortAlgorithm
-import qualified	BishBosh.Attribute.LogicalColour		as Attribute.LogicalColour
+import qualified	BishBosh.Colour.LogicalColour			as Colour.LogicalColour
 import qualified	BishBosh.Data.Exception				as Data.Exception
 import qualified	BishBosh.Data.Foldable
 import qualified	BishBosh.Input.StandardOpeningOptions		as Input.StandardOpeningOptions
@@ -137,7 +137,7 @@ searchDepthTag				= "searchDepth"
 
 -- | Used to qualify XML.
 searchDepthByLogicalColourTag :: String
-searchDepthByLogicalColourTag		= showString searchDepthTag . showString "By" $ Text.Case.toUpperInitial Attribute.LogicalColour.tag
+searchDepthByLogicalColourTag		= showString searchDepthTag . showString "By" $ Text.Case.toUpperInitial Colour.LogicalColour.tag
 
 -- | The constant minimum permissible search-depth.
 minimumSearchDepth :: Type.Count.NPlies
@@ -170,7 +170,7 @@ type UsePondering			= Bool
 type MaybeUseTranspositions		= Maybe (Type.Count.NMoves, Type.Count.NPlies)
 
 -- | The depth to search for each /logical colour/.
-type SearchDepthByLogicalColour		= Map.Map Attribute.LogicalColour.LogicalColour Type.Count.NPlies
+type SearchDepthByLogicalColour		= Map.Map Colour.LogicalColour.LogicalColour Type.Count.NPlies
 
 -- | Defines options related to searching for a move.
 data SearchOptions	= MkSearchOptions {
@@ -308,11 +308,11 @@ instance HXT.XmlPickler SearchOptions where
 					duplicateLogicalColours	= BishBosh.Data.Foldable.findDuplicates $ map fst {-logicalColour-} l
 				in if null duplicateLogicalColours
 					then l
-					else Control.Exception.throw . Data.Exception.mkDuplicateData . showString "BishBosh.Input.SearchOptions.xpickle:\t" . showString Attribute.LogicalColour.tag . showString "s must be distinct; " $ shows duplicateLogicalColours "."
+					else Control.Exception.throw . Data.Exception.mkDuplicateData . showString "BishBosh.Input.SearchOptions.xpickle:\t" . showString Colour.LogicalColour.tag . showString "s must be distinct; " $ shows duplicateLogicalColours "."
 			),	-- Construct from a List.
 			Map.toList		-- Deconstruct to an association-list.
 		) . HXT.xpList {-potentially null-} . HXT.xpElem (
-			showString "by" $ Text.Case.toUpperInitial Attribute.LogicalColour.tag
+			showString "by" $ Text.Case.toUpperInitial Colour.LogicalColour.tag
 		) $ HXT.xpickle {-LogicalColour-} `HXT.xpPair` HXT.xpAttr searchDepthTag HXT.xpickle {-NPlies-}
 	 ) where
 		def	= Data.Default.def
@@ -330,14 +330,14 @@ mkSearchOptions
 	-> SearchDepthByLogicalColour
 	-> SearchOptions
 mkSearchOptions sortOnStandardOpeningMoveFrequency maybeCaptureMoveSortAlgorithm maybeMinimumHammingDistance maybeRetireKillerMovesAfter trapRepeatedPositions usePondering maybeUseTranspositions standardOpeningOptions searchDepthByLogicalColour
-	| Just minimumHammingDistance		<- maybeMinimumHammingDistance
+	| Just minimumHammingDistance			<- maybeMinimumHammingDistance
 	, minimumHammingDistance < 1	= Control.Exception.throw . Data.Exception.mkOutOfBounds . showString "BishBosh.Input.SearchOptions.mkSearchOptions:\t" . showString minimumHammingDistanceTag . Text.ShowList.showsAssociation $ shows minimumHammingDistance " must exceed zero."
-	| Just retireKillerMovesAfter		<- maybeRetireKillerMovesAfter
+	| Just retireKillerMovesAfter			<- maybeRetireKillerMovesAfter
 	, retireKillerMovesAfter < 0	= Control.Exception.throw . Data.Exception.mkOutOfBounds . showString "BishBosh.Input.SearchOptions.mkSearchOptions:\t" . showString retireKillerMovesAfterTag . Text.ShowList.showsAssociation $ shows retireKillerMovesAfter " can't be negative."
 	| let nAutomatedPlayers	= Data.Foldable.length searchDepthByLogicalColour
 	, usePondering && nAutomatedPlayers /= 1
 	= Control.Exception.throw . Data.Exception.mkIncompatibleData . showString "BishBosh.Input.SearchOptions.mkSearchOptions:\tpondering is pointless unless there's an automated player who can use the unused CPU-time during a manual player's move, but there're " $ shows nAutomatedPlayers " automated players."
-	| Just (retireTranspositionsAfter, _)	<- maybeUseTranspositions
+	| Just (retireTranspositionsAfter, _)		<- maybeUseTranspositions
 	, retireTranspositionsAfter < 0	= Control.Exception.throw . Data.Exception.mkOutOfBounds . showString "BishBosh.Input.SearchOptions.mkSearchOptions:\t" . showString retireTranspositionsAfterTag . Text.ShowList.showsAssociation $ shows retireTranspositionsAfter " can't be negative."
 	| Just (_, minimumTranspositionSearchDepth)	<- maybeUseTranspositions
 	, minimumTranspositionSearchDepth < 1	= Control.Exception.throw . Data.Exception.mkOutOfBounds . showString "BishBosh.Input.SearchOptions.mkSearchOptions:\t" . showString minimumTranspositionSearchDepthTag . Text.ShowList.showsAssociation $ shows minimumTranspositionSearchDepth " must exceed zero."
@@ -398,7 +398,7 @@ swapSearchDepth searchOptions@MkSearchOptions {
 }
 
 -- | Extract those /logical colour/s for which a search-depth has been defined, which implies that the corresponding player is automated.
-identifyAutomatedPlayers :: SearchOptions -> [Attribute.LogicalColour.LogicalColour]
+identifyAutomatedPlayers :: SearchOptions -> [Colour.LogicalColour.LogicalColour]
 identifyAutomatedPlayers MkSearchOptions {
 	getSearchDepthByLogicalColour	= searchDepthByLogicalColour
 } = Map.keys searchDepthByLogicalColour

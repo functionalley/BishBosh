@@ -48,14 +48,14 @@ module BishBosh.Cartesian.Vector(
 ) where
 
 import			Control.Arrow((***))
-import qualified	BishBosh.Attribute.LogicalColour	as Attribute.LogicalColour
-import qualified	BishBosh.Cartesian.Coordinates		as Cartesian.Coordinates
-import qualified	BishBosh.Data.Exception			as Data.Exception
-import qualified	BishBosh.Direction.Direction		as Direction.Direction
-import qualified	BishBosh.Property.Opposable		as Property.Opposable
-import qualified	BishBosh.Property.Orientated		as Property.Orientated
-import qualified	BishBosh.Text.ShowList			as Text.ShowList
-import qualified	BishBosh.Type.Length			as Type.Length
+import qualified	BishBosh.Cartesian.Coordinates	as Cartesian.Coordinates
+import qualified	BishBosh.Colour.LogicalColour	as Colour.LogicalColour
+import qualified	BishBosh.Data.Exception		as Data.Exception
+import qualified	BishBosh.Direction.Direction	as Direction.Direction
+import qualified	BishBosh.Property.Opposable	as Property.Opposable
+import qualified	BishBosh.Property.Orientated	as Property.Orientated
+import qualified	BishBosh.Text.ShowList		as Text.ShowList
+import qualified	BishBosh.Type.Length		as Type.Length
 import qualified	Control.DeepSeq
 import qualified	Control.Exception
 
@@ -108,12 +108,12 @@ measureDistance source destination	= uncurry MkVector $ Cartesian.Coordinates.me
 
 	* N.B.: the @Pawn@'s ability to advance without taking, isn't dealt with here.
 -}
-attackVectorsForPawn :: Attribute.LogicalColour.LogicalColour -> [Vector]
+attackVectorsForPawn :: Colour.LogicalColour.LogicalColour -> [Vector]
 attackVectorsForPawn logicalColour	= [
 	MkVector {
 		getXDistance	= x,
 		getYDistance	= (
-			if Attribute.LogicalColour.isBlack logicalColour
+			if Colour.LogicalColour.isBlack logicalColour
 				then negate	-- Black moves down.
 				else id		-- White moves up.
 		) 1
@@ -146,12 +146,12 @@ attackVectorsForKing	= [
 
 	* CAVEAT: if the move started at the first rank, then it can't be a @Pawn@, but that's beyond the scope of this module (since a /Vector/ doesn't define absolute /coordinate/s).
 -}
-isPawnAttack :: Attribute.LogicalColour.LogicalColour -> Vector -> Bool
+isPawnAttack :: Colour.LogicalColour.LogicalColour -> Vector -> Bool
 {-# INLINE isPawnAttack #-}
 isPawnAttack logicalColour MkVector {
 	getXDistance	= xDistance,
 	getYDistance	= yDistance
-} = abs xDistance == 1 && yDistance == if Attribute.LogicalColour.isBlack logicalColour
+} = abs xDistance == 1 && yDistance == if Colour.LogicalColour.isBlack logicalColour
 	then negate 1
 	else 1
 
@@ -180,11 +180,11 @@ isKingsMove MkVector {
 
 	* CAVEAT: passing this test doesn't guarantee that it is a @Pawn@'s double-advance move, since the move may not relate to a @Pawn@, or could be invalid.
 -}
-matchesPawnDoubleAdvance :: Attribute.LogicalColour.LogicalColour -> Vector -> Bool
+matchesPawnDoubleAdvance :: Colour.LogicalColour.LogicalColour -> Vector -> Bool
 matchesPawnDoubleAdvance logicalColour MkVector {
 	getXDistance	= 0,
 	getYDistance	= yDistance
-}				= yDistance == if Attribute.LogicalColour.isBlack logicalColour then negate 2 else 2
+}				= yDistance == if Colour.LogicalColour.isBlack logicalColour then negate 2 else 2
 matchesPawnDoubleAdvance _ _	= False
 
 -- | Translate the specified /coordinates/ by the specified /vector/.

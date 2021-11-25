@@ -46,10 +46,10 @@ module BishBosh.Component.PieceSquareByCoordinatesByRank(
 
 import			Control.Arrow((&&&), (|||))
 import			Data.Array.IArray((!))
-import qualified	BishBosh.Attribute.LogicalColour	as Attribute.LogicalColour
 import qualified	BishBosh.Attribute.Rank			as Attribute.Rank
 import qualified	BishBosh.Cartesian.Abscissa		as Cartesian.Abscissa
 import qualified	BishBosh.Cartesian.Coordinates		as Cartesian.Coordinates
+import qualified	BishBosh.Colour.LogicalColour		as Colour.LogicalColour
 import qualified	BishBosh.Component.Piece		as Component.Piece
 import qualified	BishBosh.Property.FixedMembership	as Property.FixedMembership
 import qualified	BishBosh.Property.Reflectable		as Property.Reflectable
@@ -79,7 +79,7 @@ type PieceSquareValueByNPieces =
 nPiecesBounds :: (Type.Count.NPieces, Type.Count.NPieces)
 nPiecesBounds	= (
 	3 {-minimum sufficient material-},
-	fromIntegral Attribute.LogicalColour.nDistinctLogicalColours * Component.Piece.nPiecesPerSide
+	fromIntegral Colour.LogicalColour.nDistinctLogicalColours * Component.Piece.nPiecesPerSide
  )
 
 -- | Self-documentation.
@@ -116,16 +116,16 @@ mkPieceSquareByCoordinatesByRank	= MkPieceSquareByCoordinatesByRank . Attribute.
 -- | Find the piece-square value, at a stage in the game's lifetime defined by the total number of pieces remaining, for the specified /rank/ & /coordinates/.
 findPieceSquareValue
 	:: PieceSquareByCoordinatesByRank
-	-> Type.Count.NPieces				-- ^ The progress through the game.
-	-> Attribute.LogicalColour.LogicalColour	-- ^ The /piece/'s /logical colour/.
-	-> Attribute.Rank.Rank				-- ^ The /piece/'s /rank/.
-	-> Cartesian.Coordinates.Coordinates		-- ^ The /piece/'s location.
+	-> Type.Count.NPieces			-- ^ The progress through the game.
+	-> Colour.LogicalColour.LogicalColour	-- ^ The /piece/'s /logical colour/.
+	-> Attribute.Rank.Rank			-- ^ The /piece/'s /rank/.
+	-> Cartesian.Coordinates.Coordinates	-- ^ The /piece/'s location.
 	-> Type.Mass.PieceSquareValue
 findPieceSquareValue MkPieceSquareByCoordinatesByRank { deconstruct = byRank } nPieces logicalColour rank	= (
 	(!) ||| (
 		\byNPiecesByCoordinates	-> (! nPieces) . (byNPiecesByCoordinates !)
 	) $ byRank ! rank
- ) . if Attribute.LogicalColour.isBlack logicalColour
+ ) . if Colour.LogicalColour.isBlack logicalColour
 	then Property.Reflectable.reflectOnX
 	else id
 

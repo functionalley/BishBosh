@@ -27,7 +27,7 @@
 	* N.B.: conceptually different from the logical colour of squares on the board.
 -}
 
-module BishBosh.Attribute.LogicalColour(
+module BishBosh.Colour.LogicalColour(
 -- * Types
 -- ** Type-synonyms
 	ArrayByLogicalColour,

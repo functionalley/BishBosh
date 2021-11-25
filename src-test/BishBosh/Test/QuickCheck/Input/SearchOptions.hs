@@ -26,7 +26,7 @@
 module BishBosh.Test.QuickCheck.Input.SearchOptions() where
 
 import			BishBosh.Test.QuickCheck.Attribute.CaptureMoveSortAlgorithm()
-import			BishBosh.Test.QuickCheck.Attribute.LogicalColour()
+import			BishBosh.Test.QuickCheck.Colour.LogicalColour()
 import			BishBosh.Test.QuickCheck.Input.StandardOpeningOptions()
 import			Control.Arrow((***))
 import qualified	BishBosh.Input.SearchOptions	as Input.SearchOptions

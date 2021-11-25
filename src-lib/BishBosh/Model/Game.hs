@@ -88,12 +88,12 @@ module BishBosh.Model.Game(
 ) where
 
 import			Control.Arrow((&&&), (***), (|||))
-import qualified	BishBosh.Attribute.LogicalColour		as Attribute.LogicalColour
 import qualified	BishBosh.Attribute.MoveType			as Attribute.MoveType
 import qualified	BishBosh.Attribute.Rank				as Attribute.Rank
 import qualified	BishBosh.Cartesian.Abscissa			as Cartesian.Abscissa
 import qualified	BishBosh.Cartesian.Coordinates			as Cartesian.Coordinates
 import qualified	BishBosh.Cartesian.Vector			as Cartesian.Vector
+import qualified	BishBosh.Colour.LogicalColour			as Colour.LogicalColour
 import qualified	BishBosh.Component.CastlingMove			as Component.CastlingMove
 import qualified	BishBosh.Component.EitherQualifiedMove		as Component.EitherQualifiedMove
 import qualified	BishBosh.Component.Move				as Component.Move
@@ -172,7 +172,7 @@ sortAvailableQualifiedMoves :: AvailableQualifiedMoves -> AvailableQualifiedMove
 sortAvailableQualifiedMoves	= Map.map . Data.List.sortBy $ Data.Ord.comparing fst {-destination-}
 
 -- | The /move/s available to both players.
-type AvailableQualifiedMovesByLogicalColour	= Map.Map Attribute.LogicalColour.LogicalColour AvailableQualifiedMoves
+type AvailableQualifiedMovesByLogicalColour	= Map.Map Colour.LogicalColour.LogicalColour AvailableQualifiedMoves
 
 {- |
 	* The first three fields represent the state of the /game/.
@@ -182,11 +182,11 @@ type AvailableQualifiedMovesByLogicalColour	= Map.Map Attribute.LogicalColour.Lo
 	* For efficiency the list of available /move/s is stored.
 -}
 data Game	= MkGame {
-	getNextLogicalColour				:: Attribute.LogicalColour.LogicalColour,				-- ^ N.B.: can be derived from 'getTurnsByLogicalColour', unless 'Property.Reflectable.reflectOnX' has been called.
+	getNextLogicalColour				:: Colour.LogicalColour.LogicalColour,					-- ^ N.B.: can be derived from 'getTurnsByLogicalColour', unless 'Property.Reflectable.reflectOnX' has been called.
 	getCastleableRooksByLogicalColour		:: State.CastleableRooksByLogicalColour.CastleableRooksByLogicalColour,	-- ^ Those @Rook@s which can still participate in castling.
 	getBoard					:: State.Board.Board,							-- ^ The current state of the /board/.
 	getTurnsByLogicalColour				:: State.CastleableRooksByLogicalColour.TurnsByLogicalColour,		-- ^ Successive /move/s & any /piece/ taken, recorded by player.
-	getMaybeChecked					:: Maybe Attribute.LogicalColour.LogicalColour,				-- ^ The player (if any), whose currently /checked/; which will typically be 'getNextLogicalColour', but 'listQualifiedMovesAvailableTo' can be called for either player.
+	getMaybeChecked					:: Maybe Colour.LogicalColour.LogicalColour,				-- ^ The player (if any), whose currently /checked/; which will typically be 'getNextLogicalColour', but 'listQualifiedMovesAvailableTo' can be called for either player.
 	getInstancesByPosition				:: InstancesByPosition,							-- ^ The number of instances of various positions since the last unrepeatable move.
 	getAvailableQualifiedMovesByLogicalColour	:: AvailableQualifiedMovesByLogicalColour,				-- ^ The /move/s available to each player. Since this is merely required for efficiency, it needn't have an entry for both players; & typically doesn't when checked, since radical pruning would otherwise be required. CAVEAT: doesn't account for game-termination.
 	getMaybeTerminationReason			:: Maybe Rule.GameTerminationReason.GameTerminationReason		-- ^ The reason (where appropriate) why the game was terminated.
@@ -283,7 +283,7 @@ instance Read Game where
 
 instance Data.Default.Default Game where
 	def = (
-		mkGame Attribute.LogicalColour.White Data.Default.def {-castleableRooksByLogicalColour-} Data.Default.def {-board-} Data.Default.def {-turnsByLogicalColour-}
+		mkGame Colour.LogicalColour.White Data.Default.def {-castleableRooksByLogicalColour-} Data.Default.def {-board-} Data.Default.def {-turnsByLogicalColour-}
 	 ) {
 		getMaybeChecked					= Nothing,
 		getAvailableQualifiedMovesByLogicalColour	= Map.fromAscList $ map (
@@ -357,7 +357,7 @@ instance Property.ForsythEdwards.ShowsFEN Game where
 	 } = Text.ShowList.showsDelimitedList Property.ExtendedPositionDescription.showsSeparator id id [
 		Property.ExtendedPositionDescription.showsEPD game,
 		shows $ State.InstancesByPosition.countConsecutiveRepeatablePlies instancesByPosition, -- 5. Half move clock.
-		shows . succ {-the full-move counter starts at '1', before any move has occurred-} . length $ State.TurnsByLogicalColour.dereference Attribute.LogicalColour.Black turnsByLogicalColour	-- 6. Full move counter.
+		shows . succ {-the full-move counter starts at '1', before any move has occurred-} . length $ State.TurnsByLogicalColour.dereference Colour.LogicalColour.Black turnsByLogicalColour	-- 6. Full move counter.
 	 ]
 
 instance Property.Empty.Empty Game where
@@ -401,7 +401,7 @@ instance StateProperty.Hashable.Hashable Game where
 		getCastleableRooksByLogicalColour	= castleableRooksByLogicalColour,
 		getBoard				= board
 	} zobrist	= (
-		if Attribute.LogicalColour.isBlack nextLogicalColour
+		if Colour.LogicalColour.isBlack nextLogicalColour
 			then (Component.Zobrist.getRandomForBlacksMove zobrist :)
 			else id
 	 ) . Data.Maybe.maybe id (
@@ -414,7 +414,7 @@ instance StateProperty.Hashable.Hashable Game where
 
 -- | Smart constructor.
 mkGame
-	:: Attribute.LogicalColour.LogicalColour	-- ^ The player who is required to move next.
+	:: Colour.LogicalColour.LogicalColour	-- ^ The player who is required to move next.
 	-> State.CastleableRooksByLogicalColour.CastleableRooksByLogicalColour
 	-> State.Board.Board
 	-> State.CastleableRooksByLogicalColour.TurnsByLogicalColour
@@ -451,7 +451,7 @@ mkGame nextLogicalColour castleableRooksByLogicalColour board turnsByLogicalColo
 		* There're zero previous turns.
 -}
 fromBoard :: State.Board.Board -> Game
-fromBoard board	= mkGame Attribute.LogicalColour.White (
+fromBoard board	= mkGame Colour.LogicalColour.White (
 	State.CastleableRooksByLogicalColour.fromBoard board
  ) board Property.Empty.empty {-TurnsByLogicalColour-}
 
@@ -484,7 +484,7 @@ maybeLastTurn MkGame {
 
 	* CAVEAT: this is a performance-hotspot; refactor => re-profile.
 -}
-findAvailableCastlingMoves :: Attribute.LogicalColour.LogicalColour -> Game -> [Component.QualifiedMove.QualifiedMove]
+findAvailableCastlingMoves :: Colour.LogicalColour.LogicalColour -> Game -> [Component.QualifiedMove.QualifiedMove]
 findAvailableCastlingMoves logicalColour MkGame {
 	getCastleableRooksByLogicalColour	= castleableRooksByLogicalColour,
 	getBoard				= board,
@@ -544,7 +544,7 @@ takeTurn turn game@MkGame {
 	((move, moveType), sourceRank)	= (Component.QualifiedMove.getMove &&& Component.QualifiedMove.getMoveType) . Component.Turn.getQualifiedMove &&& Component.Turn.getRank $ turn	-- Deconstruct.
 	(source, destination)		= Component.Move.getSource &&& Component.Move.getDestination $ move	-- Deconstruct.
 
-	opponentsLogicalColour :: Attribute.LogicalColour.LogicalColour
+	opponentsLogicalColour :: Colour.LogicalColour.LogicalColour
 	opponentsLogicalColour	= Property.Opposable.getOpposite nextLogicalColour
 
 	inferredRooksMove	= Data.Maybe.maybe (
@@ -827,7 +827,7 @@ validateQualifiedMove qualifiedMove game@MkGame {
 							"it may only have a sideways component during attack"
 						) : (
 							case (
-								if Attribute.LogicalColour.isBlack sourceLogicalColour
+								if Colour.LogicalColour.isBlack sourceLogicalColour
 									then negate
 									else id
 							) $ Cartesian.Vector.getYDistance distance of
@@ -1054,7 +1054,7 @@ rollBack	= Data.List.unfoldr (
 	* CAVEAT: to avoid an infinite loop, this doesn't check whether the game has already terminated.
 -}
 listQualifiedMovesAvailableTo
-	:: Attribute.LogicalColour.LogicalColour	-- ^ Define the player for whom the moves are required.
+	:: Colour.LogicalColour.LogicalColour	-- ^ Define the player for whom the moves are required.
 	-> Game
 	-> [Component.QualifiedMove.QualifiedMove]
 listQualifiedMovesAvailableTo logicalColour game@MkGame {
@@ -1146,7 +1146,7 @@ listQualifiedMovesAvailableTo logicalColour game@MkGame {
 		isSafeQualifiedMove qualifiedMove				= not $ State.Board.exposesKing logicalColour (Component.QualifiedMove.getMove qualifiedMove) board
 
 -- | Construct 'AvailableQualifiedMoves' for the player of the specified /logical colour/.
-mkAvailableQualifiedMovesFor :: Attribute.LogicalColour.LogicalColour -> Game -> AvailableQualifiedMoves
+mkAvailableQualifiedMovesFor :: Colour.LogicalColour.LogicalColour -> Game -> AvailableQualifiedMoves
 mkAvailableQualifiedMovesFor logicalColour	= foldr {-maintains destination-order-} (
 	\qualifiedMove -> let
 		move	= Component.QualifiedMove.getMove qualifiedMove
@@ -1166,7 +1166,7 @@ mkAvailableQualifiedMovesFor logicalColour	= foldr {-maintains destination-order
 	* CAVEAT: doesn't account for game-termination.
 -}
 findQualifiedMovesAvailableTo
-	:: Attribute.LogicalColour.LogicalColour
+	:: Colour.LogicalColour.LogicalColour
 	-> Game
 	-> [Component.QualifiedMove.QualifiedMove]
 findQualifiedMovesAvailableTo logicalColour game@MkGame { getAvailableQualifiedMovesByLogicalColour = availableQualifiedMovesByLogicalColour }
@@ -1178,7 +1178,7 @@ findQualifiedMovesAvailableTo logicalColour game@MkGame { getAvailableQualifiedM
 	| otherwise	= listQualifiedMovesAvailableTo logicalColour game	-- Generate the list of moves for this player.
 
 -- | Count the number of plies available to the specified player.
-countPliesAvailableTo :: Attribute.LogicalColour.LogicalColour -> Game -> Type.Count.NPlies
+countPliesAvailableTo :: Colour.LogicalColour.LogicalColour -> Game -> Type.Count.NPlies
 countPliesAvailableTo logicalColour game@MkGame { getAvailableQualifiedMovesByLogicalColour = availableQualifiedMovesByLogicalColour }
 	| isTerminated game	= 0
 	| Just availableQualifiedMoves	<- Map.lookup logicalColour availableQualifiedMovesByLogicalColour	-- N.B.: 'findQualifiedMovesAvailableToNextPlayer' unnecessarily constructs a list.
@@ -1190,7 +1190,7 @@ findQualifiedMovesAvailableToNextPlayer :: Game -> [Component.QualifiedMove.Qual
 findQualifiedMovesAvailableToNextPlayer game@MkGame { getNextLogicalColour = nextLogicalColour }	= findQualifiedMovesAvailableTo nextLogicalColour game
 
 -- | Let the specified player resign.
-resignationBy :: Attribute.LogicalColour.LogicalColour -> Transformation
+resignationBy :: Colour.LogicalColour.LogicalColour -> Transformation
 resignationBy logicalColour game
 	| isTerminated game	= game	-- Already terminated.
 	| otherwise		= game {

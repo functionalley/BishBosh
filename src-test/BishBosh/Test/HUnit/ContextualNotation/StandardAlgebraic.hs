@@ -29,7 +29,7 @@ module BishBosh.Test.HUnit.ContextualNotation.StandardAlgebraic(
 ) where
 
 import			Control.Arrow((&&&))
-import qualified	BishBosh.Attribute.LogicalColour		as Attribute.LogicalColour
+import qualified	BishBosh.Colour.LogicalColour			as Colour.LogicalColour
 import qualified	BishBosh.Component.EitherQualifiedMove		as Component.EitherQualifiedMove
 import qualified	BishBosh.Component.Move				as Component.Move
 import qualified	BishBosh.Component.QualifiedMove		as Component.QualifiedMove
@@ -111,52 +111,52 @@ testCases	= Test.HUnit.test $ map (
  ) [
 	(
 		"r3k2r/8/8/8/8/8/PPPPPPPP/RNBQK2R",
-		Attribute.LogicalColour.White,
+		Colour.LogicalColour.White,
 		"e1g1c",	-- O-O.
 		Just "!"
 	), (
 		"rnbqk2r/pppppppp/8/8/8/8/8/R3K2R",
-		Attribute.LogicalColour.Black,
+		Colour.LogicalColour.Black,
 		"e8g8c",	-- O-O.
 		Just " ?"
 	), (
 		"r3k2r/8/8/8/8/8/PPPPPPPP/R3KBNR",
-		Attribute.LogicalColour.White,
+		Colour.LogicalColour.White,
 		"e1c1C",	-- O-O-O.
 		Just "!!"
 	), (
 		"r3kbnr/pppppppp/8/8/8/8/8/R3K2R",
-		Attribute.LogicalColour.Black,
+		Colour.LogicalColour.Black,
 		"e8c8C",	-- O-O-O.
 		Just " !?"
 	), (
 		"r3kbnr/8/2R5/1RnR4/2R5/8/8/R3K2R",
-		Attribute.LogicalColour.White,
+		Colour.LogicalColour.White,
 		"b5c5n",	-- Rbxc5.
 		Just "?!"
 	), (
 		"r3kbnr/8/2R5/1RnR4/2R5/8/8/R3K2R",
-		Attribute.LogicalColour.White,
+		Colour.LogicalColour.White,
 		"c4c5n",	-- R4xc5.
 		Just "\t??"
 	), (
 		"r3kbnr/3N1N2/2N3N1/4b3/2N3N1/3N1N2/8/R3K2R",
-		Attribute.LogicalColour.White,
+		Colour.LogicalColour.White,
 		"d3e5b",	-- Nd3xe5.
 		Nothing
 	), (
 		"r3kbnr/8/8/8/3r4/2P1P3/8/R3K2R",
-		Attribute.LogicalColour.White,
+		Colour.LogicalColour.White,
 		"c3d4r",	-- cxd4.
 		Nothing
 	), (
 		"r3kbnr/1P6/8/8/8/8/8/R3K2R",
-		Attribute.LogicalColour.White,
+		Colour.LogicalColour.White,
 		"b7b8N",	-- b8=N.
 		Nothing
 	), (
 		"r3kbnr/1P6/8/8/8/8/8/R3K2R",
-		Attribute.LogicalColour.White,
+		Colour.LogicalColour.White,
 		"b7a8rQ",	-- bxa8=Q+.
 		Nothing
 	)

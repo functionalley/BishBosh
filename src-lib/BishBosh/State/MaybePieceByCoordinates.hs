@@ -56,16 +56,16 @@ import			Control.Applicative((<|>))
 import			Control.Arrow((&&&), (***), (|||))
 import			Control.Category((>>>))
 import			Data.Array.IArray((!), (//))
-import qualified	BishBosh.Attribute.ANSIColourCode			as Attribute.ANSIColourCode
-import qualified	BishBosh.Attribute.ColourScheme				as Attribute.ColourScheme
-import qualified	BishBosh.Attribute.LogicalColour			as Attribute.LogicalColour
-import qualified	BishBosh.Attribute.LogicalColourOfSquare		as Attribute.LogicalColourOfSquare
 import qualified	BishBosh.Attribute.MoveType				as Attribute.MoveType
-import qualified	BishBosh.Attribute.PhysicalColour			as Attribute.PhysicalColour
 import qualified	BishBosh.Attribute.Rank					as Attribute.Rank
 import qualified	BishBosh.Cartesian.Abscissa				as Cartesian.Abscissa
 import qualified	BishBosh.Cartesian.Coordinates				as Cartesian.Coordinates
 import qualified	BishBosh.Cartesian.Ordinate				as Cartesian.Ordinate
+import qualified	BishBosh.Colour.ANSIColourCode				as Colour.ANSIColourCode
+import qualified	BishBosh.Colour.ColourScheme				as Colour.ColourScheme
+import qualified	BishBosh.Colour.LogicalColour				as Colour.LogicalColour
+import qualified	BishBosh.Colour.LogicalColourOfSquare			as Colour.LogicalColourOfSquare
+import qualified	BishBosh.Colour.PhysicalColour				as Colour.PhysicalColour
 import qualified	BishBosh.Component.Accountant				as Component.Accountant
 import qualified	BishBosh.Component.CastlingMove				as Component.CastlingMove
 import qualified	BishBosh.Component.Move					as Component.Move
@@ -113,8 +113,11 @@ newtype MaybePieceByCoordinates	= MkMaybePieceByCoordinates {
 	)
 } deriving (Eq, Ord)
 
--- | Used to separate the /ranks/ of the /board/ as represented by the IO-format <https://en.wikipedia.org/wiki/Forsyth%E2%80%93Edwards_Notation>.
--- | Chops a list into a 2-D list.
+{- |
+	* Used to separate the /ranks/ of the /board/ as represented by the IO-format <https://en.wikipedia.org/wiki/Forsyth%E2%80%93Edwards_Notation>.
+
+	* Chops a list into a 2-D list.
+-}
 listToRaster :: [a] -> [[a]]
 listToRaster	= Data.List.Extra.chunksOf $ fromIntegral Cartesian.Abscissa.xLength {-CAVEAT: this also depends on the raster-order-}
 
@@ -165,17 +168,17 @@ instance Property.ForsythEdwards.ReadsFEN MaybePieceByCoordinates
 instance Property.ForsythEdwards.ShowsFEN MaybePieceByCoordinates
 
 instance Data.Default.Default MaybePieceByCoordinates where
-	def = Property.ForsythEdwards.readFEN . Data.List.intercalate [Property.ExtendedPositionDescription.rankSeparator] $ map ($ Attribute.LogicalColour.Black) [
+	def = Property.ForsythEdwards.readFEN . Data.List.intercalate [Property.ExtendedPositionDescription.rankSeparator] $ map ($ Colour.LogicalColour.Black) [
 		showNobility,
 		showPawnRow
-	 ] ++ replicate 4 "8" ++ map ($ Attribute.LogicalColour.White) [
+	 ] ++ replicate 4 "8" ++ map ($ Colour.LogicalColour.White) [
 		showPawnRow,
 		showNobility
 	 ] where
 		showPieces :: [Component.Piece.Piece] -> String
 		showPieces	= concatMap Property.ForsythEdwards.showFEN
 
-		showPawnRow, showNobility :: Attribute.LogicalColour.LogicalColour -> String
+		showPawnRow, showNobility :: Colour.LogicalColour.LogicalColour -> String
 		showPawnRow logicalColour	= showPieces . replicate (fromIntegral Cartesian.Abscissa.xLength) $ Component.Piece.mkPawn logicalColour
 		showNobility logicalColour	= showPieces $ map (Component.Piece.mkPiece logicalColour) Attribute.Rank.nobility
 
@@ -297,7 +300,7 @@ instance Component.Accountant.Accountant MaybePieceByCoordinates where
 		\(b, w) (coordinates, piece) -> let
 			logicalColour		= Component.Piece.getLogicalColour piece
 			pieceSquareValue	= realToFrac $! Component.PieceSquareByCoordinatesByRank.findPieceSquareValue pieceSquareByCoordinatesByRank nPieces logicalColour (Component.Piece.getRank piece) coordinates
-		in if Attribute.LogicalColour.isBlack logicalColour
+		in if Colour.LogicalColour.isBlack logicalColour
 			then let b' = b + pieceSquareValue in b' `seq` (b', w)
 			else let w' = w + pieceSquareValue in w' `seq` (b, w')
 	 ) (0, 0) . StateProperty.Seeker.findAllPieces
@@ -402,7 +405,7 @@ listDestinationsFor source piece maybePieceByCoordinates@MkMaybePieceByCoordinat
 -- | Show the /board/ in two dimensions, with /x/ & /y/ indexes.
 shows2D
 	:: Type.Length.Column			-- ^ The column-magnification.
-	-> Attribute.ColourScheme.ColourScheme
+	-> Colour.ColourScheme.ColourScheme
 	-> Bool					-- ^ Whether to depict pieces as Unicode figurines.
 	-> (Type.Length.X, Type.Length.Y)	-- ^ The origin from which axes are labelled.
 	-> MaybePieceByCoordinates
@@ -411,16 +414,16 @@ shows2D boardColumnMagnification colourScheme depictFigurine (xOrigin, yOrigin) 
 	foldr (
 		\(y, pairs) showsRow -> showsRow . showString axisGraphicsRendition . showChar y . foldr (
 			\(coordinates, c) acc' -> showString (
-				Attribute.ANSIColourCode.selectGraphicsRendition False {-isBold-} . Attribute.ANSIColourCode.mkBgColourCode $ (
-					if Attribute.LogicalColourOfSquare.isBlack $ Cartesian.Coordinates.getLogicalColourOfSquare coordinates
-						then Attribute.ColourScheme.getDarkSquareColour
-						else Attribute.ColourScheme.getLightSquareColour
+				Colour.ANSIColourCode.selectGraphicsRendition False {-isBold-} . Colour.ANSIColourCode.mkBgColourCode $ (
+					if Colour.LogicalColourOfSquare.isBlack $ Cartesian.Coordinates.getLogicalColourOfSquare coordinates
+						then Colour.ColourScheme.getDarkSquareColour
+						else Colour.ColourScheme.getLightSquareColour
 				) colourScheme
 			) . showString (
-				Attribute.ANSIColourCode.selectGraphicsRendition True {-isBold-} . Attribute.ANSIColourCode.mkFgColourCode $ (
+				Colour.ANSIColourCode.selectGraphicsRendition True {-isBold-} . Colour.ANSIColourCode.mkFgColourCode $ (
 					if Data.Char.isLower c {-Black-}
-						then Attribute.ColourScheme.getDarkPieceColour
-						else Attribute.ColourScheme.getLightPieceColour
+						then Colour.ColourScheme.getDarkPieceColour
+						else Colour.ColourScheme.getLightPieceColour
 				) colourScheme
 			) . let
 				showPadding	= showString (fromIntegral (pred boardColumnMagnification) `replicate` ' ')
@@ -442,16 +445,16 @@ shows2D boardColumnMagnification colourScheme depictFigurine (xOrigin, yOrigin) 
 		fromIntegral Cartesian.Abscissa.xLength
 	) . enumFrom . Data.Char.chr $ fromIntegral xOrigin
  ) where
-	axisGraphicsRendition :: Attribute.ANSIColourCode.GraphicsRendition
-	axisGraphicsRendition	= Attribute.ANSIColourCode.selectGraphicsRendition True {-isBold-} $ Attribute.ANSIColourCode.mkFgColourCode Attribute.PhysicalColour.green
+	axisGraphicsRendition :: Colour.ANSIColourCode.GraphicsRendition
+	axisGraphicsRendition	= Colour.ANSIColourCode.selectGraphicsRendition True {-isBold-} $ Colour.ANSIColourCode.mkFgColourCode Colour.PhysicalColour.green
 
 	showsReset :: ShowS
-	showsReset	= showString $ Attribute.ANSIColourCode.selectGraphicsRendition False Data.Default.def
+	showsReset	= showString $ Colour.ANSIColourCode.selectGraphicsRendition False Data.Default.def
 
 -- | Show the board using a two-dimensional representation.
 show2D
 	:: Type.Length.Column			-- ^ The column-magnification.
-	-> Attribute.ColourScheme.ColourScheme
+	-> Colour.ColourScheme.ColourScheme
 	-> Bool					-- ^ Whether to depict figurines.
 	-> (Type.Length.X, Type.Length.Y)	-- ^ The origin from which axes are labelled.
 	-> MaybePieceByCoordinates
@@ -484,7 +487,7 @@ findBlockingPiece direction source MkMaybePieceByCoordinates { deconstruct = byC
 	* N.B.: there no requirement for there to actually be a /piece/ to attack at the specified target.
 -}
 findAttackerInDirection
-	:: Attribute.LogicalColour.LogicalColour				-- ^ The defender's /logical colour/.
+	:: Colour.LogicalColour.LogicalColour					-- ^ The defender's /logical colour/.
 	-> Direction.Direction.Direction					-- ^ The /direction/ from the /coordinates/ of concern; the opposite /direction/ from which an attacker might strike.
 	-> Cartesian.Coordinates.Coordinates					-- ^ The defender's square.
 	-> MaybePieceByCoordinates

@@ -81,26 +81,26 @@ module BishBosh.Cartesian.Coordinates(
 
 import			Control.Arrow((&&&), (***))
 import			Data.Array.IArray((!))
-import qualified	BishBosh.Attribute.LogicalColour		as Attribute.LogicalColour
-import qualified	BishBosh.Attribute.LogicalColourOfSquare	as Attribute.LogicalColourOfSquare
-import qualified	BishBosh.Cartesian.Abscissa			as Cartesian.Abscissa
-import qualified	BishBosh.Cartesian.Ordinate			as Cartesian.Ordinate
-import qualified	BishBosh.Data.Exception				as Data.Exception
-import qualified	BishBosh.Direction.Direction			as Direction.Direction
-import qualified	BishBosh.Property.FixedMembership		as Property.FixedMembership
-import qualified	BishBosh.Property.Opposable			as Property.Opposable
-import qualified	BishBosh.Property.Orientated			as Property.Orientated
-import qualified	BishBosh.Property.Reflectable			as Property.Reflectable
-import qualified	BishBosh.Property.Rotatable			as Property.Rotatable
-import qualified	BishBosh.Text.ShowList				as Text.ShowList
-import qualified	BishBosh.Type.Count				as Type.Count
-import qualified	BishBosh.Type.Length				as Type.Length
+import qualified	BishBosh.Cartesian.Abscissa		as Cartesian.Abscissa
+import qualified	BishBosh.Cartesian.Ordinate		as Cartesian.Ordinate
+import qualified	BishBosh.Colour.LogicalColour		as Colour.LogicalColour
+import qualified	BishBosh.Colour.LogicalColourOfSquare	as Colour.LogicalColourOfSquare
+import qualified	BishBosh.Data.Exception			as Data.Exception
+import qualified	BishBosh.Direction.Direction		as Direction.Direction
+import qualified	BishBosh.Property.FixedMembership	as Property.FixedMembership
+import qualified	BishBosh.Property.Opposable		as Property.Opposable
+import qualified	BishBosh.Property.Orientated		as Property.Orientated
+import qualified	BishBosh.Property.Reflectable		as Property.Reflectable
+import qualified	BishBosh.Property.Rotatable		as Property.Rotatable
+import qualified	BishBosh.Text.ShowList			as Text.ShowList
+import qualified	BishBosh.Type.Count			as Type.Count
+import qualified	BishBosh.Type.Length			as Type.Length
 import qualified	Control.DeepSeq
 import qualified	Control.Exception
 import qualified	Data.Array.IArray
 import qualified	Data.Foldable
 import qualified	Data.List
-import qualified	Data.Map					as Map
+import qualified	Data.Map				as Map
 import qualified	Data.Maybe
 
 #ifdef USE_PARALLEL
@@ -296,18 +296,18 @@ mkRelativeCoordinates	= (`translate` minBound)
 	* CAVEAT: the caller must ensure that the results are legal.
 -}
 advance
-	:: Attribute.LogicalColour.LogicalColour	-- ^ The /logical colour/ of the /piece/ which is to advance.
+	:: Colour.LogicalColour.LogicalColour	-- ^ The /logical colour/ of the /piece/ which is to advance.
 	-> Transformation
-advance logicalColour	= translateY $ if Attribute.LogicalColour.isBlack logicalColour
+advance logicalColour	= translateY $ if Colour.LogicalColour.isBlack logicalColour
 	then pred
 	else succ
 
 -- | Where legal, move one step towards the opponent.
 maybeAdvance
-	:: Attribute.LogicalColour.LogicalColour	-- ^ The /logical colour/ of the /piece/ which is to advance.
-	-> Coordinates					-- ^ The location from which to advanced.
+	:: Colour.LogicalColour.LogicalColour	-- ^ The /logical colour/ of the /piece/ which is to advance.
+	-> Coordinates				-- ^ The location from which to advanced.
 	-> Maybe Coordinates
-maybeAdvance logicalColour	= maybeTranslateY $ if Attribute.LogicalColour.isBlack logicalColour
+maybeAdvance logicalColour	= maybeTranslateY $ if Colour.LogicalColour.isBlack logicalColour
 	then pred
 	else succ
 
@@ -317,14 +317,14 @@ maybeAdvance logicalColour	= maybeTranslateY $ if Attribute.LogicalColour.isBlac
 	* CAVEAT: the caller must ensure that the results are legal.
 -}
 retreat
-	:: Attribute.LogicalColour.LogicalColour	-- ^ The /logical colour/ of the /piece/ which is to retreat.
+	:: Colour.LogicalColour.LogicalColour	-- ^ The /logical colour/ of the /piece/ which is to retreat.
 	-> Transformation
 retreat	= advance . Property.Opposable.getOpposite
 
 -- | Where legal, move one step away from the opponent.
 maybeRetreat
-	:: Attribute.LogicalColour.LogicalColour	-- ^ The /logical colour/ of the /piece/ which is to retreat.
-	-> Coordinates					-- ^ The location from which to retreat.
+	:: Colour.LogicalColour.LogicalColour	-- ^ The /logical colour/ of the /piece/ which is to retreat.
+	-> Coordinates				-- ^ The location from which to retreat.
 	-> Maybe Coordinates
 maybeRetreat	= maybeAdvance . Property.Opposable.getOpposite
 
@@ -464,35 +464,35 @@ measureDistance MkCoordinates {
 } = (x' - x, y' - y)
 
 -- | The /logical colour/ of the specified square.
-getLogicalColourOfSquare :: Coordinates -> Attribute.LogicalColourOfSquare.LogicalColourOfSquare
+getLogicalColourOfSquare :: Coordinates -> Colour.LogicalColourOfSquare.LogicalColourOfSquare
 getLogicalColourOfSquare coordinates
 	| uncurry (==) . (
 		even *** even
-	) $ measureDistance minBound coordinates	= Attribute.LogicalColourOfSquare.black
-	| otherwise					= Attribute.LogicalColourOfSquare.white
+	) $ measureDistance minBound coordinates	= Colour.LogicalColourOfSquare.black
+	| otherwise					= Colour.LogicalColourOfSquare.white
 
 -- | Whether the specified squares have the same /logical colour/.
 areSquaresIsochromatic :: [Coordinates] -> Bool
 areSquaresIsochromatic	= uncurry (||) . (all (== minBound) &&& all (== maxBound)) . map getLogicalColourOfSquare
 
 -- | The conventional starting /coordinates/ for the @King@ of the specified /logical colour/.
-kingsStartingCoordinates :: Attribute.LogicalColour.LogicalColour -> Coordinates
+kingsStartingCoordinates :: Colour.LogicalColour.LogicalColour -> Coordinates
 kingsStartingCoordinates logicalColour	= MkCoordinates {
 	getX	= Cartesian.Abscissa.kingsFile,
 	getY	= Cartesian.Ordinate.firstRank logicalColour
 }
 
 -- | The conventional starting /coordinates/ for each @Rook@.
-rooksStartingCoordinates :: Attribute.LogicalColour.LogicalColour -> [Coordinates]
-rooksStartingCoordinates Attribute.LogicalColour.Black	= [topLeft, maxBound]
+rooksStartingCoordinates :: Colour.LogicalColour.LogicalColour -> [Coordinates]
+rooksStartingCoordinates Colour.LogicalColour.Black	= [topLeft, maxBound]
 rooksStartingCoordinates _				= [minBound, bottomRight]
 
 -- | Whether the specified /coordinates/ are where a @Pawn@ of the specified /logical colour/ starts.
-isPawnsFirstRank :: Attribute.LogicalColour.LogicalColour -> Coordinates -> Bool
+isPawnsFirstRank :: Colour.LogicalColour.LogicalColour -> Coordinates -> Bool
 isPawnsFirstRank logicalColour MkCoordinates { getY = y }	= y == Cartesian.Ordinate.pawnsFirstRank logicalColour
 
 -- | Whether a @Pawn@ is currently on the appropriate /rank/ to take an opponent's @Pawn@ /en-passant/.
-isEnPassantRank :: Attribute.LogicalColour.LogicalColour -> Coordinates -> Bool
+isEnPassantRank :: Colour.LogicalColour.LogicalColour -> Coordinates -> Bool
 isEnPassantRank logicalColour MkCoordinates { getY = y }	= y == Cartesian.Ordinate.enPassantRank logicalColour
 
 -- | A boxed array indexed by /coordinates/, of arbitrary elements.

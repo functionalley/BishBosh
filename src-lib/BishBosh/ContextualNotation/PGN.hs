@@ -72,7 +72,7 @@ module BishBosh.ContextualNotation.PGN(
  ) where
 
 import			Control.Arrow((&&&), (***))
-import qualified	BishBosh.Attribute.LogicalColour		as Attribute.LogicalColour
+import qualified	BishBosh.Colour.LogicalColour			as Colour.LogicalColour
 import qualified	BishBosh.ContextualNotation.PGNComment		as ContextualNotation.PGNComment
 import qualified	BishBosh.ContextualNotation.StandardAlgebraic	as ContextualNotation.StandardAlgebraic
 import qualified	BishBosh.Data.Exception				as Data.Exception
@@ -475,7 +475,7 @@ moveTextParser isStrictlySequential validateMoves	= let
 		expectedMoveNumber	= fromIntegral . succ . (`div` 2) . State.TurnsByLogicalColour.getNPlies $ Model.Game.getTurnsByLogicalColour game
 	 in do
 		moveNumber	<- (
-			if Attribute.LogicalColour.isBlack $ Model.Game.getNextLogicalColour game
+			if Colour.LogicalColour.isBlack $ Model.Game.getNextLogicalColour game
 				then fmap (Data.Maybe.fromMaybe expectedMoveNumber) . Control.Applicative.optional
 				else id
 		 ) moveNumberParser
@@ -514,7 +514,7 @@ moveTextParser isStrictlySequential validateMoves	= let
 		expectedMoveNumber	= fromIntegral . succ . (`div` 2) . State.TurnsByLogicalColour.getNPlies $ Model.Game.getTurnsByLogicalColour game
 	 in do
 		moveNumber	<- (
-			if Attribute.LogicalColour.isBlack $ Model.Game.getNextLogicalColour game
+			if Colour.LogicalColour.isBlack $ Model.Game.getNextLogicalColour game
 				then fmap (Data.Maybe.fromMaybe expectedMoveNumber) . Control.Applicative.optional
 				else id
 		 ) moveNumberParser

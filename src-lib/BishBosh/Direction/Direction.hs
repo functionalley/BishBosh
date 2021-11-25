@@ -54,7 +54,7 @@ module BishBosh.Direction.Direction(
 ) where
 
 import			Control.Arrow((&&&), (|||), (+++))
-import qualified	BishBosh.Attribute.LogicalColour	as Attribute.LogicalColour
+import qualified	BishBosh.Colour.LogicalColour		as Colour.LogicalColour
 import qualified	BishBosh.Direction.Diagonal		as Direction.Diagonal
 import qualified	BishBosh.Direction.Parallel		as Direction.Parallel
 import qualified	BishBosh.Property.FixedMembership	as Property.FixedMembership
@@ -138,8 +138,8 @@ opposites :: [(Direction, Direction)]
 opposites	= map (id &&& Property.Opposable.getOpposite) [n, ne, e, se]
 
 -- | The /direction/s in which a @Pawn@ can attack.
-attackDirectionsForPawn :: Attribute.LogicalColour.LogicalColour -> [Direction]
-attackDirectionsForPawn Attribute.LogicalColour.Black	= [sw, se]
+attackDirectionsForPawn :: Colour.LogicalColour.LogicalColour -> [Direction]
+attackDirectionsForPawn Colour.LogicalColour.Black	= [sw, se]
 attackDirectionsForPawn _				= [nw, ne]
 
 -- | Whether the two /direction/s specified, are either parallel or anti-parallel.

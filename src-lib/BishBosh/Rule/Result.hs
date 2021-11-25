@@ -38,7 +38,7 @@ module BishBosh.Rule.Result(
 	isDraw
 ) where
 
-import qualified	BishBosh.Attribute.LogicalColour	as Attribute.LogicalColour
+import qualified	BishBosh.Colour.LogicalColour		as Colour.LogicalColour
 import qualified	BishBosh.Property.FixedMembership	as Property.FixedMembership
 import qualified	BishBosh.Property.Opposable		as Property.Opposable
 import qualified	Control.DeepSeq
@@ -46,7 +46,7 @@ import qualified	Data.List.Extra
 
 -- | The sum-type of ways in which a game can legally be terminated.
 data Result
-	= VictoryBy Attribute.LogicalColour.LogicalColour	-- ^ The /logical colour/ of the victor.
+	= VictoryBy Colour.LogicalColour.LogicalColour	-- ^ The /logical colour/ of the victor.
 	| Draw
 	deriving Eq
 
@@ -59,7 +59,7 @@ instance Show Result where
 	showsPrec _	= (
 		\(showsWhiteResult, showsBlackResult) -> showsWhiteResult . showChar '-' . showsBlackResult
 	 ) . \case
-		VictoryBy Attribute.LogicalColour.Black -> (lose, win)
+		VictoryBy Colour.LogicalColour.Black	-> (lose, win)
 		VictoryBy _				-> (win, lose)
 		_					-> (draw, draw)
 		where
@@ -69,8 +69,8 @@ instance Show Result where
 
 instance Read Result where
 	readsPrec _ s	= case Data.List.Extra.trimStart s of
-		'0' : '-' : '1' : remainder				-> [(VictoryBy Attribute.LogicalColour.Black, remainder)]
-		'1' : '-' : '0' : remainder				-> [(VictoryBy Attribute.LogicalColour.White, remainder)]
+		'0' : '-' : '1' : remainder				-> [(VictoryBy Colour.LogicalColour.Black, remainder)]
+		'1' : '-' : '0' : remainder				-> [(VictoryBy Colour.LogicalColour.White, remainder)]
 		'1' : '/' : '2' : '-' : '1' : '/' : '2' : remainder	-> [(Draw, remainder)]
 		_							-> []	-- No Parse.
 
@@ -82,7 +82,7 @@ instance Property.FixedMembership.FixedMembership Result where
 	members	= Draw : map VictoryBy Property.FixedMembership.members
 
 -- | Constructor.
-mkResult :: Maybe Attribute.LogicalColour.LogicalColour -> Result
+mkResult :: Maybe Colour.LogicalColour.LogicalColour -> Result
 mkResult (Just logicalColour)	= VictoryBy logicalColour
 mkResult _			= Draw
 
@@ -92,7 +92,7 @@ isDraw Draw	= True
 isDraw _	= False
 
 -- | Find any winner.
-findMaybeVictor :: Result -> Maybe Attribute.LogicalColour.LogicalColour
+findMaybeVictor :: Result -> Maybe Colour.LogicalColour.LogicalColour
 findMaybeVictor (VictoryBy logicalColour)	= Just logicalColour
 findMaybeVictor _				= Nothing
 

@@ -46,13 +46,13 @@ module Duel.Data.Options(
 	appendInputConfigFilePath
 ) where
 
-import qualified	Control.Exception
-import qualified	Data.Default
-import qualified	BishBosh.Attribute.LogicalColour	as Attribute.LogicalColour
+import qualified	BishBosh.Colour.LogicalColour		as Colour.LogicalColour
 import qualified	BishBosh.Data.Exception			as Data.Exception
 import qualified	BishBosh.Input.Verbosity		as Input.Verbosity
 import qualified	BishBosh.Property.SelfValidating	as Property.SelfValidating
 import qualified	BishBosh.Type.Count			as Type.Count
+import qualified	Control.Exception
+import qualified	Data.Default
 import qualified	System.FilePath
 
 -- | Container for all command-line options.
@@ -77,7 +77,7 @@ instance Data.Default.Default Options where
 
 instance Property.SelfValidating.SelfValidating Options where
 	findInvalidity	= Property.SelfValidating.findErrors [
-		((/= Attribute.LogicalColour.nDistinctLogicalColours) . fromIntegral . length . getInputConfigFilePaths,	"There must be exactly one configuration file for White & one for Black.")
+		((/= Colour.LogicalColour.nDistinctLogicalColours) . fromIntegral . length . getInputConfigFilePaths,	"There must be exactly one configuration file for White & one for Black.")
 	 ]
 
 -- | Mutator.
@@ -109,7 +109,7 @@ appendInputConfigFilePath :: System.FilePath.FilePath -> Options -> Options
 appendInputConfigFilePath s options
 	| fromIntegral (
 		length inputConfigFilePaths
-	) == Attribute.LogicalColour.nDistinctLogicalColours	= Control.Exception.throw . Data.Exception.mkRedundantData . showString "Duel.Data.Options:\texactly " . shows Attribute.LogicalColour.nDistinctLogicalColours . showString " file-paths are required:\t" $ shows inputConfigFilePaths "."
+	) == Colour.LogicalColour.nDistinctLogicalColours	= Control.Exception.throw . Data.Exception.mkRedundantData . showString "Duel.Data.Options:\texactly " . shows Colour.LogicalColour.nDistinctLogicalColours . showString " file-paths are required:\t" $ shows inputConfigFilePaths "."
 	| otherwise						= options { getInputConfigFilePaths = s : inputConfigFilePaths }
 	where
 		inputConfigFilePaths	= getInputConfigFilePaths options

@@ -22,12 +22,12 @@
  [@DESCRIPTION@]	Static tests.
 -}
 
-module BishBosh.Test.HUnit.Attribute.LogicalColour(
+module BishBosh.Test.HUnit.Colour.LogicalColour(
 -- * Constants
 	testCases
 ) where
 
-import qualified	BishBosh.Attribute.LogicalColour	as Attribute.LogicalColour
+import qualified	BishBosh.Colour.LogicalColour		as Colour.LogicalColour
 import qualified	BishBosh.Property.FixedMembership	as Property.FixedMembership
 import qualified	Data.List
 import qualified	Test.HUnit
@@ -36,6 +36,6 @@ import			Test.HUnit((~?))
 -- | Check the sanity of the implementation, by validating a list of static test-cases.
 testCases :: Test.HUnit.Test
 testCases	= Test.HUnit.test [
-	Property.FixedMembership.members == Data.List.sort Attribute.LogicalColour.range ~? "BishBosh.Attribute.LogicalColour.range is misordered."
+	Property.FixedMembership.members == Data.List.sort Colour.LogicalColour.range ~? "BishBosh.Colour.LogicalColour.range is misordered."
  ]
 

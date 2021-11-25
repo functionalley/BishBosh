@@ -28,19 +28,19 @@ module BishBosh.Test.HUnit.Evaluation.Fitness(
 ) where
 
 import			Control.Arrow((&&&), (|||))
-import qualified	BishBosh.Attribute.LogicalColour	as Attribute.LogicalColour
-import qualified	BishBosh.Cartesian.Coordinates		as Cartesian.Coordinates
-import qualified	BishBosh.Component.Move			as Component.Move
-import qualified	BishBosh.Component.Piece		as Component.Piece
-import qualified	BishBosh.Data.Exception			as Data.Exception
-import qualified	BishBosh.Evaluation.Fitness		as Evaluation.Fitness
-import qualified	BishBosh.Model.Game			as Model.Game
-import qualified	BishBosh.Notation.MoveNotation		as Notation.MoveNotation
-import qualified	BishBosh.State.Board			as State.Board
-import qualified	BishBosh.StateProperty.Mutator		as StateProperty.Mutator
-import qualified	BishBosh.StateProperty.Seeker		as StateProperty.Seeker
-import qualified	BishBosh.Test.HUnit.Model.Game		as Test.HUnit.Model.Game
-import qualified	BishBosh.Text.ShowList			as Text.ShowList
+import qualified	BishBosh.Cartesian.Coordinates	as Cartesian.Coordinates
+import qualified	BishBosh.Colour.LogicalColour	as Colour.LogicalColour
+import qualified	BishBosh.Component.Move		as Component.Move
+import qualified	BishBosh.Component.Piece	as Component.Piece
+import qualified	BishBosh.Data.Exception		as Data.Exception
+import qualified	BishBosh.Evaluation.Fitness	as Evaluation.Fitness
+import qualified	BishBosh.Model.Game		as Model.Game
+import qualified	BishBosh.Notation.MoveNotation	as Notation.MoveNotation
+import qualified	BishBosh.State.Board		as State.Board
+import qualified	BishBosh.StateProperty.Mutator	as StateProperty.Mutator
+import qualified	BishBosh.StateProperty.Seeker	as StateProperty.Seeker
+import qualified	BishBosh.Test.HUnit.Model.Game	as Test.HUnit.Model.Game
+import qualified	BishBosh.Text.ShowList		as Text.ShowList
 import qualified	Control.Exception
 import qualified	Data.Default
 import qualified	Test.HUnit
@@ -65,7 +65,7 @@ testCases	= Test.HUnit.test [
 			) Data.Default.def {-moveType-}
 		) (
 			Data.Default.def	:: State.Board.Board
-		) $ Cartesian.Coordinates.rooksStartingCoordinates Attribute.LogicalColour.White
+		) $ Cartesian.Coordinates.rooksStartingCoordinates Colour.LogicalColour.White
 	) ~?= 1,
 	"'BishBosh.Evaluation.Fitness.measureValueOfCastlingPotential' failed after moving White Queen's Rook." ~: case Notation.MoveNotation.readsQualifiedMove Data.Default.def "a1a3" {-move Queen's Rook (illegally)-} of
 		[(eitherQualifiedMove, "")]	-> Evaluation.Fitness.measureValueOfCastlingPotential (

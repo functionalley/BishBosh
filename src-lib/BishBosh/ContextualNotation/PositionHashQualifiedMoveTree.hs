@@ -53,8 +53,8 @@ module BishBosh.ContextualNotation.PositionHashQualifiedMoveTree(
  ) where
 
 import			Control.Arrow((&&&), (***))
-import qualified	BishBosh.Attribute.LogicalColour		as Attribute.LogicalColour
 import qualified	BishBosh.Attribute.MoveType			as Attribute.MoveType
+import qualified	BishBosh.Colour.LogicalColour			as Colour.LogicalColour
 import qualified	BishBosh.Component.Piece			as Component.Piece
 import qualified	BishBosh.Component.QualifiedMove		as Component.QualifiedMove
 import qualified	BishBosh.Component.Turn				as Component.Turn
@@ -313,7 +313,7 @@ findNextOnymousQualifiedMoves (tryToMatchMoves, tryToMatchViaJoiningMove, tryToM
 
 -- | Shortlist matching moves extracted from the tree, prefering those after which the player who makes it, has the greatest recorded incidence of victory.
 shortListMostVictorious
-	:: Attribute.LogicalColour.LogicalColour	-- ^ The player who is next to move.
+	:: Colour.LogicalColour.LogicalColour	-- ^ The player who is next to move.
 	-> [OnymousQualifiedMove]
 	-> [OnymousQualifiedMove]
 shortListMostVictorious nextLogicalColour	= last {-highest scoring group-} . Data.List.Extra.groupSortOn (

@@ -28,7 +28,7 @@ module BishBosh.Test.QuickCheck.Rule.Result(
 	results
 ) where
 
-import			BishBosh.Test.QuickCheck.Attribute.LogicalColour()
+import			BishBosh.Test.QuickCheck.Colour.LogicalColour()
 import			Control.Arrow((&&&))
 import qualified	BishBosh.Property.Opposable	as Property.Opposable
 import qualified	BishBosh.Rule.Result		as Rule.Result

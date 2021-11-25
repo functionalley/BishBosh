@@ -67,11 +67,11 @@ module BishBosh.State.Board(
 
 import			Control.Arrow((&&&), (***), (|||))
 import			Data.Array.IArray((!), (//))
-import qualified	BishBosh.Attribute.LogicalColour			as Attribute.LogicalColour
 import qualified	BishBosh.Attribute.MoveType				as Attribute.MoveType
 import qualified	BishBosh.Attribute.Rank					as Attribute.Rank
 import qualified	BishBosh.Cartesian.Coordinates				as Cartesian.Coordinates
 import qualified	BishBosh.Cartesian.Vector				as Cartesian.Vector
+import qualified	BishBosh.Colour.LogicalColour				as Colour.LogicalColour
 import qualified	BishBosh.Component.Accountant				as Component.Accountant
 import qualified	BishBosh.Component.Move					as Component.Move
 import qualified	BishBosh.Component.Piece				as Component.Piece
@@ -109,7 +109,7 @@ import qualified	ToolShed.Data.List
 type Transformation	= Board -> Board
 
 -- | The number of defenders for each /piece/, belonging to each side.
-type NDefendersByCoordinatesByLogicalColour	= Attribute.LogicalColour.ArrayByLogicalColour (Map.Map Cartesian.Coordinates.Coordinates Type.Count.NPieces)
+type NDefendersByCoordinatesByLogicalColour	= Colour.LogicalColour.ArrayByLogicalColour (Map.Map Cartesian.Coordinates.Coordinates Type.Count.NPieces)
 
 {- |
 	* The board is modelled as two alternative structures representing the same data, but indexed by either /coordinates/ or /piece/.
@@ -268,21 +268,21 @@ movePiece move maybeMoveType board@MkBoard {
 			getMaybePieceByCoordinates			= movePiece' maybePieceByCoordinates,
 			getCoordinatesByRankByLogicalColour		= movePiece' coordinatesByRankByLogicalColour,
 			getNDefendersByCoordinatesByLogicalColour	= (
-				\(nBlackDefendersByCoordinates, nWhiteDefendersByCoordinates)	-> Attribute.LogicalColour.listArrayByLogicalColour [nBlackDefendersByCoordinates, nWhiteDefendersByCoordinates]
+				\(nBlackDefendersByCoordinates, nWhiteDefendersByCoordinates)	-> Colour.LogicalColour.listArrayByLogicalColour [nBlackDefendersByCoordinates, nWhiteDefendersByCoordinates]
 			) . foldr (
 				\(affectedCoordinates, affectedPiece) -> if Component.Piece.isKing affectedPiece
 					then id	-- N.B.: defence of the King is irrelevant, since one can't get to a position where it can be taken.
 					else let
 						logicalColour'	= Component.Piece.getLogicalColour affectedPiece
 					in (
-						if Attribute.LogicalColour.isBlack logicalColour'
+						if Colour.LogicalColour.isBlack logicalColour'
 							then Control.Arrow.first
 							else Control.Arrow.second
 					) . Map.insert affectedCoordinates {-overwrite-} . fromIntegral . length $ findAttackersOf (
 						Property.Opposable.getOpposite logicalColour'	-- Investigate an attack on the affected coordinates by the affected piece's own logical colour, i.e. defence.
 					) affectedCoordinates board'
 			) (
-				(! Attribute.LogicalColour.Black) &&& (! Attribute.LogicalColour.White) $ nDefendersByCoordinatesByLogicalColour // (
+				(! Colour.LogicalColour.Black) &&& (! Colour.LogicalColour.White) $ nDefendersByCoordinatesByLogicalColour // (
 					let
 						nDefendersByCoordinates	= nDefendersByCoordinatesByLogicalColour ! opponentsLogicalColour
 					in (
@@ -364,7 +364,7 @@ movePiece move maybeMoveType board@MkBoard {
 						_			-> []
 			], -- List-comprehension. Define any pieces whose defence may be affected by the move.
 			getNPiecesDifferenceByRank	= Data.Array.IArray.accum (
-				if Attribute.LogicalColour.isBlack logicalColour
+				if Colour.LogicalColour.isBlack logicalColour
 					then (-)	-- Since White pieces are arbitrarily counted as positive, negate the adjustment if the current player is Black.
 					else (+)
 			) nPiecesDifferenceByRank $ if Attribute.MoveType.isEnPassant moveType
@@ -403,15 +403,15 @@ sumPieceSquareValueByLogicalColour
 	-> Board
 	->
 #if defined(USE_UNBOXED_ARRAYS) && !defined(USE_PRECISION)
-	Attribute.LogicalColour.UArrayByLogicalColour
+	Colour.LogicalColour.UArrayByLogicalColour
 #else
-	Attribute.LogicalColour.ArrayByLogicalColour
+	Colour.LogicalColour.ArrayByLogicalColour
 #endif
 		Type.Mass.Base	-- ^ Sum of PieceSquareValues.
 sumPieceSquareValueByLogicalColour pieceSquareByCoordinatesByRank MkBoard {
 	getCoordinatesByRankByLogicalColour	= coordinatesByRankByLogicalColour,
 	getNPieces				= nPieces
-} = Attribute.LogicalColour.listArrayByLogicalColour $ Component.Accountant.sumPieceSquareValueByLogicalColour pieceSquareByCoordinatesByRank nPieces coordinatesByRankByLogicalColour
+} = Colour.LogicalColour.listArrayByLogicalColour $ Component.Accountant.sumPieceSquareValueByLogicalColour pieceSquareByCoordinatesByRank nPieces coordinatesByRankByLogicalColour
 
 {- |
 	* Lists the source-/coordinates/ from which the referenced destination can be attacked.
@@ -425,7 +425,7 @@ sumPieceSquareValueByLogicalColour pieceSquareByCoordinatesByRank MkBoard {
 	* CAVEAT: can't detect an en-passant attack, since this depends both on whether the previous move was a double advance & that the defender is a @Pawn@.
 -}
 findAttackersOf
-	:: Attribute.LogicalColour.LogicalColour			-- ^ The defender's /logical colour/.
+	:: Colour.LogicalColour.LogicalColour				-- ^ The defender's /logical colour/.
 	-> Cartesian.Coordinates.Coordinates				-- ^ The defender's location.
 	-> Board
 	-> [(Cartesian.Coordinates.Coordinates, Attribute.Rank.Rank)]	-- ^ The locations from which the specified square can be attacked by the opposite /logical colour/.
@@ -464,7 +464,7 @@ findAttacksBy piece destination board
 	* CAVEAT: assumes there's exactly one @King@ of the specified /logical colour/.
 -}
 isKingChecked
-	:: Attribute.LogicalColour.LogicalColour	-- ^ The /logical colour/ of the @King@ in question.
+	:: Colour.LogicalColour.LogicalColour	-- ^ The /logical colour/ of the @King@ in question.
 	-> Board
 	-> Bool
 isKingChecked logicalColour board@MkBoard { getCoordinatesByRankByLogicalColour = coordinatesByRankByLogicalColour }	= not . null $ findAttackersOf logicalColour (State.CoordinatesByRankByLogicalColour.getKingsCoordinates logicalColour coordinatesByRankByLogicalColour) board
@@ -477,9 +477,9 @@ isKingChecked logicalColour board@MkBoard { getCoordinatesByRankByLogicalColour 
 	* CAVEAT: this function is a performance-hotspot.
 -}
 exposesKing
-	:: Attribute.LogicalColour.LogicalColour	-- ^ The /logical colour/ of the player proposing to move.
-	-> Component.Move.Move				-- ^ The /move/.
-	-> Board					-- ^ The original /board/, i.e. prior to the /move/.
+	:: Colour.LogicalColour.LogicalColour	-- ^ The /logical colour/ of the player proposing to move.
+	-> Component.Move.Move			-- ^ The /move/.
+	-> Board				-- ^ The original /board/, i.e. prior to the /move/.
 	-> Bool
 exposesKing logicalColour move board@MkBoard { getCoordinatesByRankByLogicalColour = coordinatesByRankByLogicalColour }
 	| source == kingsCoordinates	= not . null $ findAttackersOf logicalColour (Component.Move.getDestination move) board	-- CAVEAT: expensive, since all directions from the King may have to be explored.
@@ -498,7 +498,7 @@ exposesKing logicalColour move board@MkBoard { getCoordinatesByRankByLogicalColo
 
 -- | Count the number of defenders of each /piece/ on the /board/.
 countDefendersByCoordinatesByLogicalColour :: Board -> NDefendersByCoordinatesByLogicalColour
-countDefendersByCoordinatesByLogicalColour board@MkBoard { getCoordinatesByRankByLogicalColour = coordinatesByRankByLogicalColour }	= Attribute.LogicalColour.listArrayByLogicalColour [
+countDefendersByCoordinatesByLogicalColour board@MkBoard { getCoordinatesByRankByLogicalColour = coordinatesByRankByLogicalColour }	= Colour.LogicalColour.listArrayByLogicalColour [
 	Map.fromList [
 		(
 			coordinates,
@@ -512,7 +512,7 @@ countDefendersByCoordinatesByLogicalColour board@MkBoard { getCoordinatesByRankB
  ] -- List-comprehension.
 
 -- | Collapses 'NDefendersByCoordinatesByLogicalColour' into the total number of defenders on either side.
-summariseNDefendersByLogicalColour :: Board -> Attribute.LogicalColour.ArrayByLogicalColour Type.Count.NPieces
+summariseNDefendersByLogicalColour :: Board -> Colour.LogicalColour.ArrayByLogicalColour Type.Count.NPieces
 summariseNDefendersByLogicalColour MkBoard { getNDefendersByCoordinatesByLogicalColour = nDefendersByCoordinatesByLogicalColour }	= Data.Array.IArray.amap (
 	Data.Foldable.foldl' (+) 0	-- CAVEAT: 'Data.Foldable.sum' is too slow.
  ) nDefendersByCoordinatesByLogicalColour

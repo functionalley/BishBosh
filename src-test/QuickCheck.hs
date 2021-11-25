@@ -24,11 +24,11 @@
 
 module Main(main) where
 
-import qualified	BishBosh.Test.QuickCheck.Attribute.LogicalColour				as Test.QuickCheck.Attribute.LogicalColour
 import qualified	BishBosh.Test.QuickCheck.Attribute.MoveType					as Test.QuickCheck.Attribute.MoveType
 import qualified	BishBosh.Test.QuickCheck.Attribute.Rank						as Test.QuickCheck.Attribute.Rank
 import qualified	BishBosh.Test.QuickCheck.Cartesian.Coordinates					as Test.QuickCheck.Cartesian.Coordinates
 import qualified	BishBosh.Test.QuickCheck.Cartesian.Vector					as Test.QuickCheck.Cartesian.Vector
+import qualified	BishBosh.Test.QuickCheck.Colour.LogicalColour					as Test.QuickCheck.Colour.LogicalColour
 import qualified	BishBosh.Test.QuickCheck.Component.Move						as Test.QuickCheck.Component.Move
 import qualified	BishBosh.Test.QuickCheck.Component.Piece					as Test.QuickCheck.Component.Piece
 import qualified	BishBosh.Test.QuickCheck.Component.QualifiedMove				as Test.QuickCheck.Component.QualifiedMove
@@ -85,7 +85,7 @@ main	= mapM_ (
 	Test.QuickCheck.Data.Foldable.results,
 	Test.QuickCheck.Data.Integral.results,
 	Test.QuickCheck.Text.Encoding.results,
-	Test.QuickCheck.Attribute.LogicalColour.results,
+	Test.QuickCheck.Colour.LogicalColour.results,
 	Test.QuickCheck.Attribute.Rank.results,
 	Test.QuickCheck.Attribute.MoveType.results,
 	Test.QuickCheck.Direction.Direction.results,

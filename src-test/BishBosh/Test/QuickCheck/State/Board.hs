@@ -28,14 +28,14 @@ module BishBosh.Test.QuickCheck.State.Board(
 	results
 ) where
 
-import			BishBosh.Test.QuickCheck.Attribute.LogicalColour()
 import			BishBosh.Test.QuickCheck.Cartesian.Coordinates()
+import			BishBosh.Test.QuickCheck.Colour.LogicalColour()
 import			Control.Arrow((&&&))
 import			Data.Array.IArray((!))
-import qualified	BishBosh.Attribute.LogicalColour		as Attribute.LogicalColour
 import qualified	BishBosh.Attribute.Rank				as Attribute.Rank
 import qualified	BishBosh.Cartesian.Abscissa			as Cartesian.Abscissa
 import qualified	BishBosh.Cartesian.Coordinates			as Cartesian.Coordinates
+import qualified	BishBosh.Colour.LogicalColour			as Colour.LogicalColour
 import qualified	BishBosh.Component.Move				as Component.Move
 import qualified	BishBosh.Component.Piece			as Component.Piece
 import qualified	BishBosh.Property.Empty				as Property.Empty
@@ -60,7 +60,7 @@ import qualified	ToolShed.Test.ReversibleIO
 
 instance Test.QuickCheck.Arbitrary State.Board.Board where
 	arbitrary	= let
-		isKingChecked :: Attribute.LogicalColour.LogicalColour -> State.Board.Board -> Bool
+		isKingChecked :: Colour.LogicalColour.LogicalColour -> State.Board.Board -> Bool
 		isKingChecked logicalColour board = not . all (
 			null . ($ board) . State.Board.findAttackersOf logicalColour
 		 ) . State.CoordinatesByRankByLogicalColour.dereference logicalColour Attribute.Rank.King $ State.Board.getCoordinatesByRankByLogicalColour board
@@ -104,14 +104,14 @@ results	= sequence [
 			_		-> False
 	in Test.QuickCheck.quickCheckWithResult Test.QuickCheck.stdArgs { Test.QuickCheck.maxSuccess = 16 } f,
 	let
-		f :: Cartesian.Coordinates.Coordinates -> Attribute.LogicalColour.LogicalColour -> Test.QuickCheck.Property
+		f :: Cartesian.Coordinates.Coordinates -> Colour.LogicalColour.LogicalColour -> Test.QuickCheck.Property
 		f source logicalColour	= Test.QuickCheck.label "Board.prop_bishopsMove/logicalColour" . all (
 			(== Cartesian.Coordinates.getLogicalColourOfSquare source) . Cartesian.Coordinates.getLogicalColourOfSquare . fst {-coordinates-}
 		 ) . State.MaybePieceByCoordinates.listDestinationsFor source piece . State.Board.getMaybePieceByCoordinates $ StateProperty.Mutator.placeFirstPiece piece source where
 			piece	= Component.Piece.mkBishop logicalColour
 	in Test.QuickCheck.quickCheckWithResult Test.QuickCheck.stdArgs { Test.QuickCheck.maxSuccess = 256 } f,
 	let
-		f :: Cartesian.Coordinates.Coordinates -> Attribute.LogicalColour.LogicalColour -> Test.QuickCheck.Property
+		f :: Cartesian.Coordinates.Coordinates -> Colour.LogicalColour.LogicalColour -> Test.QuickCheck.Property
 		f source logicalColour	= Test.QuickCheck.label "Board.prop_knightsMove/logicalColour" . all (
 			(/= Cartesian.Coordinates.getLogicalColourOfSquare source) . Cartesian.Coordinates.getLogicalColourOfSquare . fst {-coordinates-}
 		 ) . State.MaybePieceByCoordinates.listDestinationsFor source piece . State.Board.getMaybePieceByCoordinates $ StateProperty.Mutator.placeFirstPiece piece source where

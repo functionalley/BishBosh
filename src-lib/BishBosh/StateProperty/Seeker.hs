@@ -39,10 +39,10 @@ module BishBosh.StateProperty.Seeker(
 
 import			Control.Arrow((&&&), (***))
 import			Data.Array.IArray((!))
-import qualified	BishBosh.Attribute.LogicalColour	as Attribute.LogicalColour
 import qualified	BishBosh.Attribute.Rank			as Attribute.Rank
 import qualified	BishBosh.Cartesian.Coordinates		as Cartesian.Coordinates
 import qualified	BishBosh.Cartesian.Ordinate		as Cartesian.Ordinate
+import qualified	BishBosh.Colour.LogicalColour		as Colour.LogicalColour
 import qualified	BishBosh.Component.Piece		as Component.Piece
 import qualified	BishBosh.Property.Empty			as Property.Empty
 import qualified	BishBosh.Property.SelfValidating	as Property.SelfValidating
@@ -63,14 +63,14 @@ accumulatePawnsByFile :: Type.Length.X -> NPiecesByFile -> NPiecesByFile
 accumulatePawnsByFile	= flip (Map.insertWith $ const succ) 1
 
 -- | The number of /piece/s in each file, for each /logical colour/.
-type NPiecesByFileByLogicalColour	= Attribute.LogicalColour.ArrayByLogicalColour NPiecesByFile
+type NPiecesByFileByLogicalColour	= Colour.LogicalColour.ArrayByLogicalColour NPiecesByFile
 
 -- | An interface which may be implemented by data which can search the board.
 class Seeker seeker where
 	-- | Locate any @Knight@s capable of taking a /piece/ at the specified /coordinates/.
 	findProximateKnights
-		:: Attribute.LogicalColour.LogicalColour	-- ^ The /logical colour/ of the @Knight@ for which to search.
-		-> Cartesian.Coordinates.Coordinates		-- ^ The destination to which the @Knight@ is required to be capable of jumping.
+		:: Colour.LogicalColour.LogicalColour	-- ^ The /logical colour/ of the @Knight@ for which to search.
+		-> Cartesian.Coordinates.Coordinates	-- ^ The destination to which the @Knight@ is required to be capable of jumping.
 		-> seeker
 		-> [Cartesian.Coordinates.Coordinates]
 
@@ -87,14 +87,14 @@ class Seeker seeker where
 	-}
 	countPawnsByFileByLogicalColour :: seeker -> NPiecesByFileByLogicalColour
 	countPawnsByFileByLogicalColour	= (
-		\(mB, mW) -> Attribute.LogicalColour.listArrayByLogicalColour [mB, mW]
+		\(mB, mW) -> Colour.LogicalColour.listArrayByLogicalColour [mB, mW]
 	 ) . foldr (
 		(
 			\(x, isBlack) -> (
 				if isBlack then Control.Arrow.first else Control.Arrow.second	-- Select the appropriate map.
 			) $ accumulatePawnsByFile x
 		) . (
-			Cartesian.Coordinates.getX *** Attribute.LogicalColour.isBlack . Component.Piece.getLogicalColour
+			Cartesian.Coordinates.getX *** Colour.LogicalColour.isBlack . Component.Piece.getLogicalColour
 		)
 	 ) Property.Empty.empty . findPieces Component.Piece.isPawn
 
@@ -103,7 +103,7 @@ findAllPieces :: Seeker seeker => seeker -> [Component.Piece.LocatedPiece]
 findAllPieces	= findPieces $ const True
 
 -- | Resolves 'NPiecesByFileByLogicalColour' into the total number of /Pawn/s on either side.
-summariseNPawnsByLogicalColour :: Seeker seeker => seeker -> Attribute.LogicalColour.ArrayByLogicalColour Type.Count.NPieces
+summariseNPawnsByLogicalColour :: Seeker seeker => seeker -> Colour.LogicalColour.ArrayByLogicalColour Type.Count.NPieces
 summariseNPawnsByLogicalColour	= Data.Array.IArray.amap (
 	Data.Foldable.foldl' (+) 0
  ) . countPawnsByFileByLogicalColour
@@ -115,7 +115,7 @@ findInvalidity	= Property.SelfValidating.findErrors [
 		uncurry (||) . uncurry (***) (
 			id &&& id $ (> Attribute.Rank.initialAllocationByRankPerSide ! Attribute.Rank.Pawn) . fromIntegral . length
 		) . Data.List.partition (
-			Attribute.LogicalColour.isBlack . Component.Piece.getLogicalColour
+			Colour.LogicalColour.isBlack . Component.Piece.getLogicalColour
 		) . map snd {-piece-} . findPieces Component.Piece.isPawn,
 		"there are too many Pawns of at least one logical colour."
 	), (

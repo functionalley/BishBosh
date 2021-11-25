@@ -24,10 +24,10 @@
 
 module Main(main) where
 
-import qualified	BishBosh.Test.HUnit.Attribute.LogicalColour				as Test.HUnit.Attribute.LogicalColour
 import qualified	BishBosh.Test.HUnit.Attribute.Rank					as Test.HUnit.Attribute.Rank
 import qualified	BishBosh.Test.HUnit.Cartesian.Coordinates				as Test.HUnit.Cartesian.Coordinates
 import qualified	BishBosh.Test.HUnit.Cartesian.Vector					as Test.HUnit.Cartesian.Vector
+import qualified	BishBosh.Test.HUnit.Colour.LogicalColour				as Test.HUnit.Colour.LogicalColour
 import qualified	BishBosh.Test.HUnit.Component.CastlingMove				as Test.HUnit.Component.CastlingMove
 import qualified	BishBosh.Test.HUnit.Component.Move					as Test.HUnit.Component.Move
 import qualified	BishBosh.Test.HUnit.Component.Piece					as Test.HUnit.Component.Piece
@@ -52,8 +52,8 @@ import qualified	Test.HUnit
 main :: IO ()
 main	= mapM_ Test.HUnit.runTestTT [
 	Test.HUnit.Text.AutoComplete.testCases,
+	Test.HUnit.Colour.LogicalColour.testCases,
 	Test.HUnit.Direction.Direction.testCases,
-	Test.HUnit.Attribute.LogicalColour.testCases,
 	Test.HUnit.Attribute.Rank.testCases,
 	Test.HUnit.Cartesian.Coordinates.testCases,
 	Test.HUnit.Cartesian.Vector.testCases,

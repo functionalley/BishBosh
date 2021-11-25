@@ -56,11 +56,11 @@ module BishBosh.State.CoordinatesByRankByLogicalColour(
 
 import			Control.Arrow((&&&), (|||))
 import			Data.Array.IArray((!), (//))
-import qualified	BishBosh.Attribute.LogicalColour			as Attribute.LogicalColour
 import qualified	BishBosh.Attribute.Rank					as Attribute.Rank
 import qualified	BishBosh.Cartesian.Abscissa				as Cartesian.Abscissa
 import qualified	BishBosh.Cartesian.Coordinates				as Cartesian.Coordinates
 import qualified	BishBosh.Cartesian.Vector				as Cartesian.Vector
+import qualified	BishBosh.Colour.LogicalColour				as Colour.LogicalColour
 import qualified	BishBosh.Component.Accountant				as Component.Accountant
 import qualified	BishBosh.Component.Move					as Component.Move
 import qualified	BishBosh.Component.Piece				as Component.Piece
@@ -88,7 +88,7 @@ import qualified	Data.Maybe
 type CoordinatesByRank	= Attribute.Rank.ArrayByRank [Cartesian.Coordinates.Coordinates]
 
 -- | The /coordinate/s of all the pieces of one /rank/, for both logical colours.
-type BareCoordinatesByRankByLogicalColour	= Attribute.LogicalColour.ArrayByLogicalColour CoordinatesByRank
+type BareCoordinatesByRankByLogicalColour	= Colour.LogicalColour.ArrayByLogicalColour CoordinatesByRank
 
 {- |
 	* This structure allows one to determine the set of /coordinates/ where a type of /piece/ is located.
@@ -103,7 +103,7 @@ instance Control.DeepSeq.NFData CoordinatesByRankByLogicalColour where
 	rnf MkCoordinatesByRankByLogicalColour { deconstruct = byLogicalColour }	= Control.DeepSeq.rnf byLogicalColour
 
 instance StateProperty.Censor.Censor CoordinatesByRankByLogicalColour where
-	countPiecesByLogicalColour MkCoordinatesByRankByLogicalColour { deconstruct = byLogicalColour }	= ($ Attribute.LogicalColour.Black) &&& ($ Attribute.LogicalColour.White) $ Data.List.foldl' (\acc -> (+ acc) . fromIntegral . length) 0 . (byLogicalColour !)
+	countPiecesByLogicalColour MkCoordinatesByRankByLogicalColour { deconstruct = byLogicalColour }	= ($ Colour.LogicalColour.Black) &&& ($ Colour.LogicalColour.White) $ Data.List.foldl' (\acc -> (+ acc) . fromIntegral . length) 0 . (byLogicalColour !)
 
 	countPieces MkCoordinatesByRankByLogicalColour { deconstruct = byLogicalColour }	= Data.Foldable.foldl' (
 		Data.List.foldl' $ \acc -> (+ acc) . fromIntegral . length
@@ -112,7 +112,7 @@ instance StateProperty.Censor.Censor CoordinatesByRankByLogicalColour where
 	countPieceDifferenceByRank MkCoordinatesByRankByLogicalColour { deconstruct = byLogicalColour }	= Attribute.Rank.listArrayByRank . uncurry (
 		zipWith (-)
 	 ) . (
-		($ Attribute.LogicalColour.White) &&& ($ Attribute.LogicalColour.Black)
+		($ Colour.LogicalColour.White) &&& ($ Colour.LogicalColour.Black)
 	 ) $ map (fromIntegral . length) . Data.Foldable.toList . (byLogicalColour !)
 
 	hasInsufficientMaterial MkCoordinatesByRankByLogicalColour { deconstruct = byLogicalColour }	= Data.Foldable.all (
@@ -247,7 +247,7 @@ instance Property.SelfValidating.SelfValidating CoordinatesByRankByLogicalColour
 
 -- | Dereference the array.
 dereference
-	:: Attribute.LogicalColour.LogicalColour
+	:: Colour.LogicalColour.LogicalColour
 	-> Attribute.Rank.Rank
 	-> CoordinatesByRankByLogicalColour
 	-> [Cartesian.Coordinates.Coordinates]
@@ -273,7 +273,7 @@ listCoordinates MkCoordinatesByRankByLogicalColour { deconstruct = byLogicalColo
 
 -- | Get the /coordinates/ of the @King@ of the specified /logical colour/.
 getKingsCoordinates
-	:: Attribute.LogicalColour.LogicalColour	-- ^ The /logical colour/ of the @King@ to find.
+	:: Colour.LogicalColour.LogicalColour	-- ^ The /logical colour/ of the @King@ to find.
 	-> CoordinatesByRankByLogicalColour
 	-> Cartesian.Coordinates.Coordinates
 {-# INLINE getKingsCoordinates #-}
@@ -282,7 +282,7 @@ getKingsCoordinates logicalColour MkCoordinatesByRankByLogicalColour { deconstru
 
 -- | Locate all /piece/s of the specified /logical colour/.
 findPiecesOfColour
-	:: Attribute.LogicalColour.LogicalColour	-- ^ The /logical colour/ of the /piece/s to find.
+	:: Colour.LogicalColour.LogicalColour	-- ^ The /logical colour/ of the /piece/s to find.
 	-> CoordinatesByRankByLogicalColour
 	-> [Component.Piece.LocatedPiece]
 findPiecesOfColour logicalColour MkCoordinatesByRankByLogicalColour { deconstruct = byLogicalColour }	= [
@@ -292,21 +292,21 @@ findPiecesOfColour logicalColour MkCoordinatesByRankByLogicalColour { deconstruc
  ] -- List-comprehension.
 
 -- | The /y/-direction in which a @Pawn@ of the specified /logical colour/ advances.
-advanceDirection :: Attribute.LogicalColour.LogicalColour -> Ordering
-advanceDirection Attribute.LogicalColour.Black	= LT	-- Black moves down.
+advanceDirection :: Colour.LogicalColour.LogicalColour -> Ordering
+advanceDirection Colour.LogicalColour.Black	= LT	-- Black moves down.
 advanceDirection _				= GT
 
 -- | A list of /coordinates/ for each /logical colour/.
-type CoordinatesByLogicalColour	= Attribute.LogicalColour.ArrayByLogicalColour [Cartesian.Coordinates.Coordinates]
+type CoordinatesByLogicalColour	= Colour.LogicalColour.ArrayByLogicalColour [Cartesian.Coordinates.Coordinates]
 
 -- | For each /logical colour/, find the /coordinates/ of any passed @Pawn@s (<https://en.wikipedia.org/wiki/Passed_pawn>).
 findPassedPawnCoordinatesByLogicalColour :: CoordinatesByRankByLogicalColour -> CoordinatesByLogicalColour
-findPassedPawnCoordinatesByLogicalColour MkCoordinatesByRankByLogicalColour { deconstruct = byLogicalColour }	= Attribute.LogicalColour.listArrayByLogicalColour $ map (
+findPassedPawnCoordinatesByLogicalColour MkCoordinatesByRankByLogicalColour { deconstruct = byLogicalColour }	= Colour.LogicalColour.listArrayByLogicalColour $ map (
 	\logicalColour	-> let
 		opponentsLogicalColour	= Property.Opposable.getOpposite logicalColour
 		opposingPawnYByX	= Data.List.foldl' (
 			\m coordinates -> uncurry (
-				Map.insertWith $ if Attribute.LogicalColour.isBlack opponentsLogicalColour
+				Map.insertWith $ if Colour.LogicalColour.isBlack opponentsLogicalColour
 					then max
 					else min
 			) {-only compare with the least advanced opposing Pawn in each file-} (

@@ -45,13 +45,13 @@ module BishBosh.State.TurnsByLogicalColour(
 
 import			Control.Arrow((&&&), (***))
 import			Data.Array.IArray((!), (//))
-import qualified	BishBosh.Attribute.LogicalColour	as Attribute.LogicalColour
-import qualified	BishBosh.Data.Exception			as Data.Exception
-import qualified	BishBosh.Property.Empty			as Property.Empty
-import qualified	BishBosh.Property.Null			as Property.Null
-import qualified	BishBosh.Property.Opposable		as Property.Opposable
-import qualified	BishBosh.Property.Reflectable		as Property.Reflectable
-import qualified	BishBosh.Type.Count			as Type.Count
+import qualified	BishBosh.Colour.LogicalColour	as Colour.LogicalColour
+import qualified	BishBosh.Data.Exception		as Data.Exception
+import qualified	BishBosh.Property.Empty		as Property.Empty
+import qualified	BishBosh.Property.Null		as Property.Null
+import qualified	BishBosh.Property.Opposable	as Property.Opposable
+import qualified	BishBosh.Property.Reflectable	as Property.Reflectable
+import qualified	BishBosh.Type.Count		as Type.Count
 import qualified	Control.Arrow
 import qualified	Control.DeepSeq
 import qualified	Control.Exception
@@ -62,7 +62,7 @@ import qualified	Data.List.Extra
 
 -- | The type used to hold a record of each player's /turn/s.
 data TurnsByLogicalColour turn	= MkTurnsByLogicalColour {
-	getTurnsByLogicalColour	:: Attribute.LogicalColour.ArrayByLogicalColour [turn],
+	getTurnsByLogicalColour	:: Colour.LogicalColour.ArrayByLogicalColour [turn],
 	getNPlies		:: Type.Count.NPlies	-- ^ The total number of plies applied to the game for both players; this could alternatively be derived using 'countPlies'.
 }
 
@@ -80,7 +80,7 @@ instance Control.DeepSeq.NFData turn => Control.DeepSeq.NFData (TurnsByLogicalCo
 
 instance Data.Default.Default (TurnsByLogicalColour turn) where
 	def = MkTurnsByLogicalColour {
-		getTurnsByLogicalColour	= Attribute.LogicalColour.listArrayByLogicalColour $ repeat [],
+		getTurnsByLogicalColour	= Colour.LogicalColour.listArrayByLogicalColour $ repeat [],
 		getNPlies		= 0
 	}
 
@@ -93,24 +93,24 @@ instance Property.Null.Null (TurnsByLogicalColour turn) where
 
 instance Property.Reflectable.ReflectableOnX turn => Property.Reflectable.ReflectableOnX (TurnsByLogicalColour turn) where
 	reflectOnX turnsByLogicalColour@MkTurnsByLogicalColour { getTurnsByLogicalColour = byLogicalColour }	= turnsByLogicalColour {
-		getTurnsByLogicalColour	= Attribute.LogicalColour.arrayByLogicalColour . map (
+		getTurnsByLogicalColour	= Colour.LogicalColour.arrayByLogicalColour . map (
 			Property.Opposable.getOpposite {-logical colour-} *** Property.Reflectable.reflectOnX {-[turn]-}
 		) $ Data.Array.IArray.assocs byLogicalColour
 	 }
 
 -- | Smart constructor.
-fromAssocs :: Show turn => [(Attribute.LogicalColour.LogicalColour, [turn])] -> TurnsByLogicalColour turn
+fromAssocs :: Show turn => [(Colour.LogicalColour.LogicalColour, [turn])] -> TurnsByLogicalColour turn
 fromAssocs assocs
 	| fromIntegral (
 		length assocs
-	) /= Attribute.LogicalColour.nDistinctLogicalColours			= Control.Exception.throw . Data.Exception.mkInsufficientData . showString "BishBosh.State.TurnsByLogicalColour.fromAssocs:\tboth logical colours must be defined; " $ shows assocs "."
-	| Data.List.Extra.anySame $ map fst {-logicalColour-} assocs		= Control.Exception.throw . Data.Exception.mkDuplicateData . showString "BishBosh.State.TurnsByLogicalColour.fromAssocs:\tduplicates specified; " $ shows assocs "."
+	) /= Colour.LogicalColour.nDistinctLogicalColours		= Control.Exception.throw . Data.Exception.mkInsufficientData . showString "BishBosh.State.TurnsByLogicalColour.fromAssocs:\tboth logical colours must be defined; " $ shows assocs "."
+	| Data.List.Extra.anySame $ map fst {-logicalColour-} assocs	= Control.Exception.throw . Data.Exception.mkDuplicateData . showString "BishBosh.State.TurnsByLogicalColour.fromAssocs:\tduplicates specified; " $ shows assocs "."
 	| (> 1) . abs {-allow for Property.Reflectable.reflectOnX-} . uncurry (-) $ (
-		length . (! Attribute.LogicalColour.White) &&& length . (! Attribute.LogicalColour.Black)
-	) byLogicalColour							= Control.Exception.throw . Data.Exception.mkIncompatibleData . showString "BishBosh.State.TurnsByLogicalColour.fromAssocs:\tany difference in the number of turns taken by each player, can't exceed one " $ shows assocs "."
-	| otherwise								= turnsByLogicalColour
+		length . (! Colour.LogicalColour.White) &&& length . (! Colour.LogicalColour.Black)
+	) byLogicalColour						= Control.Exception.throw . Data.Exception.mkIncompatibleData . showString "BishBosh.State.TurnsByLogicalColour.fromAssocs:\tany difference in the number of turns taken by each player, can't exceed one " $ shows assocs "."
+	| otherwise							= turnsByLogicalColour
 	where
-		byLogicalColour		= Attribute.LogicalColour.arrayByLogicalColour assocs
+		byLogicalColour		= Colour.LogicalColour.arrayByLogicalColour assocs
 		turnsByLogicalColour	= MkTurnsByLogicalColour {
 			getTurnsByLogicalColour	= byLogicalColour,
 			getNPlies		= countPlies turnsByLogicalColour	-- Infer.
@@ -121,10 +121,10 @@ fromAssocs assocs
 
 	* CAVEAT: the result can't be guaranteed if 'Property.Reflectable.reflectOnX' has been called.
 -}
-inferNextLogicalColour :: TurnsByLogicalColour turn -> Attribute.LogicalColour.LogicalColour
+inferNextLogicalColour :: TurnsByLogicalColour turn -> Colour.LogicalColour.LogicalColour
 inferNextLogicalColour MkTurnsByLogicalColour { getNPlies = nPlies }
-	| even nPlies	= Attribute.LogicalColour.White
-	| otherwise	= Attribute.LogicalColour.Black
+	| even nPlies	= Colour.LogicalColour.White
+	| otherwise	= Colour.LogicalColour.Black
 
 {- |
 	* Count the total number of plies, regardless of the player.
@@ -135,7 +135,7 @@ countPlies :: TurnsByLogicalColour turn -> Type.Count.NPlies
 countPlies MkTurnsByLogicalColour { getTurnsByLogicalColour = byLogicalColour }	= fromIntegral $ Data.Foldable.foldl' (\acc -> (+ acc) . length) 0 byLogicalColour
 
 -- | Dereference.
-dereference :: Attribute.LogicalColour.LogicalColour -> TurnsByLogicalColour turn -> [turn]
+dereference :: Colour.LogicalColour.LogicalColour -> TurnsByLogicalColour turn -> [turn]
 dereference logicalColour MkTurnsByLogicalColour { getTurnsByLogicalColour = byLogicalColour }	= byLogicalColour ! logicalColour
 
 {- |
@@ -143,7 +143,7 @@ dereference logicalColour MkTurnsByLogicalColour { getTurnsByLogicalColour = byL
 
 	* CAVEAT: obliterates any incumbent data for the specified logical colours.
 -}
-update :: TurnsByLogicalColour turn -> [(Attribute.LogicalColour.LogicalColour, [turn])] -> TurnsByLogicalColour turn
+update :: TurnsByLogicalColour turn -> [(Colour.LogicalColour.LogicalColour, [turn])] -> TurnsByLogicalColour turn
 update MkTurnsByLogicalColour { getTurnsByLogicalColour = byLogicalColour } assocs	= turnsByLogicalColour where
 	turnsByLogicalColour	= MkTurnsByLogicalColour {
 		getTurnsByLogicalColour	= byLogicalColour // assocs,
@@ -154,7 +154,7 @@ update MkTurnsByLogicalColour { getTurnsByLogicalColour = byLogicalColour } asso
 type Transformation turn	= TurnsByLogicalColour turn -> TurnsByLogicalColour turn
 
 -- | Prepend the specified /turn/.
-prepend :: Attribute.LogicalColour.LogicalColour -> turn -> Transformation turn
+prepend :: Colour.LogicalColour.LogicalColour -> turn -> Transformation turn
 prepend logicalColour turn MkTurnsByLogicalColour {
 	getTurnsByLogicalColour	= byLogicalColour,
 	getNPlies		= nPlies

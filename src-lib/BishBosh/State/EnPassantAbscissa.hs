@@ -31,9 +31,9 @@ module BishBosh.State.EnPassantAbscissa (
 	mkMaybeEnPassantAbscissa
 ) where
 
-import qualified	BishBosh.Attribute.LogicalColour	as Attribute.LogicalColour
 import qualified	BishBosh.Attribute.Rank			as Attribute.Rank
 import qualified	BishBosh.Cartesian.Coordinates		as Cartesian.Coordinates
+import qualified	BishBosh.Colour.LogicalColour		as Colour.LogicalColour
 import qualified	BishBosh.Component.Move			as Component.Move
 import qualified	BishBosh.Component.Piece		as Component.Piece
 import qualified	BishBosh.Component.QualifiedMove	as Component.QualifiedMove
@@ -60,7 +60,7 @@ instance StateProperty.Hashable.Hashable EnPassantAbscissa where
 
 -- | Constructor.
 mkMaybeEnPassantAbscissa
-	:: Attribute.LogicalColour.LogicalColour	-- ^ The player who moves next, & who may have an En-passant capture-option.
+	:: Colour.LogicalColour.LogicalColour	-- ^ The player who moves next, & who may have an En-passant capture-option.
 	-> State.MaybePieceByCoordinates.MaybePieceByCoordinates
 	-> Component.Turn.Turn				-- ^ The last /turn/ taken.
 	-> Maybe EnPassantAbscissa

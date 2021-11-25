@@ -29,25 +29,25 @@ module BishBosh.Text.ShowColouredPrefix(
 	showsPrefixError
  ) where
 
-import qualified	BishBosh.Attribute.ANSIColourCode	as Attribute.ANSIColourCode
-import qualified	BishBosh.Attribute.PhysicalColour	as Attribute.PhysicalColour
-import qualified	BishBosh.Text.ShowPrefix		as Text.ShowPrefix
+import qualified	BishBosh.Colour.ANSIColourCode	as Colour.ANSIColourCode
+import qualified	BishBosh.Colour.PhysicalColour	as Colour.PhysicalColour
+import qualified	BishBosh.Text.ShowPrefix	as Text.ShowPrefix
 
 -- | Show the prefix used to denote an information-message.
 showsPrefixInfo :: ShowS
-showsPrefixInfo	= Attribute.ANSIColourCode.bracket (
-	Attribute.ANSIColourCode.selectGraphicsRendition False $ Attribute.ANSIColourCode.mkFgColourCode Attribute.PhysicalColour.green
+showsPrefixInfo	= Colour.ANSIColourCode.bracket (
+	Colour.ANSIColourCode.selectGraphicsRendition False $ Colour.ANSIColourCode.mkFgColourCode Colour.PhysicalColour.green
  ) $ Text.ShowPrefix.showsPrefixInfo ""
 
 -- | Show the prefix used to denote a warning-message.
 showsPrefixWarning :: ShowS
-showsPrefixWarning	= Attribute.ANSIColourCode.bracket (
-	Attribute.ANSIColourCode.selectGraphicsRendition True $ Attribute.ANSIColourCode.mkFgColourCode Attribute.PhysicalColour.yellow
+showsPrefixWarning	= Colour.ANSIColourCode.bracket (
+	Colour.ANSIColourCode.selectGraphicsRendition True $ Colour.ANSIColourCode.mkFgColourCode Colour.PhysicalColour.yellow
  ) $ Text.ShowPrefix.showsPrefixWarning ""
 
 -- | Show the prefix used to denote an error-message.
 showsPrefixError :: ShowS
-showsPrefixError	= Attribute.ANSIColourCode.bracket (
-	Attribute.ANSIColourCode.selectGraphicsRendition True $ Attribute.ANSIColourCode.mkFgColourCode Attribute.PhysicalColour.red
+showsPrefixError	= Colour.ANSIColourCode.bracket (
+	Colour.ANSIColourCode.selectGraphicsRendition True $ Colour.ANSIColourCode.mkFgColourCode Colour.PhysicalColour.red
  ) $ Text.ShowPrefix.showsPrefixError ""
 

@@ -29,8 +29,8 @@ module BishBosh.Test.QuickCheck.Component.Turn(
 	results
 ) where
 
-import			BishBosh.Test.QuickCheck.Attribute.LogicalColour()
 import			BishBosh.Test.QuickCheck.Attribute.MoveType()
+import			BishBosh.Test.QuickCheck.Colour.LogicalColour()
 import			BishBosh.Test.QuickCheck.Component.Move()
 import			BishBosh.Test.QuickCheck.Component.Piece()
 import			BishBosh.Test.QuickCheck.Input.RankValues()

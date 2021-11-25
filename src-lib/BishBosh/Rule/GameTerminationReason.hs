@@ -46,7 +46,7 @@ module BishBosh.Rule.GameTerminationReason(
 	isStaleMate
 ) where
 
-import qualified	BishBosh.Attribute.LogicalColour	as Attribute.LogicalColour
+import qualified	BishBosh.Colour.LogicalColour		as Colour.LogicalColour
 import qualified	BishBosh.Property.FixedMembership	as Property.FixedMembership
 import qualified	BishBosh.Property.Opposable		as Property.Opposable
 import qualified	BishBosh.Rule.DrawReason		as Rule.DrawReason
@@ -55,8 +55,8 @@ import qualified	Control.DeepSeq
 
 -- | The sum-type of ways in which a game can legally be terminated.
 data GameTerminationReason
-	= CheckMateOf Attribute.LogicalColour.LogicalColour	-- ^ The /logical colour/ of the /check-mated/ player.
-	| ResignationBy Attribute.LogicalColour.LogicalColour	-- ^ The /logical colour/ of the player who resigned.
+	= CheckMateOf Colour.LogicalColour.LogicalColour	-- ^ The /logical colour/ of the /check-mated/ player.
+	| ResignationBy Colour.LogicalColour.LogicalColour	-- ^ The /logical colour/ of the player who resigned.
 	| Draw Rule.DrawReason.DrawReason
 	deriving (Eq, Ord, Read, Show)
 
@@ -81,11 +81,11 @@ toResult	= Property.Opposable.getOpposite . Rule.Result.mkResult . \case
 	Draw _				-> Nothing
 
 -- | Constructor.
-mkCheckMate :: Attribute.LogicalColour.LogicalColour -> GameTerminationReason
+mkCheckMate :: Colour.LogicalColour.LogicalColour -> GameTerminationReason
 mkCheckMate	= CheckMateOf
 
 -- | Constructor.
-mkResignation :: Attribute.LogicalColour.LogicalColour -> GameTerminationReason
+mkResignation :: Colour.LogicalColour.LogicalColour -> GameTerminationReason
 mkResignation	= ResignationBy
 
 -- | Constructor.
@@ -93,7 +93,7 @@ mkDraw :: Rule.DrawReason.DrawReason -> GameTerminationReason
 mkDraw	= Draw
 
 -- | Whether the game was won by the specified player.
-isCheckMateBy :: Attribute.LogicalColour.LogicalColour -> GameTerminationReason -> Bool
+isCheckMateBy :: Colour.LogicalColour.LogicalColour -> GameTerminationReason -> Bool
 isCheckMateBy logicalColour (CheckMateOf logicalColour')	= logicalColour /= logicalColour'
 isCheckMateBy _ _						= False
 

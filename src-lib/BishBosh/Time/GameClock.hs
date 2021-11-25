@@ -34,10 +34,10 @@ module BishBosh.Time.GameClock(
  ) where
 
 import			Control.Arrow((***))
-import qualified	BishBosh.Attribute.LogicalColour	as Attribute.LogicalColour
+import qualified	BishBosh.Colour.LogicalColour		as Colour.LogicalColour
 import qualified	BishBosh.Data.Exception			as Data.Exception
-import qualified	BishBosh.Property.ShowFloat		as Property.ShowFloat
 import qualified	BishBosh.Property.SelfValidating	as Property.SelfValidating
+import qualified	BishBosh.Property.ShowFloat		as Property.ShowFloat
 import qualified	BishBosh.Property.Switchable		as Property.Switchable
 import qualified	BishBosh.Text.ShowList			as Text.ShowList
 import qualified	BishBosh.Time.StopWatch			as Time.StopWatch
@@ -49,12 +49,12 @@ import qualified	Data.Foldable
 
 -- | Models a game-clock, in which each player owns a personal stop-watch, exactly one of which is running at any one time.
 newtype GameClock	= MkGameClock {
-	deconstruct	:: Attribute.LogicalColour.ArrayByLogicalColour Time.StopWatch.StopWatch -- ^ Contains one stop-watch for each of two players.
+	deconstruct	:: Colour.LogicalColour.ArrayByLogicalColour Time.StopWatch.StopWatch -- ^ Contains one stop-watch for each of two players.
 }
 
 instance Property.Switchable.Switchable GameClock where
 	on	= fmap (
-		MkGameClock . Attribute.LogicalColour.listArrayByLogicalColour . (
+		MkGameClock . Colour.LogicalColour.listArrayByLogicalColour . (
 			Data.Default.def :	-- A stopped watch for Black.
 		) . return {-to List-monad-}
 	 ) Property.Switchable.on		-- A running watch for White.
@@ -62,11 +62,11 @@ instance Property.Switchable.Switchable GameClock where
 	toggle gameClock
 		| errorMessages@(_ : _)	<- Property.SelfValidating.findInvalidity gameClock	= Control.Exception.throwIO . Data.Exception.mkInsufficientData . showString "Duel.Process.Intermediary.initialise:\tinvalid gameClock; " $ show errorMessages
 		| otherwise									= fmap (
-			MkGameClock . Attribute.LogicalColour.listArrayByLogicalColour
+			MkGameClock . Colour.LogicalColour.listArrayByLogicalColour
 		) . mapM Property.Switchable.toggle . Data.Foldable.toList $ deconstruct gameClock
 
 	switchOff	= fmap (
-		MkGameClock . Attribute.LogicalColour.listArrayByLogicalColour
+		MkGameClock . Colour.LogicalColour.listArrayByLogicalColour
 	 ) . mapM Property.Switchable.switchOff . Data.Foldable.toList . deconstruct	-- CAVEAT: this invalidates the clock, since a subsequent call to 'toggle' would activate both stop-watches.
 
 	isOn	= Data.Foldable.any Property.Switchable.isOn . deconstruct	-- CAVEAT: includes the dysfunctional state in which both sides are running.

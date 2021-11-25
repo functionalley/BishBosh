@@ -46,13 +46,13 @@ module BishBosh.Component.Move(
 	isPawnDoubleAdvance
 ) where
 
-import qualified	BishBosh.Attribute.LogicalColour	as Attribute.LogicalColour
-import qualified	BishBosh.Cartesian.Coordinates		as Cartesian.Coordinates
-import qualified	BishBosh.Cartesian.Vector		as Cartesian.Vector
-import qualified	BishBosh.Property.Opposable		as Property.Opposable
-import qualified	BishBosh.Property.Orientated		as Property.Orientated
-import qualified	BishBosh.Property.Reflectable		as Property.Reflectable
-import qualified	BishBosh.Type.Count			as Type.Count
+import qualified	BishBosh.Cartesian.Coordinates	as Cartesian.Coordinates
+import qualified	BishBosh.Cartesian.Vector	as Cartesian.Vector
+import qualified	BishBosh.Colour.LogicalColour	as Colour.LogicalColour
+import qualified	BishBosh.Property.Opposable	as Property.Opposable
+import qualified	BishBosh.Property.Orientated	as Property.Orientated
+import qualified	BishBosh.Property.Reflectable	as Property.Reflectable
+import qualified	BishBosh.Type.Count		as Type.Count
 import qualified	Control.Arrow
 import qualified	Control.DeepSeq
 import qualified	Control.Exception
@@ -77,8 +77,8 @@ data Move	= MkMove {
 } deriving Eq
 
 instance Ord Move where
-	move@MkMove { getSource = source } `compare` move'@MkMove { getSource = source' }	= case source `compare` source' of
-		EQ		-> Data.Ord.comparing getDestination move move'
+	l'@MkMove { getSource = l } `compare` r'@MkMove { getSource = r }	= case l `compare` r of
+		EQ		-> Data.Ord.comparing getDestination l' r'
 		ordering	-> ordering
 
 instance Control.DeepSeq.NFData Move where
@@ -168,7 +168,7 @@ interpolate move@MkMove {
 	but passing only guarantees that it is, if it was a @Pawn@ which moved & that the /move/ is valid.
 -}
 isPawnDoubleAdvance
-	:: Attribute.LogicalColour.LogicalColour	-- ^ Defines the side whose move is referenced.
+	:: Colour.LogicalColour.LogicalColour	-- ^ Defines the side whose move is referenced.
 	-> Move
 	-> Bool
 isPawnDoubleAdvance logicalColour move@MkMove { getSource = source }	= Cartesian.Coordinates.isPawnsFirstRank logicalColour source && Cartesian.Vector.matchesPawnDoubleAdvance logicalColour (

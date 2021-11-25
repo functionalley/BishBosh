@@ -26,7 +26,7 @@
 	* N.B.: conceptually different from the logical colour of pieces.
 -}
 
-module BishBosh.Attribute.LogicalColourOfSquare(
+module BishBosh.Colour.LogicalColourOfSquare(
 -- * Types
 -- ** Data-type
 	LogicalColourOfSquare(),
@@ -38,22 +38,22 @@ module BishBosh.Attribute.LogicalColourOfSquare(
 	isBlack
 ) where
 
-import qualified	BishBosh.Attribute.LogicalColour	as Attribute.LogicalColour
+import qualified	BishBosh.Colour.LogicalColour	as Colour.LogicalColour
 
 -- | The logical colour of a square of the board, cf. of a piece or (conceptually) of a player.
 newtype LogicalColourOfSquare	= MkLogicalColourOfSquare {
-	deconstruct	:: Attribute.LogicalColour.LogicalColour
+	deconstruct	:: Colour.LogicalColour.LogicalColour
 } deriving (Eq, Bounded)
 
 -- | Constant.
 black :: LogicalColourOfSquare
-black	= MkLogicalColourOfSquare Attribute.LogicalColour.Black
+black	= MkLogicalColourOfSquare Colour.LogicalColour.Black
 
 -- | Constant.
 white :: LogicalColourOfSquare
-white	= MkLogicalColourOfSquare Attribute.LogicalColour.White
+white	= MkLogicalColourOfSquare Colour.LogicalColour.White
 
 -- | Whether the specified /logical colour/ is @Black@.
 isBlack :: LogicalColourOfSquare -> Bool
-isBlack MkLogicalColourOfSquare { deconstruct = logicalColour }	= Attribute.LogicalColour.isBlack logicalColour
+isBlack MkLogicalColourOfSquare { deconstruct = logicalColour }	= Colour.LogicalColour.isBlack logicalColour
 

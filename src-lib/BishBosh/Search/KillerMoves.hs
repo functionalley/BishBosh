@@ -37,15 +37,15 @@ module BishBosh.Search.KillerMoves (
 
 import			Control.Arrow((&&&))
 import			Data.Array.IArray((!), (//))
-import qualified	BishBosh.Attribute.LogicalColour	as Attribute.LogicalColour
-import qualified	BishBosh.Property.Empty			as Property.Empty
-import qualified	BishBosh.Search.EphemeralData		as Search.EphemeralData
-import qualified	BishBosh.Type.Count			as Type.Count
+import qualified	BishBosh.Colour.LogicalColour	as Colour.LogicalColour
+import qualified	BishBosh.Property.Empty		as Property.Empty
+import qualified	BishBosh.Search.EphemeralData	as Search.EphemeralData
+import qualified	BishBosh.Type.Count		as Type.Count
 import qualified	Data.Array.IArray
 import qualified	Data.Foldable
-import qualified	Data.IntMap.Strict			as IntMap
+import qualified	Data.IntMap.Strict		as IntMap
 import qualified	Data.List
-import qualified	Data.Map				as Map
+import qualified	Data.Map			as Map
 import qualified	Data.Maybe
 
 {- |
@@ -54,7 +54,7 @@ import qualified	Data.Maybe
 	a key containing the killer-move,
 	& the logical colour of the player making the move.
 -}
-type NInstancesByNPliesByKeyByLogicalColour killerMoveKey	= Attribute.LogicalColour.ArrayByLogicalColour (
+type NInstancesByNPliesByKeyByLogicalColour killerMoveKey	= Colour.LogicalColour.ArrayByLogicalColour (
 	Map.Map killerMoveKey (
 		IntMap.IntMap Type.Count.NPlies {-NInstances-}	-- CAVEAT: 'Int' is used to represent the number of plies into the game (in order to utilise 'IntMap') though it ought to be NPlies also.
 	)
@@ -66,7 +66,7 @@ newtype KillerMoves killerMoveKey	= MkKillerMoves {
 }
 
 instance Property.Empty.Empty (KillerMoves killerMoveKey) where
-	empty	= MkKillerMoves . Attribute.LogicalColour.listArrayByLogicalColour $ repeat Property.Empty.empty
+	empty	= MkKillerMoves . Colour.LogicalColour.listArrayByLogicalColour $ repeat Property.Empty.empty
 
 instance Search.EphemeralData.EphemeralData (KillerMoves killerMoveKey) where
 	getSize MkKillerMoves { deconstruct = nInstancesByNPliesByKeyByLogicalColour }	= fromIntegral $ Data.Foldable.foldl' (
@@ -100,14 +100,14 @@ insert nPlies killerMoveKey MkKillerMoves { deconstruct = nInstancesByNPliesByKe
 	) . (
 		nInstancesByNPliesByKeyByLogicalColour !
 	) $ if even nPlies
-		then Attribute.LogicalColour.Black
-		else Attribute.LogicalColour.White	-- White makes the first move.
+		then Colour.LogicalColour.Black
+		else Colour.LogicalColour.White	-- White makes the first move.
  ] -- Singleton.
 
 -- | Sorts an arbitrary list using the History-heuristic; <https://www.chessprogramming.org/History_Heuristic>.
 sortByHistoryHeuristic
 	:: Ord killerMoveKey
-	=> Attribute.LogicalColour.LogicalColour
+	=> Colour.LogicalColour.LogicalColour
 	-> (a -> killerMoveKey)	-- ^ Key-constructor.
 	-> KillerMoves killerMoveKey
 	-> [a]

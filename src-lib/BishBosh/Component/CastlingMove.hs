@@ -43,9 +43,9 @@ module BishBosh.Component.CastlingMove(
 
 import			Control.Arrow((&&&))
 import			Data.Array.IArray((!))
-import qualified	BishBosh.Attribute.LogicalColour	as Attribute.LogicalColour
 import qualified	BishBosh.Attribute.MoveType		as Attribute.MoveType
 import qualified	BishBosh.Cartesian.Coordinates		as Cartesian.Coordinates
+import qualified	BishBosh.Colour.LogicalColour		as Colour.LogicalColour
 import qualified	BishBosh.Component.Move			as Component.Move
 import qualified	BishBosh.Data.Exception			as Data.Exception
 import qualified	BishBosh.Property.FixedMembership	as Property.FixedMembership
@@ -64,7 +64,7 @@ kingsMoveLength :: Type.Length.X
 kingsMoveLength	= 2
 
 -- | Define all possible castling-moves for the specified /logical colour/.
-defineCastlingMoves :: Attribute.LogicalColour.LogicalColour -> [CastlingMove]
+defineCastlingMoves :: Colour.LogicalColour.LogicalColour -> [CastlingMove]
 defineCastlingMoves logicalColour	= [
 	MkCastlingMove {
 		getMoveType	= Attribute.MoveType.longCastle,
@@ -81,24 +81,24 @@ defineCastlingMoves logicalColour	= [
 	}
  ] where
 	isBlack :: Bool
-	isBlack	= Attribute.LogicalColour.isBlack logicalColour
+	isBlack	= Colour.LogicalColour.isBlack logicalColour
 
 	kingsMove translation	= uncurry ($) . (Component.Move.mkMove &&& Cartesian.Coordinates.translateX translation) $ Cartesian.Coordinates.kingsStartingCoordinates logicalColour
 
 -- | Defines by /logical colour/, the constant list of all possible castling-moves.
-castlingMovesByLogicalColour :: Attribute.LogicalColour.ArrayByLogicalColour [CastlingMove]
-castlingMovesByLogicalColour	= Attribute.LogicalColour.listArrayByLogicalColour $ map defineCastlingMoves Property.FixedMembership.members
+castlingMovesByLogicalColour :: Colour.LogicalColour.ArrayByLogicalColour [CastlingMove]
+castlingMovesByLogicalColour	= Colour.LogicalColour.listArrayByLogicalColour $ map defineCastlingMoves Property.FixedMembership.members
 
 {- |
 	* Accessor.
 
 	* CAVEAT: the moves are returned in unspecified order.
 -}
-getCastlingMoves :: Attribute.LogicalColour.LogicalColour -> [CastlingMove]
+getCastlingMoves :: Colour.LogicalColour.LogicalColour -> [CastlingMove]
 getCastlingMoves	= (castlingMovesByLogicalColour !)
 
 -- | Break-down the two castling-moves for the specified /logical colour/ into a long & a short castling-move.
-getLongAndShortMoves :: Attribute.LogicalColour.LogicalColour -> (CastlingMove, CastlingMove)
+getLongAndShortMoves :: Colour.LogicalColour.LogicalColour -> (CastlingMove, CastlingMove)
 getLongAndShortMoves logicalColour
 	| [longCastlingMove, shortCastlingMove] <- getCastlingMoves logicalColour	= (longCastlingMove, shortCastlingMove)
 	| otherwise									= Control.Exception.throw $ Data.Exception.mkIncompatibleData "BishBosh.Component.CastlingMove.getLongAndShortMoves:\tunexpected list-length."

@@ -48,11 +48,11 @@ module BishBosh.Evaluation.Fitness(
 import			Control.Applicative((<|>))
 import			Control.Arrow((&&&))
 import			Data.Array.IArray((!))
-import qualified	BishBosh.Attribute.LogicalColour			as Attribute.LogicalColour
 import qualified	BishBosh.Attribute.MoveType				as Attribute.MoveType
 import qualified	BishBosh.Cartesian.Abscissa				as Cartesian.Abscissa
 import qualified	BishBosh.Cartesian.Coordinates				as Cartesian.Coordinates
 import qualified	BishBosh.Cartesian.Ordinate				as Cartesian.Ordinate
+import qualified	BishBosh.Colour.LogicalColour				as Colour.LogicalColour
 import qualified	BishBosh.Component.Move					as Component.Move
 import qualified	BishBosh.Component.Piece				as Component.Piece
 import qualified	BishBosh.Component.PieceSquareByCoordinatesByRank	as Component.PieceSquareByCoordinatesByRank
@@ -83,7 +83,7 @@ measurePieceSquareValueDifference
 	-> Model.Game.Game
 	-> Type.Mass.Base
 measurePieceSquareValueDifference pieceSquareByCoordinatesByRank game	= (
-	if Attribute.LogicalColour.isBlack $! Model.Game.getNextLogicalColour game
+	if Colour.LogicalColour.isBlack $! Model.Game.getNextLogicalColour game
 		then id
 		else negate	-- Represent the piece-square value difference from Black's perspective.
  ) $! whitesPieceSquareValue - blacksPieceSquareValue where
@@ -127,7 +127,7 @@ measureValueOfMaterial
 measureValueOfMaterial rankValues maximumTotalRankValue game	= realToFrac . (
 	/ maximumTotalRankValue	-- Normalise.
  ) . (
-	if Attribute.LogicalColour.isBlack $! Model.Game.getNextLogicalColour game
+	if Colour.LogicalColour.isBlack $! Model.Game.getNextLogicalColour game
 		then id		-- White just moved.
 		else negate	-- Black just moved.
  ) . Data.List.foldl' (
@@ -162,7 +162,7 @@ measureValueOfMobility :: Model.Game.Game -> Metric.CriterionValue.CriterionValu
 measureValueOfMobility game	= realToFrac . uncurry (-) . (
 	measureConstriction &&& measureConstriction . Property.Opposable.getOpposite {-recent mover-}
  ) $! Model.Game.getNextLogicalColour game where
-	measureConstriction :: Attribute.LogicalColour.LogicalColour -> Type.Mass.CriterionValue
+	measureConstriction :: Colour.LogicalColour.LogicalColour -> Type.Mass.CriterionValue
 	measureConstriction logicalColour	= recip . fromIntegral {-NPlies-} . succ {-avoid divide-by-zero-} $ Model.Game.countPliesAvailableTo logicalColour game
 
 -- | Measure the arithmetic difference between the potential to /Castle/, on either side.
@@ -170,7 +170,7 @@ measureValueOfCastlingPotential :: Model.Game.Game -> Metric.CriterionValue.Crit
 measureValueOfCastlingPotential game	= realToFrac . uncurry (-) . (
 	castlingPotential . Property.Opposable.getOpposite {-recent mover-} &&& castlingPotential
  ) $ Model.Game.getNextLogicalColour game where
-	castlingPotential :: Attribute.LogicalColour.LogicalColour -> Type.Mass.CriterionValue
+	castlingPotential :: Colour.LogicalColour.LogicalColour -> Type.Mass.CriterionValue
 	castlingPotential	= Data.Maybe.maybe 1 {-have Castled-} (
 		(/ 2) . fromIntegral . length
 	 ) . (
@@ -192,7 +192,7 @@ measureValueOfDoubledPawns game	= realToFrac . (
  ) . fromIntegral {-NPieces-} . uncurry (-) . (
 	countDoubledPawns &&& countDoubledPawns . Property.Opposable.getOpposite {-recent mover-}
  ) $ Model.Game.getNextLogicalColour game where
-	countDoubledPawns :: Attribute.LogicalColour.LogicalColour -> Type.Count.NPieces
+	countDoubledPawns :: Colour.LogicalColour.LogicalColour -> Type.Count.NPieces
 	countDoubledPawns logicalColour	= uncurry (-) . (
 		Data.Foldable.foldl' (+) 0 &&& fromIntegral . Data.Foldable.length {-one Pawn can't be considered to be doubled, so substract one Pawn per column-}
 	 ) $ State.Board.getNPawnsByFileByLogicalColour (Model.Game.getBoard game) ! logicalColour
@@ -210,7 +210,7 @@ measureValueOfIsolatedPawns game	= realToFrac . (
  ) . fromIntegral {-NPieces-} . uncurry (-) . (
 	countIsolatedPawns &&& countIsolatedPawns . Property.Opposable.getOpposite {-recent mover-}
  ) $ Model.Game.getNextLogicalColour game where
-	countIsolatedPawns :: Attribute.LogicalColour.LogicalColour -> Type.Count.NPieces
+	countIsolatedPawns :: Colour.LogicalColour.LogicalColour -> Type.Count.NPieces
 	countIsolatedPawns logicalColour	= Map.foldlWithKey' (
 		\acc x nPawns -> if (`Map.member` nPawnsByFile) `any` Cartesian.Abscissa.getAdjacents x
 			then acc		-- This file has at least one neighbouring Pawn which can (if at a suitable rank) be used to protect any of those in this file.
@@ -225,7 +225,7 @@ measureValueOfPassedPawns game	= realToFrac . (
  ) . uncurry (-) . (
 	valuePassedPawns . Property.Opposable.getOpposite {-recent mover-} &&& valuePassedPawns
  ) $ Model.Game.getNextLogicalColour game where
-	valuePassedPawns :: Attribute.LogicalColour.LogicalColour -> Type.Mass.CriterionValue
+	valuePassedPawns :: Colour.LogicalColour.LogicalColour -> Type.Mass.CriterionValue
 	valuePassedPawns logicalColour	= Data.List.foldl' (
 		\acc -> (acc +) . recip {-value increases exponentially as distance to promotion decreases-} . fromIntegral . abs . subtract (
 			Cartesian.Ordinate.lastRank logicalColour

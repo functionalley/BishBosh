@@ -44,7 +44,7 @@ module Duel.Process.Intermediary (
 
 import			Control.Arrow((&&&), (|||))
 import			Control.Category((>>>))
-import qualified	BishBosh.Attribute.LogicalColour	as Attribute.LogicalColour
+import qualified	BishBosh.Colour.LogicalColour		as Colour.LogicalColour
 import qualified	BishBosh.Data.Exception			as Data.Exception
 import qualified	BishBosh.Input.CommandLineOption	as Input.CommandLineOption
 import qualified	BishBosh.Input.IOOptions		as Input.IOOptions
@@ -117,9 +117,9 @@ runBishBosh verbosity configFilePath	= let
 -- | Read either a move or a game-termination reason from the specified handle.
 readMove
 	:: Input.Verbosity.Verbosity
-	-> Type.Count.NSeconds				-- ^ Read-timout.
-	-> Attribute.LogicalColour.LogicalColour	-- ^ Whose turn it is.
-	-> System.IO.Handle				-- ^ Output handle from which data should be read.
+	-> Type.Count.NSeconds			-- ^ Read-timout.
+	-> Colour.LogicalColour.LogicalColour	-- ^ Whose turn it is.
+	-> System.IO.Handle			-- ^ Output handle from which data should be read.
 	-> IO (Either Rule.GameTerminationReason.GameTerminationReason MoveNotation)
 readMove verbosity readTimeout logicalColour stdOut = do
 	Control.Monad.when (verbosity == maxBound) . IO.Logger.printInfo . showString "Waiting " . (
@@ -149,10 +149,10 @@ readMove verbosity readTimeout logicalColour stdOut = do
 -- | Read either a move from the first handle & write it to the second.
 copyMove
 	:: Input.Verbosity.Verbosity
-	-> Type.Count.NSeconds				-- ^ Read-timout.
-	-> Attribute.LogicalColour.LogicalColour	-- ^ Whose turn it is.
-	-> System.IO.Handle				-- ^ Output handle from which move should be read.
-	-> System.IO.Handle				-- ^ Input handle to which move should be forwarded.
+	-> Type.Count.NSeconds			-- ^ Read-timout.
+	-> Colour.LogicalColour.LogicalColour	-- ^ Whose turn it is.
+	-> System.IO.Handle			-- ^ Output handle from which move should be read.
+	-> System.IO.Handle			-- ^ Input handle to which move should be forwarded.
 	-> IO (Maybe Rule.GameTerminationReason.GameTerminationReason)
 copyMove verbosity readTimeout logicalColour stdOut stdIn = do
 	readMove verbosity readTimeout logicalColour stdOut >>= return {-to IO-monad-} . Just ||| (

@@ -42,9 +42,9 @@ module BishBosh.Component.Turn(
 ) where
 
 import			Control.Arrow((&&&))
-import qualified	BishBosh.Attribute.LogicalColour	as Attribute.LogicalColour
 import qualified	BishBosh.Attribute.MoveType		as Attribute.MoveType
 import qualified	BishBosh.Attribute.Rank			as Attribute.Rank
+import qualified	BishBosh.Colour.LogicalColour		as Colour.LogicalColour
 import qualified	BishBosh.Component.Move			as Component.Move
 import qualified	BishBosh.Component.QualifiedMove	as Component.QualifiedMove
 import qualified	BishBosh.Property.Reflectable		as Property.Reflectable
@@ -116,7 +116,7 @@ isCapture MkTurn { getQualifiedMove = qualifiedMove }	= Attribute.MoveType.isCap
 
 -- | Whether the /turn/ represents a @Pawn@'s initial two-square advance.
 isPawnDoubleAdvance
-	:: Attribute.LogicalColour.LogicalColour	-- ^ Defines the side whose /turn/ is referenced.
+	:: Colour.LogicalColour.LogicalColour	-- ^ Defines the side whose /turn/ is referenced.
 	-> Turn
 	-> Bool
 isPawnDoubleAdvance logicalColour MkTurn {

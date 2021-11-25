@@ -43,7 +43,7 @@ module BishBosh.State.Position(
 	mkPosition
 ) where
 
-import qualified	BishBosh.Attribute.LogicalColour		as Attribute.LogicalColour
+import qualified	BishBosh.Colour.LogicalColour			as Colour.LogicalColour
 import qualified	BishBosh.Component.Turn				as Component.Turn
 import qualified	BishBosh.Component.Zobrist			as Component.Zobrist
 import qualified	BishBosh.Property.Opposable			as Property.Opposable
@@ -57,7 +57,7 @@ import qualified	Data.Maybe
 
 -- | The state of the game, without regard to how it arrived there.
 data Position	= MkPosition {
-	getNextLogicalColour			:: Attribute.LogicalColour.LogicalColour,	-- ^ The next player to move.
+	getNextLogicalColour			:: Colour.LogicalColour.LogicalColour,	-- ^ The next player to move.
 	getMaybePieceByCoordinates		:: State.MaybePieceByCoordinates.MaybePieceByCoordinates,
 	getCastleableRooksByLogicalColour	:: State.CastleableRooksByLogicalColour.CastleableRooksByLogicalColour,
 	getMaybeEnPassantAbscissa		:: Maybe State.EnPassantAbscissa.EnPassantAbscissa
@@ -108,7 +108,7 @@ instance StateProperty.Hashable.Hashable Position where
 		getCastleableRooksByLogicalColour	= castleableRooksByLogicalColour,
 		getMaybeEnPassantAbscissa		= maybeEnPassantAbscissa
 	} zobrist	= (
-		if Attribute.LogicalColour.isBlack nextLogicalColour
+		if Colour.LogicalColour.isBlack nextLogicalColour
 			then (Component.Zobrist.getRandomForBlacksMove zobrist :)
 			else id
 	 ) . Data.Maybe.maybe id (
@@ -117,10 +117,10 @@ instance StateProperty.Hashable.Hashable Position where
 
 -- | Constructor.
 mkPosition
-	:: Attribute.LogicalColour.LogicalColour	-- ^ The logical colour of the next player to move.
+	:: Colour.LogicalColour.LogicalColour	-- ^ The logical colour of the next player to move.
 	-> State.MaybePieceByCoordinates.MaybePieceByCoordinates
 	-> State.CastleableRooksByLogicalColour.CastleableRooksByLogicalColour
-	-> Maybe Component.Turn.Turn			-- ^ The last /turn/ made.
+	-> Maybe Component.Turn.Turn		-- ^ The last /turn/ made.
 	-> Position
 mkPosition nextLogicalColour maybePieceByCoordinates castleableRooksByLogicalColour maybeLastTurn	= MkPosition {
 	getNextLogicalColour			= nextLogicalColour,

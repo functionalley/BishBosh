@@ -172,18 +172,18 @@ Library
     Hs-source-dirs:	src-lib
 
     Exposed-modules:
-        BishBosh.Attribute.ANSIColourCode
         BishBosh.Attribute.CaptureMoveSortAlgorithm
-        BishBosh.Attribute.ColourScheme
-        BishBosh.Attribute.LogicalColour
-        BishBosh.Attribute.LogicalColourOfSquare
         BishBosh.Attribute.MoveType
-        BishBosh.Attribute.PhysicalColour
         BishBosh.Attribute.Rank
         BishBosh.Cartesian.Abscissa
         BishBosh.Cartesian.Coordinates
         BishBosh.Cartesian.Ordinate
         BishBosh.Cartesian.Vector
+        BishBosh.Colour.ANSIColourCode
+        BishBosh.Colour.ColourScheme
+        BishBosh.Colour.LogicalColour
+        BishBosh.Colour.LogicalColourOfSquare
+        BishBosh.Colour.PhysicalColour
         BishBosh.Component.Accountant
         BishBosh.Component.CastlingMove
         BishBosh.Component.EitherQualifiedMove
@@ -407,10 +407,10 @@ Test-Suite hunit-tests
     Autogen-modules:	Paths_bishbosh
 
     Other-modules:
-        BishBosh.Test.HUnit.Attribute.LogicalColour
         BishBosh.Test.HUnit.Attribute.Rank
         BishBosh.Test.HUnit.Cartesian.Coordinates
         BishBosh.Test.HUnit.Cartesian.Vector
+        BishBosh.Test.HUnit.Colour.LogicalColour
         BishBosh.Test.HUnit.Component.CastlingMove
         BishBosh.Test.HUnit.Component.Move
         BishBosh.Test.HUnit.Component.Piece
@@ -445,11 +445,11 @@ Test-Suite quickcheck-tests
 
     Other-modules:
         BishBosh.Test.QuickCheck.Attribute.CaptureMoveSortAlgorithm
-        BishBosh.Test.QuickCheck.Attribute.LogicalColour
         BishBosh.Test.QuickCheck.Attribute.MoveType
         BishBosh.Test.QuickCheck.Attribute.Rank
         BishBosh.Test.QuickCheck.Cartesian.Coordinates
         BishBosh.Test.QuickCheck.Cartesian.Vector
+        BishBosh.Test.QuickCheck.Colour.LogicalColour
         BishBosh.Test.QuickCheck.Component.Move
         BishBosh.Test.QuickCheck.Component.Piece
         BishBosh.Test.QuickCheck.Component.QualifiedMove

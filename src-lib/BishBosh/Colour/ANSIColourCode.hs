@@ -22,7 +22,7 @@
  [@DESCRIPTION@]	Defines the encoding of colours for rendering on a terminal; <https://en.wikipedia.org/wiki/ANSI_escape_code>.
 -}
 
-module BishBosh.Attribute.ANSIColourCode(
+module BishBosh.Colour.ANSIColourCode(
 -- * Types
 -- ** Type-synonyms
 --	ANSIColourCode(),
@@ -36,7 +36,7 @@ module BishBosh.Attribute.ANSIColourCode(
 	mkBgColourCode
 ) where
 
-import qualified	BishBosh.Attribute.PhysicalColour	as Attribute.PhysicalColour
+import qualified	BishBosh.Colour.PhysicalColour	as Colour.PhysicalColour
 import qualified	Data.Default
 
 -- | A colour-code as used by terminal-emulators.
@@ -57,11 +57,11 @@ type IsBold	= Bool
 type GraphicsRendition	= String
 
 -- | Constructor: offset the specified colour-code, so that it applies to the foreground.
-mkFgColourCode :: Attribute.PhysicalColour.PhysicalColour -> ANSIColourCode
+mkFgColourCode :: Colour.PhysicalColour.PhysicalColour -> ANSIColourCode
 mkFgColourCode	= MkANSIColourCode . (+ 30) . fromEnum {-CAVEAT: relies on the PhysicalColour's constructor-order-}
 
 -- | Constructor: offset the specified colour-code, so that it applies to the background.
-mkBgColourCode :: Attribute.PhysicalColour.PhysicalColour -> ANSIColourCode
+mkBgColourCode :: Colour.PhysicalColour.PhysicalColour -> ANSIColourCode
 mkBgColourCode	= MkANSIColourCode . (+ 40) . fromEnum {-CAVEAT: relies on the PhysicalColour's constructor-order-}
 
 -- | Generate the escape-sequence required to change a terminal to the specified physical colour.

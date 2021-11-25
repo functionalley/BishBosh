@@ -32,10 +32,10 @@ module BishBosh.Test.HUnit.Model.Game(
 import			BishBosh.Model.Game((/~))
 import			Control.Arrow((&&&), (***), (|||))
 import			Data.Map((!))
-import qualified	BishBosh.Attribute.LogicalColour		as Attribute.LogicalColour
 import qualified	BishBosh.Attribute.MoveType			as Attribute.MoveType
 import qualified	BishBosh.Attribute.Rank				as Attribute.Rank
 import qualified	BishBosh.Cartesian.Coordinates			as Cartesian.Coordinates
+import qualified	BishBosh.Colour.LogicalColour			as Colour.LogicalColour
 import qualified	BishBosh.Component.Move				as Component.Move
 import qualified	BishBosh.Component.QualifiedMove		as Component.QualifiedMove
 import qualified	BishBosh.Data.Exception				as Data.Exception
@@ -195,7 +195,7 @@ testCases	= Test.HUnit.test [
 			\(moveString, s)	-> Control.Exception.throw . Data.Exception.mkInvalidDatum . showString "BishBosh.Test.HUnit.Model.Game.testCases:\t" . showString moveString . showString "; " $ showString s "."
 		) (
 			uncurry (==) . (
-				Model.Game.sortAvailableQualifiedMoves . (! Attribute.LogicalColour.White) . Model.Game.getAvailableQualifiedMovesByLogicalColour &&& Model.Game.sortAvailableQualifiedMoves . Model.Game.mkAvailableQualifiedMovesFor Attribute.LogicalColour.White
+				Model.Game.sortAvailableQualifiedMoves . (! Colour.LogicalColour.White) . Model.Game.getAvailableQualifiedMovesByLogicalColour &&& Model.Game.sortAvailableQualifiedMoves . Model.Game.mkAvailableQualifiedMovesFor Colour.LogicalColour.White
 			)
 		) . applyMoves $ words "g2g4 f7f6 g1h3 g7g5 h1g1 c7c6 d2d3 h7h5 c1d2 h5g4p d3d4 b8a6 f2f4 g4f3E"
 	 ) ~? "'BishBosh.Model.Game.getAvailableQualifiedMovesByLogicalColour' failed after En-passant.",

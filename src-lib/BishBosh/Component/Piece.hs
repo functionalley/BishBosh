@@ -79,11 +79,11 @@ module BishBosh.Component.Piece(
 
 import			Control.Arrow((&&&), (***))
 import			Data.Array.IArray((!))
-import qualified	BishBosh.Attribute.LogicalColour		as Attribute.LogicalColour
 import qualified	BishBosh.Attribute.Rank				as Attribute.Rank
 import qualified	BishBosh.Cartesian.Coordinates			as Cartesian.Coordinates
 import qualified	BishBosh.Cartesian.Ordinate			as Cartesian.Ordinate
 import qualified	BishBosh.Cartesian.Vector			as Cartesian.Vector
+import qualified	BishBosh.Colour.LogicalColour			as Colour.LogicalColour
 import qualified	BishBosh.Data.Exception				as Data.Exception
 import qualified	BishBosh.Direction.Direction			as Direction.Direction
 import qualified	BishBosh.Property.ExtendedPositionDescription	as Property.ExtendedPositionDescription
@@ -117,7 +117,7 @@ nPiecesPerSide	= Data.Foldable.foldl' (+) 0 Attribute.Rank.initialAllocationByRa
 
 -- | A Chess-piece has a /logical colour/ & a /rank/.
 data Piece	= MkPiece {
-	getLogicalColour	:: Attribute.LogicalColour.LogicalColour,
+	getLogicalColour	:: Colour.LogicalColour.LogicalColour,
 	getRank			:: Attribute.Rank.Rank
 } deriving (Bounded, Eq, Ord)
 
@@ -150,8 +150,8 @@ instance Property.ExtendedPositionDescription.ReadsEPD Piece where
 		c : remainder	-> (
 			MkPiece (
 				if Data.Char.isUpper c
-					then Attribute.LogicalColour.White
-					else Attribute.LogicalColour.Black
+					then Colour.LogicalColour.White
+					else Colour.LogicalColour.Black
 			) *** const remainder
 		 ) `map` reads [c]
 		_		-> []	-- No parse.
@@ -196,31 +196,31 @@ instance Property.FixedMembership.FixedMembership Piece where
 	members	= range
 
 -- | Constructor.
-mkPiece :: Attribute.LogicalColour.LogicalColour -> Attribute.Rank.Rank -> Piece
+mkPiece :: Colour.LogicalColour.LogicalColour -> Attribute.Rank.Rank -> Piece
 mkPiece	= MkPiece
 
 -- | Constructor.
-mkPawn :: Attribute.LogicalColour.LogicalColour -> Piece
+mkPawn :: Colour.LogicalColour.LogicalColour -> Piece
 mkPawn	= (`MkPiece` Attribute.Rank.Pawn)
 
 -- | Constructor.
-mkRook :: Attribute.LogicalColour.LogicalColour -> Piece
+mkRook :: Colour.LogicalColour.LogicalColour -> Piece
 mkRook	= (`MkPiece` Attribute.Rank.Rook)
 
 -- | Constructor.
-mkKnight :: Attribute.LogicalColour.LogicalColour -> Piece
+mkKnight :: Colour.LogicalColour.LogicalColour -> Piece
 mkKnight	= (`MkPiece` Attribute.Rank.Knight)
 
 -- | Constructor.
-mkBishop:: Attribute.LogicalColour.LogicalColour -> Piece
+mkBishop:: Colour.LogicalColour.LogicalColour -> Piece
 mkBishop	= (`MkPiece` Attribute.Rank.Bishop)
 
 -- | Constructor.
-mkQueen :: Attribute.LogicalColour.LogicalColour -> Piece
+mkQueen :: Colour.LogicalColour.LogicalColour -> Piece
 mkQueen	= (`MkPiece` Attribute.Rank.Queen)
 
 -- | Constructor.
-mkKing :: Attribute.LogicalColour.LogicalColour -> Piece
+mkKing :: Colour.LogicalColour.LogicalColour -> Piece
 mkKing	= (`MkPiece` Attribute.Rank.King)
 
 -- | Changes the specified /piece/ to the specified /rank/ leaving its /logical colour/ unchanged.
@@ -231,15 +231,15 @@ promote newRank piece
 	| otherwise						= piece { getRank = newRank }
 
 -- | The structure of a container of arbitrary data, indexed by /logicalColour/ & some /rank/s.
-type ByRankByLogicalColour element	= Attribute.LogicalColour.ArrayByLogicalColour (Map.Map Attribute.Rank.Rank element)
+type ByRankByLogicalColour element	= Colour.LogicalColour.ArrayByLogicalColour (Map.Map Attribute.Rank.Rank element)
 
 -- | Constructor of a certain shape of container, but with arbitrary contents.
 mkByRankByLogicalColour ::
 #ifdef USE_PARALLEL
 	Control.DeepSeq.NFData	element =>
 #endif
-	[Attribute.Rank.Rank] -> (Attribute.LogicalColour.LogicalColour -> Attribute.Rank.Rank -> element) -> ByRankByLogicalColour element
-mkByRankByLogicalColour ranks mkElement	= Attribute.LogicalColour.listArrayByLogicalColour
+	[Attribute.Rank.Rank] -> (Colour.LogicalColour.LogicalColour -> Attribute.Rank.Rank -> element) -> ByRankByLogicalColour element
+mkByRankByLogicalColour ranks mkElement	= Colour.LogicalColour.listArrayByLogicalColour
 #ifdef USE_PARALLEL
 	. Control.Parallel.Strategies.withStrategy (Control.Parallel.Strategies.parList Control.Parallel.Strategies.rdeepseq)
 #endif
@@ -369,7 +369,7 @@ canMoveBetween source destination piece	= (
 		 in Cartesian.Vector.isPawnAttack logicalColour distance || Cartesian.Vector.getXDistance distance == 0 && (
 			let
 				y'	= (
-					if Attribute.LogicalColour.isBlack logicalColour
+					if Colour.LogicalColour.isBlack logicalColour
 						then negate
 						else id
 				 ) $ Cartesian.Vector.getYDistance distance
@@ -398,7 +398,7 @@ isPawnPromotion _ _	= False
 -- | Whether the specified /piece/ is @Black@.
 {-# INLINE isBlack #-}
 isBlack :: Piece -> Bool
-isBlack MkPiece { getLogicalColour = Attribute.LogicalColour.Black }	= True
+isBlack MkPiece { getLogicalColour = Colour.LogicalColour.Black }	= True
 isBlack _								= False
 
 -- | Whether the specified /piece/s have the same /logical colour/.

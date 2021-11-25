@@ -46,7 +46,7 @@ module BishBosh.Input.NativeUIOptions(
 
 import			BishBosh.Data.Bool()
 import			Control.Arrow((***))
-import qualified	BishBosh.Attribute.ColourScheme	as Attribute.ColourScheme
+import qualified	BishBosh.Colour.ColourScheme	as Colour.ColourScheme
 import qualified	BishBosh.Data.Exception		as Data.Exception
 import qualified	BishBosh.Text.ShowList		as Text.ShowList
 import qualified	BishBosh.Type.Length		as Type.Length
@@ -84,7 +84,7 @@ type DepictFigurine	= Bool
 -- | Constructor.
 data NativeUIOptions	= MkNativeUIOptions {
 	getBoardMagnification	:: ScreenCoordinates,	-- ^ The factor by which the dimensions of the board are stretched when displayed.
-	getColourScheme		:: Attribute.ColourScheme.ColourScheme,
+	getColourScheme		:: Colour.ColourScheme.ColourScheme,
 	getDepictFigurine	:: DepictFigurine	-- ^ Whether to a depict pieces using Unicode figurines.
 } deriving Eq
 
@@ -109,7 +109,7 @@ instance Show NativeUIOptions where
 			boardMagnificationTag,
 			showsPrec precision boardMagnification
 		), (
-			Attribute.ColourScheme.tag,
+			Colour.ColourScheme.tag,
 			showsPrec precision colourScheme
 		), (
 			depictFigurineTag,
@@ -150,7 +150,7 @@ instance HXT.XmlPickler NativeUIOptions where
 -- | Smart constructor.
 mkNativeUIOptions
 	:: ScreenCoordinates	-- ^ The factor by which the dimensions of the board are stretched when displayed.
-	-> Attribute.ColourScheme.ColourScheme
+	-> Colour.ColourScheme.ColourScheme
 	-> DepictFigurine
 	-> NativeUIOptions
 mkNativeUIOptions boardMagnification colourScheme depictFigurine
