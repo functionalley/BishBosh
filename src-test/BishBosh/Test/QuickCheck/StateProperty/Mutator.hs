@@ -75,7 +75,7 @@ results	= sequence [
 
 				movePiece :: StateProperty.Mutator.Mutator mutator => mutator -> mutator
 				movePiece	= StateProperty.Mutator.movePiece move (
-					Data.Maybe.fromJust . State.MaybePieceByCoordinates.dereference (Component.Move.getSource move) $ State.Board.getMaybePieceByCoordinates board
+					Data.Maybe.fromJust . State.MaybePieceByCoordinates.dereference (State.Board.getMaybePieceByCoordinates board) $ Component.Move.getSource move
 				 ) (
 					Attribute.MoveType.getMaybePromotedRank moveType
 				 ) $ if Attribute.MoveType.isEnPassant moveType

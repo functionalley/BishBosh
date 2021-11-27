@@ -41,24 +41,20 @@ results	= sequence [
 	let
 		f :: Test.QuickCheck.Component.Zobrist.Zobrist -> Model.Game.Game -> Test.QuickCheck.Property
 		f zobrist game	= Test.QuickCheck.label "Hashable.prop_hash(Game)/unique" . areUnique . map (
-			(`StateProperty.Hashable.hash` zobrist) . (`Model.Game.applyQualifiedMove` game)
+			StateProperty.Hashable.hash zobrist . (`Model.Game.applyQualifiedMove` game)
 		 ) $ Model.Game.findQualifiedMovesAvailableToNextPlayer game
 	in Test.QuickCheck.quickCheckWithResult Test.QuickCheck.stdArgs { Test.QuickCheck.maxSuccess = 64 } f,
 	let
 		f :: Test.QuickCheck.Component.Zobrist.Zobrist -> Model.Game.Game -> Test.QuickCheck.Property
 		f zobrist game	= Test.QuickCheck.label "Hashable.prop_hash(Position)/unique" . areUnique . map (
-			(`StateProperty.Hashable.hash` zobrist) . Model.Game.mkPosition . (`Model.Game.applyQualifiedMove` game)
+			StateProperty.Hashable.hash zobrist . Model.Game.mkPosition . (`Model.Game.applyQualifiedMove` game)
 		 ) $ Model.Game.findQualifiedMovesAvailableToNextPlayer game
 	in Test.QuickCheck.quickCheckWithResult Test.QuickCheck.stdArgs { Test.QuickCheck.maxSuccess = 64 } f,
 	let
 		f :: Test.QuickCheck.Component.Zobrist.Zobrist -> Model.Game.Game -> Test.QuickCheck.Property
 		f zobrist game	= Test.QuickCheck.label "Hashable.prop_(hash(Game) == hash(Position))" . all (
 			uncurry (==) . (
-				(
-					`StateProperty.Hashable.hash` zobrist
-				) &&& (
-					`StateProperty.Hashable.hash` zobrist
-				) . Model.Game.mkPosition
+				StateProperty.Hashable.hash zobrist &&& StateProperty.Hashable.hash zobrist . Model.Game.mkPosition
 			) . (`Model.Game.applyQualifiedMove` game)
 		 ) $ Model.Game.findQualifiedMovesAvailableToNextPlayer game
 	in Test.QuickCheck.quickCheckWithResult Test.QuickCheck.stdArgs { Test.QuickCheck.maxSuccess = 64 } f,
@@ -66,8 +62,8 @@ results	= sequence [
 		f :: Test.QuickCheck.Component.Zobrist.Zobrist -> Model.Game.Game -> Test.QuickCheck.Property
 		f zobrist game	= Test.QuickCheck.label "Hashable.prop_incrementalEvaluation" . all (
 			(
-				\game' -> StateProperty.Hashable.hash game' zobrist == Model.Game.updateIncrementalPositionHash game (
-					StateProperty.Hashable.hash game zobrist
+				\game' -> StateProperty.Hashable.hash zobrist game' == Model.Game.updateIncrementalPositionHash game (
+					StateProperty.Hashable.hash zobrist game
 				) game' zobrist
 			) . (`Model.Game.applyQualifiedMove` game)
 		 ) $ Model.Game.findQualifiedMovesAvailableToNextPlayer game

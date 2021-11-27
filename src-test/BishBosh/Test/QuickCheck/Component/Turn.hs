@@ -94,7 +94,7 @@ results	= sequence [
 		f :: Input.RankValues.RankValues -> [Component.Turn.Turn] -> Test.QuickCheck.Property
 		f rankValues'	= Test.QuickCheck.label "Turn.prop_compareByMVVLVA/quiet" . uncurry (==) . (
 			dropWhile Component.Turn.isCapture . Data.List.sortBy (
-				Component.Turn.compareByMVVLVA (`Input.RankValues.findRankValue` rankValues')
+				Component.Turn.compareByMVVLVA $ Input.RankValues.findRankValue rankValues'
 			) &&& filter (
 				not . Component.Turn.isCapture
 			)
@@ -104,12 +104,12 @@ results	= sequence [
 		f :: [Component.Turn.Turn] -> Test.QuickCheck.Property
 		f = Test.QuickCheck.label "Turn.prop_compareByMVVLVA/MVV" . (
 			\ranks -> Data.List.sortOn (
-				negate . toRational . (`Input.RankValues.findRankValue` rankValues) -- Most valuable victim should be first.
+				negate . toRational . Input.RankValues.findRankValue rankValues -- Most valuable victim should be first.
 			) ranks == ranks
 		 ) . map head . Data.List.group . Data.Maybe.mapMaybe (
 			Attribute.MoveType.getMaybeImplicitlyTakenRank . Component.QualifiedMove.getMoveType . Component.Turn.getQualifiedMove
 		 ) . Data.List.sortBy (
-			Component.Turn.compareByMVVLVA (`Input.RankValues.findRankValue` rankValues)
+			Component.Turn.compareByMVVLVA $ Input.RankValues.findRankValue rankValues
 		 )
 	in Test.QuickCheck.quickCheckWithResult Test.QuickCheck.stdArgs { Test.QuickCheck.maxSuccess = 256 } f,
 	let
@@ -118,14 +118,14 @@ results	= sequence [
 			(
 				\ranks -> uncurry (++) (
 					Control.Arrow.first (
-						Data.List.sortOn (`Input.RankValues.findRankValue` rankValues)	-- Least valuable aggressor should be first.
+						Data.List.sortOn $ Input.RankValues.findRankValue rankValues	-- Least valuable aggressor should be first.
 					) $ Data.List.partition (/= Attribute.Rank.King) ranks
 				) == ranks
 			) . map head . Data.List.group . map Component.Turn.getRank {-aggressor's rank-}
 		 ) . Data.List.groupBy (
 			ToolShed.Data.List.equalityBy $ Attribute.MoveType.getMaybeImplicitlyTakenRank . Component.QualifiedMove.getMoveType . Component.Turn.getQualifiedMove
 		 ) . takeWhile Component.Turn.isCapture . Data.List.sortBy (
-			Component.Turn.compareByMVVLVA (`Input.RankValues.findRankValue` rankValues)
+			Component.Turn.compareByMVVLVA $ Input.RankValues.findRankValue rankValues
 		 )
 	in Test.QuickCheck.quickCheckWithResult Test.QuickCheck.stdArgs { Test.QuickCheck.maxSuccess = 512 } f
  ]

@@ -122,7 +122,7 @@ fromQualifiedMoveForest incrementalEvaluation zobrist qualifiedMoveForest	= MkPo
 	) tree
 } where
 	initialGame		= Data.Default.def
-	initialPositionHash	= StateProperty.Hashable.hash initialGame zobrist
+	initialPositionHash	= StateProperty.Hashable.hash zobrist initialGame
 	tree			= Data.Tree.Node {
 		Data.Tree.rootLabel	= MkNodeLabel initialPositionHash Nothing,
 		Data.Tree.subForest	= map (
@@ -143,7 +143,7 @@ fromQualifiedMoveForest incrementalEvaluation zobrist qualifiedMoveForest	= MkPo
 						Data.Tree.rootLabel	= label@(qualifiedMove, _),
 						Data.Tree.subForest	= qualifiedMoveForest'
 					} = Data.Tree.Node {
-						Data.Tree.rootLabel	= MkNodeLabel (StateProperty.Hashable.hash game' zobrist) $ Just label,	-- Hash the game after applying the move.
+						Data.Tree.rootLabel	= MkNodeLabel (StateProperty.Hashable.hash zobrist game') $ Just label,	-- Hash the game after applying the move.
 						Data.Tree.subForest	= map (slave game') qualifiedMoveForest'	-- Recurse.
 					} where
 						game'	= Model.Game.applyQualifiedMove qualifiedMove game
@@ -220,10 +220,10 @@ findNextOnymousQualifiedMovesForPosition requiredGame positionHashQualifiedMoveT
 			case nPiecesDiffMover `compare` 0 of	-- N.B. equivalent to 'signum' to slightly better performance.
 				GT	-> id		-- This node can't match, but there may be a match further down the tree.
 				EQ
-					| positionHash == StateProperty.Hashable.hash requiredGame (
+					| positionHash == StateProperty.Hashable.hash (
 						getZobrist positionHashQualifiedMoveTree
-					)		-> (map onymiseQualifiedMove forest ++) -- The position matches, so one can select any move from the forest.
-					| otherwise	-> id					-- This node doesn't match, but there may be a match further down the tree.
+					) requiredGame		-> (map onymiseQualifiedMove forest ++) -- The position matches, so one can select any move from the forest.
+					| otherwise		-> id					-- This node doesn't match, but there may be a match further down the tree.
 				_	-> const []	-- Terminate the recursion, since from here down the tree, the mover has insufficient pieces to match the required game.
 		 ) $ concatMap (
 			\node@Data.Tree.Node {

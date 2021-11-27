@@ -28,7 +28,7 @@
 
 module BishBosh.StateProperty.Hashable(
 -- * Type-classes
-	Hashable(..),
+	Hashable(listRandoms),
 -- * Constants
 --	combiningOp,
 -- * Functions
@@ -36,13 +36,27 @@ module BishBosh.StateProperty.Hashable(
 	combine
 ) where
 
+import			Control.Arrow((***))
 import qualified	BishBosh.Component.Zobrist	as Component.Zobrist
 import qualified	Data.Bits
 import qualified	Data.List
+import qualified	Data.Maybe
 
 -- | An interface to which hashable data can conform.
 class Hashable hashable where
-	listRandoms	:: hashable -> Component.Zobrist.Zobrist positionHash -> [positionHash]
+	listRandoms	:: Component.Zobrist.Zobrist positionHash -> hashable -> [positionHash]
+
+instance (Hashable l, Hashable r) => Hashable (l, r) where
+	listRandoms zobrist	= uncurry (++) . (listRandoms zobrist *** listRandoms zobrist)
+
+instance (Hashable f, Hashable s, Hashable t) => Hashable (f, s, t) where
+	listRandoms zobrist (f, s, t)	= listRandoms zobrist f ++ listRandoms zobrist s ++ listRandoms zobrist t
+
+instance Hashable a => Hashable [a] where
+	listRandoms zobrist	= concatMap $ listRandoms zobrist
+
+instance Hashable a => Hashable (Maybe a) where
+	listRandoms zobrist	= Data.Maybe.maybe [] $ listRandoms zobrist
 
 -- | The operator used when combining random numbers to compose a hash.
 combiningOp :: Data.Bits.Bits positionHash => positionHash -> positionHash -> positionHash
@@ -53,10 +67,10 @@ hash :: (
 	Data.Bits.Bits	positionHash,
 	Hashable	hashable
  )
-	=> hashable
-	-> Component.Zobrist.Zobrist positionHash
+	=> Component.Zobrist.Zobrist positionHash
+	-> hashable
 	-> positionHash
-hash hashable	= Data.List.foldl1' combiningOp . listRandoms hashable
+hash zobrist	= Data.List.foldl1' combiningOp . listRandoms zobrist
 
 -- | Include a list of random numbers in the hash.
 combine :: Data.Bits.Bits positionHash => positionHash -> [positionHash] -> positionHash

@@ -146,12 +146,12 @@ attackVectorsForKing	= [
 
 	* CAVEAT: if the move started at the first rank, then it can't be a @Pawn@, but that's beyond the scope of this module (since a /Vector/ doesn't define absolute /coordinate/s).
 -}
-isPawnAttack :: Colour.LogicalColour.LogicalColour -> Vector -> Bool
+isPawnAttack :: Vector -> Colour.LogicalColour.LogicalColour -> Bool
 {-# INLINE isPawnAttack #-}
-isPawnAttack logicalColour MkVector {
+isPawnAttack MkVector {
 	getXDistance	= xDistance,
 	getYDistance	= yDistance
-} = abs xDistance == 1 && yDistance == if Colour.LogicalColour.isBlack logicalColour
+} logicalColour = abs xDistance == 1 && yDistance == if Colour.LogicalColour.isBlack logicalColour
 	then negate 1
 	else 1
 
@@ -180,26 +180,26 @@ isKingsMove MkVector {
 
 	* CAVEAT: passing this test doesn't guarantee that it is a @Pawn@'s double-advance move, since the move may not relate to a @Pawn@, or could be invalid.
 -}
-matchesPawnDoubleAdvance :: Colour.LogicalColour.LogicalColour -> Vector -> Bool
-matchesPawnDoubleAdvance logicalColour MkVector {
+matchesPawnDoubleAdvance :: Vector -> Colour.LogicalColour.LogicalColour -> Bool
+matchesPawnDoubleAdvance MkVector {
 	getXDistance	= 0,
 	getYDistance	= yDistance
-}				= yDistance == if Colour.LogicalColour.isBlack logicalColour then negate 2 else 2
+} logicalColour			= yDistance == if Colour.LogicalColour.isBlack logicalColour then negate 2 else 2
 matchesPawnDoubleAdvance _ _	= False
 
 -- | Translate the specified /coordinates/ by the specified /vector/.
-translate :: Cartesian.Coordinates.Coordinates -> Vector -> Cartesian.Coordinates.Coordinates
-translate coordinates MkVector {
+translate :: Vector -> Cartesian.Coordinates.Coordinates -> Cartesian.Coordinates.Coordinates
+translate MkVector {
 	getXDistance	= xDistance,
 	getYDistance	= yDistance
-} = Cartesian.Coordinates.translate ((+ xDistance) *** (+ yDistance)) coordinates
+} = Cartesian.Coordinates.translate $ (+ xDistance) *** (+ yDistance)
 
 -- | Where legal, translate the specified /coordinates/ by the specified /vector/.
-maybeTranslate :: Cartesian.Coordinates.Coordinates -> Vector -> Maybe Cartesian.Coordinates.Coordinates
-maybeTranslate coordinates MkVector {
+maybeTranslate :: Vector -> Cartesian.Coordinates.Coordinates -> Maybe Cartesian.Coordinates.Coordinates
+maybeTranslate MkVector {
 	getXDistance	= xDistance,
 	getYDistance	= yDistance
-} = Cartesian.Coordinates.maybeTranslate ((+ xDistance) *** (+ yDistance)) coordinates
+} = Cartesian.Coordinates.maybeTranslate $ (+ xDistance) *** (+ yDistance)
 
 {- |
 	* Where possible, converts the specified /vector/ into a /direction/.

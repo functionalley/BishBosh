@@ -175,7 +175,7 @@ showsThinking searchDepth evaluationOptions weightedMean stoppedWatch nPlies pri
 	shows searchDepth,
 	shows . (round :: Type.Mass.RankValue -> Int) $ 100 {-centi-Pawns-} * (
 		uncurry (/) . (
-			Input.RankValues.calculateMaximumTotalValue &&& realToFrac . Input.RankValues.findRankValue Attribute.Rank.Pawn
+			Input.RankValues.calculateMaximumTotalValue &&& realToFrac . (`Input.RankValues.findRankValue` Attribute.Rank.Pawn)
 		) $ Input.EvaluationOptions.getRankValues evaluationOptions
 	) * realToFrac weightedMean,
 	Property.ShowFloat.showsFloat (shows . (round :: Double -> Int) . (* 100)) stoppedWatch,
@@ -958,7 +958,7 @@ readMove positionHashQualifiedMoveTree randomGen	= slave where
 					moveCommand :: String -> IO (State.PlayState.PlayState positionHash)
 					moveCommand moveString	= case Notation.MoveNotation.readsQualifiedMove moveNotation moveString of
 						[(eitherQualifiedMove, "")]
-							| Just errorMessage <- Model.Game.validateEitherQualifiedMove eitherQualifiedMove game	-> do
+							| Just errorMessage <- Model.Game.validateEitherQualifiedMove game eitherQualifiedMove	-> do
 								Control.Monad.unless (verbosity == minBound) . System.IO.hPutStrLn System.IO.stderr . Text.ShowPrefix.showsPrefixError . shows moveString . showString " is illegal; " $ shows errorMessage "."
 
 								putStrLn $ mkIllegalMoveMessage errorMessage moveString

@@ -272,7 +272,7 @@ main	= do
 						\gamePhase	-> showChar Component.PieceSquareByCoordinatesByRank.gnuPlotComment . showString gamePhase . showString "-game:\n"
 					) ["Opening", "End"]
 				) $ map (
-					\selector	-> Component.PieceSquareByCoordinatesByRank.formatForGNUPlot (
+					\selector	-> Component.PieceSquareByCoordinatesByRank.formatForGNUPlot pieceSquareByCoordinatesByRank (
 						Property.ShowFloat.showsFloatToN' (
 							Input.UIOptions.getNDecimalDigits . Input.IOOptions.getUIOptions $ Input.Options.getIOOptions options	-- PieceSquareValue formatter.
 						) . (
@@ -282,7 +282,7 @@ main	= do
 						showChar '\t'	-- Column-delimiter.
 					) (
 						! selector Component.PieceSquareByCoordinatesByRank.nPiecesBounds	-- Select from interpolated values.
-					) pieceSquareByCoordinatesByRank
+					)
 				) [snd, fst]
 			 ) . Input.EvaluationOptions.getMaybePieceSquareByCoordinatesByRank $ Input.Options.getEvaluationOptions options
 

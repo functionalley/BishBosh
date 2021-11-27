@@ -134,7 +134,7 @@ measureValueOfMaterial rankValues maximumTotalRankValue game	= realToFrac . (
 	\acc (rank, nPiecesDifference) -> if nPiecesDifference == 0
 		then acc	-- Avoid calling 'Input.RankValues.findRankValue'.
 		else acc + realToFrac (
-			Input.RankValues.findRankValue rank rankValues
+			Input.RankValues.findRankValue rankValues rank
 		) * fromIntegral nPiecesDifference
  ) 0 . Data.Array.IArray.assocs . State.Board.getNPiecesDifferenceByRank {-which arbitrarily counts White pieces as positive & Black as negative-} $ Model.Game.getBoard game
 
@@ -163,7 +163,7 @@ measureValueOfMobility game	= realToFrac . uncurry (-) . (
 	measureConstriction &&& measureConstriction . Property.Opposable.getOpposite {-recent mover-}
  ) $! Model.Game.getNextLogicalColour game where
 	measureConstriction :: Colour.LogicalColour.LogicalColour -> Type.Mass.CriterionValue
-	measureConstriction logicalColour	= recip . fromIntegral {-NPlies-} . succ {-avoid divide-by-zero-} $ Model.Game.countPliesAvailableTo logicalColour game
+	measureConstriction logicalColour	= recip . fromIntegral {-NPlies-} . succ {-avoid divide-by-zero-} $ Model.Game.countPliesAvailableTo game logicalColour
 
 -- | Measure the arithmetic difference between the potential to /Castle/, on either side.
 measureValueOfCastlingPotential :: Model.Game.Game -> Metric.CriterionValue.CriterionValue
@@ -173,8 +173,8 @@ measureValueOfCastlingPotential game	= realToFrac . uncurry (-) . (
 	castlingPotential :: Colour.LogicalColour.LogicalColour -> Type.Mass.CriterionValue
 	castlingPotential	= Data.Maybe.maybe 1 {-have Castled-} (
 		(/ 2) . fromIntegral . length
-	 ) . (
-		`State.CastleableRooksByLogicalColour.locateForLogicalColour` Model.Game.getCastleableRooksByLogicalColour game
+	 ) . State.CastleableRooksByLogicalColour.locateForLogicalColour (
+		Model.Game.getCastleableRooksByLogicalColour game
 	 )
 
 {- |

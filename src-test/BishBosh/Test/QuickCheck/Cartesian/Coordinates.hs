@@ -117,7 +117,7 @@ results = sequence [
 			 in source == destination || source : extrapolation == reverse (
 				destination : Cartesian.Coordinates.interpolate destination source
 			 )
-		 ) $ Cartesian.Coordinates.extrapolate direction source
+		 ) $ Cartesian.Coordinates.extrapolate source direction
 	in Test.QuickCheck.quickCheckWithResult Test.QuickCheck.stdArgs { Test.QuickCheck.maxSuccess = 64 } f,
 	let
 		f :: Cartesian.Coordinates.Coordinates -> Cartesian.Coordinates.Coordinates -> Test.QuickCheck.Property

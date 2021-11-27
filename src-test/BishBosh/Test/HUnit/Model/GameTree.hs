@@ -70,7 +70,7 @@ testCases	= Test.HUnit.test [
 	sortAvailableMoves maybeSortAlgorithm	= Data.Maybe.mapMaybe (
 		Model.Game.maybeLastTurn . Data.Tree.rootLabel
 	 ) . Data.Tree.subForest . Model.GameTree.deconstruct . Model.GameTree.sortGameTree maybeSortAlgorithm (
-		`Input.RankValues.findRankValue` Input.RankValues.fromAssocs (
+		Input.RankValues.findRankValue $ Input.RankValues.fromAssocs (
 			zip Property.FixedMembership.members $ map (
 				fromRational . (/ 10)	-- Map into the closed unit-interval.
 			) [

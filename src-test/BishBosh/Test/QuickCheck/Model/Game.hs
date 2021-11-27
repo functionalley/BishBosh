@@ -130,7 +130,7 @@ results	= sequence [
 	in Test.QuickCheck.quickCheckWithResult Test.QuickCheck.stdArgs { Test.QuickCheck.maxSuccess = 256 } f,
 	let
 		f :: Model.Game.Game -> Test.QuickCheck.Property
-		f game	= not (Model.Game.isTerminated game) ==> Test.QuickCheck.label "Game.prop_isValidQualifiedMove" . all (`Model.Game.isValidQualifiedMove` game) $ Model.Game.findQualifiedMovesAvailableToNextPlayer game
+		f game	= not (Model.Game.isTerminated game) ==> Test.QuickCheck.label "Game.prop_isValidQualifiedMove" . all (Model.Game.isValidQualifiedMove game) $ Model.Game.findQualifiedMovesAvailableToNextPlayer game
 	in Test.QuickCheck.quickCheckWithResult Test.QuickCheck.stdArgs { Test.QuickCheck.maxSuccess = 4096 } f,
 	let
 		f :: Model.Game.Game -> Test.QuickCheck.Property
@@ -144,11 +144,11 @@ results	= sequence [
 				destination		<- Property.FixedMembership.members,
 				source /= destination,
 				let move	= Component.Move.mkMove source destination,
-				maybePromotionRank	<- if Data.Maybe.maybe False (Component.Piece.isPawnPromotion destination) $ State.MaybePieceByCoordinates.dereference source maybePieceByCoordinates
+				maybePromotionRank	<- if Data.Maybe.maybe False (`Component.Piece.isPawnPromotion` destination) $ State.MaybePieceByCoordinates.dereference maybePieceByCoordinates source
 					then map Just Attribute.Rank.promotionProspects
 					else [Nothing],
-				let qualifiedMove	= Component.QualifiedMove.mkQualifiedMove move $ State.MaybePieceByCoordinates.inferMoveType move maybePromotionRank maybePieceByCoordinates,
-				Model.Game.isValidQualifiedMove qualifiedMove game
+				let qualifiedMove	= Component.QualifiedMove.mkQualifiedMove move $ State.MaybePieceByCoordinates.inferMoveType maybePieceByCoordinates move maybePromotionRank,
+				Model.Game.isValidQualifiedMove game qualifiedMove
 		 ] {-list-comprehension-} where
 			sort			= Data.List.sortBy $ Data.Ord.comparing Component.QualifiedMove.getMove
 			board			= Model.Game.getBoard game
@@ -159,7 +159,7 @@ results	= sequence [
 		f game	= Test.QuickCheck.label "Game.prop_inferMoveType" . all (
 			\qualifiedMove -> let
 				moveType		= Component.QualifiedMove.getMoveType qualifiedMove
-				inferredMoveType	= State.MaybePieceByCoordinates.inferMoveType (Component.QualifiedMove.getMove qualifiedMove) Nothing {-promotion-rank-} . State.Board.getMaybePieceByCoordinates $ Model.Game.getBoard game
+				inferredMoveType	= State.MaybePieceByCoordinates.inferMoveType (State.Board.getMaybePieceByCoordinates $ Model.Game.getBoard game) (Component.QualifiedMove.getMove qualifiedMove) Nothing {-promotion-rank-}
 			in if Attribute.MoveType.isPromotion moveType
 				then Attribute.MoveType.isPromotion inferredMoveType && Attribute.MoveType.getMaybeExplicitlyTakenRank moveType == Attribute.MoveType.getMaybeExplicitlyTakenRank inferredMoveType
 				else moveType == inferredMoveType
@@ -182,17 +182,17 @@ results	= sequence [
 	let
 		f :: Model.Game.Game -> Test.QuickCheck.Property
 		f game	= Test.QuickCheck.label "Game.prop_(getAvailableQualifiedMovesByLogicalColour == mkAvailableQualifiedMovesFor)" . Data.Maybe.maybe True (
-			== Model.Game.mkAvailableQualifiedMovesFor nextLogicalColour game
+			== Model.Game.mkAvailableQualifiedMovesFor game nextLogicalColour
 		 ) . Map.lookup nextLogicalColour $ Model.Game.getAvailableQualifiedMovesByLogicalColour game where
 			nextLogicalColour	= Model.Game.getNextLogicalColour game
 	in Test.QuickCheck.quickCheckWithResult Test.QuickCheck.stdArgs { Test.QuickCheck.maxSuccess = 4096 } f,
 	let
 		f :: Model.Game.Game -> Test.QuickCheck.Property
 		f game	= Test.QuickCheck.label "Game.prop_(findQualifiedMovesAvailableTo => countPliesAvailableTo)" $ all (
-			\logicalColour -> Model.Game.countPliesAvailableTo logicalColour game == (
+			\logicalColour -> Model.Game.countPliesAvailableTo game logicalColour == (
 				if Model.Game.isTerminated game
 					then 0
-					else fromIntegral . length $ Model.Game.findQualifiedMovesAvailableTo logicalColour game
+					else fromIntegral . length $ Model.Game.findQualifiedMovesAvailableTo game logicalColour
 			)
 		 ) Property.FixedMembership.members
 	in Test.QuickCheck.quickCheckWithResult Test.QuickCheck.stdArgs { Test.QuickCheck.maxSuccess = 256 } f,
@@ -212,7 +212,7 @@ results	= sequence [
 		f :: Model.Game.Game -> Test.QuickCheck.Property
 		f game	= Test.QuickCheck.label "Game.prop_(getCoordinatesByRankByLogicalColour => getNPawnsByFileByLogicalColour)" . all (
 			\(logicalColour, nPawnsByFile) -> Data.Foldable.sum nPawnsByFile == fromIntegral (
-				length . State.CoordinatesByRankByLogicalColour.dereference logicalColour Attribute.Rank.Pawn $ State.Board.getCoordinatesByRankByLogicalColour board
+				length $ State.CoordinatesByRankByLogicalColour.dereference (State.Board.getCoordinatesByRankByLogicalColour board) logicalColour Attribute.Rank.Pawn
 			)
 		 ) . Data.Array.IArray.assocs $ State.Board.getNPawnsByFileByLogicalColour board where
 			board	= Model.Game.getBoard game
@@ -226,7 +226,7 @@ results	= sequence [
 	let
 		f :: Model.Game.Game -> Test.QuickCheck.Property
 		f = Test.QuickCheck.label "Game.prop_(getMaybeChecked == isKingChecked)" . uncurry (==) . (
-			Data.Maybe.isJust . Model.Game.getMaybeChecked &&& uncurry State.Board.isKingChecked . (Model.Game.getNextLogicalColour &&& Model.Game.getBoard)
+			Data.Maybe.isJust . Model.Game.getMaybeChecked &&& uncurry State.Board.isKingChecked . (Model.Game.getBoard &&& Model.Game.getNextLogicalColour)
 		 )
 	in Test.QuickCheck.quickCheckWithResult Test.QuickCheck.stdArgs { Test.QuickCheck.maxSuccess = 512 } f,
 	let
@@ -242,7 +242,7 @@ results	= sequence [
 	let
 		f :: Model.Game.Game -> Test.QuickCheck.Property
 		f	= Test.QuickCheck.label "Game.prop_reflectOnX/isValidQualifiedMove" . all (
-			\(game, turn) -> Model.Game.isValidQualifiedMove (Component.Turn.getQualifiedMove turn) game
+			\(game, turn) -> Model.Game.isValidQualifiedMove game $ Component.Turn.getQualifiedMove turn
 		 ) . Model.Game.rollBack . Property.Reflectable.reflectOnX
 	in Test.QuickCheck.quickCheckWithResult Test.QuickCheck.stdArgs { Test.QuickCheck.maxSuccess = 256 } f,
 	let
@@ -264,14 +264,14 @@ results	= sequence [
 	let
 		f :: Model.Game.Game -> Test.QuickCheck.Property
 		f game	= Test.QuickCheck.label "Game.prop_(findAttackersOf => listDestinationsFor)" $ all (
-			\(destination, destinationLogicalColour, destinationRank, source, sourceRank) -> (destination, Just destinationRank) `elem` State.MaybePieceByCoordinates.listDestinationsFor source (
+			\(destination, destinationLogicalColour, destinationRank, source, sourceRank) -> (destination, Just destinationRank) `elem` State.MaybePieceByCoordinates.listDestinationsFor maybePieceByCoordinates source (
 				Component.Piece.mkPiece (Property.Opposable.getOpposite destinationLogicalColour) sourceRank
-			) maybePieceByCoordinates
+			)
 		 ) [
 			(destination, destinationLogicalColour, destinationRank, source, sourceRank) |
 				(destination, piece)	<- StateProperty.Seeker.findAllPieces maybePieceByCoordinates,
 				let (destinationLogicalColour, destinationRank)	= Component.Piece.getLogicalColour &&& Component.Piece.getRank $ piece,	-- Deconstruct.
-				(source, sourceRank)	<- State.Board.findAttackersOf destinationLogicalColour destination board
+				(source, sourceRank)	<- State.Board.findAttackersOf board destinationLogicalColour destination
 		 ] {-list-comprehension-} where
 			board			= Model.Game.getBoard game
 			maybePieceByCoordinates	= State.Board.getMaybePieceByCoordinates board
@@ -279,13 +279,13 @@ results	= sequence [
 	let
 		f :: Model.Game.Game -> Test.QuickCheck.Property
 		f game	= Test.QuickCheck.label "Game.prop_(listDestinationsFor => findAttackersOf)" $ all (
-			\(source, piece, destination) -> (source, Component.Piece.getRank piece) `elem` State.Board.findAttackersOf (
+			\(source, piece, destination) -> (source, Component.Piece.getRank piece) `elem` State.Board.findAttackersOf board (
 				Property.Opposable.getOpposite $ Component.Piece.getLogicalColour piece
-			) destination board
+			) destination
 		 ) [
 			(source, piece, destination) |
 				(source, piece)		<- StateProperty.Seeker.findAllPieces maybePieceByCoordinates,
-				(destination, Just _)	<- State.MaybePieceByCoordinates.listDestinationsFor source piece maybePieceByCoordinates	-- Identify attacks.
+				(destination, Just _)	<- State.MaybePieceByCoordinates.listDestinationsFor maybePieceByCoordinates source piece	-- Identify attacks.
 		 ] {-list-comprehension-} where
 			board			= Model.Game.getBoard game
 			maybePieceByCoordinates	= State.Board.getMaybePieceByCoordinates board

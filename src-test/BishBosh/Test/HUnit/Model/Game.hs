@@ -58,9 +58,7 @@ applyMoves	= Model.Game.applyEitherQualifiedMoves (
 	\s -> case Notation.MoveNotation.readsQualifiedMove Data.Default.def {-Smith-} s of
 		[(eitherQualifiedMove, "")]	-> Right eitherQualifiedMove
 		_				-> Left . shows s . showString " /~ " $ Notation.MoveNotation.showsMoveSyntax Data.Default.def ""
- ) (
-	Data.Default.def	:: Model.Game.Game
- )
+ ) Data.Default.def
 
 -- | Check the sanity of the implementation, by validating a list of static test-cases.
 testCases :: Test.HUnit.Test
@@ -86,7 +84,7 @@ testCases	= Test.HUnit.test [
 			$ (Model.Game.fromBoard $ Property.ForsythEdwards.readFEN "r3k2r/8/8/8/8/8/8/R3K2R" :: Model.Game.Game)
 		) . (
 			\s -> case Notation.MoveNotation.readsQualifiedMove Data.Default.def s of
-				[(eitherQualifiedMove, "")]	-> Model.Game.isValidEitherQualifiedMove eitherQualifiedMove
+				[(eitherQualifiedMove, "")]	-> (`Model.Game.isValidEitherQualifiedMove` eitherQualifiedMove)
 				_				-> Control.Exception.throw . Data.Exception.mkParseFailure . showString "BishBosh.Test.HUnit.Model.Game.testCases:\t" . shows s . showString " /~ " $ Notation.MoveNotation.showsMoveSyntax Data.Default.def ""
 		)
 	) [
@@ -94,7 +92,7 @@ testCases	= Test.HUnit.test [
 		"e1c1C"
 	] ~? "'BishBosh.Model.Game.isValidEitherQualifiedMove' failed when castling.",
 	"'BishBosh.Model.Game.findQualifiedMovesAvailableToNextPlayer' failed" ~: Model.Game.findQualifiedMovesAvailableToNextPlayer (
-		Model.Game.fromBoard $ Property.ForsythEdwards.readFEN "8/3K4/4q3/3bb3/8/8/8/4k3"	:: Model.Game.Game
+		Model.Game.fromBoard $ Property.ForsythEdwards.readFEN "8/3K4/4q3/3bb3/8/8/8/4k3"
 	) ~?= [
 		Component.QualifiedMove.mkQualifiedMove (
 			Cartesian.Coordinates.mkRelativeCoordinates ((+ 3) *** (+ 6)) `Component.Move.mkMove` Cartesian.Coordinates.mkRelativeCoordinates ((+ 3) *** (+ 7))
@@ -102,12 +100,10 @@ testCases	= Test.HUnit.test [
 	],
 	not (
 		Model.Game.isValidQualifiedMove (
-			Component.QualifiedMove.mkQualifiedMove (
-				Cartesian.Coordinates.mkRelativeCoordinates ((+ 3) *** succ) `Component.Move.mkMove` Cartesian.Coordinates.mkRelativeCoordinates ((+ 3) *** (+ 2))
-			) $ Attribute.MoveType.mkNormalMoveType (Just Attribute.Rank.Pawn) Nothing
-		) (
-			Model.Game.fromBoard $ Property.ForsythEdwards.readFEN "4k3/8/8/8/1b6/3p4/3R4/4K3"	:: Model.Game.Game
-		)
+			Model.Game.fromBoard $ Property.ForsythEdwards.readFEN "4k3/8/8/8/1b6/3p4/3R4/4K3"
+		) . Component.QualifiedMove.mkQualifiedMove (
+			Cartesian.Coordinates.mkRelativeCoordinates ((+ 3) *** succ) `Component.Move.mkMove` Cartesian.Coordinates.mkRelativeCoordinates ((+ 3) *** (+ 2))
+		) $ Attribute.MoveType.mkNormalMoveType (Just Attribute.Rank.Pawn) Nothing
 	) ~? "'BishBosh.Model.Game.isValidQualifiedMove' failed",
 	let
 		pawnsCoordinates :: Cartesian.Coordinates.Coordinates
@@ -141,7 +137,7 @@ testCases	= Test.HUnit.test [
 		\(moveString, errorMessage)	-> Control.Exception.throw . Data.Exception.mkInvalidDatum . showString "BishBosh.Test.HUnit.Model.Game.testCases:\tfailed for " . showString Component.Move.tag . Text.ShowList.showsAssociation . shows moveString . showString "; " $ showString errorMessage "."
 	) ||| (
 		\game -> case Notation.MoveNotation.readsQualifiedMove Data.Default.def "a5b6E" of
-			[(eitherQualifiedMove, "")]	-> Model.Game.isValidEitherQualifiedMove eitherQualifiedMove game ~? "'BishBosh.Model.Game.isValidEitherQualifiedMove' failed for En-passant by White."
+			[(eitherQualifiedMove, "")]	-> Model.Game.isValidEitherQualifiedMove game eitherQualifiedMove ~? "'BishBosh.Model.Game.isValidEitherQualifiedMove' failed for En-passant by White."
 			_				-> Control.Exception.throw . Data.Exception.mkParseFailure . showString "BishBosh.Test.HUnit.Model.Game.testCases:\t /~ " $ Notation.MoveNotation.showsMoveSyntax Data.Default.def ""
 	) $ applyMoves [
 		"a2a4",	-- White: Queen's Rook's Pawn.
@@ -153,7 +149,7 @@ testCases	= Test.HUnit.test [
 		\(moveString, errorMessage)	-> Control.Exception.throw . Data.Exception.mkInvalidDatum . showString "BishBosh.Test.HUnit.Model.Game.testCases:\tfailed for " . showString Component.Move.tag . Text.ShowList.showsAssociation . shows moveString . showString "; " $ showString errorMessage "."
 	) ||| (
 		\game -> case Notation.MoveNotation.readsQualifiedMove Data.Default.def "a4b3E" of
-			[(eitherQualifiedMove, "")]	-> Model.Game.isValidEitherQualifiedMove eitherQualifiedMove game ~? "'BishBosh.Model.Game.isValidEitherQualifiedMove' failed for En-passant by Black."
+			[(eitherQualifiedMove, "")]	-> Model.Game.isValidEitherQualifiedMove game eitherQualifiedMove ~? "'BishBosh.Model.Game.isValidEitherQualifiedMove' failed for En-passant by Black."
 			_				-> Control.Exception.throw $ Data.Exception.mkParseFailure "BishBosh.Test.HUnit.Model.Game.testCases:\tfailed to parse move."
 	) $ applyMoves [
 		"b1c3",	-- White: Queen's Knight.
@@ -164,12 +160,12 @@ testCases	= Test.HUnit.test [
 	],
 	Data.Maybe.maybe False Rule.GameTerminationReason.isStaleMate (
 		Model.Game.getMaybeTerminationReason (
-			Model.Game.fromBoard $ Property.ForsythEdwards.readFEN "rnbqk2r/pppppp2/8/8/8/7p/6np/6bK"	:: Model.Game.Game
+			Model.Game.fromBoard $ Property.ForsythEdwards.readFEN "rnbqk2r/pppppp2/8/8/8/7p/6np/6bK"
 		)
 	) ~? "'BishBosh.Model.Game.getMaybeTerminationReason' failed to detect \"Stale-mate\".",
 	all (
 		\s -> Data.Maybe.maybe False Rule.GameTerminationReason.isDrawByInsufficientMaterial $ Model.Game.getMaybeTerminationReason (
-			Model.Game.fromBoard $ Property.ForsythEdwards.readFEN s	:: Model.Game.Game
+			Model.Game.fromBoard $ Property.ForsythEdwards.readFEN s
 		)
 	) [
 		"2k5/8/1KB5/3B4/8/8/8/8",
@@ -178,7 +174,7 @@ testCases	= Test.HUnit.test [
 	] ~? "'BishBosh.Model.Game.getMaybeTerminationReason' failed to detect \"Draw by Insufficient Material\".",
 	all (
 		\s -> Data.Maybe.maybe True (not . Rule.GameTerminationReason.isDrawByInsufficientMaterial) $ Model.Game.getMaybeTerminationReason (
-			Model.Game.fromBoard $ Property.ForsythEdwards.readFEN s	:: Model.Game.Game
+			Model.Game.fromBoard $ Property.ForsythEdwards.readFEN s
 		)
 	) [
 		"k7/8/K7/8/8/8/8/1Q6",
@@ -195,7 +191,7 @@ testCases	= Test.HUnit.test [
 			\(moveString, s)	-> Control.Exception.throw . Data.Exception.mkInvalidDatum . showString "BishBosh.Test.HUnit.Model.Game.testCases:\t" . showString moveString . showString "; " $ showString s "."
 		) (
 			uncurry (==) . (
-				Model.Game.sortAvailableQualifiedMoves . (! Colour.LogicalColour.White) . Model.Game.getAvailableQualifiedMovesByLogicalColour &&& Model.Game.sortAvailableQualifiedMoves . Model.Game.mkAvailableQualifiedMovesFor Colour.LogicalColour.White
+				Model.Game.sortAvailableQualifiedMoves . (! Colour.LogicalColour.White) . Model.Game.getAvailableQualifiedMovesByLogicalColour &&& Model.Game.sortAvailableQualifiedMoves . (`Model.Game.mkAvailableQualifiedMovesFor` Colour.LogicalColour.White)
 			)
 		) . applyMoves $ words "g2g4 f7f6 g1h3 g7g5 h1g1 c7c6 d2d3 h7h5 c1d2 h5g4p d3d4 b8a6 f2f4 g4f3E"
 	 ) ~? "'BishBosh.Model.Game.getAvailableQualifiedMovesByLogicalColour' failed after En-passant.",
@@ -258,9 +254,9 @@ testCases	= Test.HUnit.test [
 	let
 		longCastle	= "e1c1C"
 	in case Notation.MoveNotation.readsQualifiedMove Data.Default.def longCastle of
-		[(eitherQualifiedMove, "")]	-> Model.Game.isValidEitherQualifiedMove eitherQualifiedMove (
-			Property.ForsythEdwards.readFEN "r2qkbnr/ppp1pppp/2np4/5b2/3P4/NQP5/PP1BPPPP/R3KBNR w KQkq - 5 6"	:: Model.Game.Game
-		 ) ~? "long Castle through legal check failed."
+		[(eitherQualifiedMove, "")]	-> Model.Game.isValidEitherQualifiedMove (
+			Property.ForsythEdwards.readFEN "r2qkbnr/ppp1pppp/2np4/5b2/3P4/NQP5/PP1BPPPP/R3KBNR w KQkq - 5 6"
+		 ) eitherQualifiedMove ~? "long Castle through legal check failed."
 		_				-> Control.Exception.throw . Data.Exception.mkParseFailure . showString "BishBosh.Test.HUnit.Model.Game.testCases:\tfailed to parse " $ shows longCastle ".",
 	let
 		epds :: [String]
@@ -289,7 +285,7 @@ testCases	= Test.HUnit.test [
 	let
 		terminalMoves	= map (Notation.Smith.getQualifiedMove . read) ["d6d8", "e7c7", "d6b6"]
 	in all (
-		`elem` Model.Game.findQualifiedMovesAvailableTo minBound (Model.Game.fromBoard $ Property.ForsythEdwards.readFEN "K7/4q1p1/3r4/8/8/5k2/8/8 b - - 13 49" :: Model.Game.Game)
+		`elem` Model.Game.findQualifiedMovesAvailableTo (Model.Game.fromBoard $ Property.ForsythEdwards.readFEN "K7/4q1p1/3r4/8/8/5k2/8/8 b - - 13 49" :: Model.Game.Game) minBound
 	) terminalMoves ~? "BishBosh.Test.HUnit.Model.Game.testCases:\tterminal move unavailable."
  ]
 

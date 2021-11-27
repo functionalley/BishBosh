@@ -157,7 +157,7 @@ mkPositionHashQuantifiedGameTree
 mkPositionHashQuantifiedGameTree evaluationOptions searchOptions zobrist moveFrequency seedGame	= MkPositionHashQuantifiedGameTree (
 	if Input.EvaluationOptions.getIncrementalEvaluation evaluationOptions
 		then let
-			apexPositionHash	= StateProperty.Hashable.hash seedGame zobrist
+			apexPositionHash	= StateProperty.Hashable.hash zobrist seedGame
 		in Data.Tree.Node {
 			Data.Tree.rootLabel	= MkNodeLabel apexPositionHash $ Control.Monad.Reader.runReader (
 				Evaluation.QuantifiedGame.fromGame Nothing seedGame
@@ -196,13 +196,13 @@ mkPositionHashQuantifiedGameTree evaluationOptions searchOptions zobrist moveFre
 			) $ Data.Tree.subForest bareGameTree
 		}
 		else uncurry MkNodeLabel . (
-			(`StateProperty.Hashable.hash` zobrist) &&& (`Control.Monad.Reader.runReader` evaluationOptions) . Evaluation.QuantifiedGame.fromGame Nothing
+			StateProperty.Hashable.hash zobrist &&& (`Control.Monad.Reader.runReader` evaluationOptions) . Evaluation.QuantifiedGame.fromGame Nothing
 		) <$> bareGameTree
  ) where
 	bareGameTree	= Model.GameTree.deconstruct . Model.GameTree.sortGameTree (
 		Input.SearchOptions.getMaybeCaptureMoveSortAlgorithm searchOptions
 	 ) (
-		`Input.RankValues.findRankValue` Input.EvaluationOptions.getRankValues evaluationOptions
+		Input.RankValues.findRankValue $ Input.EvaluationOptions.getRankValues evaluationOptions
 	 ) moveFrequency $ Model.GameTree.fromGame seedGame
 
 -- | Accessor.

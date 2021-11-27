@@ -152,12 +152,12 @@ gnuPlotComment	= '#'
 
 -- | Format the data for input to __GNUPlot__.
 formatForGNUPlot
-	:: (Type.Mass.PieceSquareValue -> ShowS)			-- ^ Format a /pieceSquareValue/.
+	:: PieceSquareByCoordinatesByRank
+	-> (Type.Mass.PieceSquareValue -> ShowS)			-- ^ Format a /pieceSquareValue/.
 	-> ShowS							-- ^ The column-delimiter.
 	-> (PieceSquareValueByNPieces -> Type.Mass.PieceSquareValue)	-- ^ Select one /PieceSquareValue/ from interpolated values.
-	-> PieceSquareByCoordinatesByRank
 	-> ShowS
-formatForGNUPlot pieceSquareValueFormatter columnDelimiter selector MkPieceSquareByCoordinatesByRank { deconstruct = byRank }	= (
+formatForGNUPlot MkPieceSquareByCoordinatesByRank { deconstruct = byRank } pieceSquareValueFormatter columnDelimiter selector	= (
 	showsRow (
 		showChar gnuPlotComment . showChar 'x' : showChar 'y' : map shows Attribute.Rank.range	-- Header comment.
 	) .

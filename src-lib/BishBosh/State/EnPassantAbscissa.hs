@@ -56,16 +56,16 @@ instance Control.DeepSeq.NFData EnPassantAbscissa where
 	rnf MkEnPassantAbscissa { getAbscissa = x }	= Control.DeepSeq.rnf x
 
 instance StateProperty.Hashable.Hashable EnPassantAbscissa where
-	listRandoms MkEnPassantAbscissa { getAbscissa = x }	= return {-to List-monad-} . Component.Zobrist.dereferenceRandomByEnPassantAbscissa x
+	listRandoms zobrist MkEnPassantAbscissa { getAbscissa = x }	= return {-to List-monad-} $! Component.Zobrist.dereferenceRandomByEnPassantAbscissa zobrist x
 
 -- | Constructor.
 mkMaybeEnPassantAbscissa
 	:: Colour.LogicalColour.LogicalColour	-- ^ The player who moves next, & who may have an En-passant capture-option.
 	-> State.MaybePieceByCoordinates.MaybePieceByCoordinates
-	-> Component.Turn.Turn				-- ^ The last /turn/ taken.
+	-> Component.Turn.Turn			-- ^ The last /turn/ taken.
 	-> Maybe EnPassantAbscissa
 mkMaybeEnPassantAbscissa nextLogicalColour maybePieceByCoordinates lastTurn
-	| Component.Turn.isPawnDoubleAdvance (Property.Opposable.getOpposite nextLogicalColour) lastTurn
+	| Component.Turn.isPawnDoubleAdvance lastTurn $ Property.Opposable.getOpposite nextLogicalColour
 	, let lastMoveDestination	= Component.Move.getDestination . Component.QualifiedMove.getMove $ Component.Turn.getQualifiedMove lastTurn
 	, not $ null [
 		passedPawn |
@@ -73,11 +73,11 @@ mkMaybeEnPassantAbscissa nextLogicalColour maybePieceByCoordinates lastTurn
 			Component.Piece.mkKing nextLogicalColour {- Will I expose my King ? -} `notElem` [
 				blockingPiece |
 					threatDirection		<- Property.FixedMembership.members,	-- Consider all directions.
-					(_, attackerRank)	<- Data.Maybe.maybeToList $ State.MaybePieceByCoordinates.findAttackerInDirection nextLogicalColour threatDirection adjacentCoordinates maybePieceByCoordinates,	-- Find discovered attacks.
+					(_, attackerRank)	<- Data.Maybe.maybeToList $ State.MaybePieceByCoordinates.findAttackerInDirection maybePieceByCoordinates nextLogicalColour adjacentCoordinates threatDirection,	-- Find discovered attacks.
 					attackerRank `notElem` Attribute.Rank.fixedAttackRange,	-- Any viable attack through the vacated square must be long-range.
-					(_, blockingPiece)	<- Data.Maybe.maybeToList $ State.MaybePieceByCoordinates.findBlockingPiece (Property.Opposable.getOpposite threatDirection) adjacentCoordinates maybePieceByCoordinates	-- Find any discovered attack.
+					(_, blockingPiece)	<- Data.Maybe.maybeToList . State.MaybePieceByCoordinates.findBlockingPiece maybePieceByCoordinates adjacentCoordinates $ Property.Opposable.getOpposite threatDirection	-- Find any discovered attack.
 			], -- Confirm that the En-passant capture doesn't expose my King.
-			passedPawn		<- filter (== Component.Piece.mkPawn nextLogicalColour) . Data.Maybe.maybeToList $ State.MaybePieceByCoordinates.dereference adjacentCoordinates maybePieceByCoordinates
+			passedPawn		<- filter (== Component.Piece.mkPawn nextLogicalColour) . Data.Maybe.maybeToList $ State.MaybePieceByCoordinates.dereference maybePieceByCoordinates adjacentCoordinates
 	] = Just . MkEnPassantAbscissa $ Cartesian.Coordinates.getX lastMoveDestination
 	| otherwise	= Nothing
 

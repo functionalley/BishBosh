@@ -116,13 +116,13 @@ isCapture MkTurn { getQualifiedMove = qualifiedMove }	= Attribute.MoveType.isCap
 
 -- | Whether the /turn/ represents a @Pawn@'s initial two-square advance.
 isPawnDoubleAdvance
-	:: Colour.LogicalColour.LogicalColour	-- ^ Defines the side whose /turn/ is referenced.
-	-> Turn
+	:: Turn
+	-> Colour.LogicalColour.LogicalColour	-- ^ Defines the side whose /turn/ is referenced.
 	-> Bool
-isPawnDoubleAdvance logicalColour MkTurn {
+isPawnDoubleAdvance MkTurn {
 	getRank			= Attribute.Rank.Pawn,
 	getQualifiedMove	= qualifiedMove
-} = Component.Move.isPawnDoubleAdvance logicalColour (Component.QualifiedMove.getMove qualifiedMove) && Component.QualifiedMove.getMoveType qualifiedMove == Data.Default.def
+} logicalColour		= Component.Move.isPawnDoubleAdvance (Component.QualifiedMove.getMove qualifiedMove) logicalColour && Component.QualifiedMove.getMoveType qualifiedMove == Data.Default.def
 isPawnDoubleAdvance _ _	= False
 
 -- | Forwards the request to 'Attribute.Rank.compareByLVA'.

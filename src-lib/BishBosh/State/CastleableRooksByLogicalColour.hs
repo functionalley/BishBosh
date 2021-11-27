@@ -125,11 +125,11 @@ removeX logicalColour x	= map $ \pair@(logicalColour', _) -> (
 
 -- | Predicate.
 canCastleWith'
-	:: Colour.LogicalColour.LogicalColour
+	:: AbscissaeByLogicalColour
+	-> Colour.LogicalColour.LogicalColour
 	-> Type.Length.X	-- ^ @Rook@'s abscissa.
-	-> AbscissaeByLogicalColour
 	-> Bool
-canCastleWith' logicalColour x	= Data.Maybe.maybe False {-has castled-} (elem x) . lookup logicalColour
+canCastleWith' abscissaeByLogicalColour logicalColour x	= Data.Maybe.maybe False {-has castled-} (elem x) $ lookup logicalColour abscissaeByLogicalColour
 
 -- | For the players of each /logical colour/, identifies the abscissae of those @Rook@s which can still participate in castling (when other constraints are removed).
 newtype CastleableRooksByLogicalColour	= MkCastleableRooksByLogicalColour {
@@ -199,7 +199,7 @@ instance Property.ExtendedPositionDescription.ShowsEPD CastleableRooksByLogicalC
 			pieceConstructor logicalColour |
 				logicalColour			<- [Colour.LogicalColour.White, Colour.LogicalColour.Black],	-- N.B.: the order is standardised.
 				(rooksX, pieceConstructor)	<- [(Cartesian.Abscissa.xMax, Component.Piece.mkKing), (Cartesian.Abscissa.xMin, Component.Piece.mkQueen)],	-- N.B.: the order is defined as King-side (short) before Queen-side (long), which is also alphabetical.
-				canCastleWith' logicalColour rooksX assocs
+				canCastleWith' assocs logicalColour rooksX
 		] -- List-comprehension.
 
 instance Property.ForsythEdwards.ReadsFEN CastleableRooksByLogicalColour
@@ -208,8 +208,8 @@ instance Property.ForsythEdwards.ShowsFEN CastleableRooksByLogicalColour
 
 -- | Get the list of random numbers required to represent the current castling potential.
 instance StateProperty.Hashable.Hashable CastleableRooksByLogicalColour where
-	listRandoms MkCastleableRooksByLogicalColour { getAssocs = assocs } zobrist	= Data.Maybe.catMaybes [
-		Component.Zobrist.dereferenceRandomByCastleableRooksXByLogicalColour logicalColour x zobrist |
+	listRandoms zobrist MkCastleableRooksByLogicalColour { getAssocs = assocs }	= Data.Maybe.catMaybes [
+		Component.Zobrist.dereferenceRandomByCastleableRooksXByLogicalColour zobrist logicalColour x |
 			logicalColour	<- Property.FixedMembership.members,
 			x		<- Data.Maybe.fromMaybe [] $ lookup logicalColour assocs
 	 ] -- List-comprehension.
@@ -234,8 +234,8 @@ fromAssocs assocs
 fromBoard :: State.Board.Board -> CastleableRooksByLogicalColour
 fromBoard board
 	| any (
-		\logicalColour -> hasCastled logicalColour castleableRooksByLogicalColour && all (
-			`elem` State.CoordinatesByRankByLogicalColour.dereference logicalColour Attribute.Rank.Pawn coordinatesByRankByLogicalColour
+		\logicalColour -> hasCastled castleableRooksByLogicalColour logicalColour && all (
+			`elem` State.CoordinatesByRankByLogicalColour.dereference coordinatesByRankByLogicalColour logicalColour Attribute.Rank.Pawn
 		) [
 			Cartesian.Coordinates.mkCoordinates x (
 				Cartesian.Ordinate.pawnsFirstRank logicalColour
@@ -252,8 +252,8 @@ fromBoard board
 				logicalColour,
 				[
 					Cartesian.Coordinates.getX rooksCoordinates |
-						State.CoordinatesByRankByLogicalColour.getKingsCoordinates logicalColour coordinatesByRankByLogicalColour == Cartesian.Coordinates.kingsStartingCoordinates logicalColour,
-						rooksCoordinates	<- State.CoordinatesByRankByLogicalColour.dereference logicalColour Attribute.Rank.Rook coordinatesByRankByLogicalColour,
+						uncurry (==) $ (State.CoordinatesByRankByLogicalColour.getKingsCoordinates coordinatesByRankByLogicalColour &&& Cartesian.Coordinates.kingsStartingCoordinates) logicalColour,
+						rooksCoordinates	<- State.CoordinatesByRankByLogicalColour.dereference coordinatesByRankByLogicalColour logicalColour Attribute.Rank.Rook,
 						rooksCoordinates `elem` Cartesian.Coordinates.rooksStartingCoordinates logicalColour
 				] -- List-comprehension.
 			) -- Pair.
@@ -266,7 +266,7 @@ type TurnsByLogicalColour	= State.TurnsByLogicalColour.TurnsByLogicalColour Comp
 fromTurnsByLogicalColour :: TurnsByLogicalColour -> CastleableRooksByLogicalColour
 fromTurnsByLogicalColour turnsByLogicalColour	= MkCastleableRooksByLogicalColour $ foldr (
 	\logicalColour -> let
-		turns	= State.TurnsByLogicalColour.dereference logicalColour turnsByLogicalColour
+		turns	= State.TurnsByLogicalColour.dereference turnsByLogicalColour logicalColour
 	in if any (Attribute.MoveType.isCastle . Component.QualifiedMove.getMoveType . Component.Turn.getQualifiedMove) turns
 		then id	-- Have Castled.
 		else (:) (
@@ -275,7 +275,7 @@ fromTurnsByLogicalColour turnsByLogicalColour	= MkCastleableRooksByLogicalColour
 				Cartesian.Coordinates.getX coordinates |
 					not $ haveMovedFrom (Cartesian.Coordinates.kingsStartingCoordinates logicalColour) turns,
 					coordinates	<- Cartesian.Coordinates.rooksStartingCoordinates logicalColour,
-					not $ haveMovedFrom coordinates turns || haveMovedTo coordinates (State.TurnsByLogicalColour.dereference (Property.Opposable.getOpposite logicalColour) turnsByLogicalColour)
+					not $ haveMovedFrom coordinates turns || haveMovedTo coordinates (State.TurnsByLogicalColour.dereference turnsByLogicalColour $ Property.Opposable.getOpposite logicalColour)
 			] -- List-comprehension.
 		) -- Pair.
  ) [] Property.FixedMembership.members where
@@ -284,12 +284,12 @@ fromTurnsByLogicalColour turnsByLogicalColour	= MkCastleableRooksByLogicalColour
 	haveMovedTo coordinates		= any $ (== coordinates) . Component.Move.getDestination . Component.QualifiedMove.getMove . Component.Turn.getQualifiedMove
 
 -- | Predicate.
-hasCastled :: Colour.LogicalColour.LogicalColour -> CastleableRooksByLogicalColour -> Bool
-hasCastled logicalColour MkCastleableRooksByLogicalColour { getAssocs = assocs }	= all ((/= logicalColour) . fst) assocs
+hasCastled :: CastleableRooksByLogicalColour -> Colour.LogicalColour.LogicalColour -> Bool
+hasCastled MkCastleableRooksByLogicalColour { getAssocs = assocs } logicalColour	= all ((/= logicalColour) . fst) assocs
 
 -- | Predicate.
-canCastle :: Colour.LogicalColour.LogicalColour -> CastleableRooksByLogicalColour -> Bool
-canCastle logicalColour MkCastleableRooksByLogicalColour { getAssocs = assocs }	= Data.Maybe.maybe False {-has castled-} (not . null) $ lookup logicalColour assocs
+canCastle :: CastleableRooksByLogicalColour -> Colour.LogicalColour.LogicalColour -> Bool
+canCastle MkCastleableRooksByLogicalColour { getAssocs = assocs }	= Data.Maybe.maybe False {-has castled-} (not . null) . (`lookup` assocs)
 
 -- | Infer the @Rook@'s ordinate from the /piece/'s /logical colour/.
 inferRooksOrdinate :: Colour.LogicalColour.LogicalColour -> Type.Length.Y
@@ -299,18 +299,18 @@ inferRooksOrdinate logicalColour
 
 -- | Predicate.
 canCastleWith
-	:: Colour.LogicalColour.LogicalColour
+	:: CastleableRooksByLogicalColour
+	-> Colour.LogicalColour.LogicalColour
 	-> Cartesian.Coordinates.Coordinates	-- ^ @Rook@'s coordinates.
-	-> CastleableRooksByLogicalColour
 	-> Bool
-canCastleWith logicalColour rookSource MkCastleableRooksByLogicalColour { getAssocs = assocs }	= Data.Maybe.maybe False {-has castled-} (
+canCastleWith MkCastleableRooksByLogicalColour { getAssocs = assocs } logicalColour rookSource	= Data.Maybe.maybe False {-has castled-} (
 	any $ (== rookSource) . (`Cartesian.Coordinates.mkCoordinates` inferRooksOrdinate logicalColour)
  ) $ lookup logicalColour assocs
 
 -- | Find the abscissae of all @Rook@s of the specified /logical colour/, which can still participate in castling.
-locateForLogicalColour :: Colour.LogicalColour.LogicalColour -> CastleableRooksByLogicalColour -> Maybe [Type.Length.X]
+locateForLogicalColour :: CastleableRooksByLogicalColour -> Colour.LogicalColour.LogicalColour -> Maybe [Type.Length.X]
 {-# INLINE locateForLogicalColour #-}
-locateForLogicalColour logicalColour MkCastleableRooksByLogicalColour { getAssocs = assocs }	= lookup logicalColour assocs
+locateForLogicalColour MkCastleableRooksByLogicalColour { getAssocs = assocs }	= (`lookup` assocs)
 
 -- | Self-documentation.
 type Transformation	= CastleableRooksByLogicalColour -> CastleableRooksByLogicalColour
@@ -381,7 +381,7 @@ cantConverge
 	-> CastleableRooksByLogicalColour
 	-> Bool
 cantConverge castleableRooksByLogicalColour castleableRooksByLogicalColour'	= any (
-	\logicalColour -> case ($ castleableRooksByLogicalColour) &&& ($ castleableRooksByLogicalColour') $ locateForLogicalColour logicalColour of
+	\logicalColour -> case ($ castleableRooksByLogicalColour) &&& ($ castleableRooksByLogicalColour') $ (`locateForLogicalColour` logicalColour) of
 		(Just [], Nothing)	-> True
 		(Nothing, Just [])	-> True
 		_			-> False
@@ -389,13 +389,9 @@ cantConverge castleableRooksByLogicalColour castleableRooksByLogicalColour'	= an
 
 -- | Generate the additional random-numbers required to correct the hash resulting from a change to the castleable @Rook@s.
 listIncrementalRandoms
-	:: CastleableRooksByLogicalColour	-- ^ The old value.
+	:: Component.Zobrist.Zobrist random
+	-> CastleableRooksByLogicalColour	-- ^ The old value.
 	-> CastleableRooksByLogicalColour	-- ^ The new value.
-	-> Component.Zobrist.Zobrist random
 	-> [random]
-listIncrementalRandoms castleableRooksByLogicalColour castleableRooksByLogicalColour' zobrist	= [
-	random |
-		hashable	<- [castleableRooksByLogicalColour, castleableRooksByLogicalColour'],
-		random		<- StateProperty.Hashable.listRandoms hashable zobrist
- ] -- List-comprehension.
+listIncrementalRandoms zobrist castleableRooksByLogicalColour castleableRooksByLogicalColour'	= StateProperty.Hashable.listRandoms zobrist [castleableRooksByLogicalColour, castleableRooksByLogicalColour']
 

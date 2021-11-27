@@ -36,7 +36,7 @@ class Accountant accountant where
 	-- | Calculate the total value of the /coordinates/ occupied by the /piece/s of either side.
 	sumPieceSquareValueByLogicalColour
 		:: Component.PieceSquareByCoordinatesByRank.PieceSquareByCoordinatesByRank
-		-> Type.Count.NPieces	-- ^ The number of pieces (of any logical colour or rank) remaining on the board; used to gauge progress through the game.
 		-> accountant
+		-> Type.Count.NPieces	-- ^ The number of pieces (of any logical colour or rank) remaining on the board; used to gauge progress through the game.
 		-> [Type.Mass.Base]	-- CAVEAT: can't return '[Type.Mass.PieceSquareValue]' because it's bounded.
 

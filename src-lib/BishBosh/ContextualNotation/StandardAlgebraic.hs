@@ -157,7 +157,7 @@ showsTurn
 	-> Model.Game.Game	-- ^ The /game/ prior to application of the specified /turn/.
 	-> ShowS
 showsTurn explicitEnPassant turn game
-	| Just sourceRank <- fmap Component.Piece.getRank . State.MaybePieceByCoordinates.dereference source $ State.Board.getMaybePieceByCoordinates board	= (
+	| Just sourceRank <- Component.Piece.getRank <$> State.MaybePieceByCoordinates.dereference (State.Board.getMaybePieceByCoordinates board) source	= (
 		if sourceRank == Attribute.Rank.Pawn
 			then (
 				if isCapture
@@ -175,9 +175,9 @@ showsTurn explicitEnPassant turn game
 					then shortCastleToken
 					else longCastleToken
 				_ {-not a castling-}			-> showsRank sourceRank . (
-					case Data.List.delete source {-search for alternatives-} $ State.Board.findAttacksBy (
+					case Data.List.delete source {-search for alternatives-} $ State.Board.findAttacksBy board (
 						Component.Piece.mkPiece (Model.Game.getNextLogicalColour game) sourceRank
-					) destination board of
+					) destination of
 						[]		-> id	-- There're aren't any pieces of this rank which can perform this move.
 						coordinates	-> case any (
 							(== Cartesian.Coordinates.getX source) . Cartesian.Coordinates.getX
@@ -206,7 +206,7 @@ showsTurn explicitEnPassant turn game
 
 		isEnPassant, isCapture :: Bool
 		isEnPassant	= Attribute.MoveType.isEnPassant moveType
-		isCapture	= State.MaybePieceByCoordinates.isOccupied destination (State.Board.getMaybePieceByCoordinates board) || isEnPassant
+		isCapture	= State.MaybePieceByCoordinates.isOccupied (State.Board.getMaybePieceByCoordinates board) destination || isEnPassant
 
 		showsRank :: Attribute.Rank.Rank -> ShowS
 		showsRank rank	= showChar $ fromRank rank
@@ -290,7 +290,7 @@ parser explicitEnPassant validateMoves game	= let
 	nextLogicalColour			= Model.Game.getNextLogicalColour game
 	(longCastlingMove, shortCastlingMove)	= Component.CastlingMove.getLongAndShortMoves nextLogicalColour
 	board					= Model.Game.getBoard game
-	getMaybePiece				= (`State.MaybePieceByCoordinates.dereference` State.Board.getMaybePieceByCoordinates board)
+	getMaybePiece				= State.MaybePieceByCoordinates.dereference $ State.Board.getMaybePieceByCoordinates board
 	getMaybeRank				= fmap Component.Piece.getRank . getMaybePiece
  in do
 	qualifiedMove	<- Text.Poly.spaces >> Poly.oneOf' [
@@ -303,7 +303,7 @@ parser explicitEnPassant validateMoves game	= let
 					piece :: Component.Piece.Piece
 					piece	= Component.Piece.mkPiece nextLogicalColour rank
 
-					findAttacksBy destination	= State.Board.findAttacksBy piece destination board
+					findAttacksBy destination	= State.Board.findAttacksBy board piece destination
 
 				if rank == Attribute.Rank.Pawn
 					then let
@@ -378,7 +378,7 @@ parser explicitEnPassant validateMoves game	= let
 								show &&& return {-to Parser-monad-} $ qualifiedMove |
 									source	<- sourceCandidates,-- Attempt to resolve the ambiguity by playing subsequent moves.
 									let qualifiedMove	= Component.QualifiedMove.mkQualifiedMove (Component.Move.mkMove source destination) $ mkNormalMoveType destination,
-									Model.Game.isValidQualifiedMove qualifiedMove game
+									Model.Game.isValidQualifiedMove game qualifiedMove
 							 ] -- List-comprehension.
 					in Poly.oneOf' [
 						(
@@ -431,16 +431,18 @@ parser explicitEnPassant validateMoves game	= let
 
 	_	<- Control.Applicative.optional (Poly.satisfyMsg (`elem` [checkFlag, checkMateFlag]) "Check") >> Control.Applicative.optional moveSuffixAnnotationParser
 
-	fmap fromQualifiedMove $ if validateMoves
-		then Data.Maybe.maybe (return {-to Parser-monad-} qualifiedMove) (Poly.failBad . showString "failed: ") $ Model.Game.validateQualifiedMove qualifiedMove game
-		else return {-to Parser-monad-} qualifiedMove
+	fromQualifiedMove `fmap` (
+		if validateMoves
+			then Data.Maybe.maybe (return {-to Parser-monad-} qualifiedMove) (Poly.failBad . showString "failed: ") . Model.Game.validateQualifiedMove game
+			else return {-to Parser-monad-}
+	 ) qualifiedMove
 #else /* Parsec */
 	-> Parsec.Parser StandardAlgebraic
 parser explicitEnPassant validateMoves game	= let
 	nextLogicalColour			= Model.Game.getNextLogicalColour game
 	(longCastlingMove, shortCastlingMove)	= Component.CastlingMove.getLongAndShortMoves nextLogicalColour
 	board					= Model.Game.getBoard game
-	getMaybePiece				= (`State.MaybePieceByCoordinates.dereference` State.Board.getMaybePieceByCoordinates board)
+	getMaybePiece				= State.MaybePieceByCoordinates.dereference $ State.Board.getMaybePieceByCoordinates board
 	getMaybeRank				= fmap Component.Piece.getRank . getMaybePiece
  in do
 	qualifiedMove	<- Parsec.spaces >> Parsec.choice [
@@ -451,7 +453,7 @@ parser explicitEnPassant validateMoves game	= let
 				piece :: Component.Piece.Piece
 				piece	= Component.Piece.mkPiece nextLogicalColour rank
 
-				findAttacksBy destination	= State.Board.findAttacksBy piece destination board
+				findAttacksBy destination	= State.Board.findAttacksBy board piece destination
 
 			if rank == Attribute.Rank.Pawn
 				then let
@@ -506,7 +508,7 @@ parser explicitEnPassant validateMoves game	= let
 							Parsec.try $ return {-to ParsecT-monad-} qualifiedMove |
 								source	<- sourceCandidates,-- Attempt to resolve the ambiguity by playing subsequent moves.
 								let qualifiedMove	= Component.QualifiedMove.mkQualifiedMove (Component.Move.mkMove source destination) $ mkNormalMoveType destination,
-								Model.Game.isValidQualifiedMove qualifiedMove game
+								Model.Game.isValidQualifiedMove game qualifiedMove
 						 ] -- List-comprehension.
 				in Parsec.choice [
 					Parsec.try $ do -- N.B. this scenario occurs when there are identical pieces on both the same row & the same column, as the intended attacker; i.e. after a promotion.
@@ -553,9 +555,11 @@ parser explicitEnPassant validateMoves game	= let
 
 	_	<- Parsec.optional (Parsec.oneOf [checkFlag, checkMateFlag] <?> "Check") >> Parsec.optional moveSuffixAnnotationParser
 
-	fromQualifiedMove <$> if validateMoves
-		then Data.Maybe.maybe (return {-to ParsecT-monad-} qualifiedMove) (fail . showString "Failed: ") $ Model.Game.validateQualifiedMove qualifiedMove game
-		else return {-to ParsecT-monad-} qualifiedMove
+	fromQualifiedMove <$> (
+		if validateMoves
+			then Data.Maybe.maybe (return {-to ParsecT-monad-} qualifiedMove) (fail . showString "Failed: ") . Model.Game.validateQualifiedMove game
+			else return {-to ParsecT-monad-}
+	 ) qualifiedMove
 #endif
 
 -- | Represent a /rank/ in SAN.

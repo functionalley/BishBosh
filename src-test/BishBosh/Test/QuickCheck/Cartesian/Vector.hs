@@ -69,10 +69,6 @@ results	= sequence [
 	in Test.QuickCheck.quickCheckWithResult Test.QuickCheck.stdArgs { Test.QuickCheck.maxSuccess = 64 } f,
 	let
 		f :: Cartesian.Vector.Vector -> Test.QuickCheck.Property
-		f vector	= Property.Orientated.isDiagonal vector ==> Test.QuickCheck.label "Vector.prop_(isDiagonal => not (isHorizontal || isVertical))" . not . uncurry (||) $ (Property.Orientated.isHorizontal &&& Property.Orientated.isVertical) vector
-	in Test.QuickCheck.quickCheckWithResult Test.QuickCheck.stdArgs { Test.QuickCheck.maxSuccess = 16 } f,
-	let
-		f :: Cartesian.Vector.Vector -> Test.QuickCheck.Property
 		f vector	= Property.Orientated.isStraight vector ==> Test.QuickCheck.label "Vector.prop_(isStraight => isDiagonal /= isParallel)" . uncurry (/=) $ (Property.Orientated.isDiagonal &&& Property.Orientated.isParallel) vector
 	in Test.QuickCheck.quickCheckWithResult Test.QuickCheck.stdArgs { Test.QuickCheck.maxSuccess = 16 } f,
 	let
@@ -100,9 +96,9 @@ results	= sequence [
 	in Test.QuickCheck.quickCheckWithResult Test.QuickCheck.stdArgs { Test.QuickCheck.maxSuccess = 256 } f,
 	let
 		f :: Cartesian.Coordinates.Coordinates -> Cartesian.Coordinates.Coordinates -> Test.QuickCheck.Property
-		f source destination = Test.QuickCheck.label "Vector.prop_measureDistance => translate" $ Cartesian.Vector.translate source (
+		f source destination = Test.QuickCheck.label "Vector.prop_measureDistance => translate" $ Cartesian.Vector.translate (
 			Cartesian.Vector.measureDistance source destination	:: Cartesian.Vector.Vector
-		 ) == destination
+		 ) source == destination
 	in Test.QuickCheck.quickCheckWithResult Test.QuickCheck.stdArgs { Test.QuickCheck.maxSuccess = 64 } f,
 	let
 		f :: Cartesian.Coordinates.Coordinates -> Cartesian.Coordinates.Coordinates -> Test.QuickCheck.Property

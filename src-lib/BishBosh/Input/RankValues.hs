@@ -116,8 +116,8 @@ fromAssocs assocs
 		byRank					= Attribute.Rank.arrayByRank assocs
 
 -- | Query.
-findRankValue :: Attribute.Rank.Rank -> RankValues -> Metric.RankValue.RankValue
-findRankValue rank (MkRankValues byRank)	= byRank ! rank
+findRankValue :: RankValues -> Attribute.Rank.Rank -> Metric.RankValue.RankValue
+findRankValue (MkRankValues byRank)	= (byRank !)
 
 {- |
 	* The maximum total rank-value one side can have.

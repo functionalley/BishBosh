@@ -58,17 +58,17 @@ testCases :: Test.HUnit.Test
 testCases	= Test.HUnit.test [
 	"'BishBosh.Cartesian.Coordinates' failed to locate the expected pieces on a default board." ~: (
 		map length . ToolShed.Data.Foldable.gather $ map (
-			`State.MaybePieceByCoordinates.dereference` Data.Default.def
+			State.MaybePieceByCoordinates.dereference Data.Default.def
 		) (Property.FixedMembership.members :: [Cartesian.Coordinates.Coordinates])
 	) ~?= [32, 8, 2, 2, 2, 1, 1, 8, 2, 2, 2, 1, 1],
 	let
 		kingsColour		= minBound
 		destination		= Cartesian.Coordinates.mkRelativeCoordinates ((+ 3) *** (+ 3))
-		directionToCoordinates	= last . (`Cartesian.Coordinates.extrapolate` destination)
+		directionToCoordinates	= last . Cartesian.Coordinates.extrapolate destination
 		mkPiece			= Component.Piece.mkPiece $ Property.Opposable.getOpposite kingsColour
-		maybeShift		= Cartesian.Vector.maybeTranslate destination
+		maybeShift		= (`Cartesian.Vector.maybeTranslate` destination)
 	in all (
-		State.Board.isKingChecked kingsColour . placePieces . (:) (Component.Piece.mkKing kingsColour, destination) . return {-to List-monad-}
+		(`State.Board.isKingChecked` kingsColour) . placePieces . (:) (Component.Piece.mkKing kingsColour, destination) . return {-to List-monad-}
 	) (
 		concat [
 			Data.Maybe.mapMaybe (
@@ -179,113 +179,113 @@ testCases	= Test.HUnit.test [
 	let
 		whitePawnsCoordinates	= Cartesian.Coordinates.mkRelativeCoordinates $ succ *** succ
 	in not (
-		State.Board.exposesKing maxBound (
-			Component.Move.mkMove whitePawnsCoordinates $ Cartesian.Coordinates.advance maxBound whitePawnsCoordinates
-		) $ placePieces [
-			(
-				Component.Piece.mkKing maxBound,
-				minBound
-			), (
-				Component.Piece.mkPawn maxBound,
-				whitePawnsCoordinates
-			), (
-				Component.Piece.mkPawn minBound,
-				Cartesian.Coordinates.mkRelativeCoordinates $ (+ 2) *** (+ 2)
-			)
-		]
+		State.Board.exposesKing (
+			placePieces [
+				(
+					Component.Piece.mkKing maxBound,
+					minBound
+				), (
+					Component.Piece.mkPawn maxBound,
+					whitePawnsCoordinates
+				), (
+					Component.Piece.mkPawn minBound,
+					Cartesian.Coordinates.mkRelativeCoordinates $ (+ 2) *** (+ 2)
+				)
+			]
+		) maxBound . Component.Move.mkMove whitePawnsCoordinates $ Cartesian.Coordinates.advance maxBound whitePawnsCoordinates
 	) ~? "'BishBosh.State.Board.exposesKing false positive attack by black Pawn, after moving White Pawn.",
 	let
 		whitePawnsCoordinates	= Cartesian.Coordinates.mkRelativeCoordinates $ succ *** succ
 	in not (
-		State.Board.exposesKing maxBound (
-			Component.Move.mkMove whitePawnsCoordinates $ Cartesian.Coordinates.advance maxBound whitePawnsCoordinates
-		) $ placePieces [
-			(
-				Component.Piece.mkKing maxBound,
-				minBound
-			), (
-				Component.Piece.mkPawn maxBound,
-				whitePawnsCoordinates
-			), (
-				Component.Piece.mkKing minBound,
-				Cartesian.Coordinates.mkRelativeCoordinates $ (+ 2) *** (+ 2)
-			)
-		]
+		State.Board.exposesKing (
+			placePieces [
+				(
+					Component.Piece.mkKing maxBound,
+					minBound
+				), (
+					Component.Piece.mkPawn maxBound,
+					whitePawnsCoordinates
+				), (
+					Component.Piece.mkKing minBound,
+					Cartesian.Coordinates.mkRelativeCoordinates $ (+ 2) *** (+ 2)
+				)
+			]
+		) maxBound . Component.Move.mkMove whitePawnsCoordinates $ Cartesian.Coordinates.advance maxBound whitePawnsCoordinates
 	) ~? "'BishBosh.State.Board.exposesKing false positive attack by black King, after moving White Pawn.",
 	let
 		whiteBishopsCoordinates	= Cartesian.Coordinates.mkRelativeCoordinates $ succ *** succ
 	in not (
-		State.Board.exposesKing maxBound (
-			Component.Move.mkMove whiteBishopsCoordinates $ Cartesian.Coordinates.translate (succ *** succ) whiteBishopsCoordinates	-- Move towards Black Queen.
-		) $ placePieces [
-			(
-				Component.Piece.mkKing maxBound,
-				minBound
-			), (
-				Component.Piece.mkBishop maxBound,
-				whiteBishopsCoordinates
-			), (
-				Component.Piece.mkQueen minBound,
-				maxBound
-			)
-		]
+		State.Board.exposesKing (
+			placePieces [
+				(
+					Component.Piece.mkKing maxBound,
+					minBound
+				), (
+					Component.Piece.mkBishop maxBound,
+					whiteBishopsCoordinates
+				), (
+					Component.Piece.mkQueen minBound,
+					maxBound
+				)
+			]
+		) maxBound . Component.Move.mkMove whiteBishopsCoordinates $ Cartesian.Coordinates.translate (succ *** succ) whiteBishopsCoordinates	-- Move towards Black Queen.
 	) ~? "'BishBosh.State.Board.exposesKing false positive attack by black Queen, after moving White Bishop.",
 	let
 		whitePawnsCoordinates	= Cartesian.Coordinates.mkRelativeCoordinates $ succ *** succ
-	in State.Board.exposesKing maxBound (
-		Component.Move.mkMove whitePawnsCoordinates $ Cartesian.Coordinates.advance maxBound whitePawnsCoordinates	-- Expose attack from Black Queen.
-	) (
-		placePieces [
-			(
-				Component.Piece.mkKing maxBound,
-				minBound
-			), (
-				Component.Piece.mkPawn maxBound,
-				whitePawnsCoordinates
-			), (
-				Component.Piece.mkQueen minBound,
-				maxBound
-			)
-		]
+	in (
+		State.Board.exposesKing (
+			placePieces [
+				(
+					Component.Piece.mkKing maxBound,
+					minBound
+				), (
+					Component.Piece.mkPawn maxBound,
+					whitePawnsCoordinates
+				), (
+					Component.Piece.mkQueen minBound,
+					maxBound
+				)
+			]
+		) maxBound . Component.Move.mkMove whitePawnsCoordinates $ Cartesian.Coordinates.advance maxBound whitePawnsCoordinates	-- Expose attack from Black Queen.
 	) ~? "'BishBosh.State.Board.exposesKing failed after advancing White Pawn.",
 	let
 		whiteKnightsCoordinates	= Cartesian.Coordinates.mkRelativeCoordinates $ succ *** succ
-	in State.Board.exposesKing maxBound (
-		Component.Move.mkMove whiteKnightsCoordinates . Cartesian.Coordinates.mkRelativeCoordinates $ (+ 3) *** (+ 2)	-- Expose attack from Black Queen.
-	) (
-		placePieces [
-			(
-				Component.Piece.mkKing maxBound,
-				minBound
-			), (
-				Component.Piece.mkKnight maxBound,
-				whiteKnightsCoordinates
-			), (
-				Component.Piece.mkQueen minBound,
-				maxBound
-			)
-		]
+	in (
+		State.Board.exposesKing (
+			placePieces [
+				(
+					Component.Piece.mkKing maxBound,
+					minBound
+				), (
+					Component.Piece.mkKnight maxBound,
+					whiteKnightsCoordinates
+				), (
+					Component.Piece.mkQueen minBound,
+					maxBound
+				)
+			]
+		) maxBound . Component.Move.mkMove whiteKnightsCoordinates . Cartesian.Coordinates.mkRelativeCoordinates $ (+ 3) *** (+ 2)	-- Expose attack from Black Queen.
 	) ~? "'BishBosh.State.Board.exposesKing failed after moving White Knight.",
 	let
 		whiteRooksCoordinates	= Cartesian.Coordinates.mkRelativeCoordinates $ (+ 2) *** (+ 2)
 	in not (
-		State.Board.exposesKing maxBound (
-			Component.Move.mkMove whiteRooksCoordinates $ Cartesian.Coordinates.advance maxBound whiteRooksCoordinates	-- Shift blocking-role to Pawn.
-		) $ placePieces [
-			(
-				Component.Piece.mkKing maxBound,
-				minBound
-			), (
-				Component.Piece.mkPawn maxBound,
-				Cartesian.Coordinates.mkRelativeCoordinates $ succ *** succ
-			), (
-				Component.Piece.mkRook maxBound,
-				whiteRooksCoordinates
-			), (
-				Component.Piece.mkQueen minBound,
-				maxBound
-			)
-		]
+		State.Board.exposesKing (
+			placePieces [
+				(
+					Component.Piece.mkKing maxBound,
+					minBound
+				), (
+					Component.Piece.mkPawn maxBound,
+					Cartesian.Coordinates.mkRelativeCoordinates $ succ *** succ
+				), (
+					Component.Piece.mkRook maxBound,
+					whiteRooksCoordinates
+				), (
+					Component.Piece.mkQueen minBound,
+					maxBound
+				)
+			]
+		) maxBound . Component.Move.mkMove whiteRooksCoordinates $ Cartesian.Coordinates.advance maxBound whiteRooksCoordinates	-- Shift blocking-role to Pawn.
 	) ~? "'BishBosh.State.Board.exposesKing failed after moving White Rook.",
 	Data.Foldable.all (
 		Data.Foldable.all (== 1)

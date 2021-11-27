@@ -81,7 +81,7 @@ results	= sequence [
 			maybePieceSquareByCoordinatesByRank	= Input.EvaluationOptions.getMaybePieceSquareByCoordinatesByRank evaluationOptions
 
 			sumPieceSquareValueByLogicalColour' :: Component.Accountant.Accountant accountant => accountant -> [Type.Mass.Base]
-			sumPieceSquareValueByLogicalColour'	= Component.Accountant.sumPieceSquareValueByLogicalColour (Data.Maybe.fromJust maybePieceSquareByCoordinatesByRank) $ State.Board.getNPieces board
+			sumPieceSquareValueByLogicalColour'	= flip (Component.Accountant.sumPieceSquareValueByLogicalColour $ Data.Maybe.fromJust maybePieceSquareByCoordinatesByRank) $ State.Board.getNPieces board
 	in Test.QuickCheck.quickCheckWithResult Test.QuickCheck.stdArgs { Test.QuickCheck.maxSuccess = 64 } f,
 #endif
 	let

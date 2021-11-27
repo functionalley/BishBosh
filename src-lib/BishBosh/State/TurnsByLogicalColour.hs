@@ -135,23 +135,23 @@ countPlies :: TurnsByLogicalColour turn -> Type.Count.NPlies
 countPlies MkTurnsByLogicalColour { getTurnsByLogicalColour = byLogicalColour }	= fromIntegral $ Data.Foldable.foldl' (\acc -> (+ acc) . length) 0 byLogicalColour
 
 -- | Dereference.
-dereference :: Colour.LogicalColour.LogicalColour -> TurnsByLogicalColour turn -> [turn]
-dereference logicalColour MkTurnsByLogicalColour { getTurnsByLogicalColour = byLogicalColour }	= byLogicalColour ! logicalColour
+dereference :: TurnsByLogicalColour turn -> Colour.LogicalColour.LogicalColour -> [turn]
+dereference MkTurnsByLogicalColour { getTurnsByLogicalColour = byLogicalColour } logicalColour	= byLogicalColour ! logicalColour
+
+-- | Self-documentation.
+type Transformation turn	= TurnsByLogicalColour turn -> TurnsByLogicalColour turn
 
 {- |
 	* Update the specified logical colours.
 
 	* CAVEAT: obliterates any incumbent data for the specified logical colours.
 -}
-update :: TurnsByLogicalColour turn -> [(Colour.LogicalColour.LogicalColour, [turn])] -> TurnsByLogicalColour turn
-update MkTurnsByLogicalColour { getTurnsByLogicalColour = byLogicalColour } assocs	= turnsByLogicalColour where
+update :: [(Colour.LogicalColour.LogicalColour, [turn])] -> Transformation turn
+update assocs MkTurnsByLogicalColour { getTurnsByLogicalColour = byLogicalColour }	= turnsByLogicalColour where
 	turnsByLogicalColour	= MkTurnsByLogicalColour {
 		getTurnsByLogicalColour	= byLogicalColour // assocs,
 		getNPlies		= countPlies turnsByLogicalColour	-- Infer.
 	}
-
--- | Self-documentation.
-type Transformation turn	= TurnsByLogicalColour turn -> TurnsByLogicalColour turn
 
 -- | Prepend the specified /turn/.
 prepend :: Colour.LogicalColour.LogicalColour -> turn -> Transformation turn

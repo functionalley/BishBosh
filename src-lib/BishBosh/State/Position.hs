@@ -53,7 +53,6 @@ import qualified	BishBosh.State.EnPassantAbscissa		as State.EnPassantAbscissa
 import qualified	BishBosh.State.MaybePieceByCoordinates		as State.MaybePieceByCoordinates
 import qualified	BishBosh.StateProperty.Hashable			as StateProperty.Hashable
 import qualified	Control.DeepSeq
-import qualified	Data.Maybe
 
 -- | The state of the game, without regard to how it arrived there.
 data Position	= MkPosition {
@@ -102,18 +101,16 @@ instance Property.Reflectable.ReflectableOnX Position where
 	}
 
 instance StateProperty.Hashable.Hashable Position where
-	listRandoms MkPosition {
+	listRandoms zobrist MkPosition {
 		getNextLogicalColour			= nextLogicalColour,
 		getMaybePieceByCoordinates		= maybePieceByCoordinates,
 		getCastleableRooksByLogicalColour	= castleableRooksByLogicalColour,
 		getMaybeEnPassantAbscissa		= maybeEnPassantAbscissa
-	} zobrist	= (
+	} = (
 		if Colour.LogicalColour.isBlack nextLogicalColour
 			then (Component.Zobrist.getRandomForBlacksMove zobrist :)
 			else id
-	 ) . Data.Maybe.maybe id (
-		(++) . (`StateProperty.Hashable.listRandoms` zobrist)
-	 ) maybeEnPassantAbscissa $ StateProperty.Hashable.listRandoms castleableRooksByLogicalColour zobrist ++ StateProperty.Hashable.listRandoms maybePieceByCoordinates zobrist
+	 ) $ StateProperty.Hashable.listRandoms zobrist (maybeEnPassantAbscissa, castleableRooksByLogicalColour, maybePieceByCoordinates)
 
 -- | Constructor.
 mkPosition

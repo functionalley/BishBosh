@@ -46,6 +46,7 @@ module BishBosh.Component.Move(
 	isPawnDoubleAdvance
 ) where
 
+import			Control.Arrow((&&&))
 import qualified	BishBosh.Cartesian.Coordinates	as Cartesian.Coordinates
 import qualified	BishBosh.Cartesian.Vector	as Cartesian.Vector
 import qualified	BishBosh.Colour.LogicalColour	as Colour.LogicalColour
@@ -168,10 +169,12 @@ interpolate move@MkMove {
 	but passing only guarantees that it is, if it was a @Pawn@ which moved & that the /move/ is valid.
 -}
 isPawnDoubleAdvance
-	:: Colour.LogicalColour.LogicalColour	-- ^ Defines the side whose move is referenced.
-	-> Move
+	:: Move
+	-> Colour.LogicalColour.LogicalColour	-- ^ Defines the side whose move is referenced.
 	-> Bool
-isPawnDoubleAdvance logicalColour move@MkMove { getSource = source }	= Cartesian.Coordinates.isPawnsFirstRank logicalColour source && Cartesian.Vector.matchesPawnDoubleAdvance logicalColour (
-	measureDistance move
+isPawnDoubleAdvance move@MkMove { getSource = source }	= uncurry (&&) . (
+	Cartesian.Coordinates.isPawnsFirstRank source &&& Cartesian.Vector.matchesPawnDoubleAdvance (
+		measureDistance move
+	)
  )
 

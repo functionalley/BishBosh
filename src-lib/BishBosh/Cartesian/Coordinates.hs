@@ -234,12 +234,15 @@ fromIx	= (
 	}
  ) . (`divMod` fromIntegral Cartesian.Abscissa.xLength)
 
+-- | The type of a function which changes one set of /coordinates/ to another.
+type Transformation	= Coordinates -> Coordinates
+
 {- |
 	* Translate the specified /coordinates/ using the specified mapping.
 
 	* CAVEAT: the caller must ensure that the results are legal.
 -}
-translate :: ((Type.Length.X, Type.Length.Y) -> (Type.Length.X, Type.Length.Y)) -> Coordinates -> Coordinates
+translate :: ((Type.Length.X, Type.Length.Y) -> (Type.Length.X, Type.Length.Y)) -> Transformation
 translate transformation MkCoordinates {
 	getX	= x,
 	getY	= y
@@ -334,13 +337,13 @@ getAdjacents coordinates@MkCoordinates { getX = x }	= map (\x' -> coordinates { 
 
 -- | Generates a line of /coordinates/, starting just after the specified source & proceeding in the specified /direction/ to the edge of the board.
 extrapolate'
-	:: Direction.Direction.Direction	-- ^ The direction in which to proceed.
-	-> Coordinates				-- ^ The point from which to start.
+	:: Coordinates				-- ^ The point from which to start.
+	-> Direction.Direction.Direction	-- ^ The direction in which to proceed.
 	-> [Coordinates]
-extrapolate' direction MkCoordinates {
+extrapolate' MkCoordinates {
 	getX	= x,
 	getY	= y
-} = uncurry (zipWith MkCoordinates) $ if Property.Orientated.isParallel direction
+} direction = uncurry (zipWith MkCoordinates) $ if Property.Orientated.isParallel direction
 	then if Property.Orientated.isVertical direction
 		then doVertical
 		else doHorizontal
@@ -376,10 +379,10 @@ extrapolate' direction MkCoordinates {
 	In consequence, it is typically automatically avoided using a rewrite-rule to lookup an array of the results from all possible calls.
 -}
 extrapolate
-	:: Direction.Direction.Direction	-- ^ The direction in which to proceed.
-	-> Coordinates				-- ^ The point from which to start.
+	:: Coordinates				-- ^ The point from which to start.
+	-> Direction.Direction.Direction	-- ^ The direction in which to proceed.
 	-> [Coordinates]
-extrapolate direction coordinates	= extrapolationsByDirectionByCoordinates ! coordinates ! direction
+extrapolate coordinates	direction	= extrapolationsByDirectionByCoordinates ! coordinates ! direction
 
 -- | The constant lists of /coordinates/, extrapolated from every /coordinate/ in the /board/, in every /direction/.
 extrapolationsByDirectionByCoordinates :: ArrayByCoordinates (Direction.Direction.ArrayByDirection [Coordinates])
@@ -388,10 +391,10 @@ extrapolationsByDirectionByCoordinates	= listArrayByCoordinates
 	. Control.Parallel.Strategies.withStrategy (Control.Parallel.Strategies.parList Control.Parallel.Strategies.rdeepseq)
 #endif
 	$ map (
-		\coordinates	-> Direction.Direction.listArrayByDirection $ map (`extrapolate'` coordinates) Property.FixedMembership.members {-direction-}
+		\coordinates	-> Direction.Direction.listArrayByDirection $ extrapolate' coordinates `map` Property.FixedMembership.members {-direction-}
 	) Property.FixedMembership.members {-coordinates-}
 
--- | The list of /coordinates/, between every permutation of source & valid destination on the /board/.
+-- | The constant lists of /coordinates/, between every permutation of source & valid destination on the /board/.
 interpolationsByDestinationBySource :: ArrayByCoordinates (Map.Map Coordinates [Coordinates])
 interpolationsByDestinationBySource	= Data.Array.IArray.amap (
 	Map.fromList . map (
@@ -408,9 +411,6 @@ interpolationsByDestinationBySource	= Data.Array.IArray.amap (
 -}
 interpolate :: Coordinates -> Coordinates -> [Coordinates]
 interpolate coordinatesSource coordinatesDestination	= interpolationsByDestinationBySource ! coordinatesSource Map.! coordinatesDestination
-
--- | The type of a function which changes one set of /coordinates/ to another.
-type Transformation	= Coordinates -> Coordinates
 
 {- |
 	* Rotates the specified /coordinates/, so that the @Black@ pieces start on the specified side of the board; a /direction/ of @N@ involves no change.
@@ -488,12 +488,12 @@ rooksStartingCoordinates Colour.LogicalColour.Black	= [topLeft, maxBound]
 rooksStartingCoordinates _				= [minBound, bottomRight]
 
 -- | Whether the specified /coordinates/ are where a @Pawn@ of the specified /logical colour/ starts.
-isPawnsFirstRank :: Colour.LogicalColour.LogicalColour -> Coordinates -> Bool
-isPawnsFirstRank logicalColour MkCoordinates { getY = y }	= y == Cartesian.Ordinate.pawnsFirstRank logicalColour
+isPawnsFirstRank :: Coordinates -> Colour.LogicalColour.LogicalColour -> Bool
+isPawnsFirstRank MkCoordinates { getY = y }	= (== y) . Cartesian.Ordinate.pawnsFirstRank
 
 -- | Whether a @Pawn@ is currently on the appropriate /rank/ to take an opponent's @Pawn@ /en-passant/.
-isEnPassantRank :: Colour.LogicalColour.LogicalColour -> Coordinates -> Bool
-isEnPassantRank logicalColour MkCoordinates { getY = y }	= y == Cartesian.Ordinate.enPassantRank logicalColour
+isEnPassantRank :: Coordinates -> Colour.LogicalColour.LogicalColour -> Bool
+isEnPassantRank MkCoordinates { getY = y }	= (== y) . Cartesian.Ordinate.enPassantRank
 
 -- | A boxed array indexed by /coordinates/, of arbitrary elements.
 type ArrayByCoordinates	= Data.Array.IArray.Array Coordinates

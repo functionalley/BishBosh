@@ -42,7 +42,7 @@ testCases	= Test.HUnit.test [
 		\(direction, s) -> let
 			move :: Component.Move.Move
 			move	= Component.QualifiedMove.getMove . Notation.Smith.getQualifiedMove $ read s
-		in Cartesian.Coordinates.extrapolate direction (Component.Move.getSource move) == Component.Move.interpolate move
+		in Cartesian.Coordinates.extrapolate (Component.Move.getSource move) direction == Component.Move.interpolate move
 	) [
 		(
 			Direction.Direction.ne,	"a1h8"

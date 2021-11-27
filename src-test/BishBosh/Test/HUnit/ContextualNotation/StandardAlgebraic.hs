@@ -90,7 +90,7 @@ testCases	= Test.HUnit.test $ map (
 			ContextualNotation.StandardAlgebraic.fromQualifiedMove $ Component.QualifiedMove.mkQualifiedMove move moveType
 		 ) (
 			Control.Exception.throw . Data.Exception.mkInvalidDatum . showString "BishBosh.Test.HUnit.ContextualNotation.StandardAlgebraic.testCases:\tinvalid " . showString Component.Move.tag . Text.ShowList.showsAssociation . shows move . showString "; " . show
-		 ) $ Model.Game.validateEitherQualifiedMove eitherQualifiedMove game
+		 ) $ Model.Game.validateEitherQualifiedMove game eitherQualifiedMove
 		_		-> Control.Exception.throw . Data.Exception.mkParseFailure . showString "BishBosh.Test.HUnit.ContextualNotation.StandardAlgebraic.testCases:\tfailed to read " $ shows s "."
  ) ["g1h3", "e2e3", "e2e4"] ++ map (
 	\(fen, nextLogicalColour, s, maybeMoveSuffixAnnotation) -> case Notation.MoveNotation.readsQualifiedMove Data.Default.def s of
@@ -105,7 +105,7 @@ testCases	= Test.HUnit.test $ map (
 				ContextualNotation.StandardAlgebraic.fromQualifiedMove $ Component.QualifiedMove.mkQualifiedMove move moveType
 			 ) (
 				Control.Exception.throw . Data.Exception.mkInvalidDatum . showString "BishBosh.Test.HUnit.ContextualNotation.StandardAlgebraic.testCases:\tinvalid " . showString Component.Move.tag . Text.ShowList.showsAssociation . shows move . showString "; " . show
-			 ) $ Model.Game.validateEitherQualifiedMove eitherQualifiedMove game
+			 ) $ Model.Game.validateEitherQualifiedMove game eitherQualifiedMove
 			_		-> Control.Exception.throw . Data.Exception.mkParseFailure . showString "BishBosh.Test.HUnit.ContextualNotation.StandardAlgebraic.testCases:\tfailed to read FEN" . Text.ShowList.showsAssociation $ show fen
 		_		-> Control.Exception.throw . Data.Exception.mkParseFailure . showString "BishBosh.Test.HUnit.ContextualNotation.StandardAlgebraic.testCases:\tfailed to read " $ shows s "."
  ) [

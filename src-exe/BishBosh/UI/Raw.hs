@@ -118,7 +118,9 @@ readMove positionHashQualifiedMoveTree randomGen runningWatch playState	= let
  in (
 	\nativeUIOptions -> let
 		show2D :: Model.Game.Game -> String
-		show2D	= State.MaybePieceByCoordinates.show2D (
+		show2D g	= State.MaybePieceByCoordinates.show2D (
+			State.Board.getMaybePieceByCoordinates $ Model.Game.getBoard g
+		 ) (
 			snd {-columns-} $ Input.NativeUIOptions.getBoardMagnification nativeUIOptions
 		 ) (
 			Input.NativeUIOptions.getColourScheme nativeUIOptions
@@ -126,7 +128,7 @@ readMove positionHashQualifiedMoveTree randomGen runningWatch playState	= let
 			Input.NativeUIOptions.getDepictFigurine nativeUIOptions
 		 ) (
 			Notation.MoveNotation.getOrigin moveNotation
-		 ) . State.Board.getMaybePieceByCoordinates . Model.Game.getBoard
+		 )
 
 		onCommand :: UI.Command.Command -> IO (State.PlayState.PlayState positionHash)
 		onCommand UI.Command.Hint	= do
@@ -291,7 +293,7 @@ readMove positionHashQualifiedMoveTree randomGen runningWatch playState	= let
 				corrections	= State.PlayState.suggestCorrections s playState
 			 in case Notation.MoveNotation.readsQualifiedMove moveNotation s of
 				[(eitherQualifiedMove, "")]
-					| Just errorMessage <- Model.Game.validateEitherQualifiedMove eitherQualifiedMove game	-> do
+					| Just errorMessage <- Model.Game.validateEitherQualifiedMove game eitherQualifiedMove	-> do
 						System.IO.hPutStrLn System.IO.stderr . Text.ShowColouredPrefix.showsPrefixError . shows s . showString " is illegal; " $ shows errorMessage "."
 
 						Control.Monad.unless (null corrections) . System.IO.hPutStrLn System.IO.stderr . Text.ShowColouredPrefix.showsPrefixInfo . showString "did you mean " $ shows corrections " ?"
@@ -366,7 +368,9 @@ takeTurns positionHashQualifiedMoveTree randomGen playState	= let
 
 		let
 			show2D :: Model.Game.Game -> String
-			show2D	= State.MaybePieceByCoordinates.show2D (
+			show2D game	= State.MaybePieceByCoordinates.show2D (
+				State.Board.getMaybePieceByCoordinates $ Model.Game.getBoard game
+			 ) (
 				snd {-columns-} $ Input.NativeUIOptions.getBoardMagnification nativeUIOptions
 			 ) (
 				Input.NativeUIOptions.getColourScheme nativeUIOptions
@@ -374,7 +378,7 @@ takeTurns positionHashQualifiedMoveTree randomGen playState	= let
 				Input.NativeUIOptions.getDepictFigurine nativeUIOptions
 			 ) (
 				Notation.MoveNotation.getOrigin moveNotation
-			 ) . State.Board.getMaybePieceByCoordinates . Model.Game.getBoard
+			 )
 
 			slave
 				:: Maybe (Concurrent.Pondering.Pondering Component.Move.Move)

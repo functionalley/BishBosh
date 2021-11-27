@@ -135,8 +135,8 @@ instance StateProperty.Censor.Censor CoordinatesByRankByLogicalColour where
 	hasBothKings MkCoordinatesByRankByLogicalColour { deconstruct = byLogicalColour }	= Data.Foldable.all ((== 1) . length . (! Attribute.Rank.King)) byLogicalColour	-- CAVEAT: false for more than one King per side also.
 
 instance StateProperty.Hashable.Hashable CoordinatesByRankByLogicalColour where
-	listRandoms MkCoordinatesByRankByLogicalColour { deconstruct = byLogicalColour } zobrist	= [
-		Component.Zobrist.dereferenceRandomByCoordinatesByRankByLogicalColour (logicalColour, rank, coordinates) zobrist |
+	listRandoms zobrist MkCoordinatesByRankByLogicalColour { deconstruct = byLogicalColour }	= [
+		Component.Zobrist.dereferenceRandomByCoordinatesByRankByLogicalColour zobrist (logicalColour, rank, coordinates) |
 			(logicalColour, byRank)	<- Data.Array.IArray.assocs byLogicalColour,
 			(rank, coordinatesList)	<- Data.Array.IArray.assocs byRank,
 			coordinates		<- coordinatesList
@@ -192,7 +192,7 @@ instance StateProperty.Mutator.Mutator CoordinatesByRankByLogicalColour where
 	* CAVEAT: nothing is said about whether any /piece/ at the specified /coordinates/ belongs to the opponent, as one might expect.
 -}
 instance StateProperty.Seeker.Seeker CoordinatesByRankByLogicalColour {-CAVEAT: MultiParamTypeClasses-} where
-	findProximateKnights logicalColour destination MkCoordinatesByRankByLogicalColour { deconstruct = byLogicalColour }	= filter (
+	findProximateKnights MkCoordinatesByRankByLogicalColour { deconstruct = byLogicalColour } logicalColour destination	= filter (
 		\source -> source /= destination {-guard against attempting to constructing a null vector-} && Cartesian.Vector.isKnightsMove (
 			Cartesian.Vector.measureDistance source destination
 		)
@@ -225,7 +225,7 @@ instance StateProperty.View.View CoordinatesByRankByLogicalColour where
 	 )
 
 instance Component.Accountant.Accountant CoordinatesByRankByLogicalColour where
-	sumPieceSquareValueByLogicalColour pieceSquareByCoordinatesByRank nPieces MkCoordinatesByRankByLogicalColour { deconstruct = byLogicalColour }	= map (
+	sumPieceSquareValueByLogicalColour pieceSquareByCoordinatesByRank MkCoordinatesByRankByLogicalColour { deconstruct = byLogicalColour } nPieces	= map (
 		\(logicalColour, byRank) -> Data.List.foldl' (
 			\acc (rank, coordinatesList) -> Data.List.foldl' (
 				\acc' -> (+ acc') . realToFrac . Component.PieceSquareByCoordinatesByRank.findPieceSquareValue pieceSquareByCoordinatesByRank nPieces logicalColour rank
@@ -247,12 +247,12 @@ instance Property.SelfValidating.SelfValidating CoordinatesByRankByLogicalColour
 
 -- | Dereference the array.
 dereference
-	:: Colour.LogicalColour.LogicalColour
+	:: CoordinatesByRankByLogicalColour
+	-> Colour.LogicalColour.LogicalColour
 	-> Attribute.Rank.Rank
-	-> CoordinatesByRankByLogicalColour
 	-> [Cartesian.Coordinates.Coordinates]
 {-# INLINE dereference #-}
-dereference logicalColour rank MkCoordinatesByRankByLogicalColour { deconstruct = byLogicalColour }	= byLogicalColour ! logicalColour ! rank
+dereference MkCoordinatesByRankByLogicalColour { deconstruct = byLogicalColour } logicalColour rank	= byLogicalColour ! logicalColour ! rank
 
 -- | Build an association-list.
 assocs :: CoordinatesByRankByLogicalColour -> [(Component.Piece.Piece, [Cartesian.Coordinates.Coordinates])]
@@ -273,19 +273,19 @@ listCoordinates MkCoordinatesByRankByLogicalColour { deconstruct = byLogicalColo
 
 -- | Get the /coordinates/ of the @King@ of the specified /logical colour/.
 getKingsCoordinates
-	:: Colour.LogicalColour.LogicalColour	-- ^ The /logical colour/ of the @King@ to find.
-	-> CoordinatesByRankByLogicalColour
+	:: CoordinatesByRankByLogicalColour
+	-> Colour.LogicalColour.LogicalColour	-- ^ The /logical colour/ of the @King@ to find.
 	-> Cartesian.Coordinates.Coordinates
 {-# INLINE getKingsCoordinates #-}
-getKingsCoordinates logicalColour MkCoordinatesByRankByLogicalColour { deconstruct = byLogicalColour }	= coordinates where
+getKingsCoordinates MkCoordinatesByRankByLogicalColour { deconstruct = byLogicalColour } logicalColour	= coordinates where
 	[coordinates]	= byLogicalColour ! logicalColour ! Attribute.Rank.King	-- CAVEAT: there should be exactly one.
 
 -- | Locate all /piece/s of the specified /logical colour/.
 findPiecesOfColour
-	:: Colour.LogicalColour.LogicalColour	-- ^ The /logical colour/ of the /piece/s to find.
-	-> CoordinatesByRankByLogicalColour
+	:: CoordinatesByRankByLogicalColour
+	-> Colour.LogicalColour.LogicalColour	-- ^ The /logical colour/ of the /piece/s to find.
 	-> [Component.Piece.LocatedPiece]
-findPiecesOfColour logicalColour MkCoordinatesByRankByLogicalColour { deconstruct = byLogicalColour }	= [
+findPiecesOfColour MkCoordinatesByRankByLogicalColour { deconstruct = byLogicalColour } logicalColour	= [
 	(coordinates, Component.Piece.mkPiece logicalColour rank) |
 		(rank, coordinatesList)	<- Data.Array.IArray.assocs $ byLogicalColour ! logicalColour,
 		coordinates		<- coordinatesList

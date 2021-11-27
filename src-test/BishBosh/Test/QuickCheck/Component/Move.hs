@@ -72,10 +72,6 @@ results	= sequence [
 	in Test.QuickCheck.quickCheckWithResult Test.QuickCheck.stdArgs { Test.QuickCheck.maxSuccess = 64 } f,
 	let
 		f :: Component.Move.Move -> Test.QuickCheck.Property
-		f move	= Property.Orientated.isDiagonal move ==> Test.QuickCheck.label "Move.prop_(isDiagonal => not (isHorizontal || isVertical))" . not . uncurry (||) $ (Property.Orientated.isHorizontal &&& Property.Orientated.isVertical) move
-	in Test.QuickCheck.quickCheckWithResult Test.QuickCheck.stdArgs { Test.QuickCheck.maxSuccess = 8 } f,
-	let
-		f :: Component.Move.Move -> Test.QuickCheck.Property
 		f move	= Property.Orientated.isStraight move ==> Test.QuickCheck.label "Move.prop_(isStraight => isDiagonal /= isParallel)" . uncurry (/=) $ (Property.Orientated.isDiagonal &&& Property.Orientated.isParallel) move
 	in Test.QuickCheck.quickCheckWithResult Test.QuickCheck.stdArgs { Test.QuickCheck.maxSuccess = 16 } f,
 	let

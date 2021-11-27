@@ -178,7 +178,7 @@ instance Property.Reflectable.ReflectableOnY Board where
 	reflectOnY MkBoard { getMaybePieceByCoordinates = maybePieceByCoordinates }	= fromMaybePieceByCoordinates $ Property.Reflectable.reflectOnY maybePieceByCoordinates
 
 instance StateProperty.Hashable.Hashable Board where
-	listRandoms MkBoard { getCoordinatesByRankByLogicalColour = coordinatesByRankByLogicalColour }	= StateProperty.Hashable.listRandoms coordinatesByRankByLogicalColour
+	listRandoms zobrist MkBoard { getCoordinatesByRankByLogicalColour = coordinatesByRankByLogicalColour }	= StateProperty.Hashable.listRandoms zobrist coordinatesByRankByLogicalColour	-- Forward.
 
 instance StateProperty.Mutator.Mutator Board where
 	defineCoordinates maybePiece coordinates MkBoard {
@@ -190,9 +190,9 @@ instance StateProperty.Mutator.Mutator Board where
 	} = fromMaybePieceByCoordinates $ StateProperty.Mutator.movePiece move sourcePiece maybePromotionRank eitherPassingPawnsDestinationOrMaybeTakenRank maybePieceByCoordinates
 
 instance StateProperty.Seeker.Seeker Board where
-	findProximateKnights logicalColour coordinates MkBoard {
+	findProximateKnights MkBoard {
 		getCoordinatesByRankByLogicalColour	= coordinatesByRankByLogicalColour
-	} = StateProperty.Seeker.findProximateKnights logicalColour coordinates coordinatesByRankByLogicalColour -- Forward the request.
+	} = StateProperty.Seeker.findProximateKnights coordinatesByRankByLogicalColour	-- Forward the request.
 
 	findPieces predicate MkBoard {
 		getCoordinatesByRankByLogicalColour	= coordinatesByRankByLogicalColour
@@ -236,17 +236,17 @@ movePiece move maybeMoveType board@MkBoard {
 	getNPiecesDifferenceByRank			= nPiecesDifferenceByRank,
 	getNPieces					= nPieces
 }
-	| Just sourcePiece <- State.MaybePieceByCoordinates.dereference source maybePieceByCoordinates	= let
+	| Just sourcePiece <- State.MaybePieceByCoordinates.dereference maybePieceByCoordinates source	= let
 		oppositePiece				= Property.Opposable.getOpposite sourcePiece
 		(logicalColour, opponentsLogicalColour)	= ($ sourcePiece) &&& ($ oppositePiece) $ Component.Piece.getLogicalColour
 
 		moveType :: Attribute.MoveType.MoveType
 		moveType -- CAVEAT: one can't call 'State.MaybePieceByCoordinates.inferMoveType', since that performs some move-validation, & therefore exceeds the remit of this module.
 			| Just explicitMoveType	<- maybeMoveType					= explicitMoveType
-			| State.MaybePieceByCoordinates.isEnPassantMove move maybePieceByCoordinates	= Attribute.MoveType.enPassant	-- N.B.: if this move is valid, then one's opponent must have just double-advanced an adjacent Pawn.
+			| State.MaybePieceByCoordinates.isEnPassantMove maybePieceByCoordinates move	= Attribute.MoveType.enPassant	-- N.B.: if this move is valid, then one's opponent must have just double-advanced an adjacent Pawn.
 			| otherwise									= Attribute.MoveType.mkNormalMoveType (
-				Component.Piece.getRank <$> State.MaybePieceByCoordinates.dereference destination maybePieceByCoordinates
-			) $ if Component.Piece.isPawnPromotion destination sourcePiece
+				Component.Piece.getRank <$> State.MaybePieceByCoordinates.dereference maybePieceByCoordinates destination
+			) $ if Component.Piece.isPawnPromotion sourcePiece destination
 				then Just Attribute.Rank.defaultPromotionRank
 				else Nothing
 
@@ -278,9 +278,9 @@ movePiece move maybeMoveType board@MkBoard {
 						if Colour.LogicalColour.isBlack logicalColour'
 							then Control.Arrow.first
 							else Control.Arrow.second
-					) . Map.insert affectedCoordinates {-overwrite-} . fromIntegral . length $ findAttackersOf (
+					) . Map.insert affectedCoordinates {-overwrite-} . fromIntegral . length $ findAttackersOf board' (
 						Property.Opposable.getOpposite logicalColour'	-- Investigate an attack on the affected coordinates by the affected piece's own logical colour, i.e. defence.
-					) affectedCoordinates board'
+					) affectedCoordinates
 			) (
 				(! Colour.LogicalColour.Black) &&& (! Colour.LogicalColour.White) $ nDefendersByCoordinatesByLogicalColour // (
 					let
@@ -310,14 +310,14 @@ movePiece move maybeMoveType board@MkBoard {
 				(affectedCoordinates, affectedPiece) |
 					(knightsCoordinates, knight)	<- (source, sourcePiece) : (,) destination `map` (destinationPiece : (const [] ||| Data.Maybe.maybeToList) eitherPassingPawnsDestinationOrMaybeTakenPiece),
 					Component.Piece.isKnight knight,
-					Just affectedCoordinates	<- Cartesian.Vector.maybeTranslate knightsCoordinates `map` Cartesian.Vector.attackVectorsForKnight,
-					affectedPiece			<- Data.Maybe.maybeToList $ State.MaybePieceByCoordinates.dereference affectedCoordinates maybePieceByCoordinates',
+					Just affectedCoordinates	<- map (`Cartesian.Vector.maybeTranslate` knightsCoordinates) Cartesian.Vector.attackVectorsForKnight,
+					affectedPiece			<- Data.Maybe.maybeToList $ State.MaybePieceByCoordinates.dereference maybePieceByCoordinates' affectedCoordinates,
 					Component.Piece.isFriend knight affectedPiece
 			] {-list-comprehension-} ++ [
 				(blockingCoordinates, blockingPiece) |
 					passingPawnsDestination			<- return {-to List-monad-} ||| const [] $ eitherPassingPawnsDestinationOrMaybeTakenRank,
 					(direction, antiParallelDirection)	<- Direction.Direction.opposites,
-					(blockingCoordinates, blockingPiece)	<- case ($ direction) &&& ($ antiParallelDirection) $ ($ maybePieceByCoordinates') . (`State.MaybePieceByCoordinates.findBlockingPiece` passingPawnsDestination) of
+					(blockingCoordinates, blockingPiece)	<- case ($ direction) &&& ($ antiParallelDirection) $ State.MaybePieceByCoordinates.findBlockingPiece maybePieceByCoordinates' passingPawnsDestination of
 						(Just cp, Just cp')	-> [
 							cp |
 								let isDefendedBy from	= uncurry (&&) . uncurry (&&&) (Component.Piece.canAttackAlong from *** Component.Piece.isFriend $ cp),
@@ -341,7 +341,7 @@ movePiece move maybeMoveType board@MkBoard {
 					let maybeExplicitlyTakenPiece	= const Nothing ||| id $ eitherPassingPawnsDestinationOrMaybeTakenPiece,
 					(direction, antiParallelDirection)	<- Direction.Direction.opposites,
 					(coordinates, piece)			<- [(source, sourcePiece), (destination, destinationPiece)],
-					(blockingCoordinates, blockingPiece)	<- case ($ direction) &&& ($ antiParallelDirection) $ ($ maybePieceByCoordinates') . (`State.MaybePieceByCoordinates.findBlockingPiece` coordinates) of
+					(blockingCoordinates, blockingPiece)	<- case ($ direction) &&& ($ antiParallelDirection) $ State.MaybePieceByCoordinates.findBlockingPiece maybePieceByCoordinates' coordinates of
 						(Just cp, Just cp')	-> [
 							cp |
 								let isDefendedBy from	= uncurry (&&) . uncurry (&&&) (Component.Piece.canAttackAlong from *** Component.Piece.isFriend $ cp),
@@ -411,7 +411,7 @@ sumPieceSquareValueByLogicalColour
 sumPieceSquareValueByLogicalColour pieceSquareByCoordinatesByRank MkBoard {
 	getCoordinatesByRankByLogicalColour	= coordinatesByRankByLogicalColour,
 	getNPieces				= nPieces
-} = Colour.LogicalColour.listArrayByLogicalColour $ Component.Accountant.sumPieceSquareValueByLogicalColour pieceSquareByCoordinatesByRank nPieces coordinatesByRankByLogicalColour
+} = Colour.LogicalColour.listArrayByLogicalColour $ Component.Accountant.sumPieceSquareValueByLogicalColour pieceSquareByCoordinatesByRank coordinatesByRankByLogicalColour nPieces
 
 {- |
 	* Lists the source-/coordinates/ from which the referenced destination can be attacked.
@@ -425,15 +425,15 @@ sumPieceSquareValueByLogicalColour pieceSquareByCoordinatesByRank MkBoard {
 	* CAVEAT: can't detect an en-passant attack, since this depends both on whether the previous move was a double advance & that the defender is a @Pawn@.
 -}
 findAttackersOf
-	:: Colour.LogicalColour.LogicalColour				-- ^ The defender's /logical colour/.
+	:: Board
+	-> Colour.LogicalColour.LogicalColour				-- ^ The defender's /logical colour/.
 	-> Cartesian.Coordinates.Coordinates				-- ^ The defender's location.
-	-> Board
 	-> [(Cartesian.Coordinates.Coordinates, Attribute.Rank.Rank)]	-- ^ The locations from which the specified square can be attacked by the opposite /logical colour/.
-findAttackersOf destinationLogicalColour destination board@MkBoard { getMaybePieceByCoordinates	= maybePieceByCoordinates }	= [
+findAttackersOf board@MkBoard { getMaybePieceByCoordinates = maybePieceByCoordinates } destinationLogicalColour destination	= [
 	(coordinates, Attribute.Rank.Knight) |
-		coordinates	<- StateProperty.Seeker.findProximateKnights (Property.Opposable.getOpposite destinationLogicalColour) destination board
+		coordinates	<- StateProperty.Seeker.findProximateKnights board (Property.Opposable.getOpposite destinationLogicalColour) destination
  ] {-list-comprehension-} ++ Data.Maybe.mapMaybe (
-	\directionFromDestination -> State.MaybePieceByCoordinates.findAttackerInDirection destinationLogicalColour directionFromDestination destination maybePieceByCoordinates
+	State.MaybePieceByCoordinates.findAttackerInDirection maybePieceByCoordinates destinationLogicalColour destination
  ) Property.FixedMembership.members
 
 {- |
@@ -444,15 +444,15 @@ findAttackersOf destinationLogicalColour destination board@MkBoard { getMaybePie
 	* CAVEAT: can't detect an en-passant attack, since this depends both on whether the previous move was a double advance & that the defender is a @Pawn@.
 -}
 findAttacksBy
-	:: Component.Piece.Piece		-- ^ The type of attacker.
+	:: Board
+	-> Component.Piece.Piece		-- ^ The type of attacker.
 	-> Cartesian.Coordinates.Coordinates	-- ^ The defender's location.
-	-> Board
 	-> [Cartesian.Coordinates.Coordinates]	-- ^ The sources from which the specified attacker could strike.
-findAttacksBy piece destination board
-	| rank == Attribute.Rank.Knight	= StateProperty.Seeker.findProximateKnights logicalColour destination board
+findAttacksBy board piece destination
+	| rank == Attribute.Rank.Knight	= StateProperty.Seeker.findProximateKnights board logicalColour destination
 	| otherwise			= filter (
-		\source -> source /= destination && Component.Piece.canAttackAlong source destination piece && State.MaybePieceByCoordinates.isClear source destination (getMaybePieceByCoordinates board)
-	) . State.CoordinatesByRankByLogicalColour.dereference logicalColour rank $ getCoordinatesByRankByLogicalColour board
+		\source -> source /= destination && Component.Piece.canAttackAlong source destination piece && State.MaybePieceByCoordinates.isClear (getMaybePieceByCoordinates board) source destination
+	) $ State.CoordinatesByRankByLogicalColour.dereference (getCoordinatesByRankByLogicalColour board) logicalColour rank
 	where
 		(logicalColour, rank)	= Component.Piece.getLogicalColour &&& Component.Piece.getRank $ piece
 
@@ -464,10 +464,12 @@ findAttacksBy piece destination board
 	* CAVEAT: assumes there's exactly one @King@ of the specified /logical colour/.
 -}
 isKingChecked
-	:: Colour.LogicalColour.LogicalColour	-- ^ The /logical colour/ of the @King@ in question.
-	-> Board
+	:: Board
+	-> Colour.LogicalColour.LogicalColour	-- ^ The /logical colour/ of the @King@ in question.
 	-> Bool
-isKingChecked logicalColour board@MkBoard { getCoordinatesByRankByLogicalColour = coordinatesByRankByLogicalColour }	= not . null $ findAttackersOf logicalColour (State.CoordinatesByRankByLogicalColour.getKingsCoordinates logicalColour coordinatesByRankByLogicalColour) board
+isKingChecked board@MkBoard { getCoordinatesByRankByLogicalColour = coordinatesByRankByLogicalColour }	= not . null . uncurry ($) . (
+	findAttackersOf board &&& State.CoordinatesByRankByLogicalColour.getKingsCoordinates coordinatesByRankByLogicalColour
+ )
 
 {- |
 	* Whether one's own @King@ has become exposed in the proposed /board/.
@@ -477,24 +479,24 @@ isKingChecked logicalColour board@MkBoard { getCoordinatesByRankByLogicalColour 
 	* CAVEAT: this function is a performance-hotspot.
 -}
 exposesKing
-	:: Colour.LogicalColour.LogicalColour	-- ^ The /logical colour/ of the player proposing to move.
+	:: Board				-- ^ The original /board/, i.e. prior to the /move/.
+	-> Colour.LogicalColour.LogicalColour	-- ^ The /logical colour/ of the player proposing to move.
 	-> Component.Move.Move			-- ^ The /move/.
-	-> Board				-- ^ The original /board/, i.e. prior to the /move/.
 	-> Bool
-exposesKing logicalColour move board@MkBoard { getCoordinatesByRankByLogicalColour = coordinatesByRankByLogicalColour }
-	| source == kingsCoordinates	= not . null $ findAttackersOf logicalColour (Component.Move.getDestination move) board	-- CAVEAT: expensive, since all directions from the King may have to be explored.
+exposesKing board@MkBoard { getCoordinatesByRankByLogicalColour = coordinatesByRankByLogicalColour } logicalColour move
+	| source == kingsCoordinates	= not . null . findAttackersOf board logicalColour $ Component.Move.getDestination move	-- CAVEAT: expensive, since all directions from the King may have to be explored.
 	| Just directionFromKing	<- Cartesian.Vector.toMaybeDirection $ Cartesian.Vector.measureDistance kingsCoordinates source	-- Confirm that one's own King is on a straight line with the start of the move.
 	, let maybePieceByCoordinates	= getMaybePieceByCoordinates board
-	, State.MaybePieceByCoordinates.isClear kingsCoordinates source maybePieceByCoordinates	-- Confirm that the straight line from one's own King to the start of the move, is clear.
+	, State.MaybePieceByCoordinates.isClear maybePieceByCoordinates kingsCoordinates source	-- Confirm that the straight line from one's own King to the start of the move, is clear.
 	, Data.Maybe.maybe True {-Knight's move-} (
 		not . Direction.Direction.areAligned directionFromKing	-- The blocking piece has revealed any attacker.
 	) . Cartesian.Vector.toMaybeDirection $ Component.Move.measureDistance move
-	, Just (_, attackersRank)	<- State.MaybePieceByCoordinates.findAttackerInDirection logicalColour directionFromKing source maybePieceByCoordinates	-- Confirm the existence of an obscured attacker.
+	, Just (_, attackersRank)	<- State.MaybePieceByCoordinates.findAttackerInDirection maybePieceByCoordinates logicalColour source directionFromKing	-- Confirm the existence of an obscured attacker.
 	= attackersRank `notElem` Attribute.Rank.plodders	-- Confirm sufficient range to bridge the vacated space.
 	| otherwise	= False
 	where
 		source			= Component.Move.getSource move
-		kingsCoordinates	= State.CoordinatesByRankByLogicalColour.getKingsCoordinates logicalColour coordinatesByRankByLogicalColour
+		kingsCoordinates	= State.CoordinatesByRankByLogicalColour.getKingsCoordinates coordinatesByRankByLogicalColour logicalColour
 
 -- | Count the number of defenders of each /piece/ on the /board/.
 countDefendersByCoordinatesByLogicalColour :: Board -> NDefendersByCoordinatesByLogicalColour
@@ -502,12 +504,12 @@ countDefendersByCoordinatesByLogicalColour board@MkBoard { getCoordinatesByRankB
 	Map.fromList [
 		(
 			coordinates,
-			fromIntegral . length $ findAttackersOf (
+			fromIntegral . length $ findAttackersOf board (
 				Property.Opposable.getOpposite logicalColour	-- Investigate an attack on these coordinates by one's own logical colour.
-			) coordinates board
+			) coordinates
 		) |
 			rank		<- Attribute.Rank.expendable,	-- CAVEAT: there's no point defending one's own King.
-			coordinates	<- State.CoordinatesByRankByLogicalColour.dereference logicalColour rank coordinatesByRankByLogicalColour
+			coordinates	<- State.CoordinatesByRankByLogicalColour.dereference coordinatesByRankByLogicalColour logicalColour rank
 	] {-list-comprehension-} | logicalColour <- Property.FixedMembership.members
  ] -- List-comprehension.
 

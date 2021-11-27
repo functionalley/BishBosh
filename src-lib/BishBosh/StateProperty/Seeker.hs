@@ -69,9 +69,9 @@ type NPiecesByFileByLogicalColour	= Colour.LogicalColour.ArrayByLogicalColour NP
 class Seeker seeker where
 	-- | Locate any @Knight@s capable of taking a /piece/ at the specified /coordinates/.
 	findProximateKnights
-		:: Colour.LogicalColour.LogicalColour	-- ^ The /logical colour/ of the @Knight@ for which to search.
+		:: seeker
+		-> Colour.LogicalColour.LogicalColour	-- ^ The /logical colour/ of the @Knight@ for which to search.
 		-> Cartesian.Coordinates.Coordinates	-- ^ The destination to which the @Knight@ is required to be capable of jumping.
-		-> seeker
 		-> [Cartesian.Coordinates.Coordinates]
 
 	-- | Locate any /piece/s satisfying the specified predicate.

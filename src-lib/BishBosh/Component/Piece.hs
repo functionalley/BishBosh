@@ -266,14 +266,14 @@ type AttackDestinationsByCoordinatesByRankByLogicalColour	= ByRankByLogicalColou
 
 -- | Calls 'attackVectorsByRankByLogicalColour' to find the destinations which the specified /piece/ can attack from the specified position.
 findAttackDestinations'
-	:: Cartesian.Coordinates.Coordinates	-- ^ The source from which the attack originates.
-	-> Piece
+	:: Piece
+	-> Cartesian.Coordinates.Coordinates	-- ^ The source from which the attack originates.
 	-> [Cartesian.Coordinates.Coordinates]	-- ^ The destinations which can be attacked.
-findAttackDestinations' source MkPiece {
+findAttackDestinations' MkPiece {
 	getLogicalColour	= logicalColour,
 	getRank			= rank
-} = Data.Maybe.mapMaybe (
-	Cartesian.Vector.maybeTranslate source
+} source	= Data.Maybe.mapMaybe (
+	`Cartesian.Vector.maybeTranslate` source
  ) (
 	attackVectorsByRankByLogicalColour ! logicalColour Map.! rank
  )
@@ -287,18 +287,18 @@ findAttackDestinations' source MkPiece {
 -}
 attackDestinationsByCoordinatesByRankByLogicalColour :: AttackDestinationsByCoordinatesByRankByLogicalColour
 attackDestinationsByCoordinatesByRankByLogicalColour	= mkByRankByLogicalColour Attribute.Rank.fixedAttackRange $ \logicalColour rank -> Cartesian.Coordinates.listArrayByCoordinates $ map (
-	`findAttackDestinations'` mkPiece logicalColour rank
+	findAttackDestinations' $! mkPiece logicalColour rank
  ) Property.FixedMembership.members
 
 -- | Find the destinations which the specified /piece/ can attack from the specified position.
 findAttackDestinations
-	:: Cartesian.Coordinates.Coordinates	-- ^ The source from which the attack originates.
-	-> Piece
+	:: Piece
+	-> Cartesian.Coordinates.Coordinates	-- ^ The source from which the attack originates.
 	-> [Cartesian.Coordinates.Coordinates]	-- ^ The destinations which can be attacked.
-findAttackDestinations coordinates MkPiece {
+findAttackDestinations MkPiece {
 	getLogicalColour	= logicalColour,
 	getRank			= rank
-} = attackDestinationsByCoordinatesByRankByLogicalColour ! logicalColour Map.! rank ! coordinates
+} coordinates	= attackDestinationsByCoordinatesByRankByLogicalColour ! logicalColour Map.! rank ! coordinates
 
 -- The constant /direction/s of the straight lines along which each type of /piece/ can attack.
 
@@ -342,15 +342,13 @@ canAttackAlong
 	-> Bool
 canAttackAlong source destination piece	= (
 	case getRank piece of
-		Attribute.Rank.Pawn	-> Cartesian.Vector.isPawnAttack $ getLogicalColour piece
+		Attribute.Rank.Pawn	-> (`Cartesian.Vector.isPawnAttack` getLogicalColour piece)
 		Attribute.Rank.Knight	-> Cartesian.Vector.isKnightsMove
 		Attribute.Rank.Bishop	-> Property.Orientated.isDiagonal
 		Attribute.Rank.Rook	-> Property.Orientated.isParallel
 		Attribute.Rank.Queen	-> Property.Orientated.isStraight
 		Attribute.Rank.King	-> Cartesian.Vector.isKingsMove
- ) (
-	Cartesian.Vector.measureDistance source destination
- )
+ ) $! Cartesian.Vector.measureDistance source destination
 
 {- |
 	* Whether the specified /piece/ can move between the specified /coordinates/.
@@ -358,41 +356,39 @@ canAttackAlong source destination piece	= (
 	* N.B.: can't detect any blocking pieces.
 -}
 canMoveBetween
-	:: Cartesian.Coordinates.Coordinates	-- ^ Source.
+	:: Piece
+	-> Cartesian.Coordinates.Coordinates	-- ^ Source.
 	-> Cartesian.Coordinates.Coordinates	-- ^ Destination.
-	-> Piece
 	-> Bool
-canMoveBetween source destination piece	= (
+canMoveBetween piece source destination	= (
 	case getRank piece of
 		Attribute.Rank.Pawn	-> \distance -> let
 			logicalColour	= getLogicalColour piece
-		 in Cartesian.Vector.isPawnAttack logicalColour distance || Cartesian.Vector.getXDistance distance == 0 && (
+		 in Cartesian.Vector.isPawnAttack distance logicalColour || Cartesian.Vector.getXDistance distance == 0 && (
 			let
 				y'	= (
 					if Colour.LogicalColour.isBlack logicalColour
 						then negate
 						else id
 				 ) $ Cartesian.Vector.getYDistance distance
-			in y' == 1 || Cartesian.Coordinates.isPawnsFirstRank logicalColour source && y' == 2
+			in y' == 1 || Cartesian.Coordinates.isPawnsFirstRank source logicalColour && y' == 2
 		 )
 		Attribute.Rank.Knight	-> Cartesian.Vector.isKnightsMove
 		Attribute.Rank.Bishop	-> Property.Orientated.isDiagonal
 		Attribute.Rank.Rook	-> Property.Orientated.isParallel
 		Attribute.Rank.Queen	-> Property.Orientated.isStraight
 		Attribute.Rank.King	-> Cartesian.Vector.isKingsMove
- ) (
-	Cartesian.Vector.measureDistance source destination
- )
+ ) $! Cartesian.Vector.measureDistance source destination
 
 -- | Whether a move qualifies for @Pawn@-promotion.
 isPawnPromotion
-	:: Cartesian.Coordinates.Coordinates	-- ^ Destination.
-	-> Piece
+	:: Piece
+	-> Cartesian.Coordinates.Coordinates	-- ^ Destination.
 	-> Bool
-isPawnPromotion destination MkPiece {
+isPawnPromotion MkPiece {
 	getLogicalColour	= logicalColour,
 	getRank			= Attribute.Rank.Pawn
-}			= Cartesian.Ordinate.lastRank logicalColour == Cartesian.Coordinates.getY destination
+} destination		= Cartesian.Ordinate.lastRank logicalColour == Cartesian.Coordinates.getY destination
 isPawnPromotion _ _	= False
 
 -- | Whether the specified /piece/ is @Black@.

@@ -147,18 +147,18 @@ mkZobrist maybeMinimumHammingDistance randomGen
 		}
 
 -- | Dereferences 'getRandomByCoordinatesByRankByLogicalColour' using the specified index.
-dereferenceRandomByCoordinatesByRankByLogicalColour :: Index -> Zobrist positionHash -> positionHash
-dereferenceRandomByCoordinatesByRankByLogicalColour index MkZobrist { getRandomByCoordinatesByRankByLogicalColour = randomByCoordinatesByRankByLogicalColour }	= randomByCoordinatesByRankByLogicalColour ! index
+dereferenceRandomByCoordinatesByRankByLogicalColour :: Zobrist positionHash -> Index -> positionHash
+dereferenceRandomByCoordinatesByRankByLogicalColour MkZobrist { getRandomByCoordinatesByRankByLogicalColour = randomByCoordinatesByRankByLogicalColour }	= (randomByCoordinatesByRankByLogicalColour !)
 
 -- | Dereferences 'getRandomByCastleableRooksXByLogicalColour' using the specified abscissa.
 dereferenceRandomByCastleableRooksXByLogicalColour
-	:: Colour.LogicalColour.LogicalColour
+	:: Zobrist positionHash
+	-> Colour.LogicalColour.LogicalColour
 	-> Type.Length.X
-	-> Zobrist positionHash
 	-> Maybe positionHash	-- ^ The existence of a result depends on whether there remain any Rooks which can castle.
-dereferenceRandomByCastleableRooksXByLogicalColour logicalColour x MkZobrist { getRandomByCastleableRooksXByLogicalColour = randomByCastleableRooksXByLogicalColour }	= lookup x $ randomByCastleableRooksXByLogicalColour ! logicalColour
+dereferenceRandomByCastleableRooksXByLogicalColour MkZobrist { getRandomByCastleableRooksXByLogicalColour = randomByCastleableRooksXByLogicalColour } logicalColour x	= lookup x $ randomByCastleableRooksXByLogicalColour ! logicalColour
 
 -- | Dereferences 'getRandomByEnPassantAbscissa' using the specified abscissa.
-dereferenceRandomByEnPassantAbscissa :: Type.Length.X -> Zobrist positionHash -> positionHash
-dereferenceRandomByEnPassantAbscissa x MkZobrist { getRandomByEnPassantAbscissa = randomByEnPassantAbscissa }	= randomByEnPassantAbscissa ! x
+dereferenceRandomByEnPassantAbscissa :: Zobrist positionHash -> Type.Length.X -> positionHash
+dereferenceRandomByEnPassantAbscissa MkZobrist { getRandomByEnPassantAbscissa = randomByEnPassantAbscissa }	= (randomByEnPassantAbscissa !)
 

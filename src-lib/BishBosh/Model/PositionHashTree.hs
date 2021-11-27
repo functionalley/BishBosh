@@ -71,7 +71,7 @@ mkPositionHashTree
 	=> Component.Zobrist.Zobrist positionHash
 	-> Model.GameTree.GameTree
 	-> PositionHashTree positionHash
-mkPositionHashTree zobrist	= MkPositionHashTree . fmap (`StateProperty.Hashable.hash` zobrist) . Model.GameTree.deconstruct
+mkPositionHashTree zobrist	= MkPositionHashTree . fmap (StateProperty.Hashable.hash zobrist) . Model.GameTree.deconstruct
 
 -- | Count the number of distinct positions, irrespective of the sequence of moves taken to reach that terminal state.
 countDistinctPositions
