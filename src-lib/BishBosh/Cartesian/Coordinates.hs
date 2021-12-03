@@ -47,6 +47,7 @@ module BishBosh.Cartesian.Coordinates(
 -- * Functions
 --	extrapolate',
 	extrapolate,
+	applyAlongDirectionsFrom,
 	interpolate,
 	getLogicalColourOfSquare,
 	kingsStartingCoordinates,
@@ -67,8 +68,6 @@ module BishBosh.Cartesian.Coordinates(
 -- ** Constructors
 	mkCoordinates,
 	mkMaybeCoordinates,
---	toIx,
-	fromIx,
 	mkRelativeCoordinates,
 	listArrayByCoordinates,
 	arrayByCoordinates,
@@ -95,6 +94,7 @@ import qualified	BishBosh.Property.Rotatable		as Property.Rotatable
 import qualified	BishBosh.Text.ShowList			as Text.ShowList
 import qualified	BishBosh.Type.Count			as Type.Count
 import qualified	BishBosh.Type.Length			as Type.Length
+import qualified	Control.Arrow
 import qualified	Control.DeepSeq
 import qualified	Control.Exception
 import qualified	Data.Array.IArray
@@ -121,22 +121,6 @@ data Coordinates	= MkCoordinates {
 	getY	:: ! Type.Length.Y	-- ^ Ordinate.
 } deriving Eq
 
-instance Control.DeepSeq.NFData Coordinates where
-	rnf MkCoordinates { getX = x, getY = y }	= Control.DeepSeq.rnf (x, y)
-
-instance Show Coordinates where
-	showsPrec precedence MkCoordinates { getX = x, getY = y }	= showsPrec precedence (x, y)
-
-instance Read Coordinates where
-	readsPrec precedence s	= [
-		(coordinates, remainder) |
-			((x, y), remainder)	<- readsPrec precedence s,
-			coordinates		<- Data.Maybe.maybeToList $ mkMaybeCoordinates x y
-	 ] -- List-comprehension.
-
-instance Ord Coordinates where
-	MkCoordinates { getX = x, getY = y } `compare` MkCoordinates { getX = x', getY = y' }	= (y, x) `compare` (y', x')	-- N.B.: x is less significant than y, as required by the implementation of 'Data.Array.IArray.Ix.inRange'.
-
 instance Bounded Coordinates where
 	minBound = MkCoordinates {
 		getX	= Cartesian.Abscissa.xMin,
@@ -147,10 +131,38 @@ instance Bounded Coordinates where
 		getY	= Cartesian.Ordinate.yMax
 	} -- Top Right.
 
+instance Control.DeepSeq.NFData Coordinates where
+	rnf MkCoordinates { getX = x, getY = y }	= Control.DeepSeq.rnf (x, y)
+
 instance Data.Array.IArray.Ix Coordinates where
 	range (lower, upper)			= Control.Exception.assert (lower == minBound && upper == maxBound) Property.FixedMembership.members
 	inRange (lower, upper) coordinates	= Control.Exception.assert (coordinates >= lower && coordinates <= upper) True
-	index (lower, upper)			= Control.Exception.assert (lower == minBound && upper == maxBound) . toIx
+	index (lower, upper)			= Control.Exception.assert (lower == minBound && upper == maxBound) . fromEnum
+
+instance Enum Coordinates where
+	toEnum = (
+		\(y, x) -> MkCoordinates {
+			getX	= Cartesian.Abscissa.fromIx x,
+			getY	= Cartesian.Ordinate.fromIx y
+		}
+	 ) . (`divMod` fromIntegral Cartesian.Abscissa.xLength)
+
+	fromEnum MkCoordinates {
+		getX	= x,
+		getY	= y
+	} = fromIntegral Cartesian.Abscissa.xLength * Cartesian.Ordinate.toIx y + Cartesian.Abscissa.toIx x
+
+instance Ord Coordinates where
+	MkCoordinates { getX = x, getY = y } `compare` MkCoordinates { getX = x', getY = y' }	= (y, x) `compare` (y', x')	-- N.B.: x is less significant than y, as required by the implementation of 'Data.Array.IArray.Ix.inRange'.
+
+instance Show Coordinates where
+	showsPrec precedence MkCoordinates { getX = x, getY = y }	= showsPrec precedence (x, y)
+
+instance Read Coordinates where
+	readsPrec precedence s	= [
+		(coordinates, remainder) |
+			(Just coordinates, remainder)	<- Control.Arrow.first (uncurry mkMaybeCoordinates) `map` readsPrec precedence s
+	 ] -- List-comprehension.
 
 instance Property.Reflectable.ReflectableOnX Coordinates where
 	reflectOnX coordinates@MkCoordinates { getY = y }	= coordinates { getY = Cartesian.Ordinate.reflect y }
@@ -213,26 +225,6 @@ mkMaybeCoordinates
 mkMaybeCoordinates x y
 	| inBounds x y	= Just MkCoordinates { getX = x, getY = y }
 	| otherwise	= Nothing
-
--- | Convert to an array-index.
-toIx :: Coordinates -> Int
-toIx MkCoordinates {
-	getX	= x,
-	getY	= y
-} = fromIntegral Cartesian.Abscissa.xLength * Cartesian.Ordinate.toIx y + Cartesian.Abscissa.toIx x
-
-{- |
-	* Construct from the specified array-index.
-
-	* CAVEAT: assumes that the array is indexed by the whole range of /coordinates/.
--}
-fromIx :: Int -> Coordinates
-fromIx	= (
-	\(y, x) -> MkCoordinates {
-		getX	= Cartesian.Abscissa.fromIx x,
-		getY	= Cartesian.Ordinate.fromIx y
-	}
- ) . (`divMod` fromIntegral Cartesian.Abscissa.xLength)
 
 -- | The type of a function which changes one set of /coordinates/ to another.
 type Transformation	= Coordinates -> Coordinates
@@ -393,6 +385,18 @@ extrapolationsByDirectionByCoordinates	= listArrayByCoordinates
 	$ map (
 		\coordinates	-> Direction.Direction.listArrayByDirection $ extrapolate' coordinates `map` Property.FixedMembership.members {-direction-}
 	) Property.FixedMembership.members {-coordinates-}
+
+-- | Apply the specified function to each line of /coordinates/ extrapolated from the specified central hub, in each of the specified /direction/s.
+applyAlongDirectionsFrom
+	:: ([Coordinates] -> [a])			-- ^ Individually map each straight line of coordinates extrapolated from the central hub.
+	-> Coordinates					-- ^ The central hub from which to extrapolate.
+	-> Maybe [Direction.Direction.Direction]	-- ^ The directions in which to extrapolate; 'Nothing' implies omnidirectional.
+	-> [a]
+applyAlongDirectionsFrom f from	= Data.Maybe.maybe (
+	Data.Foldable.foldMap f $ extrapolationsByDirectionByCoordinates ! from	-- Traverse all directions from this coordinate, without repeated calls to 'extrapolate'.
+ ) (
+	concatMap $ f . extrapolate from
+ )
 
 -- | The constant lists of /coordinates/, between every permutation of source & valid destination on the /board/.
 interpolationsByDestinationBySource :: ArrayByCoordinates (Map.Map Coordinates [Coordinates])

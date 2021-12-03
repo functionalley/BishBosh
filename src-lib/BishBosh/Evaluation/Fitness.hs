@@ -103,6 +103,7 @@ measurePieceSquareValueDifferenceIncrementally
 	-> Type.Mass.Base
 measurePieceSquareValueDifferenceIncrementally previousPieceSquareValueDifference pieceSquareByCoordinatesByRank game
 	| Attribute.MoveType.isSimple $! Component.QualifiedMove.getMoveType qualifiedMove	= let
+		findPieceSquareValue :: Cartesian.Coordinates.Coordinates -> Type.Mass.Base
 		findPieceSquareValue	= realToFrac . uncurry (
 			Component.PieceSquareByCoordinatesByRank.findPieceSquareValue pieceSquareByCoordinatesByRank
 		 ) (
@@ -286,7 +287,7 @@ evaluateFitness
 	-> Model.Game.Game
 	-> Input.EvaluationOptions.Reader Metric.WeightedMeanAndCriterionValues.WeightedMeanAndCriterionValues
 evaluateFitness maybePieceSquareValueDifference game
-	| Just gameTerminationReason <- Model.Game.getMaybeTerminationReason game	= return {-to Reader-monad-} $ Metric.WeightedMeanAndCriterionValues.mkWeightedMeanAndCriterionValues (
+	| Just gameTerminationReason <- Model.Game.getMaybeTerminationReason game	= return {-to Reader-monad-} $! Metric.WeightedMeanAndCriterionValues.mkWeightedMeanAndCriterionValues (
 		if Rule.GameTerminationReason.isCheckMate gameTerminationReason
 			then 1	-- The last player to move, has won.
 			else 0	-- A draw.

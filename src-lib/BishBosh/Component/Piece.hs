@@ -72,7 +72,7 @@ module BishBosh.Component.Piece(
 	isKnight,
 --	isBishop,
 --	isRook,
---	isQueen,
+	isQueen,
 	isKing,
 	isPawnPromotion
 ) where
@@ -362,16 +362,23 @@ canMoveBetween
 	-> Bool
 canMoveBetween piece source destination	= (
 	case getRank piece of
-		Attribute.Rank.Pawn	-> \distance -> let
+		Attribute.Rank.Pawn	-> let
 			logicalColour	= getLogicalColour piece
-		 in Cartesian.Vector.isPawnAttack distance logicalColour || Cartesian.Vector.getXDistance distance == 0 && (
-			let
-				y'	= (
-					if Colour.LogicalColour.isBlack logicalColour
-						then negate
-						else id
-				 ) $ Cartesian.Vector.getYDistance distance
-			in y' == 1 || Cartesian.Coordinates.isPawnsFirstRank source logicalColour && y' == 2
+		 in uncurry (||) . (
+			(`Cartesian.Vector.isPawnAttack` logicalColour) &&& (
+				uncurry (&&) . (
+					(== 0) . Cartesian.Vector.getXDistance &&& (
+						\case
+							1	-> True
+							2	-> Cartesian.Coordinates.isPawnsFirstRank source logicalColour
+							_	-> False
+					) . (
+						if Colour.LogicalColour.isBlack logicalColour
+							then negate
+							else id
+					) . Cartesian.Vector.getYDistance
+				)
+			)
 		 )
 		Attribute.Rank.Knight	-> Cartesian.Vector.isKnightsMove
 		Attribute.Rank.Bishop	-> Property.Orientated.isDiagonal

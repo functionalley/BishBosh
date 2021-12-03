@@ -39,6 +39,7 @@ module BishBosh.ContextualNotation.PositionHashQualifiedMoveTree(
 	PositionHashQualifiedMoveTree(),
 -- * Functions
 --	onymiseQualifiedMove,
+--	colourFlipper,
 --	findNextOnymousQualifiedMovesForGame,
 	findNextOnymousQualifiedMovesForPosition,
 --	findNextJoiningOnymousQualifiedMovesFromPosition,
@@ -77,6 +78,7 @@ import qualified	Data.List
 import qualified	Data.List.Extra
 import qualified	Data.Maybe
 import qualified	Data.Tree
+import qualified	Data.Tuple
 import qualified	System.Random
 import qualified	ToolShed.System.Random
 
@@ -101,7 +103,7 @@ data PositionHashQualifiedMoveTree positionHash	= MkPositionHashQualifiedMoveTre
 	getHasAnyVictories	:: Bool						-- ^ Whether a victory has been recorded for any game in the tree; which won't be the case if it was constructed from a PGN-database containing standard-openings.
 }
 
--- | Augment the specified /qualified-move forest/ with a /Zobrist-hash/ of the /position/ & include the default initial game at the apex.
+-- | Constructor: augment the specified /qualified-move forest/ with a /Zobrist-hash/ of the /position/ & include the default initial game at the apex.
 fromQualifiedMoveForest
 	:: Data.Bits.Bits positionHash
 	=> Bool	-- ^ IncrementalEvaluation.
@@ -161,8 +163,8 @@ isTerminal _												= False
 
 	* CAVEAT: a negative result doesn't imply that convergence is possible, since other factors may prevent it.
 -}
-cantConverge :: Model.Game.Game -> PositionHashQualifiedMoveTree positionHash -> Bool
-cantConverge game MkPositionHashQualifiedMoveTree { getMinimumPieces = minimumPieces }	= State.Board.getNPieces (Model.Game.getBoard game) < minimumPieces
+cantConverge :: PositionHashQualifiedMoveTree positionHash -> Model.Game.Game -> Bool
+cantConverge MkPositionHashQualifiedMoveTree { getMinimumPieces = minimumPieces }	= (< minimumPieces) . State.Board.getNPieces . Model.Game.getBoard
 
 -- | A /qualified move/ annotated by the name & ultimate /result/, of each /game/ from which it could have originated.
 type OnymousQualifiedMove	= (Component.QualifiedMove.QualifiedMove, [ContextualNotation.QualifiedMoveForest.OnymousResult])
@@ -178,13 +180,14 @@ onymiseQualifiedMove	= (
  ) . Data.Tree.flatten
 
 -- | The type of a function used to locate a match in the tree.
-type FindMatch positionHash	= Model.Game.Game -> PositionHashQualifiedMoveTree positionHash -> [OnymousQualifiedMove]
+type FindMatch positionHash	= PositionHashQualifiedMoveTree positionHash -> Model.Game.Game -> [OnymousQualifiedMove]
 
 -- | For any exactly matching /game/ in the tree, return the subsequent /qualifiedMove/s.
 findNextOnymousQualifiedMovesForGame :: FindMatch positionHash
-findNextOnymousQualifiedMovesForGame requiredGame	= slave (
+findNextOnymousQualifiedMovesForGame MkPositionHashQualifiedMoveTree { getTree = tree } requiredGame	= slave (
 	Model.Game.listTurnsChronologically requiredGame
- ) . Data.Tree.subForest {-remove the apex which lacks a founding move-} . getTree where
+ ) $ Data.Tree.subForest {-remove the apex which lacks a founding move-} tree where
+	slave :: [Component.Turn.Turn] -> [Tree positionHash] -> [OnymousQualifiedMove]
 	slave (turn : remainingTurns)	= Data.Maybe.maybe [] {-match-failure-} (
 		slave remainingTurns . Data.Tree.subForest	-- Recurse.
 	 ) . Data.List.find (
@@ -204,44 +207,41 @@ findNextOnymousQualifiedMovesForGame requiredGame	= slave (
 	* CAVEAT: a null list can result from either match-failure, or a match with the final /move/ of a /game/.
 -}
 findNextOnymousQualifiedMovesForPosition :: Data.Bits.Bits positionHash => FindMatch positionHash
-{-# SPECIALISE findNextOnymousQualifiedMovesForPosition :: FindMatch Type.Crypto.PositionHash #-}
-findNextOnymousQualifiedMovesForPosition requiredGame positionHashQualifiedMoveTree
-	| cantConverge requiredGame positionHashQualifiedMoveTree	= []	-- The game we're required to match has fewer pieces than any defined in the tree.
+findNextOnymousQualifiedMovesForPosition positionHashQualifiedMoveTree requiredGame
+	| cantConverge positionHashQualifiedMoveTree requiredGame	= []	-- The game we're required to match has fewer pieces than any defined in the tree.
 	| otherwise							= slave (
 		(
 			uncurry (***) . (id &&& id) $ (Component.Piece.nPiecesPerSide -)	-- Find the number of pieces at the apex of the tree, in excess of the requiredGame, to be taken before a match can be found.
 		) . StateProperty.Censor.countPiecesByLogicalColour . State.Board.getCoordinatesByRankByLogicalColour . Model.Game.getBoard $ requiredGame
 	) $ getTree positionHashQualifiedMoveTree
 	where
-		slave (nPiecesDiffOpponent, nPiecesDiffMover) Data.Tree.Node {
+		slave nPiecesDiff Data.Tree.Node {
 			Data.Tree.rootLabel	= MkNodeLabel { getPositionHash = positionHash },
 			Data.Tree.subForest	= forest
 		} = (
-			case nPiecesDiffMover `compare` 0 of	-- N.B. equivalent to 'signum' to slightly better performance.
-				GT	-> id		-- This node can't match, but there may be a match further down the tree.
+			case snd {-mover-} nPiecesDiff `compare` 0 of	-- N.B. equivalent to 'signum' to slightly better performance.
+				GT			-> id					-- This node can't match, but there may be a match further down the tree.
 				EQ
 					| positionHash == StateProperty.Hashable.hash (
 						getZobrist positionHashQualifiedMoveTree
-					) requiredGame		-> (map onymiseQualifiedMove forest ++) -- The position matches, so one can select any move from the forest.
-					| otherwise		-> id					-- This node doesn't match, but there may be a match further down the tree.
-				_	-> const []	-- Terminate the recursion, since from here down the tree, the mover has insufficient pieces to match the required game.
+					) requiredGame	-> (map onymiseQualifiedMove forest ++) -- The position matches, so one can select any move from the forest.
+					| otherwise	-> id					-- This node doesn't match, but there may be a match further down the tree.
+				_			-> const []				-- Terminate the recursion, since from here down the tree, the mover has insufficient pieces to match the required game.
 		 ) $ concatMap (
 			\node@Data.Tree.Node {
 				Data.Tree.rootLabel	= MkNodeLabel { getMaybeQualifiedMoveWithOnymousResult = Just (qualifiedMove, _) }
 			} -> slave (
-				nPiecesDiffMover,
-				(
+				Data.Tuple.swap $ (
 					if Attribute.MoveType.isCapture $! Component.QualifiedMove.getMoveType qualifiedMove
-						then pred
+						then Control.Arrow.first pred	-- Decrement opponent's piece-count.
 						else id
-				) nPiecesDiffOpponent
-			) {-swap pair-} node	-- Recurse.
+				) nPiecesDiff
+			) node	-- Recurse.
 		 ) forest
 
 -- | Finds any single /move/s which can join the current /position/ with a member of the forest.
 findNextJoiningOnymousQualifiedMovesFromPosition :: Data.Bits.Bits positionHash => FindMatch positionHash
-{-# SPECIALISE findNextJoiningOnymousQualifiedMovesFromPosition :: FindMatch Type.Crypto.PositionHash #-}
-findNextJoiningOnymousQualifiedMovesFromPosition game positionHashQualifiedMoveTree
+findNextJoiningOnymousQualifiedMovesFromPosition positionHashQualifiedMoveTree game
 	| Model.Game.isTerminated game	= []
 	| otherwise			= [
 		Control.Arrow.second (concatMap snd {-[OnymousResult]-}) movePair |	-- Discard the opponent's matching move, but cite the names of archived games it reached.
@@ -252,7 +252,7 @@ findNextJoiningOnymousQualifiedMovesFromPosition game positionHashQualifiedMoveT
 				) .
 #endif
 				map (
-					id &&& (`findNextOnymousQualifiedMovesForPosition` positionHashQualifiedMoveTree) . (`Model.Game.applyQualifiedMove` game)	-- Apply this player's move.
+					id &&& findNextOnymousQualifiedMovesForPosition positionHashQualifiedMoveTree . (`Model.Game.applyQualifiedMove` game)	-- Apply this player's move.
 				) $ Model.Game.findQualifiedMovesAvailableToNextPlayer game
 	] -- List-comprehension.
 
@@ -271,6 +271,14 @@ type MatchSwitches	= (TryToMatchMoves, TryToMatchViaJoiningMove, TryToMatchColou
 -- | Whether from all matching positions extracted from the tree, to prefer moves which result in a greater probability of victory, for the player who has the next move.
 type PreferVictories	= Bool
 
+-- | Transform an arbitrary match-function to operate on the colour-flipped game.
+colourFlipper :: FindMatch positionHash -> FindMatch positionHash 
+colourFlipper findMatch positionHashQualifiedMoveTree	= map (
+	Property.Reflectable.reflectOnX {-reflect matching moves back into the original domain-} *** map (
+		Control.Arrow.first $ showString "Colour-flipped:\t"
+	)
+ ) . findMatch positionHashQualifiedMoveTree . Property.Reflectable.reflectOnX
+
 {- |
 	* Calls 'findNextOnymousQualifiedMovesForGame' to find an exact match for the current /game/ in the tree.
 
@@ -288,27 +296,18 @@ findNextOnymousQualifiedMoves
 	:: Data.Bits.Bits positionHash
 	=> MatchSwitches
 	-> FindMatch positionHash
-{-# SPECIALISE findNextOnymousQualifiedMoves :: MatchSwitches -> FindMatch Type.Crypto.PositionHash #-}
-findNextOnymousQualifiedMoves (tryToMatchMoves, tryToMatchViaJoiningMove, tryToMatchColourFlippedPosition) game positionHashQualifiedMoveTree
-	| cantConverge game positionHashQualifiedMoveTree	= []	-- The specified game is smaller than any defined in the tree.
+findNextOnymousQualifiedMoves (tryToMatchMoves, tryToMatchViaJoiningMove, tryToMatchColourFlippedPosition) positionHashQualifiedMoveTree game
+	| cantConverge positionHashQualifiedMoveTree game	= []	-- The specified game is smaller than any defined in the tree.
 	| otherwise						= Data.Maybe.fromMaybe [] . Data.List.find (
 		not . null	-- Accept the results from the first match-function which returns any.
 	) $ (
 		if tryToMatchMoves
-			then (findNextOnymousQualifiedMovesForGame game positionHashQualifiedMoveTree :)
+			then (findNextOnymousQualifiedMovesForGame positionHashQualifiedMoveTree game :)
 			else id
 	) [
-		colourFlipper findMatch game positionHashQualifiedMoveTree |
+		transformation findMatch positionHashQualifiedMoveTree game |
 			findMatch	<- findNextOnymousQualifiedMovesForPosition : [findNextJoiningOnymousQualifiedMovesFromPosition | tryToMatchViaJoiningMove] {-list-comprehension-},
-			colourFlipper	<- id : [
-				\findMatch' game' -> map (
-					Property.Reflectable.reflectOnX {-reflect matching moves back into the original domain-} *** map (
-						Control.Arrow.first $ showString "Colour-flipped:\t"
-					)
-				) . findMatch' (
-					Property.Reflectable.reflectOnX game'
-				) | tryToMatchColourFlippedPosition
-			] -- Transform an arbitrary match-function to operate on either the original or the colour-flipped game.
+			transformation	<- id : [colourFlipper | tryToMatchColourFlippedPosition] -- Transform an arbitrary match-function to operate on either the original or the colour-flipped game.
 	] -- List-comprehension.
 
 -- | Shortlist matching moves extracted from the tree, prefering those after which the player who makes it, has the greatest recorded incidence of victory.
@@ -332,11 +331,10 @@ maybeRandomlySelectOnymousQualifiedMove :: (
 	=> randomGen
 	-> PreferVictories
 	-> MatchSwitches
-	-> Model.Game.Game
 	-> PositionHashQualifiedMoveTree positionHash
+	-> Model.Game.Game
 	-> Maybe (Component.QualifiedMove.QualifiedMove, [ContextualNotation.QualifiedMoveForest.Name])
-{-# SPECIALISE maybeRandomlySelectOnymousQualifiedMove :: System.Random.StdGen -> PreferVictories -> MatchSwitches -> Model.Game.Game -> PositionHashQualifiedMoveTree Type.Crypto.PositionHash -> Maybe (Component.QualifiedMove.QualifiedMove, [ContextualNotation.QualifiedMoveForest.Name]) #-}
-maybeRandomlySelectOnymousQualifiedMove randomGen preferVictories matchSwitches game positionHashQualifiedMoveTree	= case findNextOnymousQualifiedMoves matchSwitches game positionHashQualifiedMoveTree of
+maybeRandomlySelectOnymousQualifiedMove randomGen preferVictories matchSwitches positionHashQualifiedMoveTree game	= case findNextOnymousQualifiedMoves matchSwitches positionHashQualifiedMoveTree game of
 	[]			-> Nothing
 	onymousQualifiedMoves	-> fmap (
 		Control.Arrow.second $ Data.List.nub . map fst {-Name-}

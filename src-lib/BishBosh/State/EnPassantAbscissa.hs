@@ -65,16 +65,16 @@ mkMaybeEnPassantAbscissa
 	-> Component.Turn.Turn			-- ^ The last /turn/ taken.
 	-> Maybe EnPassantAbscissa
 mkMaybeEnPassantAbscissa nextLogicalColour maybePieceByCoordinates lastTurn
-	| Component.Turn.isPawnDoubleAdvance lastTurn $ Property.Opposable.getOpposite nextLogicalColour
-	, let lastMoveDestination	= Component.Move.getDestination . Component.QualifiedMove.getMove $ Component.Turn.getQualifiedMove lastTurn
+	| Component.Turn.isPawnDoubleAdvance lastTurn $! Property.Opposable.getOpposite nextLogicalColour
+	, let lastMoveDestination	= Component.Move.getDestination . Component.QualifiedMove.getMove $! Component.Turn.getQualifiedMove lastTurn
 	, not $ null [
 		passedPawn |
 			adjacentCoordinates	<- Cartesian.Coordinates.getAdjacents lastMoveDestination,
 			Component.Piece.mkKing nextLogicalColour {- Will I expose my King ? -} `notElem` [
 				blockingPiece |
 					threatDirection		<- Property.FixedMembership.members,	-- Consider all directions.
-					(_, attackerRank)	<- Data.Maybe.maybeToList $ State.MaybePieceByCoordinates.findAttackerInDirection maybePieceByCoordinates nextLogicalColour adjacentCoordinates threatDirection,	-- Find discovered attacks.
-					attackerRank `notElem` Attribute.Rank.fixedAttackRange,	-- Any viable attack through the vacated square must be long-range.
+					(_, attackerRank)	<- Data.Maybe.maybeToList $ State.MaybePieceByCoordinates.findAttackerInDirection maybePieceByCoordinates nextLogicalColour adjacentCoordinates threatDirection,	-- Find discovered attacks; which can't be by a Knight, since this can't ever have been blocked.
+					attackerRank `notElem` Attribute.Rank.plodders,	-- Any viable attack through the vacated square must be long-range.
 					(_, blockingPiece)	<- Data.Maybe.maybeToList . State.MaybePieceByCoordinates.findBlockingPiece maybePieceByCoordinates adjacentCoordinates $ Property.Opposable.getOpposite threatDirection	-- Find any discovered attack.
 			], -- Confirm that the En-passant capture doesn't expose my King.
 			passedPawn		<- filter (== Component.Piece.mkPawn nextLogicalColour) . Data.Maybe.maybeToList $ State.MaybePieceByCoordinates.dereference maybePieceByCoordinates adjacentCoordinates

@@ -66,7 +66,9 @@ results	= sequence [
 					(
 						== Component.QualifiedMove.getMove (Component.Turn.getQualifiedMove lastTurn)
 					) . Component.QualifiedMove.getMove . fst {-qualifiedMove-}
-				) . ContextualNotation.PositionHashQualifiedMoveTree.findNextOnymousQualifiedMoves tryToMatchSwitches previousGame $ ContextualNotation.PositionHashQualifiedMoveTree.fromQualifiedMoveForest incrementalEvaluation zobrist qualifiedMoveForest
+				) $ ContextualNotation.PositionHashQualifiedMoveTree.findNextOnymousQualifiedMoves tryToMatchSwitches (
+					ContextualNotation.PositionHashQualifiedMoveTree.fromQualifiedMoveForest incrementalEvaluation zobrist qualifiedMoveForest
+				) previousGame
 			) . head . Model.Game.rollBack
 		 ) . tail {-drop the default game-} . Data.Tree.flatten . Model.GameTree.deconstruct $ ContextualNotation.QualifiedMoveForest.toGameTree qualifiedMoveForest
 	in Test.QuickCheck.quickCheckWithResult Test.QuickCheck.stdArgs { Test.QuickCheck.maxSuccess = 8 } f

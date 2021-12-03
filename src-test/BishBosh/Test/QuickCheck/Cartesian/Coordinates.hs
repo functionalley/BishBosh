@@ -77,7 +77,7 @@ results = sequence [
 	in Test.QuickCheck.quickCheckWithResult Test.QuickCheck.stdArgs { Test.QuickCheck.maxSuccess = 64 } f,
 	let
 		f :: Cartesian.Coordinates.Coordinates -> Test.QuickCheck.Property
-		f coordinates	= Test.QuickCheck.label "Coordinates.prop_fromIx" $ Cartesian.Coordinates.fromIx (Data.Array.IArray.index (minBound, maxBound) coordinates) == coordinates
+		f coordinates	= Test.QuickCheck.label "Coordinates.prop_enum" $ toEnum (fromEnum coordinates) == coordinates
 	in Test.QuickCheck.quickCheckWithResult Test.QuickCheck.stdArgs { Test.QuickCheck.maxSuccess = 64 } f,
 	let
 		f	:: Cartesian.Coordinates.Coordinates -> Test.QuickCheck.Property
@@ -132,6 +132,12 @@ results = sequence [
 				null &&& (== 1) . length . Data.List.nub . map Cartesian.Coordinates.getLogicalColourOfSquare
 			)
 		 )
-	in Test.QuickCheck.quickCheckWithResult Test.QuickCheck.stdArgs { Test.QuickCheck.maxSuccess = 256 } f
+	in Test.QuickCheck.quickCheckWithResult Test.QuickCheck.stdArgs { Test.QuickCheck.maxSuccess = 256 } f,
+	let
+		f :: Cartesian.Coordinates.Coordinates -> Test.QuickCheck.Property
+		f	= Test.QuickCheck.label "Coordinates.prop_applyAlongDirectionsFrom" . uncurry (==) . (
+			flip (Cartesian.Coordinates.applyAlongDirectionsFrom id) Nothing &&& flip (Cartesian.Coordinates.applyAlongDirectionsFrom id) (Just Property.FixedMembership.members)
+		 )
+	in Test.QuickCheck.quickCheckWithResult Test.QuickCheck.stdArgs { Test.QuickCheck.maxSuccess = 16 } f
  ]
 

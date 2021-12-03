@@ -156,7 +156,7 @@ readMove positionHashQualifiedMoveTree randomGen runningWatch playState	= let
 				ContextualNotation.PositionHashQualifiedMoveTree.maybeRandomlySelectOnymousQualifiedMove randomGen
 			 ) (
 				Input.StandardOpeningOptions.getPreferVictories &&& Input.StandardOpeningOptions.getMatchSwitches $ Input.SearchOptions.getStandardOpeningOptions searchOptions
-			 ) game positionHashQualifiedMoveTree
+			 ) positionHashQualifiedMoveTree game
 
 			return {-to IO-monad-} playState	-- N.B.: though one could merely call "eventLoop", a new random-generator is desirable in case an alternative hint is requested.
 		onCommand (UI.Command.Print printObject)	= do
@@ -313,7 +313,7 @@ readMove positionHashQualifiedMoveTree randomGen runningWatch playState	= let
 								) $ Model.Game.maybeLastTurn game'
 							 ) . showString " was requested after " $ Property.ShowFloat.showsFloatToN nDecimalDigits stoppedWatch "s."
 
-							case ContextualNotation.PositionHashQualifiedMoveTree.findNextOnymousQualifiedMovesForPosition game' positionHashQualifiedMoveTree of
+							case ContextualNotation.PositionHashQualifiedMoveTree.findNextOnymousQualifiedMovesForPosition positionHashQualifiedMoveTree game' of
 								[]			-> return {-to IO-monad-} ()
 								onymousQualifiedMoves	-> System.IO.hPutStrLn System.IO.stderr . Text.ShowColouredPrefix.showsPrefixInfo . showString "matches archived game(s):" $ ContextualNotation.QualifiedMoveForest.showsNames maybeMaximumPGNNames (
 									concatMap (
@@ -513,7 +513,7 @@ takeTurns positionHashQualifiedMoveTree randomGen playState	= let
 							ContextualNotation.PositionHashQualifiedMoveTree.maybeRandomlySelectOnymousQualifiedMove randomGen'
 						 ) (
 							Input.StandardOpeningOptions.getPreferVictories &&& Input.StandardOpeningOptions.getMatchSwitches $ Input.SearchOptions.getStandardOpeningOptions searchOptions
-						 ) game' positionHashQualifiedMoveTree	-- Determine whether the automated player's move can be decided by a search of recorded games or we must decide ourself.
+						 ) positionHashQualifiedMoveTree game'	-- Determine whether the automated player's move can be decided by a search of recorded games or we must decide ourself.
 					 ) (
 						Model.Game.getNextLogicalColour game' `Map.lookup` Input.SearchOptions.getSearchDepthByLogicalColour searchOptions'	-- Determinate whether the next player is manual.
 					 ) >>= (

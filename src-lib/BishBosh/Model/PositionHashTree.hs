@@ -84,6 +84,7 @@ countDistinctPositions depth MkPositionHashTree { deconstruct = barePositionHash
 	| depth < 0	= Control.Exception.throw . Data.Exception.mkOutOfBounds . showString "BishBosh.Component.PositionHashTree.countDistinctPositions:\tdepth" . Text.ShowList.showsAssociation $ shows depth "must be positive"
 	| otherwise	= fromIntegral . Data.Set.size $ slave depth barePositionHashTree
 	where
+		slave :: Ord positionHash => Property.Arboreal.Depth -> BarePositionHashTree positionHash -> Data.Set.Set positionHash
 		slave 0 Data.Tree.Node { Data.Tree.rootLabel = hash }		= Data.Set.singleton hash	-- Having reached the maximum depth, include this game's hash.
 		slave _ Data.Tree.Node {
 			Data.Tree.rootLabel	= hash,

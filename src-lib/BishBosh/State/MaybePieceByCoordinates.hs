@@ -36,7 +36,9 @@ module BishBosh.State.MaybePieceByCoordinates(
 -- * Functions
 	inferMoveType,
 	findBlockingPiece,
+	findBlockingPieces,
 	findAttackerInDirection,
+	findAttackerInDirections,
 	listDestinationsFor,
 --	listToRaster,
 --	shows2D,
@@ -108,9 +110,7 @@ import qualified	ToolShed.Data.List.Runlength
 	* N.B.: this could be implemented using 'Data.Vector.Vector', which being indexed by 'Int' is no longer polymorphic & permits many unsafe operations; but the result is no faster.
 -}
 newtype MaybePieceByCoordinates	= MkMaybePieceByCoordinates {
-	deconstruct	:: Cartesian.Coordinates.ArrayByCoordinates (
-		Maybe Component.Piece.Piece	-- Each square optionally contains a piece.
-	)
+	deconstruct	:: Cartesian.Coordinates.ArrayByCoordinates (Maybe Component.Piece.Piece)	-- ^ Each square optionally contains a piece.
 } deriving (Eq, Ord)
 
 {- |
@@ -198,13 +198,9 @@ instance Control.DeepSeq.NFData MaybePieceByCoordinates where
 
 instance StateProperty.Censor.Censor MaybePieceByCoordinates where
 	countPiecesByLogicalColour	= Data.List.foldl' (
-		\acc piece -> let
-			acc'@(nBlack, nWhite)	= (
-				if Component.Piece.isBlack piece
-					then Control.Arrow.first
-					else Control.Arrow.second
-			 ) succ acc
-		in nBlack `seq` nWhite `seq` acc'
+		\(nBlack, nWhite) piece -> if Component.Piece.isBlack piece
+			then let nBlack' = succ nBlack in nBlack' `seq` (nBlack', nWhite)
+			else let nWhite' = succ nWhite in nWhite' `seq` (nBlack, nWhite')
 	 ) (0, 0) . getPieces
 
 	countPieces	= fromIntegral . length . getPieces
@@ -267,7 +263,7 @@ instance StateProperty.Mutator.Mutator MaybePieceByCoordinates where
 			Nothing	-- Remove the piece from the source.
 		), (
 			Component.Move.getDestination move,
-			Just $ Data.Maybe.maybe sourcePiece (`Component.Piece.promote` sourcePiece) maybePromotionRank	-- Place the piece at the destination, removing any opposing incumbent as a side-effect.
+			Just $ Data.Maybe.maybe id Component.Piece.promote maybePromotionRank sourcePiece	-- Place the piece at the destination, removing any opposing incumbent as a side-effect.
 		)
 	 ]
 
@@ -359,8 +355,9 @@ listDestinationsFor maybePieceByCoordinates@MkMaybePieceByCoordinates { deconstr
 	byCoordinates ! source == Just piece
  ) $ if Component.Piece.getRank piece `elem` Attribute.Rank.fixedAttackRange
 	then {-P,N,K-} let
+		findAttackDestinations :: (Maybe Component.Piece.Piece -> Bool) -> [(Cartesian.Coordinates.Coordinates, Maybe Attribute.Rank.Rank)]
 		findAttackDestinations predicate	= [
-			(destination, fmap Component.Piece.getRank maybeDestinationPiece) |
+			(destination, Component.Piece.getRank <$> maybeDestinationPiece) |
 				destination	<- Component.Piece.findAttackDestinations piece source,
 				let maybeDestinationPiece	= byCoordinates ! destination,
 				predicate maybeDestinationPiece
@@ -385,20 +382,19 @@ listDestinationsFor maybePieceByCoordinates@MkMaybePieceByCoordinates { deconstr
 			else []	-- The path immediately ahead is blocked.
 		else {-N,K-} findAttackDestinations . Data.Maybe.maybe True {-unoccupied-} $ (/= logicalColour) . Component.Piece.getLogicalColour
 	else {-R,B,Q-} let
+		takeUntil :: [Cartesian.Coordinates.Coordinates] -> [(Cartesian.Coordinates.Coordinates, Maybe Attribute.Rank.Rank)]
 		takeUntil (destination : remainder)
-			| Just blockingPiece <- byCoordinates ! destination	= [
+			| Just blockingPiece	<- byCoordinates ! destination	= [
 				(
 					destination,
 					Just $ Component.Piece.getRank blockingPiece
 				) | Component.Piece.getLogicalColour blockingPiece /= logicalColour
 			] -- List-comprehension.
-			| otherwise	= (destination, Nothing) : takeUntil remainder	-- Recurse.
-		takeUntil _	= []
-	in [
-		pairs |
-			direction	<- Component.Piece.getAttackDirections piece,
-			pairs		<- takeUntil $ Cartesian.Coordinates.extrapolate source direction
-	] -- List-comprehension.
+			| otherwise						= (destination, Nothing) : takeUntil remainder	-- Recurse.
+		takeUntil _							= []
+	in Cartesian.Coordinates.applyAlongDirectionsFrom takeUntil source $ if Component.Piece.isQueen piece
+		then Nothing	-- i.e. all directions.
+		else Just $ Component.Piece.getAttackDirections piece
 	where
 		logicalColour	= Component.Piece.getLogicalColour piece
 
@@ -466,7 +462,7 @@ getPieces :: MaybePieceByCoordinates -> [Component.Piece.Piece]
 getPieces MkMaybePieceByCoordinates { deconstruct = byCoordinates }	= Data.Maybe.catMaybes $ Data.Foldable.toList byCoordinates
 
 {- |
-	* Find the first /piece/ of either /logical colour/, encountered along a straight line in the specified /direction/, from just after the specified /coordinates/.
+	* Find the first /piece/ of either /logical colour/, encountered in the specified /direction/, from just after the specified /coordinates/.
 
 	* CAVEAT: this is a performance-hotspot.
 -}
@@ -474,15 +470,33 @@ findBlockingPiece
 	:: MaybePieceByCoordinates
 	-> Cartesian.Coordinates.Coordinates	-- ^ The starting point.
 	-> Direction.Direction.Direction	-- ^ The direction in which to search.
-	-> Maybe Component.Piece.LocatedPiece
+	-> Maybe Component.Piece.LocatedPiece	-- ^ Any blocking piece.
 findBlockingPiece MkMaybePieceByCoordinates { deconstruct = byCoordinates } source	= slave . Cartesian.Coordinates.extrapolate source where
-	slave (coordinates : remainder)	= case byCoordinates ! coordinates of
-		Nothing		-> slave remainder			-- Recurse.
-		maybePiece	-> (,) coordinates <$> maybePiece	-- Terminate with success.
-	slave []			= Nothing			-- Terminate with failure.
+	slave :: [Cartesian.Coordinates.Coordinates] -> Maybe Component.Piece.LocatedPiece
+	slave (coordinates : remainder)
+		| Just blockingPiece	<- byCoordinates ! coordinates	= Just (coordinates, blockingPiece)	-- Terminate with success.
+		| otherwise						= slave remainder			-- Recurse.
+	slave _								= Nothing				-- Terminate with failure.
 
 {- |
-	* Find the /coordinates/ of any attacker who can strike the specified /coordinates/, in a straight line along the specified /direction/ (as seen by the target).
+	* Find the first /piece/ of either /logical colour/, encountered in each of the specified /direction/s, from just after the specified /coordinates/.
+
+	* N.B.: one could call 'findBlockingPiece' for each /direction/, but this function exploits optimisations available when all /direction/s are required.
+-}
+findBlockingPieces
+	:: MaybePieceByCoordinates
+	-> Cartesian.Coordinates.Coordinates		-- ^ The starting point.
+	-> Maybe [Direction.Direction.Direction]	-- ^ The directions in which to search; 'Nothing' implies omni-directional.
+	-> [Component.Piece.LocatedPiece]		-- ^ Blocking pieces in non-specific directions.
+findBlockingPieces MkMaybePieceByCoordinates { deconstruct = byCoordinates }	= Cartesian.Coordinates.applyAlongDirectionsFrom slave where
+	slave :: [Cartesian.Coordinates.Coordinates] -> [Component.Piece.LocatedPiece]
+	slave (coordinates : remainder)
+		| Just blockingPiece	<- byCoordinates ! coordinates	= [(coordinates, blockingPiece)]	-- Terminate with success.
+		| otherwise						= slave remainder			-- Recurse.
+	slave _								= []					-- Terminate with failure.
+
+{- |
+	* Find the /coordinates/ of any attacker who can strike the specified /coordinates/, from the specified /direction/ (as seen by the target).
 
 	* N.B.: there no requirement for there to actually be a /piece/ to attack at the specified target.
 -}
@@ -492,18 +506,36 @@ findAttackerInDirection
 	-> Cartesian.Coordinates.Coordinates					-- ^ The defender's square.
 	-> Direction.Direction.Direction					-- ^ The /direction/ from the /coordinates/ of concern; the opposite /direction/ from which an attacker might strike.
 	-> Maybe (Cartesian.Coordinates.Coordinates, Attribute.Rank.Rank)	-- ^ Any opposing /piece/ which can attack the specified square from the specified /direction/.
-findAttackerInDirection maybePieceByCoordinates destinationLogicalColour destination direction	= findBlockingPiece maybePieceByCoordinates destination direction >>= \locatedPiece@(source, sourcePiece) -> if Component.Piece.getLogicalColour sourcePiece /= destinationLogicalColour && Component.Piece.canAttackAlong source destination sourcePiece
-	then Just $ Control.Arrow.second Component.Piece.getRank locatedPiece
+findAttackerInDirection maybePieceByCoordinates destinationLogicalColour destination direction	= findBlockingPiece maybePieceByCoordinates destination direction >>= \(source, sourcePiece) -> if Component.Piece.getLogicalColour sourcePiece /= destinationLogicalColour && Component.Piece.canAttackAlong source destination sourcePiece
+	then Just (source, Component.Piece.getRank sourcePiece)
 	else Nothing
+
+{- |
+	* Find the /coordinates/ of any attacker who can strike the specified /coordinates/, from the specified /direction/s (as seen by the target).
+
+	* N.B.: one could call 'findAttackerInDirection' for each /direction/, but this function exploits optimisations available when all /direction/s are required.
+-}
+findAttackerInDirections
+	:: MaybePieceByCoordinates
+	-> Colour.LogicalColour.LogicalColour				-- ^ The defender's /logical colour/.
+	-> Cartesian.Coordinates.Coordinates				-- ^ The defender's square.
+	-> Maybe [Direction.Direction.Direction]			-- ^ The /direction/s from the /coordinates/ of concern; the opposite /direction/ from which an attacker might strike; 'Nothing' implies omni-directional.
+	-> [(Cartesian.Coordinates.Coordinates, Attribute.Rank.Rank)]	-- ^ Any opposing /piece/s which can attack the specified square from the specified /direction/s.
+findAttackerInDirections maybePieceByCoordinates destinationLogicalColour destination	= Data.Maybe.mapMaybe (
+	\(source, sourcePiece) -> if Component.Piece.getLogicalColour sourcePiece /= destinationLogicalColour && Component.Piece.canAttackAlong source destination sourcePiece
+		then Just (source, Component.Piece.getRank sourcePiece)
+		else Nothing
+ ) . findBlockingPieces maybePieceByCoordinates destination
 
 -- | Whether the specified /coordinates/ are unoccupied.
 isVacant :: MaybePieceByCoordinates -> Cartesian.Coordinates.Coordinates -> Bool
 {-# INLINE isVacant #-}
-isVacant MkMaybePieceByCoordinates { deconstruct = byCoordinates } coordinates	= Data.Maybe.isNothing $ byCoordinates ! coordinates
+isVacant MkMaybePieceByCoordinates { deconstruct = byCoordinates } coordinates
+	| Nothing	<- byCoordinates ! coordinates	= True
+	| otherwise					= False
 
 -- | Whether the specified /coordinates/ are occupied.
 isOccupied :: MaybePieceByCoordinates -> Cartesian.Coordinates.Coordinates -> Bool
-{-# INLINE isOccupied #-}
 isOccupied maybePieceByCoordinates	= not . isVacant maybePieceByCoordinates
 
 {- |

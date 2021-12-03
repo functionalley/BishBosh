@@ -111,6 +111,7 @@ getArgs
 	-> [String]	-- ^ The command-line arguments to search.
 	-> [String]	-- ^ The matching argument-values.
 getArgs flags	= slave where
+	slave :: [String] -> [String]
 	slave []	= []
 	slave (x : xs)
 		| x `elem` flags	= case xs of

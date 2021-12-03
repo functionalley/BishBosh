@@ -166,6 +166,18 @@ results	= sequence [
 			maybePieceByCoordinates	= State.Board.getMaybePieceByCoordinates board
 	in Test.QuickCheck.quickCheckWithResult Test.QuickCheck.stdArgs { Test.QuickCheck.maxSuccess = 256 } f,
 	let
+		f :: State.Board.Board -> Cartesian.Coordinates.Coordinates -> Test.QuickCheck.Property
+		f board coordinates = Test.QuickCheck.label "Board.prop_findBlockingPieces" . (
+			\maybePieceByCoordinates -> State.MaybePieceByCoordinates.findBlockingPieces maybePieceByCoordinates coordinates Nothing == Data.Maybe.mapMaybe (State.MaybePieceByCoordinates.findBlockingPiece maybePieceByCoordinates coordinates) Property.FixedMembership.members
+		 ) $ State.Board.getMaybePieceByCoordinates board
+	in Test.QuickCheck.quickCheckWithResult Test.QuickCheck.stdArgs { Test.QuickCheck.maxSuccess = 64 } f,
+	let
+		f :: State.Board.Board -> Colour.LogicalColour.LogicalColour -> Cartesian.Coordinates.Coordinates -> Test.QuickCheck.Property
+		f board logicalColour coordinates = Test.QuickCheck.label "Board.prop_findAttackerInDirections" . (
+			\maybePieceByCoordinates -> State.MaybePieceByCoordinates.findAttackerInDirections maybePieceByCoordinates logicalColour coordinates Nothing == Data.Maybe.mapMaybe (State.MaybePieceByCoordinates.findAttackerInDirection maybePieceByCoordinates logicalColour coordinates) Property.FixedMembership.members
+		 ) $ State.Board.getMaybePieceByCoordinates board
+	in Test.QuickCheck.quickCheckWithResult Test.QuickCheck.stdArgs { Test.QuickCheck.maxSuccess = 64 } f,
+	let
 		f :: State.Board.Board -> Test.QuickCheck.Property
 		f = Test.QuickCheck.label "Board.prop_findPieces" . uncurry (==) . (
 			Data.List.sort . StateProperty.Seeker.findAllPieces . State.Board.getCoordinatesByRankByLogicalColour &&& Data.List.sort . StateProperty.Seeker.findAllPieces . State.Board.getMaybePieceByCoordinates

@@ -30,7 +30,7 @@
 module BishBosh.Model.GameTree(
 -- * Types
 -- ** Type-synonyms
---	BareGameTree,
+	BareGameTree,
 	MoveFrequency,
 --	Transformation,
 -- ** Data-types
@@ -57,6 +57,7 @@ import			Control.Arrow((&&&))
 import qualified	BishBosh.Attribute.CaptureMoveSortAlgorithm	as Attribute.CaptureMoveSortAlgorithm
 import qualified	BishBosh.Attribute.MoveType			as Attribute.MoveType
 import qualified	BishBosh.Attribute.Rank				as Attribute.Rank
+import qualified	BishBosh.Colour.LogicalColour			as Colour.LogicalColour
 import qualified	BishBosh.Component.Move				as Component.Move
 import qualified	BishBosh.Component.QualifiedMove		as Component.QualifiedMove
 import qualified	BishBosh.Component.Turn				as Component.Turn
@@ -113,7 +114,7 @@ staticExchangeEvaluation evaluateRank node@Data.Tree.Node { Data.Tree.rootLabel 
 	getMaybeImplicitlyTakenRank :: Model.Game.Game -> Maybe Attribute.Rank.Rank
 	getMaybeImplicitlyTakenRank game'	= Attribute.MoveType.getMaybeImplicitlyTakenRank . Component.QualifiedMove.getMoveType . Component.Turn.getQualifiedMove =<< Model.Game.maybeLastTurn game'
 
---	slave :: BareGameTree -> Attribute.Rank.Rank -> Type.Mass.RankValue
+	slave :: BareGameTree -> Attribute.Rank.Rank -> Type.Mass.RankValue
 	slave node'@Data.Tree.Node { Data.Tree.subForest = forest' }	= max 0 {-this player shouldn't progress the battle-} . subtract (
 		case filter (
 			(
@@ -241,6 +242,7 @@ sortGameTree maybeCaptureMoveSortAlgorithm evaluateRank standardOpeningMoveFrequ
 -}
 toMoveFrequency :: GameTree -> MoveFrequency
 toMoveFrequency MkGameTree { deconstruct = bareGameTree } = slave maxBound {-logicalColour-} Property.Empty.empty {-MoveFrequency-} bareGameTree where
+	slave :: Colour.LogicalColour.LogicalColour -> MoveFrequency -> BareGameTree -> MoveFrequency
 	slave _ moveFrequency Data.Tree.Node { Data.Tree.subForest = [] }			= moveFrequency
 	slave logicalColour moveFrequency Data.Tree.Node { Data.Tree.subForest = forest }	= Data.List.foldl' (
 		slave {-recurse-} $ Property.Opposable.getOpposite logicalColour

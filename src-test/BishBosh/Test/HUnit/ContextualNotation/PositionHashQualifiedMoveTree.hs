@@ -65,14 +65,14 @@ checkMatch matchSwitches game moveStrings expectedMove	= map (
 	Component.QualifiedMove.getMove . fst {-qualifiedMove-}
  ) (
 	ContextualNotation.PositionHashQualifiedMoveTree.findNextOnymousQualifiedMoves matchSwitches (
-		mkGame moveStrings
-	) . ContextualNotation.PositionHashQualifiedMoveTree.fromQualifiedMoveForest False {-incrementalEvaluation-} (
-		Data.Default.def	:: Component.Zobrist.Zobrist Type.Crypto.PositionHash
-	) $ ContextualNotation.QualifiedMoveForest.fromPGNDatabase [
-		ContextualNotation.PGN.mkPGN' [] [
-			(ContextualNotation.PGN.dateTag, "2018.01.01")
-		] game
-	]
+		ContextualNotation.PositionHashQualifiedMoveTree.fromQualifiedMoveForest False {-incrementalEvaluation-} (
+			Data.Default.def	:: Component.Zobrist.Zobrist Type.Crypto.PositionHash
+		) $ ContextualNotation.QualifiedMoveForest.fromPGNDatabase [
+			ContextualNotation.PGN.mkPGN' [] [
+				(ContextualNotation.PGN.dateTag, "2018.01.01")
+			] game
+		]
+	) $ mkGame moveStrings
  ) ~?= [expectedMove]
 
 -- | Check the sanity of the implementation, by validating a list of static test-cases.

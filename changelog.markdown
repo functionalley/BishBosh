@@ -149,6 +149,10 @@ New Module				| Purpose
 ## 0.1.3.0
 * Efficiency:
 	+ Replaced the polymorphic type-parameter **pieceSquareValue** with a *newtype*, to then implement *unboxed* arrays without cluttering interfaces with type-constraint **Data.Array.Unboxed.IArray Data.Array.Unboxed.UArray pieceSquareValue**; performance-improvement was regrettably insignificant.
+	+ Added some strictness to **BishBosh.Board.{exposesKing, movePiece, sumPieceSquareValueByLogicalColour}** & **BishBosh.Game.applyQualifiedMove**.
+	+ Added function **BishBosh.Cartesian.Coordinates.applyAlongDirectionsFrom** to reduce sequential indexing by direction when extrapolation in all directions is required; deployed in new functions **BishBosh.State.MaybePieceByCoordinates.{findBlockingPieces, findAttackerInDirections}**
+	+ Refactored function **BishBosh.Cartesian.Vector.toMaybeDirection** to eliminate call to **BishBosh.Property.Orientated.isStraight**.
+	+ Refactored function **BishBosh.Component.Piece.canMoveBetween** to remove **let**-binding.
 * Structural:
 	+ Added method **BishBosh.StateProperty.Mutator.movePiece** & implemented whole type-class in module **BishBosh.State.CoordinatesByRankByLogicalColour**.
 	+ Implemented type-class **BishBosh.Property.SelfValidating.SelfValidating** in modules **BishBosh.State.{MaybePieceByCoordinates, CoordinatesByRankByLogicalColour, Board}**.

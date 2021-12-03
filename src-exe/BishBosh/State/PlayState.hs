@@ -132,6 +132,7 @@ setPositionHashQuantifiedGameTree positionHashQuantifiedGameTree playState@MkPla
 
 -- | Reconstruct the /positionHashQuantifiedGameTree/ (in the /searchState/), with the apex set to the specified game.
 reconstructPositionHashQuantifiedGameTree :: Data.Bits.Bits positionHash => Model.Game.Game -> Transformation positionHash
+{-# SPECIALISE reconstructPositionHashQuantifiedGameTree :: Model.Game.Game -> Transformation Type.Crypto.PositionHash #-}
 reconstructPositionHashQuantifiedGameTree game playState@MkPlayState {
 	getZobrist		= zobrist,
 	getMoveFrequency	= moveFrequency,
@@ -144,6 +145,7 @@ reconstructPositionHashQuantifiedGameTree game playState@MkPlayState {
 
 -- | Reset to the initial state.
 resetPositionHashQuantifiedGameTree :: Data.Bits.Bits positionHash => Transformation positionHash
+{-# SPECIALISE resetPositionHashQuantifiedGameTree :: Transformation Type.Crypto.PositionHash #-}
 resetPositionHashQuantifiedGameTree playState	= reconstructPositionHashQuantifiedGameTree Data.Default.def playState {
 	getCriterionValues			= [],
 	getMaybeApplicationTerminationReason	= Nothing

@@ -243,7 +243,7 @@ readMove positionHashQualifiedMoveTree randomGen	= slave where
 						else Notation.MoveNotation.showNotation moveNotation qualifiedMove
 				 ) $ ContextualNotation.PositionHashQualifiedMoveTree.maybeRandomlySelectOnymousQualifiedMove randomGen (
 					Input.StandardOpeningOptions.getPreferVictories . Input.SearchOptions.getStandardOpeningOptions $ searchOptions
-				 ) tryToMatchSwitches game positionHashQualifiedMoveTree
+				 ) tryToMatchSwitches positionHashQualifiedMoveTree game
 
 				return {-to IO-monad-} playState	-- N.B.: though one could merely call "eventLoop", a new random-generator is desirable in case an alternative hint is requested.
 			onCommand (UI.Command.Print printObject)	= do
@@ -416,7 +416,7 @@ readMove positionHashQualifiedMoveTree randomGen	= slave where
 										[(name, _result)]	-> showString ":\t" . showString name
 										_			-> id
 								) ""
-							 ) $ ContextualNotation.PositionHashQualifiedMoveTree.findNextOnymousQualifiedMoves tryToMatchSwitches game positionHashQualifiedMoveTree
+							 ) $ ContextualNotation.PositionHashQualifiedMoveTree.findNextOnymousQualifiedMoves tryToMatchSwitches positionHashQualifiedMoveTree game
 
 							eventLoop
 						"computer"	-> eventLoop	-- No action required.
@@ -978,7 +978,7 @@ readMove positionHashQualifiedMoveTree randomGen	= slave where
 										) $ Model.Game.maybeLastTurn game'
 									 ) . showString " was requested after " $ Property.ShowFloat.showsFloatToN nDecimalDigits stoppedWatch "s."
 
-									case ContextualNotation.PositionHashQualifiedMoveTree.findNextOnymousQualifiedMovesForPosition game' positionHashQualifiedMoveTree of
+									case ContextualNotation.PositionHashQualifiedMoveTree.findNextOnymousQualifiedMovesForPosition positionHashQualifiedMoveTree game' of
 										[]			-> return ()
 										onymousQualifiedMoves	-> System.IO.hPutStrLn System.IO.stderr . Text.ShowPrefix.showsPrefixInfo . showString "matches archived game(s):" $ ContextualNotation.QualifiedMoveForest.showsNames (
 											Input.IOOptions.getMaybeMaximumPGNNames ioOptions
@@ -1182,7 +1182,7 @@ takeTurns positionHashQualifiedMoveTree randomGen playState	= do
 						ContextualNotation.PositionHashQualifiedMoveTree.maybeRandomlySelectOnymousQualifiedMove randomGen'
 					 ) (
 						Input.StandardOpeningOptions.getPreferVictories &&& Input.StandardOpeningOptions.getMatchSwitches $ Input.SearchOptions.getStandardOpeningOptions searchOptions
-					 ) game' positionHashQualifiedMoveTree	-- Determine whether the automated player's move can be decided by a search of recorded games or we must decide ourself.
+					 ) positionHashQualifiedMoveTree game'	-- Determine whether the automated player's move can be decided by a search of recorded games or we must decide ourself.
 				 ) (
 					if Input.UIOptions.isCECPManualMode uiOptions'
 						then Nothing

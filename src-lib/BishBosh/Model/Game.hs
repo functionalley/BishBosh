@@ -539,7 +539,7 @@ takeTurn turn game@MkGame {
 } = Control.Exception.assert (
 	not $ isTerminated game	-- CAVEAT: otherwise any resignation will be overwritten.
  ) game' where
-	((move, moveType), sourceRank)	= (Component.QualifiedMove.getMove &&& Component.QualifiedMove.getMoveType) . Component.Turn.getQualifiedMove &&& Component.Turn.getRank $ turn	-- Deconstruct.
+	((move, moveType), sourceRank)	= (Component.QualifiedMove.getMove &&& Component.QualifiedMove.getMoveType) . Component.Turn.getQualifiedMove &&& Component.Turn.getRank $! turn	-- Deconstruct.
 	(source, destination)		= Component.Move.getSource &&& Component.Move.getDestination $ move	-- Deconstruct.
 
 	opponentsLogicalColour :: Colour.LogicalColour.LogicalColour
@@ -567,6 +567,7 @@ takeTurn turn game@MkGame {
 		getMaybeChecked					= Data.List.find (State.Board.isKingChecked board') [opponentsLogicalColour],
 		getInstancesByPosition				= State.InstancesByPosition.insertPosition (Component.Turn.getIsRepeatableMove turn) (mkPosition game') instancesByPosition,
 		getAvailableQualifiedMovesByLogicalColour	= let
+			moveEndpoints :: [Cartesian.Coordinates.Coordinates]
 			moveEndpoints	= (
 				case moveType of
 					Attribute.MoveType.Castle _	-> (++) [
@@ -577,10 +578,12 @@ takeTurn turn game@MkGame {
 					_				-> id
 			 ) [source, destination]
 
+			kingsByCoordinates :: [Component.Piece.LocatedPiece]
 			kingsByCoordinates	= map (
 				State.CoordinatesByRankByLogicalColour.getKingsCoordinates (State.Board.getCoordinatesByRankByLogicalColour board') &&& Component.Piece.mkKing
 			 ) Property.FixedMembership.members
 
+			affected, affected'	:: [Component.Piece.LocatedPiece]
 			(affected, affected')	= (
 				Data.List.nub . (:) (
 					destination,
@@ -600,22 +603,19 @@ takeTurn turn game@MkGame {
 			 ) $ kingsByCoordinates {-moves available to either King may be constrained or liberated, even if misaligned with move-endpoints-} ++ [
 				(knightsCoordinates, Component.Piece.mkKnight knightsColour) |
 					knightsColour		<- Property.FixedMembership.members,	-- The moves for one's own Knights may be have been blocked by a friendly piece occupying an end-point, whereas the moves for opposing Knights will have a new move-type.
-					moveEndpoint		<- moveEndpoints,
-					knightsCoordinates	<- StateProperty.Seeker.findProximateKnights board' knightsColour moveEndpoint
+					knightsCoordinates	<- concatMap (StateProperty.Seeker.findProximateKnights board' knightsColour) moveEndpoints
 			 ] {-list-comprehension-} ++ (
 				if sourceRank == Attribute.Rank.King
-					then [
-						(blockingCoordinates, blockingPiece) |
-							(kingsCoordinates, _)			<- kingsByCoordinates,
-							direction				<- Property.FixedMembership.members,
-							(blockingCoordinates, blockingPiece)	<- Data.Maybe.maybeToList $ State.MaybePieceByCoordinates.findBlockingPiece maybePieceByCoordinates' kingsCoordinates direction
-					] -- List-comprehension. Re-evaluate the moves available to all pieces aligned with a King.
+					then concatMap (
+						flip (
+							State.MaybePieceByCoordinates.findBlockingPieces maybePieceByCoordinates'
+						) Nothing {-omni-directional-} . fst {-coordinates-}
+					) kingsByCoordinates	-- Re-evaluate the moves available to all pieces aligned with a King.
 					else [
 						(blockingCoordinates, blockingPiece) |
 							(kingsCoordinates, _)			<- kingsByCoordinates,
-							moveEndpoint				<- moveEndpoints,
-							direction				<- Data.Maybe.maybeToList . Cartesian.Vector.toMaybeDirection $ Cartesian.Vector.measureDistance kingsCoordinates moveEndpoint, -- N.B. null when the King isn't aligned with any move-endpoint.
-							let findBlockingPieceFrom coordinates	= State.MaybePieceByCoordinates.findBlockingPiece maybePieceByCoordinates' coordinates direction,
+							direction				<- Data.Maybe.mapMaybe (Cartesian.Vector.toMaybeDirection . Cartesian.Vector.measureDistance kingsCoordinates) moveEndpoints, -- N.B. null when the King isn't aligned with any move-endpoint.
+							let findBlockingPieceFrom	= flip (State.MaybePieceByCoordinates.findBlockingPiece maybePieceByCoordinates') direction,
 							(blockingCoordinates, blockingPiece)	<- Data.Maybe.maybeToList $ (
 								\pair@(coordinates, _) -> if coordinates /= destination
 									then Just pair
@@ -625,15 +625,19 @@ takeTurn turn game@MkGame {
 							) =<< findBlockingPieceFrom kingsCoordinates
 					] -- List-comprehension. Re-evaluate the moves available to all pieces aligned with a King & a move-endpoint.
 			 ) ++ [
-				(coordinates, affectedPiece) |
-					moveEndpoint			<- moveEndpoints,
-					direction			<- Property.FixedMembership.members,
-					(coordinates, affectedPiece)	<- Data.Maybe.maybeToList $ State.MaybePieceByCoordinates.findBlockingPiece maybePieceByCoordinates' moveEndpoint direction,
-					coordinates /= destination,	-- Added above.
-					not . uncurry (||) $ (Component.Piece.isKnight &&& Component.Piece.isKing) affectedPiece,	-- Added above.
-					Component.Piece.canMoveBetween affectedPiece coordinates moveEndpoint
+				locatedAffectedPiece |
+					moveEndpoint		<- moveEndpoints,
+					locatedAffectedPiece	<- filter (
+						not . uncurry (||) . (
+							(== destination) *** uncurry (||) . (
+								Component.Piece.isKnight &&& Component.Piece.isKing
+							) -- Added above.
+						)
+					) $ State.MaybePieceByCoordinates.findBlockingPieces maybePieceByCoordinates' moveEndpoint Nothing {-omni-directional-},
+					uncurry (flip Component.Piece.canMoveBetween) locatedAffectedPiece moveEndpoint
 			 ] -- List-comprehension. Re-evaluate the moves available to all pieces, which either could move to the source, or can now move to the destination, of the requested move.
 
+			insertMovesFrom	:: AvailableQualifiedMoves -> [Component.Piece.LocatedPiece] -> AvailableQualifiedMoves
 			insertMovesFrom	= foldr $ \(source', piece') -> let
 				logicalColour			= Component.Piece.getLogicalColour piece'
 				isSafeDestination destination'	= not . State.Board.exposesKing board' logicalColour $ Component.Move.mkMove source' destination'
@@ -660,6 +664,7 @@ takeTurn turn game@MkGame {
 				[]			-> Map.delete source'				-- There're zero moves from here.
 				qualifiedDestinations	-> Map.insert source' qualifiedDestinations	-- Overwrite any existing moves.
 
+			insertCastlingMoves :: Colour.LogicalColour.LogicalColour -> AvailableQualifiedMoves -> AvailableQualifiedMoves
 			insertCastlingMoves logicalColour	= case findAvailableCastlingMoves game' logicalColour of
 				[]			-> id
 				validCastlingMoves	-> uncurry (
@@ -672,18 +677,20 @@ takeTurn turn game@MkGame {
 		in (
 			\availableQualifiedMovesByLogicalColour' -> (
 				case (Map.member opponentsLogicalColour availableQualifiedMovesByLogicalColour', Data.Maybe.isJust $ getMaybeChecked game') of
-					(True, True)	-> Map.delete opponentsLogicalColour	-- Many changes result from the King being checked.
-					(True, _)	-> Map.adjust (
-						insertCastlingMoves opponentsLogicalColour . (
-							`insertMovesFrom` affected'	-- Reconstruct any moves for affected pieces.
-						) . (
-							if Attribute.MoveType.isEnPassant moveType
-								then Map.delete $ Cartesian.Coordinates.retreat nextLogicalColour destination
-								else id
-						) . Map.delete destination	-- Delete the moves originally available to any taken piece.
-					 ) opponentsLogicalColour
-					(_, True)	-> id	-- We neither want an entry in the map, nor is there one.
-					_		-> Map.insert opponentsLogicalColour $ mkAvailableQualifiedMovesFor game' opponentsLogicalColour	-- Reconstruct.
+					(True, isChecked)
+						| isChecked	-> Map.delete opponentsLogicalColour	-- Many changes result from the King being checked.
+						| otherwise	-> Map.adjust (
+							insertCastlingMoves opponentsLogicalColour . (
+								`insertMovesFrom` affected'	-- Reconstruct any moves for affected pieces.
+							) . (
+								if Attribute.MoveType.isEnPassant moveType
+									then Map.delete $ Cartesian.Coordinates.retreat nextLogicalColour destination
+									else id
+							) . Map.delete destination	-- Delete the moves originally available to any taken piece.
+						) opponentsLogicalColour
+					(_, isChecked)
+						| isChecked	-> id	-- We neither want an entry in the map, nor is there one.
+						| otherwise	-> Map.insert opponentsLogicalColour $ mkAvailableQualifiedMovesFor game' opponentsLogicalColour	-- Reconstruct.
 			) availableQualifiedMovesByLogicalColour'
 		) $ (
 			if Data.Maybe.maybe True {-not a member-} (
@@ -708,8 +715,8 @@ takeTurn turn game@MkGame {
 -- | Construct a /turn/ & relay the request to 'takeTurn'.
 applyQualifiedMove :: Component.QualifiedMove.QualifiedMove -> Transformation
 applyQualifiedMove qualifiedMove game@MkGame { getBoard = board }
-	| Just piece	<- State.MaybePieceByCoordinates.dereference (State.Board.getMaybePieceByCoordinates board) $ Component.Move.getSource move
-	= takeTurn (Component.Turn.mkTurn qualifiedMove $ Component.Piece.getRank piece) game
+	| Just piece	<- State.MaybePieceByCoordinates.dereference (State.Board.getMaybePieceByCoordinates board) $! Component.Move.getSource move
+			= takeTurn (Component.Turn.mkTurn qualifiedMove $! Component.Piece.getRank piece) game
 	| otherwise	= Control.Exception.throw . Data.Exception.mkSearchFailure . showString "BishBosh.Model.Game.applyQualifiedMove:\tthere isn't a piece at the source of " . shows move . showString "; " $ shows game "."
 	where
 		move	= Component.QualifiedMove.getMove qualifiedMove
@@ -1002,10 +1009,10 @@ rollBack	= Data.List.unfoldr (
 				getTurnsByLogicalColour	= turnsByLogicalColour',
 				getMaybeChecked		= maybeChecked'
 			} = game {
-				getNextLogicalColour			= previousColour,
-				getCastleableRooksByLogicalColour	= State.CastleableRooksByLogicalColour.fromTurnsByLogicalColour turnsByLogicalColour',
-				getMaybeChecked				= Data.List.find (State.Board.isKingChecked board') [previousColour],
-				getBoard				= (
+				getNextLogicalColour				= previousColour,
+				getCastleableRooksByLogicalColour		= State.CastleableRooksByLogicalColour.fromTurnsByLogicalColour turnsByLogicalColour',
+				getMaybeChecked					= Data.List.find (State.Board.isKingChecked board') [previousColour],
+				getBoard					= (
 					case moveType of
 						Attribute.MoveType.Castle isShort	-> State.Board.movePiece (
 							uncurry Component.Move.mkMove $ (
@@ -1029,8 +1036,8 @@ rollBack	= Data.List.unfoldr (
 				 ) (
 					Attribute.MoveType.getMaybeExplicitlyTakenRank moveType	-- Reconstruct any piece taken (except en-passant), inferring the logical colour.
 				 ) $ State.Board.movePiece (Property.Opposable.getOpposite move) Nothing {-MoveType-} board,	-- N.B.: operate directly on the board to avoid creating a new Turn in the Game-structure.
-				getTurnsByLogicalColour	= State.TurnsByLogicalColour.update [(previousColour, previousTurns)] turnsByLogicalColour,
-				getInstancesByPosition	= if Component.Turn.getIsRepeatableMove turn
+				getTurnsByLogicalColour				= State.TurnsByLogicalColour.update [(previousColour, previousTurns)] turnsByLogicalColour,
+				getInstancesByPosition				= if Component.Turn.getIsRepeatableMove turn
 					then State.InstancesByPosition.deletePosition (mkPosition game) instancesByPosition
 					else mkInstancesByPosition game',	-- Reconstruct the map prior to the unrepeatable move.
 				getAvailableQualifiedMovesByLogicalColour	= Map.fromAscList [
@@ -1038,7 +1045,7 @@ rollBack	= Data.List.unfoldr (
 						logicalColour	<- Property.FixedMembership.members,
 						maybeChecked' /= Just logicalColour
 				], -- List-comprehension.
-				getMaybeTerminationReason	= Nothing
+				getMaybeTerminationReason			= Nothing
 			}
 		 in Just ((game', turn), game')
 		_	-> Nothing
@@ -1221,7 +1228,7 @@ inferMaybeTerminationReason game@MkGame {
 }
 	| haveZeroMoves
 	, Just logicalColour <- getMaybeChecked game	= Just $ Rule.GameTerminationReason.mkCheckMate logicalColour
-	| otherwise					= fmap Rule.GameTerminationReason.mkDraw maybeDrawReason
+	| otherwise					= Rule.GameTerminationReason.mkDraw <$> maybeDrawReason
 	where
 		haveZeroMoves :: Bool
 		haveZeroMoves	= null $ findQualifiedMovesAvailableToNextPlayer game

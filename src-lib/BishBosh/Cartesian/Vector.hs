@@ -89,7 +89,7 @@ instance Property.Orientated.Orientated Vector where
 	isDiagonal MkVector {
 		getXDistance	= xDistance,
 		getYDistance	= yDistance
-	} = fromEnum (abs xDistance) == fromEnum (abs yDistance)
+	} = abs xDistance == fromIntegral (abs yDistance)
 
 -- | Whether the vector has a non-zero length (or a well-defined direction).
 hasDistance :: Type.Length.X -> Type.Length.Y -> Bool
@@ -207,21 +207,27 @@ maybeTranslate MkVector {
 	* @Nothing@ is returned for those /vector/s which don't translate into a legal /direction/ (e.g. a @Knight@'s move).
 -}
 toMaybeDirection :: Vector -> Maybe Direction.Direction.Direction
-toMaybeDirection vector@(MkVector xDistance yDistance)
-	| Property.Orientated.isStraight vector	= case xDistance `compare` 0 of
-		LT	-> Just $ case ySense of
-			LT	-> Direction.Direction.sw
-			EQ	-> Direction.Direction.w
-			GT	-> Direction.Direction.nw
-		EQ	-> case ySense of
-			LT	-> Just Direction.Direction.s
-			EQ	-> Control.Exception.throw . Data.Exception.mkRequestFailure . showString "BishBosh.Cartesian.Vector.toMaybeDirection:\tundefined direction" . Text.ShowList.showsAssociation $ shows vector "."
-			GT	-> Just Direction.Direction.n
-		GT	-> Just $ case ySense of
-			LT	-> Direction.Direction.se
-			EQ	-> Direction.Direction.e
-			GT	-> Direction.Direction.ne
-	| otherwise		= Nothing
+toMaybeDirection vector@(MkVector xDistance yDistance)	= case (xDistance `compare` 0, yDistance `compare` 0) of
+	(LT, ySense)	-> case ySense of
+		LT
+			| xDistance == yDistance'		-> Just Direction.Direction.sw
+			| otherwise				-> Nothing
+		EQ						-> Just Direction.Direction.w
+		GT
+			| negate xDistance == yDistance'	-> Just Direction.Direction.nw
+			| otherwise				-> Nothing
+	(EQ, ySense)	-> Just $ case ySense of
+		LT	-> Direction.Direction.s
+		EQ	-> Control.Exception.throw . Data.Exception.mkRequestFailure . showString "BishBosh.Cartesian.Vector.toMaybeDirection:\tundefined direction" . Text.ShowList.showsAssociation $ shows vector "."
+		GT	-> Direction.Direction.n
+	(GT, ySense)	-> case ySense of
+		LT
+			| xDistance == negate yDistance'	-> Just Direction.Direction.se
+			| otherwise				-> Nothing
+		EQ						-> Just Direction.Direction.e
+		GT
+			| xDistance == yDistance'		-> Just Direction.Direction.ne
+			| otherwise				-> Nothing
 	where
-		ySense	= yDistance `compare` 0
+		yDistance'	= fromIntegral yDistance
 

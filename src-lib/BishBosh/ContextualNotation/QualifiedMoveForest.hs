@@ -198,6 +198,7 @@ findMinimumPieces :: QualifiedMoveForest -> Type.Count.NPieces
 findMinimumPieces	= slave (
 	2 * Component.Piece.nPiecesPerSide	-- CAVEAT: assuming a conventional starting position.
  ) . deconstruct where
+	slave :: Type.Count.NPieces -> [QualifiedMoveTree] -> Type.Count.NPieces
 	slave nPieces []	= nPieces
 	slave nPieces forest	= minimum $ map (
 		\Data.Tree.Node {
@@ -211,6 +212,7 @@ findMinimumPieces	= slave (
 -- | Count the number of /game/s & distinct /positions/.
 count :: QualifiedMoveForest -> (Type.Count.NGames, Type.Count.NPositions)
 count	= slave . deconstruct where
+	slave :: [QualifiedMoveTree] -> (Type.Count.NGames, Type.Count.NPositions)
 	slave	= Data.List.foldl' (
 		\(nGames, nPositions) Data.Tree.Node {
 			Data.Tree.rootLabel	= (_, maybeOnymousResult),
@@ -238,6 +240,7 @@ toGameTree MkQualifiedMoveForest { deconstruct = qualifiedMoveForest }	= Model.G
 } where
 	initialGame	= Data.Default.def
 
+	slave :: Model.Game.Game -> QualifiedMoveTree -> Model.GameTree.BareGameTree
 	slave game Data.Tree.Node {
 		Data.Tree.rootLabel	= (qualifiedMove, _),
 		Data.Tree.subForest	= qualifiedMoveForest'
