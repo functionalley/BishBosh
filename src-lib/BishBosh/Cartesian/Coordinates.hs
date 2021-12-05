@@ -393,9 +393,9 @@ applyAlongDirectionsFrom
 	-> Maybe [Direction.Direction.Direction]	-- ^ The directions in which to extrapolate; 'Nothing' implies omnidirectional.
 	-> [a]
 applyAlongDirectionsFrom f from	= Data.Maybe.maybe (
-	Data.Foldable.foldMap f $ extrapolationsByDirectionByCoordinates ! from	-- Traverse all directions from this coordinate, without repeated calls to 'extrapolate'.
+	Data.Foldable.foldMap f $ extrapolationsByDirectionByCoordinates ! from -- Traverse all directions from this coordinate, without repeatedly converting direction to an array-index.
  ) (
-	concatMap $ f . extrapolate from
+	concatMap $ f . (extrapolationsByDirectionByCoordinates ! from !)
  )
 
 -- | The constant lists of /coordinates/, between every permutation of source & valid destination on the /board/.
