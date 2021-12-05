@@ -64,7 +64,6 @@ module BishBosh.Cartesian.Coordinates(
 --	maybeAdvance,
 	retreat,
 	maybeRetreat,
---	rotate,
 -- ** Constructors
 	mkCoordinates,
 	mkMaybeCoordinates,
@@ -84,14 +83,12 @@ import qualified	BishBosh.Cartesian.Abscissa		as Cartesian.Abscissa
 import qualified	BishBosh.Cartesian.Ordinate		as Cartesian.Ordinate
 import qualified	BishBosh.Colour.LogicalColour		as Colour.LogicalColour
 import qualified	BishBosh.Colour.LogicalColourOfSquare	as Colour.LogicalColourOfSquare
-import qualified	BishBosh.Data.Exception			as Data.Exception
 import qualified	BishBosh.Direction.Direction		as Direction.Direction
 import qualified	BishBosh.Property.FixedMembership	as Property.FixedMembership
 import qualified	BishBosh.Property.Opposable		as Property.Opposable
 import qualified	BishBosh.Property.Orientated		as Property.Orientated
 import qualified	BishBosh.Property.Reflectable		as Property.Reflectable
 import qualified	BishBosh.Property.Rotatable		as Property.Rotatable
-import qualified	BishBosh.Text.ShowList			as Text.ShowList
 import qualified	BishBosh.Type.Count			as Type.Count
 import qualified	BishBosh.Type.Length			as Type.Length
 import qualified	Control.Arrow
@@ -164,6 +161,15 @@ instance Read Coordinates where
 			(Just coordinates, remainder)	<- Control.Arrow.first (uncurry mkMaybeCoordinates) `map` readsPrec precedence s
 	 ] -- List-comprehension.
 
+instance Property.Opposable.Opposable Coordinates where
+	getOpposite MkCoordinates {
+		getX	= x,
+		getY	= y
+	} = MkCoordinates {
+		getX	= Cartesian.Abscissa.reflect x,
+		getY	= Cartesian.Ordinate.reflect y
+	}
+
 instance Property.Reflectable.ReflectableOnX Coordinates where
 	reflectOnX coordinates@MkCoordinates { getY = y }	= coordinates { getY = Cartesian.Ordinate.reflect y }
 
@@ -171,9 +177,21 @@ instance Property.Reflectable.ReflectableOnY Coordinates where
 	reflectOnY coordinates@MkCoordinates { getX = x }	= coordinates { getX = Cartesian.Abscissa.reflect x }
 
 instance Property.Rotatable.Rotatable Coordinates where
-	rotate90	= rotate Direction.Direction.w
-	rotate180	= rotate Direction.Direction.s
-	rotate270	= rotate Direction.Direction.e
+	rotate90 MkCoordinates {
+		getX	= x,
+		getY	= y
+	} = MkCoordinates {
+		getX	= fromIntegral $! Cartesian.Ordinate.reflect y,
+		getY	= fromIntegral x
+	} -- +90 degrees, i.e. anti-clockwise.
+	rotate180	= Property.Opposable.getOpposite
+	rotate270 MkCoordinates {
+		getX	= x,
+		getY	= y
+	} = MkCoordinates {
+		getX	= fromIntegral y,
+		getY	= fromIntegral $! Cartesian.Abscissa.reflect x
+	} -- -90 degrees, i.e. clockwise.
 
 -- | Constant.
 topLeft :: Coordinates
@@ -415,38 +433,6 @@ interpolationsByDestinationBySource	= Data.Array.IArray.amap (
 -}
 interpolate :: Coordinates -> Coordinates -> [Coordinates]
 interpolate coordinatesSource coordinatesDestination	= interpolationsByDestinationBySource ! coordinatesSource Map.! coordinatesDestination
-
-{- |
-	* Rotates the specified /coordinates/, so that the @Black@ pieces start on the specified side of the board; a /direction/ of @N@ involves no change.
-
-	* CAVEAT: one can only request an integral multiple of 90 degrees.
--}
-rotate :: Direction.Direction.Direction -> Transformation
-rotate direction coordinates@MkCoordinates {
-	getX	= x,
-	getY	= y
-}
-	| Property.Orientated.isDiagonal direction	= Control.Exception.throw . Data.Exception.mkRequestFailure . showString "BishBosh.Cartesian.Coordinates.rotate:\tunable to rotate to a diagonal direction" . Text.ShowList.showsAssociation $ shows direction "."
-	| Property.Orientated.isVertical direction	= if direction == Direction.Direction.s
-		then MkCoordinates {
-			getX	= Cartesian.Abscissa.fromIx xDistance',
-			getY	= Cartesian.Ordinate.fromIx yDistance'
-		} -- 180 degrees.
-		else coordinates	-- N.B.: unchanged.
-	| otherwise {-isHorizontal-}			= if direction == Direction.Direction.w
-		then MkCoordinates {
-			getX	= Cartesian.Abscissa.fromIx yDistance',
-			getY	= Cartesian.Ordinate.fromIx xDistance
-		} -- +90 degrees, i.e. anti-clockwise.
-		else MkCoordinates {
-			getX	= Cartesian.Abscissa.fromIx yDistance,
-			getY	= Cartesian.Ordinate.fromIx xDistance'
-		} -- -90 degrees, i.e. clockwise.
-	where
-		xDistance	= Cartesian.Abscissa.toIx x
-		yDistance	= Cartesian.Ordinate.toIx y
-		xDistance'	= fromIntegral (pred Cartesian.Abscissa.xLength) - xDistance
-		yDistance'	= fromIntegral (pred Cartesian.Ordinate.yLength) - yDistance
 
 {- |
 	* Measures the signed distance between source & destination /coordinates/.

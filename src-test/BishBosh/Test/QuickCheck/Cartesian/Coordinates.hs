@@ -34,6 +34,7 @@ import qualified	BishBosh.Cartesian.Coordinates		as Cartesian.Coordinates
 import qualified	BishBosh.Cartesian.Vector		as Cartesian.Vector
 import qualified	BishBosh.Direction.Direction		as Direction.Direction
 import qualified	BishBosh.Property.FixedMembership	as Property.FixedMembership
+import qualified	BishBosh.Property.Opposable		as Property.Opposable
 import qualified	BishBosh.Property.Orientated		as Property.Orientated
 import qualified	BishBosh.Property.Reflectable		as Property.Reflectable
 import qualified	BishBosh.Property.Rotatable		as Property.Rotatable
@@ -102,6 +103,14 @@ results = sequence [
 			Property.Rotatable.rotate270 . Property.Rotatable.rotate270
 		 ]
 	in Test.QuickCheck.quickCheckWithResult Test.QuickCheck.stdArgs { Test.QuickCheck.maxSuccess = 64 } f,
+	let
+		f :: Cartesian.Coordinates.Coordinates -> Test.QuickCheck.Property
+		f	= Test.QuickCheck.label "Coordinates.prop_getOpposite" . uncurry (==) . (Property.Opposable.getOpposite . Property.Opposable.getOpposite &&& id)
+	in Test.QuickCheck.quickCheckWithResult Test.QuickCheck.stdArgs { Test.QuickCheck.maxSuccess = 16 } f,
+	let
+		f :: Cartesian.Coordinates.Coordinates -> Test.QuickCheck.Property
+		f	= Test.QuickCheck.label "Coordinates.prop_getOpposite/Reflectable" . uncurry (==) . (Property.Opposable.getOpposite &&& Property.Reflectable.reflectOnY . Property.Reflectable.reflectOnX)
+	in Test.QuickCheck.quickCheckWithResult Test.QuickCheck.stdArgs { Test.QuickCheck.maxSuccess = 16 } f,
 	let
 		f :: Direction.Direction.Direction -> Cartesian.Coordinates.Coordinates -> Test.QuickCheck.Property
 		f direction source	= Test.QuickCheck.label "Coordinates.prop_extrapolate" . (
