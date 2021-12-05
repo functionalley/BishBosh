@@ -37,9 +37,11 @@ import qualified	BishBosh.Property.Reflectable	as Property.Reflectable
 -- | An interface which data which can be transformed by rotation, may implement.
 class (Property.Reflectable.ReflectableOnX a, Property.Reflectable.ReflectableOnY a) => Rotatable a where
 	rotate90	:: a -> a	-- ^ Rotate anticlockwise by 90 degrees, so that @N@ becomes @W@.
+	rotate90 = rotate270 . rotate180
 
 	rotate180	:: a -> a	-- ^ Rotate by 180 degrees.
-	rotate180	= Property.Reflectable.reflectOnX . Property.Reflectable.reflectOnY	-- CAVEAT: perhaps not the most efficient implementation.
+	rotate180 = Property.Reflectable.reflectOnX . Property.Reflectable.reflectOnY	-- CAVEAT: perhaps not the most efficient implementation.
 
 	rotate270	:: a -> a	-- ^ Rotate clockwise by 90 degrees, so that @N@ becomes @E@.
+	rotate270 = rotate90 . rotate180
 

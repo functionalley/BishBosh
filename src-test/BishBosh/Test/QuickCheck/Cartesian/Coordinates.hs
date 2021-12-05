@@ -37,7 +37,6 @@ import qualified	BishBosh.Property.FixedMembership	as Property.FixedMembership
 import qualified	BishBosh.Property.Orientated		as Property.Orientated
 import qualified	BishBosh.Property.Reflectable		as Property.Reflectable
 import qualified	BishBosh.Property.Rotatable		as Property.Rotatable
-import qualified	Data.Array.IArray
 import qualified	Data.List
 import qualified	Data.List.Extra
 import qualified	Test.QuickCheck
@@ -86,10 +85,6 @@ results = sequence [
 	let
 		f :: Cartesian.Coordinates.Coordinates -> Test.QuickCheck.Property
 		f	= Test.QuickCheck.label "Coordinates.prop_reflectOnY" . uncurry (==) . (id &&& Property.Reflectable.reflectOnY . Property.Reflectable.reflectOnY)
-	in Test.QuickCheck.quickCheckWithResult Test.QuickCheck.stdArgs { Test.QuickCheck.maxSuccess = 64 } f,
-	let
-		f :: Cartesian.Coordinates.Coordinates -> Test.QuickCheck.Property
-		f	= Test.QuickCheck.label "Coordinates.prop_rotate180" . uncurry (==) . (Property.Rotatable.rotate180 &&& Property.Rotatable.rotate180)
 	in Test.QuickCheck.quickCheckWithResult Test.QuickCheck.stdArgs { Test.QuickCheck.maxSuccess = 64 } f,
 	let
 		f :: Cartesian.Coordinates.Coordinates -> Test.QuickCheck.Property

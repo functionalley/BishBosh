@@ -61,6 +61,7 @@ import qualified	BishBosh.Property.FixedMembership	as Property.FixedMembership
 import qualified	BishBosh.Property.Opposable		as Property.Opposable
 import qualified	BishBosh.Property.Orientated		as Property.Orientated
 import qualified	BishBosh.Property.Reflectable		as Property.Reflectable
+import qualified	BishBosh.Property.Rotatable		as Property.Rotatable
 import qualified	Control.DeepSeq
 import qualified	Data.Array.IArray
 import qualified	Data.List.Extra
@@ -106,6 +107,30 @@ instance Property.Reflectable.ReflectableOnX Direction where
 
 instance Property.Reflectable.ReflectableOnY Direction where
 	reflectOnY (MkDirection d)	= MkDirection $ (Property.Reflectable.reflectOnY +++ Property.Reflectable.reflectOnY) d
+
+instance Property.Rotatable.Rotatable Direction where
+	rotate90 direction
+		| Property.Orientated.isParallel direction	= rotateParallel
+		| otherwise					= rotateDiagonal
+		where
+			rotateParallel
+				| Property.Orientated.isVertical direction	= rotateVertical
+				| otherwise					= rotateHorizontal
+				where
+					rotateVertical
+						| direction == s	= e
+						| otherwise {-n-}	= w
+
+					rotateHorizontal
+						| direction == w	= s
+						| otherwise {-e-}	= n
+			rotateDiagonal
+				| direction == sw	= se
+				| direction == se	= ne
+				| direction == nw	= sw
+				| otherwise {-ne-}	= nw
+
+	rotate180	=  Property.Opposable.getOpposite
 
 instance Property.FixedMembership.FixedMembership Direction where
 	members	= parallels ++ diagonals

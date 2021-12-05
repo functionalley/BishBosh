@@ -34,6 +34,8 @@ import qualified	BishBosh.Property.FixedMembership	as Property.FixedMembership
 import qualified	BishBosh.Property.Opposable		as Property.Opposable
 import qualified	BishBosh.Property.Orientated		as Property.Orientated
 import qualified	BishBosh.Property.Reflectable		as Property.Reflectable
+import qualified	BishBosh.Property.Rotatable		as Property.Rotatable
+import qualified	Data.List.Extra
 import qualified	Test.QuickCheck
 import qualified	ToolShed.Test.ReversibleIO
 import			Test.QuickCheck((==>))
@@ -82,6 +84,22 @@ results	= sequence [
 		f :: Direction.Direction.Direction -> Test.QuickCheck.Property
 		f	= Test.QuickCheck.label "Direction.prop_reflectOnY" . uncurry (==) . (id &&& Property.Reflectable.reflectOnY . Property.Reflectable.reflectOnY)
 	in Test.QuickCheck.quickCheckWithResult Test.QuickCheck.stdArgs { Test.QuickCheck.maxSuccess = 16 } f,
+	let
+		f :: Direction.Direction.Direction -> Test.QuickCheck.Property
+		f direction	= Test.QuickCheck.label "Direction.prop_rotateIdentity" $ all ((== direction) . ($ direction)) [
+			Property.Rotatable.rotate90 . Property.Rotatable.rotate90 . Property.Rotatable.rotate90 . Property.Rotatable.rotate90,
+			Property.Rotatable.rotate180 . Property.Rotatable.rotate180,
+			Property.Rotatable.rotate270 . Property.Rotatable.rotate270 . Property.Rotatable.rotate270 . Property.Rotatable.rotate270
+		 ]
+	in Test.QuickCheck.quickCheckWithResult Test.QuickCheck.stdArgs { Test.QuickCheck.maxSuccess = 64 } f,
+	let
+		f :: Direction.Direction.Direction -> Test.QuickCheck.Property
+		f direction	= Test.QuickCheck.label "Direction.prop_rotate180/identity" . Data.List.Extra.allSame $ map ($ direction) [
+			Property.Rotatable.rotate180,
+			Property.Rotatable.rotate90 . Property.Rotatable.rotate90,
+			Property.Rotatable.rotate270 . Property.Rotatable.rotate270
+		 ]
+	in Test.QuickCheck.quickCheckWithResult Test.QuickCheck.stdArgs { Test.QuickCheck.maxSuccess = 64 } f,
 	let
 		f :: Direction.Direction.Direction -> Test.QuickCheck.Property
 		f	= Test.QuickCheck.label "Direction.prop_getOpposite" . uncurry (==) . (Property.Opposable.getOpposite . Property.Opposable.getOpposite &&& id)
