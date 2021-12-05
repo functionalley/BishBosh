@@ -130,7 +130,7 @@ instance Property.Rotatable.Rotatable Direction where
 				| direction == nw	= sw
 				| otherwise {-ne-}	= nw
 
-	rotate180	=  Property.Opposable.getOpposite
+	rotate180	= Property.Opposable.getOpposite
 
 instance Property.FixedMembership.FixedMembership Direction where
 	members	= parallels ++ diagonals

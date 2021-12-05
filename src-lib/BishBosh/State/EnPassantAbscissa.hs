@@ -83,3 +83,4 @@ mkMaybeEnPassantAbscissa nextLogicalColour maybePieceByCoordinates lastTurn
 			) Property.FixedMembership.members	-- Consider all directions.
 	] {-list-comprehension-}	= Just . MkEnPassantAbscissa $ Cartesian.Coordinates.getX lastMoveDestination
 	| otherwise			= Nothing
+

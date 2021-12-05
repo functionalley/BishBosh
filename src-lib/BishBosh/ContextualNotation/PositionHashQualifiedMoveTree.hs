@@ -272,7 +272,7 @@ type MatchSwitches	= (TryToMatchMoves, TryToMatchViaJoiningMove, TryToMatchColou
 type PreferVictories	= Bool
 
 -- | Transform an arbitrary match-function to operate on the colour-flipped game.
-colourFlipper :: FindMatch positionHash -> FindMatch positionHash 
+colourFlipper :: FindMatch positionHash -> FindMatch positionHash
 colourFlipper findMatch positionHashQualifiedMoveTree	= map (
 	Property.Reflectable.reflectOnX {-reflect matching moves back into the original domain-} *** map (
 		Control.Arrow.first $ showString "Colour-flipped:\t"

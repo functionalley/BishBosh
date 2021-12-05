@@ -127,3 +127,4 @@ findInvalidity	= Property.SelfValidating.findErrors [
 		"no Pawn can exist on either of the terminal ranks."
 	)
  ]
+
