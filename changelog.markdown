@@ -153,6 +153,7 @@ New Module				| Purpose
 	+ Added function **BishBosh.Cartesian.Coordinates.applyAlongDirectionsFrom** to reduce sequential indexing by direction when extrapolation in all directions is required; deployed in new functions **BishBosh.State.MaybePieceByCoordinates.{findBlockingPieces, findAttackerInDirections}**
 	+ Refactored function **BishBosh.Cartesian.Vector.toMaybeDirection** to eliminate call to **BishBosh.Property.Orientated.isStraight**.
 	+ Refactored function **BishBosh.Component.Piece.canMoveBetween** to remove **let**-binding.
+	+ Refactored function **BishBosh.State.EnPassantAbscissa.mkMaybeEnPassantAbscissa** to reduce calls to **BishBosh.State.MaybePieceByCoordinates.{findAttackerInDirection, findBlockingPiece}**.
 * Structural:
 	+ Added method **BishBosh.StateProperty.Mutator.movePiece** & implemented whole type-class in module **BishBosh.State.CoordinatesByRankByLogicalColour**.
 	+ Implemented type-class **BishBosh.Property.SelfValidating.SelfValidating** in modules **BishBosh.State.{MaybePieceByCoordinates, CoordinatesByRankByLogicalColour, Board}**.

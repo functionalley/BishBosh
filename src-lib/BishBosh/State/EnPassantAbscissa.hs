@@ -68,16 +68,18 @@ mkMaybeEnPassantAbscissa nextLogicalColour maybePieceByCoordinates lastTurn
 	| Component.Turn.isPawnDoubleAdvance lastTurn $! Property.Opposable.getOpposite nextLogicalColour
 	, let lastMoveDestination	= Component.Move.getDestination . Component.QualifiedMove.getMove $! Component.Turn.getQualifiedMove lastTurn
 	, not $ null [
-		passedPawn |
-			adjacentCoordinates	<- Cartesian.Coordinates.getAdjacents lastMoveDestination,
-			Component.Piece.mkKing nextLogicalColour {- Will I expose my King ? -} `notElem` [
-				blockingPiece |
-					threatDirection		<- Property.FixedMembership.members,	-- Consider all directions.
-					(_, attackerRank)	<- Data.Maybe.maybeToList $ State.MaybePieceByCoordinates.findAttackerInDirection maybePieceByCoordinates nextLogicalColour adjacentCoordinates threatDirection,	-- Find discovered attacks; which can't be by a Knight, since this can't ever have been blocked.
-					attackerRank `notElem` Attribute.Rank.plodders,	-- Any viable attack through the vacated square must be long-range.
-					(_, blockingPiece)	<- Data.Maybe.maybeToList . State.MaybePieceByCoordinates.findBlockingPiece maybePieceByCoordinates adjacentCoordinates $ Property.Opposable.getOpposite threatDirection	-- Find any discovered attack.
-			], -- Confirm that the En-passant capture doesn't expose my King.
-			passedPawn		<- filter (== Component.Piece.mkPawn nextLogicalColour) . Data.Maybe.maybeToList $ State.MaybePieceByCoordinates.dereference maybePieceByCoordinates adjacentCoordinates
-	] = Just . MkEnPassantAbscissa $ Cartesian.Coordinates.getX lastMoveDestination
-	| otherwise	= Nothing
-
+		adjacentPawnCoordinates |
+			adjacentPawnCoordinates	<- filter (
+				(== Just (Component.Piece.mkPawn nextLogicalColour)) . State.MaybePieceByCoordinates.dereference maybePieceByCoordinates	-- Confirm the existence of an enemy Pawn.
+			) $ Cartesian.Coordinates.getAdjacents lastMoveDestination,	-- Find locations from which a Pawn may mount an attack en-passant.
+			all (
+				\(direction, rank) -> rank `elem` Attribute.Rank.plodders || (
+					/= Just (Component.Piece.mkKing nextLogicalColour) -- Confirm that my King doesn't become checked.
+				) (
+					fmap snd {-piece-} . State.MaybePieceByCoordinates.findBlockingPiece maybePieceByCoordinates adjacentPawnCoordinates $ Property.Opposable.getOpposite direction	-- Check whether there's a piece in the opposite direction through the vacated square.
+				)
+			) $ Data.Maybe.mapMaybe (
+				\direction -> (,) direction . snd {-rank-} <$> State.MaybePieceByCoordinates.findAttackerInDirection maybePieceByCoordinates nextLogicalColour adjacentPawnCoordinates direction	-- Identify attacks passing through the square vacated by the attacking Pawn; the square occupied by the double advanced Pawn, wasn't an issue before it advanced, so it isn't if taken.
+			) Property.FixedMembership.members	-- Consider all directions.
+	] {-list-comprehension-}	= Just . MkEnPassantAbscissa $ Cartesian.Coordinates.getX lastMoveDestination
+	| otherwise			= Nothing
