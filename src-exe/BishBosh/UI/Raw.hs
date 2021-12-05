@@ -169,21 +169,18 @@ readMove positionHashQualifiedMoveTree randomGen runningWatch playState	= let
 			Control.Monad.when (verbosity == maxBound) . System.IO.hPutStrLn System.IO.stderr $ Text.ShowColouredPrefix.showsPrefixInfo "quitting on request."
 
 			return {-to IO-monad-} playState { State.PlayState.getMaybeApplicationTerminationReason = Just State.ApplicationTerminationReason.byRequest }
-		onCommand (UI.Command.Report reportObject)	= do
+		onCommand (UI.Command.Report reportObject)	= let
+			showMoves :: Notation.MoveNotation.ShowNotation a => [a] -> ShowS
+			showMoves	= Text.ShowList.showsFormattedList' (Notation.MoveNotation.showsNotation moveNotation)
+		 in do
 			($ game) $ case reportObject of
-				UI.ReportObject.AvailableMoves	-> putStrLn . ($ ".") . Text.ShowList.showsFormattedList (
-					showChar '|'
-				 ) (
-					Notation.MoveNotation.showsNotation moveNotation
-				 ) . Model.Game.findQualifiedMovesAvailableToNextPlayer
+				UI.ReportObject.AvailableMoves		-> putStrLn . ($ ".") . showMoves . Model.Game.findQualifiedMovesAvailableToNextPlayer
 				UI.ReportObject.Board			-> putStrLn . show2D
 				UI.ReportObject.EPD			-> putStrLn . Property.ExtendedPositionDescription.showEPD
 				UI.ReportObject.FEN			-> putStrLn . Property.ForsythEdwards.showFEN
 				UI.ReportObject.Game			-> print
 				UI.ReportObject.MaxPositionInstances	-> print . State.InstancesByPosition.findMaximumInstances . Model.Game.getInstancesByPosition
-				UI.ReportObject.Moves			-> putStrLn . ($ "") . Text.ShowList.showsFormattedList' (
-					Notation.MoveNotation.showsNotation moveNotation
-				 ) . Model.Game.listTurnsChronologically
+				UI.ReportObject.Moves			-> putStrLn . ($ ".") . showMoves . Model.Game.listTurnsChronologically
 				UI.ReportObject.PGN			-> putStrLn . ($ ".") <=< ContextualNotation.PGN.showsGame
 				UI.ReportObject.ReversiblePlyCount	-> print . State.InstancesByPosition.countConsecutiveRepeatablePlies . Model.Game.getInstancesByPosition
 

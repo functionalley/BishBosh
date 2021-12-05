@@ -256,22 +256,19 @@ readMove positionHashQualifiedMoveTree randomGen	= slave where
 				Control.Monad.when (verbosity == maxBound) . System.IO.hPutStrLn System.IO.stderr $ Text.ShowPrefix.showsPrefixInfo "quitting on request."
 
 				return {-to IO-monad-} playState { State.PlayState.getMaybeApplicationTerminationReason = Just State.ApplicationTerminationReason.byRequest }
-			onCommand (UI.Command.Report reportObject)	= do
+			onCommand (UI.Command.Report reportObject)	= let
+				showMoves :: Notation.MoveNotation.ShowNotation a => [a] -> ShowS
+				showMoves	= Text.ShowList.showsFormattedList' (Notation.MoveNotation.showsNotation moveNotation)
+			 in do
 				putStrLn . tellUser =<< (
 					case reportObject of
-						UI.ReportObject.AvailableMoves	-> return {-to IO-monad-} . ($ ".") . Text.ShowList.showsFormattedList (
-							showChar '|'
-						 ) (
-							Notation.MoveNotation.showsNotation moveNotation
-						 ) . Model.Game.findQualifiedMovesAvailableToNextPlayer
+						UI.ReportObject.AvailableMoves		-> return {-to IO-monad-} . ($ ".") . showMoves . Model.Game.findQualifiedMovesAvailableToNextPlayer
 						UI.ReportObject.Board			-> return {-to IO-monad-} . show . Model.Game.getBoard
 						UI.ReportObject.EPD			-> return {-to IO-monad-} . Property.ExtendedPositionDescription.showEPD
 						UI.ReportObject.FEN			-> return {-to IO-monad-} . Property.ForsythEdwards.showFEN
 						UI.ReportObject.Game			-> return {-to IO-monad-} . show
 						UI.ReportObject.MaxPositionInstances	-> return {-to IO-monad-} . show . State.InstancesByPosition.findMaximumInstances . Model.Game.getInstancesByPosition
-						UI.ReportObject.Moves			-> return {-to IO-monad-} . ($ "") . Text.ShowList.showsFormattedList' (
-							Notation.MoveNotation.showsNotation moveNotation
-						 ) . Model.Game.listTurnsChronologically
+						UI.ReportObject.Moves			-> return {-to IO-monad-} . ($ ".") . showMoves . Model.Game.listTurnsChronologically
 						UI.ReportObject.PGN			-> fmap ($ ".") . ContextualNotation.PGN.showsGame
 						UI.ReportObject.ReversiblePlyCount	-> return {-to IO-monad-} . show . State.InstancesByPosition.countConsecutiveRepeatablePlies . Model.Game.getInstancesByPosition
 				 ) game
