@@ -150,14 +150,14 @@ New Module				| Purpose
 * Efficiency:
 	+ Replaced the polymorphic type-parameter **pieceSquareValue** with a *newtype*, to then implement *unboxed* arrays without cluttering interfaces with type-constraint **Data.Array.Unboxed.IArray Data.Array.Unboxed.UArray pieceSquareValue**; performance-improvement was regrettably insignificant.
 	+ Added some strictness to **BishBosh.Board.{exposesKing, movePiece, sumPieceSquareValueByLogicalColour}** & **BishBosh.Game.applyQualifiedMove**.
-	+ Added function **BishBosh.Cartesian.Coordinates.applyAlongDirectionsFrom** to reduce sequential indexing by direction when extrapolation in all directions is required; deployed in new functions **BishBosh.State.MaybePieceByCoordinates.{findBlockingPieces, findAttackerInDirections}**
+	+ Added function **BishBosh.Cartesian.Coordinates.applyAlongDirectionsFrom** to reduce sequential indexing by direction when extrapolating in all directions; deployed in new functions **BishBosh.State.MaybePieceByCoordinates.{findBlockingPieces, findAttackerInDirections}**
 	+ Refactored function **BishBosh.Cartesian.Vector.toMaybeDirection** to eliminate call to **BishBosh.Property.Orientated.isStraight**.
 	+ Refactored function **BishBosh.Component.Piece.canMoveBetween** to remove **let**-binding.
 	+ Refactored function **BishBosh.State.EnPassantAbscissa.mkMaybeEnPassantAbscissa** to reduce calls to **BishBosh.State.MaybePieceByCoordinates.{findAttackerInDirection, findBlockingPiece}**.
 * Structural:
 	+ Added method **BishBosh.StateProperty.Mutator.movePiece** & implemented whole type-class in module **BishBosh.State.CoordinatesByRankByLogicalColour**.
 	+ Implemented type-class **BishBosh.Property.SelfValidating.SelfValidating** in modules **BishBosh.State.{MaybePieceByCoordinates, CoordinatesByRankByLogicalColour, Board}**.
-	+ Created a new type-class **BishBosh.StateProperty.View.View**, which is implemented in **BishBosh.State.{MaybePieceByCoordinates, CoordinatesByRankByLogicalColour}**, & abstracts construction of a view & translation between views.
+	+ Created a new type-class **BishBosh.StateProperty.View.View** (implemented in **BishBosh.State.{MaybePieceByCoordinates, CoordinatesByRankByLogicalColour}**), to abstract construction of a view & translation between views.
 	+ Rewrote module **BishBosh.Attribute.Direction** to remove the 9th invalid state from the data-structure, & to express the division between *parallel* & *diagonal* instances; which degraded performance slightly. Added new methods to class **BishBosh.Property.Orientated.Orientated**.
 	+ Relocated colour-related modules from **BishBosh/Attribute/** to **BishBosh/Colour/**.
 	+ Re-ordered the parameters of functions which access record-structures, to make the record the first parameter; cf. those that mutate the record-structure, which receive it last.
