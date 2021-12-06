@@ -302,7 +302,7 @@ Library
 
     Build-depends:
         array		^>= 0.5.1.1,
-        deepseq		^>= 1.4.1,
+        deepseq		>= 1.4.3,
         extra		^>= 1.7.4,
         factory		^>= 0.3.1,
         hxt		^>= 9.3.1,
