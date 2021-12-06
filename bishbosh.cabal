@@ -16,7 +16,7 @@ cabal-version: 2.4
 -- along with BishBosh.  If not, see <http://www.gnu.org/licenses/>.
 
 Name:		bishbosh
-Version:	0.1.3.0
+Version:	0.1.3.1
 Copyright:	(C) 2018 Dr. Alistair Ward
 License:	GPL-3.0-or-later
 License-file:	LICENSE

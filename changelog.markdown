@@ -162,3 +162,6 @@ New Module				| Purpose
 	+ Relocated colour-related modules from **BishBosh/Attribute/** to **BishBosh/Colour/**.
 	+ Re-ordered the parameters of functions which access record-structures, to make the record the first parameter; cf. those that mutate the record-structure, which receive it last.
 
+## 0.1.3.1
+* Increased minimum version for package **deepseq**, to access function **rwhnf**.
+
