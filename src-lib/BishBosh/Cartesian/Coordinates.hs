@@ -129,7 +129,8 @@ instance Bounded Coordinates where
 	} -- Top Right.
 
 instance Control.DeepSeq.NFData Coordinates where
-	rnf MkCoordinates { getX = x, getY = y }	= Control.DeepSeq.rnf (x, y)
+--	rnf MkCoordinates { getX = x, getY = y }	= Control.DeepSeq.rnf (x, y)
+	rnf _	= ()	-- N.B.: it's already strict.
 
 instance Data.Array.IArray.Ix Coordinates where
 	range (lower, upper)			= Control.Exception.assert (lower == minBound && upper == maxBound) Property.FixedMembership.members

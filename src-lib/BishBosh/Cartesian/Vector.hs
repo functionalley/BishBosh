@@ -66,10 +66,13 @@ data Vector	= MkVector {
 } deriving (Eq, Show)
 
 instance Control.DeepSeq.NFData Vector where
+{-
 	rnf MkVector {
 		getXDistance	= xDistance,
 		getYDistance	= yDistance
 	} = Control.DeepSeq.rnf (xDistance, yDistance)
+-}
+	rnf _	= ()	-- N.B.: it's already strict.
 
 instance Property.Opposable.Opposable Vector where
 	getOpposite MkVector {
