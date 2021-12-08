@@ -501,7 +501,7 @@ parser explicitEnPassant validateMoves game	= let
 				else {-not a Pawn-} let
 					mkNormalMoveType destination	= Attribute.MoveType.mkNormalMoveType (getMaybeRank destination) Nothing {-promotion-}
 
-					resolveQualifiedMove destination candidates	= case candidates of
+					resolveQualifiedMove destination	= \case
 						[]			-> fail . showString "Failed to locate any " . shows piece . showString " able to move to " $ shows destination "."
 						[source]		-> return {-to ParsecT-monad-} . Component.QualifiedMove.mkQualifiedMove (Component.Move.mkMove source destination) $ mkNormalMoveType destination
 						sourceCandidates	-> Parsec.choice [
