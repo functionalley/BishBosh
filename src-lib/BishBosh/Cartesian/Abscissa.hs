@@ -81,17 +81,15 @@ kingsFile	= fromIx 4
 
 -- | Convert to an array-index.
 toIx :: Type.Length.X -> Int
-{-# INLINE toIx #-}
 toIx	= fromIntegral . subtract xMin
 
 -- | Convert from an array-index.
 fromIx :: Int -> Type.Length.X
-{-# INLINE fromIx #-}
 fromIx	= (+ xMin) . fromIntegral
 
 -- | Reflects about the mid-point of the axis.
 reflect :: Type.Length.X -> Type.Length.X
-reflect	= (2 * xMin + pred xLength -)
+reflect	= (2 * xMin + xMax -)
 
 -- | Predicate.
 inBounds :: Type.Length.X -> Bool

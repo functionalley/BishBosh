@@ -165,3 +165,7 @@ New Module				| Purpose
 ## 0.1.3.1
 * Increased minimum version for package **deepseq**, to access function **rwhnf**.
 
+## 0.1.4.0
+* Efficiency:
+	+ Implemented functions **BishBosh.Cartesian.{Coordinates.fromEnum, Ordinate.reflect}** in unboxed primitive arithmetic.
+

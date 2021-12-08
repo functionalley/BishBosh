@@ -61,7 +61,7 @@ import qualified	Data.Array.IArray
 import qualified	Data.Foldable
 import qualified	Data.List
 
-#if defined(USE_UNBOXED_ARRAYS) && !(defined(USE_NEWTYPE_WRAPPERS) || defined(USE_PRECISION))
+#if defined USE_UNBOXED && !(defined USE_NEWTYPE_WRAPPERS || defined USE_PRECISION)
 #define UNBOX
 import qualified	Data.Array.Unboxed
 #endif

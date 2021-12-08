@@ -389,7 +389,7 @@ sumPieceSquareValueByLogicalColour
 	:: Component.PieceSquareByCoordinatesByRank.PieceSquareByCoordinatesByRank
 	-> Board
 	->
-#if defined(USE_UNBOXED_ARRAYS) && !defined(USE_PRECISION)
+#if defined USE_UNBOXED && !defined USE_PRECISION
 	Colour.LogicalColour.UArrayByLogicalColour
 #else
 	Colour.LogicalColour.ArrayByLogicalColour

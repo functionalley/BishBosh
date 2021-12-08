@@ -1,4 +1,4 @@
-{-# LANGUAGE CPP #-}
+{-# LANGUAGE CPP, MagicHash #-}
 {-
 	Copyright (C) 2018 Dr. Alistair Ward
 
@@ -34,7 +34,7 @@ module BishBosh.Cartesian.Coordinates(
 -- ** Type-synonyms
 --	Transformation,
 	ArrayByCoordinates,
-#ifdef USE_UNBOXED_ARRAYS
+#ifdef USE_UNBOXED
 	UArrayByCoordinates,
 #endif
 -- * Constants
@@ -104,7 +104,11 @@ import qualified	Data.Maybe
 import qualified	Control.Parallel.Strategies
 #endif
 
-#ifdef USE_UNBOXED_ARRAYS
+#ifdef USE_UNBOXED
+#	if !(defined USE_NEWTYPE_WRAPPERS || defined USE_NARROW_NUMBERS)
+import			GHC.Exts(Int(I#))
+import			GHC.Prim((+#), (*#))
+#	endif
 import qualified	Data.Array.Unboxed
 #endif
 
@@ -145,13 +149,20 @@ instance Enum Coordinates where
 		}
 	 ) . (`divMod` fromIntegral Cartesian.Abscissa.xLength)
 
+#if defined USE_UNBOXED && !(defined USE_NEWTYPE_WRAPPERS || defined USE_NARROW_NUMBERS)
+	fromEnum MkCoordinates {
+		getX	= I# x,
+		getY	= I# y
+	} = I# (8# *# y +# x)	-- CAVEAT: bypasses modules 'Cartesian.Abscissa' & 'Cartesian.Ordinate'.
+#else
 	fromEnum MkCoordinates {
 		getX	= x,
 		getY	= y
 	} = fromIntegral Cartesian.Abscissa.xLength * Cartesian.Ordinate.toIx y + Cartesian.Abscissa.toIx x
+#endif
 
 instance Ord Coordinates where
-	MkCoordinates { getX = x, getY = y } `compare` MkCoordinates { getX = x', getY = y' }	= (y, x) `compare` (y', x')	-- N.B.: x is less significant than y, as required by the implementation of 'Data.Array.IArray.Ix.inRange'.
+	MkCoordinates { getX = x, getY = y } `compare` MkCoordinates { getX = x', getY = y' }	= (y, x) `compare` (y', x')	-- N.B.: x is less significant than y.
 
 instance Show Coordinates where
 	showsPrec precedence MkCoordinates { getX = x, getY = y }	= showsPrec precedence (x, y)
@@ -438,7 +449,7 @@ interpolate coordinatesSource coordinatesDestination	= interpolationsByDestinati
 {- |
 	* Measures the signed distance between source & destination /coordinates/.
 
-	* N.B.: this isn't the /irrational/ distance a rational crow would fly, but rather the integral /x/ & /y/ components of that path.
+	* N.B.: this isn't the typically /irrational/ distance a rational crow would fly, but rather the integral /x/ & /y/ components of that path.
 
 	* CAVEAT: beware the potential fence-post error.
 -}
@@ -489,7 +500,7 @@ isEnPassantRank MkCoordinates { getY = y }	= (== y) . Cartesian.Ordinate.enPassa
 -- | A boxed array indexed by /coordinates/, of arbitrary elements.
 type ArrayByCoordinates	= Data.Array.IArray.Array Coordinates
 
-#ifdef USE_UNBOXED_ARRAYS
+#ifdef USE_UNBOXED
 -- | An unboxed array indexed by /coordinates/, of fixed-size elements.
 type UArrayByCoordinates	= Data.Array.Unboxed.UArray Coordinates
 #endif

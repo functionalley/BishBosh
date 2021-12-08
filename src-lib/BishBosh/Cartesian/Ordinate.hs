@@ -1,3 +1,4 @@
+{-# LANGUAGE CPP, MagicHash #-}
 {-
 	Copyright (C) 2018 Dr. Alistair Ward
 
@@ -56,6 +57,11 @@ import qualified	BishBosh.Property.Opposable	as Property.Opposable
 import qualified	BishBosh.Type.Length		as Type.Length
 import qualified	Control.Exception
 
+#if defined USE_UNBOXED && !(defined USE_NEWTYPE_WRAPPERS || defined USE_NARROW_NUMBERS)
+import			GHC.Exts(Int(I#))
+import			GHC.Prim((-#))
+#endif
+
 -- | The constant length of the /y/-axis.
 yLength :: Type.Length.Y
 yLength	= fromIntegral Cartesian.Abscissa.xLength	-- I.E.: the board is square.
@@ -71,12 +77,10 @@ yRange	= uncurry enumFromTo yBounds
 
 -- | Convert to an array-index.
 toIx :: Type.Length.Y -> Int
-{-# INLINE toIx #-}
 toIx	= fromIntegral . subtract yMin
 
 -- | Convert from an array-index.
 fromIx :: Int -> Type.Length.Y
-{-# INLINE fromIx #-}
 fromIx	= (+ yMin) . fromIntegral
 
 -- | The /rank/ from which /piece/s conventionally start.
@@ -102,7 +106,11 @@ enPassantRank _					= fromIx 4
 
 -- | Reflects about the mid-point of the axis.
 reflect :: Type.Length.Y -> Type.Length.Y
-reflect	= (2 * yMin + pred yLength -)
+#if defined USE_UNBOXED && !(defined USE_NEWTYPE_WRAPPERS || defined USE_NARROW_NUMBERS)
+reflect (I# y)	= I# (7# -# y)	-- CAVEAT: hard-coded bounds.
+#else
+reflect	= (2 * yMin + yMax -)
+#endif
 
 -- | Predicate.
 inBounds :: Type.Length.Y -> Bool

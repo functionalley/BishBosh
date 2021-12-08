@@ -108,7 +108,7 @@ type ReflectOnY	= Bool
 
 -- | Self-documentation.
 type PieceSquareValueByCoordinates	=
-#if defined(USE_UNBOXED_ARRAYS) && !(defined(USE_NEWTYPE_WRAPPERS) || defined(USE_PRECISION))
+#if defined USE_UNBOXED && !(defined USE_NEWTYPE_WRAPPERS || defined USE_PRECISION)
 	Cartesian.Coordinates.UArrayByCoordinates
 #else
 	Cartesian.Coordinates.ArrayByCoordinates

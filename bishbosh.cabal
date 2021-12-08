@@ -72,14 +72,14 @@ flag hxtrelaxng
     Default:		True
 
 -- Whether to use narrower numerical types than machine-defaults. CAVEAT: this option increases both the space allocated & the execution-time.
--- CAVEAT: incompatble with the flag 'precision'.
+-- CAVEAT: incompatible with the flag 'precision', & to some extent flag 'unboxed'.
 flag narrownumbers
     Description:	Use narrow numerical types.
     Manual:		True
     Default:		False
 
 -- Whether, to wrap common types in 'newtype' for increased type-safety. CAVEAT: there's a ~10% performance-penalty.
--- CAVEAT: partly incompatible with 'narrownumbers'.
+-- CAVEAT: partially incompatible with flags 'narrownumbers' & 'unboxed'.
 flag newtypewrappers
     Description:	Wrap common types in newtype for increased type-safety.
     Manual:		True
@@ -94,9 +94,9 @@ flag polyparse
     Default:		True
 
 -- Whether to use precise (rational) types rather than floating-point.
--- CAVEAT: conceptually incompatible with 'narrownumbers'.
+-- CAVEAT: conceptually incompatible with flag 'narrownumbers', & to some extent flag 'unboxed'.
 flag precision
-    Description:	Use precise numerical types. CAVEAT: this is incompatible with either 'unboxedarrays' or 'narrownumbers'.
+    Description:	Use precise fractional types.
     Manual:		True
     Default:		False
 
@@ -106,12 +106,12 @@ flag threaded
     Manual:		True
     Default:		True
 
--- Whether to use unboxed arrays where possible.
--- CAVEAT: incompatible with the flag 'precision', & to some extent 'newtypewrappers'.
-flag unboxedarrays
-    Description:	Use unboxed arrays.
+-- Whether to use unboxed types where possible; e.g. in arrays or by primitive arithmetic.
+-- CAVEAT: partially incompatible with flags 'newtypewrappers' & 'precision'.
+flag unboxed
+    Description:	Use unboxed types.
     Manual:		True
-    Default:		False
+    Default:		True
 
 -- Automatically disabled when the required package isn't available.
 -- CAVEAT: on MS-Windows, it may be available but won't necessarily build, so specify "-f -unix --verbose" when configuring the package.
@@ -317,26 +317,26 @@ Library
 
     if flag(precision)
         CPP-Options:	-DUSE_PRECISION
-    else
-        if flag(narrownumbers)
-            CPP-Options:	-DUSE_NARROW_NUMBERS
-
-        if flag(unboxedarrays)
-            CPP-Options:	-DUSE_UNBOXED_ARRAYS
+    elif flag(narrownumbers)
+        CPP-Options:	-DUSE_NARROW_NUMBERS
 
     if flag(newtypewrappers)
-        CPP-Options:		-DUSE_NEWTYPE_WRAPPERS
+        CPP-Options:	-DUSE_NEWTYPE_WRAPPERS
 
     if flag(polyparse)
         Build-depends:		polyparse ^>= 1.13
         CPP-Options:		-DUSE_POLYPARSE='L'
         Exposed-modules:	BishBosh.Text.Poly
     else
-        Build-depends:		parsec ^>= 3.1.14.0
+        Build-depends:	parsec ^>= 3.1.14.0
 
     if flag(threaded)
-        Build-depends:		parallel >= 3.0
-        CPP-Options:		-DUSE_PARALLEL
+        Build-depends:	parallel >= 3.0
+        CPP-Options:	-DUSE_PARALLEL
+
+    if flag(unboxed)
+        Build-depends:	ghc-prim ^>= 0.6.1
+        CPP-Options:	-DUSE_UNBOXED
 
 Executable bishbosh
     Import:	commonStanza, exeStanza, profStanza

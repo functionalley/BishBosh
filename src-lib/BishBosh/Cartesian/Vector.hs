@@ -160,7 +160,6 @@ isPawnAttack MkVector {
 
 -- | Whether the specified /vector/ represents a move a @Knight@ could make.
 isKnightsMove :: Vector -> Bool
-{-# INLINE isKnightsMove #-}
 isKnightsMove MkVector {
 	getXDistance	= xDistance,
 	getYDistance	= yDistance

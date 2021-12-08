@@ -32,35 +32,32 @@ hlint: $(BIN_DIR)/hlint
 	@$@ -j	--no-exit-code\
 		--cpp-define 'USE_NEWTYPE_WRAPPERS'\
 		--cpp-define 'USE_PARALLEL'\
-		--cpp-define 'USE_POLYPARSE=L'\
-		--cpp-define 'USE_UNBOXED_ARRAYS'\
 		--ignore 'Use tuple-section'\
 		src-lib/ +RTS -N -RTS
 	@$@ -j	--no-exit-code\
 		--cpp-define 'MOVE_NOTATION=S'\
 		--cpp-define 'USE_HXTRELAXNG'\
-		--cpp-define 'USE_UNBOXED_ARRAYS'\
 		--cpp-define 'USE_UNIX'\
 		--ignore 'Reduce duplication'\
 		src-exe/ +RTS -N -RTS
 	@$@ -j	--cpp-define 'USE_NEWTYPE_WRAPPERS'\
-		--cpp-define 'USE_POLYPARSE=L'\
 		--cpp-define 'USE_BRATKO_KOPEC'\
 		--ignore 'Use tuple-section'\
 		src-test/ +RTS -N -RTS
 
 # Serially compile with various CPP-flags & run the test-suites.
 test:
-	@for FLAG in -polyparse newtypewrappers narrownumbers unboxedarrays -hxtrelaxng -threaded precision; do\
+	@for FLAG in -polyparse newtypewrappers unboxed -hxtrelaxng -threaded precision narrownumbers; do\
 		echo $${FLAG};\
 		stack '$@' --flag="$(PACKAGE_NAME):$${FLAG}" $(GHC_OPTIONS) '$(PACKAGE_NAME):test:hunit-tests' '$(PACKAGE_NAME):test:quickcheck-tests' || break;\
 	done
 
-# Compile with random CPP-flags & run the test-suites.
+# Repeatedly compile with random CPP-flags & run the test-suites, until failure.
 randomTest:
-	FLAGS=$$(shuf --echo -- hxtrelaxng narrownumbers newtypewrappers polyparse precision threaded unboxedarrays | head --lines=3 | sed -e '1s/^/-/' -e 's/\(.*\)/--flag=$(PACKAGE_NAME):\1/');\
+	FLAGS=$$(shuf --echo -- hxtrelaxng narrownumbers newtypewrappers polyparse precision threaded unboxed | head --lines=3 | sed -e '1s/^/-/' -e 's/\(.*\)/--flag=$(PACKAGE_NAME):\1/');\
 	echo $${FLAGS};\
-	stack test $${FLAGS} $(GHC_OPTIONS) '$(PACKAGE_NAME):test:hunit-tests' '$(PACKAGE_NAME):test:quickcheck-tests'
+	stack test $${FLAGS} $(GHC_OPTIONS) '$(PACKAGE_NAME):test:hunit-tests' '$(PACKAGE_NAME):test:quickcheck-tests';
+	make '$@'; # Recurse.
 
 # Profile a single-threaded build, to access entry-counts.
 prof:
