@@ -1,4 +1,3 @@
-{-# LANGUAGE CPP #-}
 {-
 	Copyright (C) 2018 Dr. Alistair Ward
 
@@ -41,7 +40,6 @@ module BishBosh.Input.PieceSquareTable(
 -- ** Type-synonyms
 --	Normalise,
 --	ReflectOnY,
---	PieceSquareValueByCoordinates,
 	IOFormat,
 	Assocs,
 -- ** Data-types
@@ -68,25 +66,26 @@ module BishBosh.Input.PieceSquareTable(
 
 import			BishBosh.Data.Bool()	-- HXT.XmlPickler.
 import			Control.Arrow((&&&), (***))
-import qualified	BishBosh.Attribute.Rank			as Attribute.Rank
-import qualified	BishBosh.Cartesian.Abscissa		as Cartesian.Abscissa
-import qualified	BishBosh.Cartesian.Coordinates		as Cartesian.Coordinates
-import qualified	BishBosh.Data.Exception			as Data.Exception
-import qualified	BishBosh.Data.Foldable			as Data.Foldable
-import qualified	BishBosh.Data.Num			as Data.Num
-import qualified	BishBosh.Property.Empty			as Property.Empty
-import qualified	BishBosh.Property.FixedMembership	as Property.FixedMembership
-import qualified	BishBosh.Property.ShowFloat		as Property.ShowFloat
-import qualified	BishBosh.Text.Case			as Text.Case
-import qualified	BishBosh.Text.ShowList			as Text.ShowList
-import qualified	BishBosh.Type.Mass			as Type.Mass
+import qualified	BishBosh.Attribute.Rank					as Attribute.Rank
+import qualified	BishBosh.Cartesian.Abscissa				as Cartesian.Abscissa
+import qualified	BishBosh.Cartesian.Coordinates				as Cartesian.Coordinates
+import qualified	BishBosh.Component.PieceSquareByCoordinatesByRank	as Component.PieceSquareByCoordinatesByRank
+import qualified	BishBosh.Data.Exception					as Data.Exception
+import qualified	BishBosh.Data.Foldable					as Data.Foldable
+import qualified	BishBosh.Data.Num					as Data.Num
+import qualified	BishBosh.Property.Empty					as Property.Empty
+import qualified	BishBosh.Property.FixedMembership			as Property.FixedMembership
+import qualified	BishBosh.Property.ShowFloat				as Property.ShowFloat
+import qualified	BishBosh.Text.Case					as Text.Case
+import qualified	BishBosh.Text.ShowList					as Text.ShowList
+import qualified	BishBosh.Type.Mass					as Type.Mass
 import qualified	Control.Arrow
 import qualified	Control.Exception
 import qualified	Data.Array.IArray
 import qualified	Data.Default
-import qualified	Data.Map.Strict				as Map
+import qualified	Data.Map.Strict						as Map
 import qualified	Data.Set
-import qualified	Text.XML.HXT.Arrow.Pickle		as HXT
+import qualified	Text.XML.HXT.Arrow.Pickle				as HXT
 
 -- | Used to qualify XML.
 tag :: String
@@ -106,20 +105,11 @@ type Normalise	= Bool
 -- | Type-synonym.
 type ReflectOnY	= Bool
 
--- | Self-documentation.
-type PieceSquareValueByCoordinates	=
-#if defined USE_UNBOXED && !(defined USE_NEWTYPE_WRAPPERS || defined USE_PRECISION)
-	Cartesian.Coordinates.UArrayByCoordinates
-#else
-	Cartesian.Coordinates.ArrayByCoordinates
-#endif
-		Type.Mass.PieceSquareValue
-
 -- | Defines the value for each type of piece, of occupying each square.
 data PieceSquareTable	= MkPieceSquareTable {
-	getNormalise				:: Normalise,							-- ^ Whether to map the specified values into the closed unit-interval.	CAVEAT: incompatible with RelaxNG, the specification for which already constrains values to the unit-interval.
-	getReflectOnY				:: ReflectOnY,							-- ^ Whether values for the RHS of the board should be inferred by reflection about the y-axis.
-	getPieceSquareValueByCoordinatesByRank	:: Map.Map Attribute.Rank.Rank PieceSquareValueByCoordinates	-- ^ N.B.: on the assumption that the values for Black pieces are the reflection of those for White, merely the /rank/ of each /piece/ need be defined.
+	getNormalise				:: Normalise,												-- ^ Whether to map the specified values into the closed unit-interval.	CAVEAT: incompatible with RelaxNG, the specification for which already constrains values to the unit-interval.
+	getReflectOnY				:: ReflectOnY,												-- ^ Whether values for the RHS of the board should be inferred by reflection about the y-axis.
+	getPieceSquareValueByCoordinatesByRank	:: Map.Map Attribute.Rank.Rank Component.PieceSquareByCoordinatesByRank.PieceSquareValueByCoordinates	-- ^ N.B.: on the assumption that the values for Black pieces are the reflection of those for White, merely the /rank/ of each /piece/ need be defined.
 } deriving (Eq, Show)
 
 instance Property.ShowFloat.ShowFloat PieceSquareTable where
@@ -266,6 +256,6 @@ findUndefinedRanks :: PieceSquareTable -> Data.Set.Set Attribute.Rank.Rank
 findUndefinedRanks MkPieceSquareTable { getPieceSquareValueByCoordinatesByRank = pieceSquareValueByCoordinatesByRank }	= Data.Set.fromAscList Property.FixedMembership.members `Data.Set.difference` Map.keysSet pieceSquareValueByCoordinatesByRank
 
 -- | Lookup the values for all /coordinates/, corresponding to the specified /rank/.
-dereference :: Attribute.Rank.Rank -> PieceSquareTable -> Maybe PieceSquareValueByCoordinates
+dereference :: Attribute.Rank.Rank -> PieceSquareTable -> Maybe Component.PieceSquareByCoordinatesByRank.PieceSquareValueByCoordinates
 dereference rank MkPieceSquareTable { getPieceSquareValueByCoordinatesByRank = pieceSquareValueByCoordinatesByRank }	= Map.lookup rank pieceSquareValueByCoordinatesByRank
 

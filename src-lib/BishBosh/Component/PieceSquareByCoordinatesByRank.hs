@@ -26,6 +26,7 @@
 module BishBosh.Component.PieceSquareByCoordinatesByRank(
 -- * Types
 -- ** Type-synonyms
+	PieceSquareValueByCoordinates,
 --	PieceSquareValueByNPieces,
 --	EitherPieceSquareValueByNPiecesByCoordinates,
 -- ** Data-types
@@ -66,6 +67,15 @@ import qualified	Data.List
 import qualified	Data.Array.Unboxed
 #endif
 
+-- | The piece-square value may vary with coordinates.
+type PieceSquareValueByCoordinates	=
+#ifdef UNBOX
+	Cartesian.Coordinates.UArrayByCoordinates
+#else
+	Cartesian.Coordinates.ArrayByCoordinates
+#endif
+		Type.Mass.PieceSquareValue
+
 -- | The piece-square value may vary as the game progresses.
 type PieceSquareValueByNPieces =
 #ifdef UNBOX
@@ -75,24 +85,8 @@ type PieceSquareValueByNPieces =
 #endif
 		Type.Count.NPieces Type.Mass.PieceSquareValue
 
--- | The bounds of the number of pieces on the board, at the end-game & opening-game respectively.
-nPiecesBounds :: (Type.Count.NPieces, Type.Count.NPieces)
-nPiecesBounds	= (
-	3 {-minimum sufficient material-},
-	fromIntegral Colour.LogicalColour.nDistinctLogicalColours * Component.Piece.nPiecesPerSide
- )
-
 -- | Self-documentation.
-type EitherPieceSquareValueByNPiecesByCoordinates	= Either (
-#ifdef UNBOX
-	Cartesian.Coordinates.UArrayByCoordinates
-#else
-	Cartesian.Coordinates.ArrayByCoordinates
-#endif
-		Type.Mass.PieceSquareValue	-- Uninterpolated.
- ) (
-	Cartesian.Coordinates.ArrayByCoordinates PieceSquareValueByNPieces	-- Interpolated.
- )
+type EitherPieceSquareValueByNPiecesByCoordinates	= Either PieceSquareValueByCoordinates (Cartesian.Coordinates.ArrayByCoordinates PieceSquareValueByNPieces)	-- Interpolated.
 
 -- | The value for each type of /piece/ of occupying each coordinate, at each stage in the lifetime of the game.
 newtype PieceSquareByCoordinatesByRank	= MkPieceSquareByCoordinatesByRank {
@@ -106,6 +100,13 @@ instance Control.DeepSeq.NFData PieceSquareByCoordinatesByRank where
 #else
 		MkPieceSquareByCoordinatesByRank { deconstruct = byRank }	= Control.DeepSeq.rnf byRank
 #endif
+
+-- | The bounds of the number of pieces on the board, at the end-game & opening-game respectively.
+nPiecesBounds :: (Type.Count.NPieces, Type.Count.NPieces)
+nPiecesBounds	= (
+	3 {-minimum sufficient material-},
+	fromIntegral Colour.LogicalColour.nDistinctLogicalColours * Component.Piece.nPiecesPerSide
+ )
 
 -- | Constructor.
 mkPieceSquareByCoordinatesByRank
