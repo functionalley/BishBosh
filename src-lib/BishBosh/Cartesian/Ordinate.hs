@@ -49,6 +49,7 @@ module BishBosh.Cartesian.Ordinate(
 	inBounds
 ) where
 
+import			Control.Arrow((&&&))
 import qualified	BishBosh.Cartesian.Abscissa	as Cartesian.Abscissa
 import qualified	BishBosh.Colour.LogicalColour	as Colour.LogicalColour
 import qualified	BishBosh.Property.Opposable	as Property.Opposable
@@ -101,14 +102,12 @@ enPassantRank _					= fromIx 4
 
 -- | Reflects about the mid-point of the axis.
 reflect :: Type.Length.Y -> Type.Length.Y
-reflect	= (
-	+ (2 * yMin + pred yLength)
- ) . negate
+reflect	= (2 * yMin + pred yLength -)
 
 -- | Predicate.
 inBounds :: Type.Length.Y -> Bool
 {-# INLINE inBounds #-}
-inBounds y	= y >= yMin && y <= yMax
+inBounds	= uncurry (&&) . ((>= yMin) &&& (<= yMax))
 
 -- | Translate the specified ordinate.
 translate :: (Type.Length.Y -> Type.Length.Y) -> Type.Length.Y -> Type.Length.Y

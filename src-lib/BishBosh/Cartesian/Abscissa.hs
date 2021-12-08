@@ -52,6 +52,7 @@ module BishBosh.Cartesian.Abscissa(
 	inBounds
 ) where
 
+import			Control.Arrow((&&&))
 import			Data.Array.IArray((!))
 import qualified	BishBosh.Type.Length	as Type.Length
 import qualified	Control.Exception
@@ -90,14 +91,12 @@ fromIx	= (+ xMin) . fromIntegral
 
 -- | Reflects about the mid-point of the axis.
 reflect :: Type.Length.X -> Type.Length.X
-reflect	= (
-	+ (2 * xMin + pred xLength)
- ) . negate
+reflect	= (2 * xMin + pred xLength -)
 
 -- | Predicate.
 inBounds :: Type.Length.X -> Bool
 {-# INLINE inBounds #-}
-inBounds x	= x >= xMin && x <= xMax
+inBounds	= uncurry (&&) . ((>= xMin) &&& (<= xMax))
 
 -- | Translate the specified ordinate.
 translate :: (Type.Length.X -> Type.Length.X) -> Type.Length.X -> Type.Length.X
