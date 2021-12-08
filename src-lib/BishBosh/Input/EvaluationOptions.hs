@@ -56,7 +56,7 @@ module BishBosh.Input.EvaluationOptions(
 ) where
 
 import			BishBosh.Data.Bool()
-import			Control.Arrow((***))
+import			Control.Arrow((&&&), (***))
 import qualified	BishBosh.Cartesian.Coordinates				as Cartesian.Coordinates
 import qualified	BishBosh.Component.PieceSquareByCoordinatesByRank	as Component.PieceSquareByCoordinatesByRank
 import qualified	BishBosh.Data.Exception					as Data.Exception
@@ -188,7 +188,7 @@ fromPieceSquareTablePair pieceSquareTablePair	= Component.PieceSquareByCoordinat
 		) . Data.Array.IArray.elems
 	) maybeEndGamePieceSquareValueByCoordinates
  ) $ (
-	 Data.Maybe.fromJust {-values for the openingGame must be specified-} . Input.PieceSquareTable.dereference rank *** Input.PieceSquareTable.dereference rank
+	 uncurry (***) . ((Data.Maybe.fromJust {-values for the openingGame must be specified-} . ) &&& id) $ Input.PieceSquareTable.dereference rank
  ) pieceSquareTablePair
 
 -- | Smart constructor.
