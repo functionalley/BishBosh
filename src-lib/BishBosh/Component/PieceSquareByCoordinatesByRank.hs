@@ -94,12 +94,13 @@ newtype PieceSquareByCoordinatesByRank	= MkPieceSquareByCoordinatesByRank {
 } deriving (Eq, Show)
 
 instance Control.DeepSeq.NFData PieceSquareByCoordinatesByRank where
-	rnf
+	rnf MkPieceSquareByCoordinatesByRank { deconstruct = byRank }	=
 #ifdef UNBOX
-		_								= ()
+		Control.DeepSeq.liftRnf (const () ||| Control.DeepSeq.liftRnf Control.DeepSeq.rwhnf)
 #else
-		MkPieceSquareByCoordinatesByRank { deconstruct = byRank }	= Control.DeepSeq.rnf byRank
+		Control.DeepSeq.rnf
 #endif
+			byRank
 
 -- | The bounds of the number of pieces on the board, at the end-game & opening-game respectively.
 nPiecesBounds :: (Type.Count.NPieces, Type.Count.NPieces)
@@ -117,7 +118,7 @@ mkPieceSquareByCoordinatesByRank	= MkPieceSquareByCoordinatesByRank . Attribute.
 -- | Find the piece-square value, at a stage in the game's lifetime defined by the total number of pieces remaining, for the specified /rank/ & /coordinates/.
 findPieceSquareValue
 	:: PieceSquareByCoordinatesByRank
-	-> Type.Count.NPieces			-- ^ The progress through the game.
+	-> Type.Count.NPieces			-- ^ A proxy for the progress through the game.
 	-> Colour.LogicalColour.LogicalColour	-- ^ The /piece/'s /logical colour/.
 	-> Attribute.Rank.Rank			-- ^ The /piece/'s /rank/.
 	-> Cartesian.Coordinates.Coordinates	-- ^ The /piece/'s location.
@@ -137,7 +138,7 @@ interpolatePieceSquareValues
 	-> PieceSquareValueByNPieces
 interpolatePieceSquareValues openingGame endGame	= Data.Array.IArray.listArray nPiecesBounds . map (
 	fromRational . uncurry (+) . (
-		(* toRational openingGame) &&& (* toRational endGame) . (1 -)
+		(* toRational openingGame) &&& (* toRational endGame) . (1 -)	-- N.B.: arithmetic must be conducted in an unbounded type; cf. 'PieceSquareValue'.
 	) . (
 		/ fromIntegral (
 			uncurry subtract nPiecesBounds	-- N.B.: this can't reasonably be zero.
