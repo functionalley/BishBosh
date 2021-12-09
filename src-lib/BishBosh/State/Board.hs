@@ -1,4 +1,3 @@
-{-# LANGUAGE CPP #-}
 {-
 	Copyright (C) 2018 Dr. Alistair Ward
 
@@ -388,17 +387,11 @@ movePiece move maybeMoveType board@MkBoard {
 sumPieceSquareValueByLogicalColour
 	:: Component.PieceSquareByCoordinatesByRank.PieceSquareByCoordinatesByRank
 	-> Board
-	->
-#if defined USE_UNBOXED && !defined USE_PRECISION
-	Colour.LogicalColour.UArrayByLogicalColour
-#else
-	Colour.LogicalColour.ArrayByLogicalColour
-#endif
-		Type.Mass.Base	-- ^ Sum of PieceSquareValues.
+	-> [Type.Mass.Base]	-- ^ Individual sums for each logical colours, of the PieceSquareValues.
 sumPieceSquareValueByLogicalColour pieceSquareByCoordinatesByRank MkBoard {
 	getCoordinatesByRankByLogicalColour	= coordinatesByRankByLogicalColour,
 	getNPieces				= nPieces
-} = Colour.LogicalColour.listArrayByLogicalColour $ Component.Accountant.sumPieceSquareValueByLogicalColour pieceSquareByCoordinatesByRank coordinatesByRankByLogicalColour nPieces
+} = Component.Accountant.sumPieceSquareValueByLogicalColour pieceSquareByCoordinatesByRank coordinatesByRankByLogicalColour nPieces	-- Forward the request.
 
 {- |
 	* Lists the source-/coordinates/ from which the referenced destination can be attacked.

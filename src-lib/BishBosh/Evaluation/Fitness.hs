@@ -77,20 +77,19 @@ import qualified	Data.List
 import qualified	Data.Map.Strict						as Map
 import qualified	Data.Maybe
 
--- | Measures the difference in piece-square value between players, from the perspective of the last player to move.
+-- | Measures the difference in /piece-square value/ between players, from the perspective of the last player to move.
 measurePieceSquareValueDifference
 	:: Component.PieceSquareByCoordinatesByRank.PieceSquareByCoordinatesByRank
 	-> Model.Game.Game
-	-> Type.Mass.Base
-measurePieceSquareValueDifference pieceSquareByCoordinatesByRank game	= (
+	-> Type.Mass.Base	-- ^ Unbounded difference.
+measurePieceSquareValueDifference pieceSquareByCoordinatesByRank game	= Data.List.foldl1' (
 	if Colour.LogicalColour.isBlack $! Model.Game.getNextLogicalColour game
-		then id
-		else negate	-- Represent the piece-square value difference from Black's perspective.
- ) $! whitesPieceSquareValue - blacksPieceSquareValue where
-	[blacksPieceSquareValue, whitesPieceSquareValue]	= Data.Array.IArray.elems . State.Board.sumPieceSquareValueByLogicalColour pieceSquareByCoordinatesByRank $ Model.Game.getBoard game
+		then subtract
+		else (-)	-- Represent the piece-square value difference from Black's perspective; i.e. the last player to move.
+ ) . State.Board.sumPieceSquareValueByLogicalColour pieceSquareByCoordinatesByRank $ Model.Game.getBoard game
 
 {- |
-	* Measures the difference in piece-square value between players, from the perspective of the last player to move.
+	* Measures the difference in /piece-square value/ between players, from the perspective of the last player to move.
 
 	* The previous value is provided, to enable calculation by difference.
 
@@ -100,14 +99,14 @@ measurePieceSquareValueDifferenceIncrementally
 	:: Type.Mass.Base	-- ^ The difference between players in the piece-square value, before the last move was applied & therefore also from the perspective of the previous player.
 	-> Component.PieceSquareByCoordinatesByRank.PieceSquareByCoordinatesByRank
 	-> Model.Game.Game
-	-> Type.Mass.Base
+	-> Type.Mass.Base	-- ^ Unbounded difference.
 measurePieceSquareValueDifferenceIncrementally previousPieceSquareValueDifference pieceSquareByCoordinatesByRank game
 	| Attribute.MoveType.isSimple $! Component.QualifiedMove.getMoveType qualifiedMove	= let
 		findPieceSquareValue :: Cartesian.Coordinates.Coordinates -> Type.Mass.Base
 		findPieceSquareValue	= realToFrac . uncurry (
 			Component.PieceSquareByCoordinatesByRank.findPieceSquareValue pieceSquareByCoordinatesByRank
 		 ) (
-			State.Board.getNPieces {- N.B.: no capture occurred-} . Model.Game.getBoard &&& Property.Opposable.getOpposite . Model.Game.getNextLogicalColour $ game	{-the last player to move-}
+			State.Board.getNPieces {-N.B.: no capture occurred-} . Model.Game.getBoard &&& Property.Opposable.getOpposite . Model.Game.getNextLogicalColour $ game	{-the last player to move-}
 		 ) (
 			Component.Turn.getRank turn	-- N.B.: no promotion occurred.
 		 )

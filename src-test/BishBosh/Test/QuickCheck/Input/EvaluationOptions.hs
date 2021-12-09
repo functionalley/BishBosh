@@ -40,7 +40,6 @@ import qualified	BishBosh.Input.PieceSquareTable		as Input.PieceSquareTable
 import qualified	BishBosh.Input.RankValues		as Input.RankValues
 import qualified	BishBosh.Property.Reflectable		as Property.Reflectable
 import qualified	BishBosh.State.Board			as State.Board
-import qualified	Data.Array.IArray
 import qualified	Data.List
 import qualified	Data.Map.Strict				as Map
 import qualified	Data.Maybe
@@ -87,7 +86,7 @@ results	= sequence [
 	let
 		f :: Input.EvaluationOptions.EvaluationOptions -> State.Board.Board -> Test.QuickCheck.Property
 		f evaluationOptions board	= Data.Maybe.isJust maybePieceSquareByCoordinatesByRank ==> Test.QuickCheck.label "EvaluationOptions.prop_sumPieceSquareValueByLogicalColour/reflectOnX" . uncurry (==) $ (
-			Data.Array.IArray.elems . sumPieceSquareValueByLogicalColour &&& reverse . Data.Array.IArray.elems . sumPieceSquareValueByLogicalColour . Property.Reflectable.reflectOnX
+			sumPieceSquareValueByLogicalColour &&& reverse . sumPieceSquareValueByLogicalColour . Property.Reflectable.reflectOnX
 		 ) board where
 			maybePieceSquareByCoordinatesByRank	= Input.EvaluationOptions.getMaybePieceSquareByCoordinatesByRank evaluationOptions
 			sumPieceSquareValueByLogicalColour	= State.Board.sumPieceSquareValueByLogicalColour $ Data.Maybe.fromJust maybePieceSquareByCoordinatesByRank
