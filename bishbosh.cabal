@@ -72,7 +72,7 @@ flag hxtrelaxng
     Default:		True
 
 -- Whether to use narrower numerical types than machine-defaults. CAVEAT: this option increases both the space allocated & the execution-time.
--- CAVEAT: incompatible with the flag 'precision', & to some extent flag 'unboxed'.
+-- CAVEAT: incompatible with the flag 'precision', & to some extent 'unboxed'.
 flag narrownumbers
     Description:	Use narrow numerical types.
     Manual:		True
@@ -94,7 +94,7 @@ flag polyparse
     Default:		True
 
 -- Whether to use precise (rational) types rather than floating-point.
--- CAVEAT: conceptually incompatible with flag 'narrownumbers', & to some extent flag 'unboxed'.
+-- CAVEAT: conceptually incompatible with the flag 'narrownumbers', & to some extent the flag 'unboxed'.
 flag precision
     Description:	Use precise fractional types.
     Manual:		True
@@ -107,7 +107,7 @@ flag threaded
     Default:		True
 
 -- Whether to use unboxed types where possible; e.g. in arrays or by primitive arithmetic.
--- CAVEAT: partially incompatible with flags 'newtypewrappers' & 'precision'.
+-- CAVEAT: partially incompatible with flags ['narrownumbers', newtypewrappers', 'precision'].
 flag unboxed
     Description:	Use unboxed types.
     Manual:		True
@@ -335,8 +335,12 @@ Library
         CPP-Options:	-DUSE_PARALLEL
 
     if flag(unboxed)
-        Build-depends:	ghc-prim ^>= 0.6.1
         CPP-Options:	-DUSE_UNBOXED
+
+-- Use unboxed primitive arithmetic when numeric types are already unwrapped & of the default width for the CPU.
+        if !(flag(narrownumbers) || flag(newtypewrappers))
+            Build-depends:	ghc-prim ^>= 0.6.1
+            CPP-Options:	-DUSE_PRIMITIVE
 
 Executable bishbosh
     Import:	commonStanza, exeStanza, profStanza

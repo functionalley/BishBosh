@@ -1,4 +1,9 @@
-{-# LANGUAGE CPP, MagicHash #-}
+{-# LANGUAGE CPP #-}
+
+#ifdef USE_PRIMITIVE
+{-# LANGUAGE MagicHash #-}
+#endif
+
 {-
 	Copyright (C) 2018 Dr. Alistair Ward
 
@@ -57,7 +62,7 @@ import qualified	BishBosh.Property.Opposable	as Property.Opposable
 import qualified	BishBosh.Type.Length		as Type.Length
 import qualified	Control.Exception
 
-#if defined USE_UNBOXED && !(defined USE_NEWTYPE_WRAPPERS || defined USE_NARROW_NUMBERS)
+#ifdef USE_PRIMITIVE
 import			GHC.Exts(Int(I#))
 import			GHC.Prim((-#))
 #endif
@@ -106,7 +111,7 @@ enPassantRank _					= fromIx 4
 
 -- | Reflects about the mid-point of the axis.
 reflect :: Type.Length.Y -> Type.Length.Y
-#if defined USE_UNBOXED && !(defined USE_NEWTYPE_WRAPPERS || defined USE_NARROW_NUMBERS)
+#ifdef USE_PRIMITIVE
 reflect (I# y)	= I# (7# -# y)	-- CAVEAT: hard-coded bounds.
 #else
 reflect	= (2 * yMin + yMax -)

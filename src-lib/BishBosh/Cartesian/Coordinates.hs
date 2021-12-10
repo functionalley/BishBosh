@@ -1,4 +1,9 @@
-{-# LANGUAGE CPP, MagicHash #-}
+{-# LANGUAGE CPP #-}
+
+#ifdef USE_PRIMITIVE
+{-# LANGUAGE MagicHash #-}
+#endif
+
 {-
 	Copyright (C) 2018 Dr. Alistair Ward
 
@@ -104,11 +109,12 @@ import qualified	Data.Maybe
 import qualified	Control.Parallel.Strategies
 #endif
 
-#ifdef USE_UNBOXED
-#	if !(defined USE_NEWTYPE_WRAPPERS || defined USE_NARROW_NUMBERS)
+#ifdef USE_PRIMITIVE
 import			GHC.Exts(Int(I#))
 import			GHC.Prim((+#), (*#))
-#	endif
+#endif
+
+#ifdef USE_UNBOXED
 import qualified	Data.Array.Unboxed
 #endif
 
@@ -149,11 +155,11 @@ instance Enum Coordinates where
 		}
 	 ) . (`divMod` fromIntegral Cartesian.Abscissa.xLength)
 
-#if defined USE_UNBOXED && !(defined USE_NEWTYPE_WRAPPERS || defined USE_NARROW_NUMBERS)
+#ifdef USE_PRIMITIVE
 	fromEnum MkCoordinates {
 		getX	= I# x,
 		getY	= I# y
-	} = I# (8# *# y +# x)	-- CAVEAT: bypasses modules 'Cartesian.Abscissa' & 'Cartesian.Ordinate'.
+	} = I# (8# *# y +# x)	-- CAVEAT: bypasses modules 'Cartesian.{Abscissa, Ordinate}'.
 #else
 	fromEnum MkCoordinates {
 		getX	= x,
@@ -196,7 +202,9 @@ instance Property.Rotatable.Rotatable Coordinates where
 		getX	= fromIntegral $! Cartesian.Ordinate.reflect y,
 		getY	= fromIntegral x
 	} -- +90 degrees, i.e. anti-clockwise.
+
 	rotate180	= Property.Opposable.getOpposite
+
 	rotate270 MkCoordinates {
 		getX	= x,
 		getY	= y
