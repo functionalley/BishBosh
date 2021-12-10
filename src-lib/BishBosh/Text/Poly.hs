@@ -31,13 +31,15 @@ module BishBosh.Text.Poly(
 	char,
 	string,
 	spaces,
-	unsignedDecimal,
+	unsignedDecimal
 ) where
 
 import qualified	BishBosh.Data.Integral			as Data.Integral
 import qualified	Data.Char
 
-#if USE_POLYPARSE == 'L'
+#ifndef USE_POLYPARSE
+#	error "USE_POLYPARSE undefined"
+#elif USE_POLYPARSE == 'L'
 import qualified	Text.ParserCombinators.Poly.Lazy	as Poly
 #elif USE_POLYPARSE == 'P'
 import qualified	Text.ParserCombinators.Poly.Plain	as Poly
@@ -50,10 +52,7 @@ type TextParser	= Poly.Parser Char
 
 -- | Matches the specified char.
 char :: Char -> TextParser ()
-char c	= do
-	_	<- Poly.satisfyMsg (== c) [c]
-
-	return {-to Parser-monad-} ()
+char c	= Poly.satisfyMsg (== c) [c] >> return {-to Parser-monad-} ()
 
 {- |
 	* Matches the specified string.
@@ -70,10 +69,7 @@ string	= mapM_ char
 -}
 spaces :: TextParser ()
 -- spaces	= Control.Monad.void . Poly.many $ Poly.satisfy Data.Char.isSpace	-- CAVEAT: poor performance ?!
-spaces	= do
-	_	<- Poly.many $ Poly.satisfy Data.Char.isSpace
-
-	return {-to Parser-monad-} ()
+spaces	= Poly.many (Poly.satisfy Data.Char.isSpace) >> return {-to Parser-monad-} ()
 
 -- | Parses an unsigned base-10 integer.
 unsignedDecimal :: Num i => TextParser i

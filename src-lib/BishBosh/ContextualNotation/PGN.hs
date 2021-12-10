@@ -464,9 +464,9 @@ maybeResultParser	= Control.Applicative.many ContextualNotation.PGNComment.block
 
 -- | Parses a /game/ from PGN move-text.
 moveTextParser
-#ifdef USE_POLYPARSE
 	:: IsStrictlySequential
 	-> ContextualNotation.StandardAlgebraic.ValidateMoves
+#ifdef USE_POLYPARSE
 	-> Text.Poly.TextParser Model.Game.Game
 moveTextParser isStrictlySequential validateMoves	= let
 	elementSequenceParser :: Model.Game.Game -> Text.Poly.TextParser Model.Game.Game
@@ -504,8 +504,6 @@ moveTextParser isStrictlySequential validateMoves	= let
  in do
 	game	<- fmap (Data.Maybe.fromMaybe Data.Default.def {-game-}) . Control.Applicative.optional $ elementSequenceParser Data.Default.def {-game-}
 #else /* Parsec */
-	:: IsStrictlySequential
-	-> ContextualNotation.StandardAlgebraic.ValidateMoves
 	-> Parsec.Parser Model.Game.Game
 moveTextParser isStrictlySequential validateMoves	= let
 	elementSequenceParser :: Model.Game.Game -> Parsec.Parser Model.Game.Game
@@ -540,7 +538,7 @@ moveTextParser isStrictlySequential validateMoves	= let
  in do
 	game	<- Parsec.option Data.Default.def {-game-} . Parsec.try $ elementSequenceParser Data.Default.def {-game-}
 #endif
-	Data.Maybe.maybe game (`Model.Game.updateTerminationReasonWith` game) `fmap` maybeResultParser
+	Data.Maybe.maybe game (`Model.Game.updateTerminationReasonWith` game) <$> maybeResultParser
 
 {- |
 	* Parses /PGN/.

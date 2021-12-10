@@ -514,7 +514,7 @@ parser explicitEnPassant validateMoves game	= let
 					Parsec.try $ do -- N.B. this scenario occurs when there are identical pieces on both the same row & the same column, as the intended attacker; i.e. after a promotion.
 						source		<- Notation.PureCoordinate.coordinatesParser	<?> "Source"
 
-						Parsec.optional captureParser		<?> "Optional capture"
+						Parsec.optional captureParser	<?> "Optional capture"
 
 						destination	<- Notation.PureCoordinate.coordinatesParser	<?> "Destination"
 
@@ -530,13 +530,13 @@ parser explicitEnPassant validateMoves game	= let
 							) <$> Notation.PureCoordinate.ordinateParser
 						 ) -- Build a filter from the source-qualifier.
 
-						Parsec.optional captureParser		<?> "Optional capture"
+						Parsec.optional captureParser	<?> "Optional capture"
 
 						destination	<- Notation.PureCoordinate.coordinatesParser	<?> "Destination"
 
 						resolveQualifiedMove destination . sourceFilter $ findAttacksBy destination,
 					do	-- The most likely scenario, where the intended attacker is unambiguous.
-						Parsec.optional captureParser		<?> "Optional capture"
+						Parsec.optional captureParser	<?> "Optional capture"
 
 						destination	<- Notation.PureCoordinate.coordinatesParser	<?> "Unqualified destination"
 
