@@ -472,7 +472,7 @@ moveTextParser isStrictlySequential validateMoves	= let
 	elementSequenceParser :: Model.Game.Game -> Text.Poly.TextParser Model.Game.Game
 	elementSequenceParser game	= let
 		expectedMoveNumber :: Type.Count.NMoves
-		expectedMoveNumber	= fromIntegral . succ . (`div` 2) . State.TurnsByLogicalColour.getNPlies $ Model.Game.getTurnsByLogicalColour game
+		expectedMoveNumber	= State.TurnsByLogicalColour.deriveMoveNumber $ Model.Game.getTurnsByLogicalColour game
 	 in do
 		moveNumber	<- (
 			if Colour.LogicalColour.isBlack $ Model.Game.getNextLogicalColour game
@@ -511,7 +511,7 @@ moveTextParser isStrictlySequential validateMoves	= let
 	elementSequenceParser :: Model.Game.Game -> Parsec.Parser Model.Game.Game
 	elementSequenceParser game	= let
 		expectedMoveNumber :: Type.Count.NMoves
-		expectedMoveNumber	= fromIntegral . succ . (`div` 2) . State.TurnsByLogicalColour.getNPlies $ Model.Game.getTurnsByLogicalColour game
+		expectedMoveNumber	= State.TurnsByLogicalColour.deriveMoveNumber $ Model.Game.getTurnsByLogicalColour game
 	 in do
 		moveNumber	<- (
 			if Colour.LogicalColour.isBlack $ Model.Game.getNextLogicalColour game

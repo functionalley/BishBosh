@@ -35,6 +35,7 @@ module BishBosh.State.TurnsByLogicalColour(
 -- * Functions
 	inferNextLogicalColour,
 	countPlies,
+	deriveMoveNumber,
 	dereference,
 -- ** Constructors
 	fromAssocs,
@@ -133,6 +134,10 @@ inferNextLogicalColour MkTurnsByLogicalColour { getNPlies = nPlies }
 -}
 countPlies :: TurnsByLogicalColour turn -> Type.Count.NPlies
 countPlies MkTurnsByLogicalColour { getTurnsByLogicalColour = byLogicalColour }	= fromIntegral $ Data.Foldable.foldl' (\acc -> (+ acc) . length) 0 byLogicalColour
+
+-- | Derive the move-number, as used in PGN.
+deriveMoveNumber :: TurnsByLogicalColour turn -> Type.Count.NMoves
+deriveMoveNumber MkTurnsByLogicalColour { getNPlies = nPlies }	= succ {-index from 1-} $! fromIntegral nPlies `div` 2
 
 -- | Dereference.
 dereference :: TurnsByLogicalColour turn -> Colour.LogicalColour.LogicalColour -> [turn]
