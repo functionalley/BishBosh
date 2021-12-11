@@ -20,26 +20,21 @@
 {- |
  [@AUTHOR@]	Dr. Alistair Ward
 
- [@DESCRIPTION@]	Defines the relative value of a specific /rank/ of piece, occupying a specific /coordinate/ on the board, at a specific stage in the game.
+ [@DESCRIPTION@]	Defines the relative value of a specific /rank/ of piece, occupying a specific square, at a each stage in the game.
 -}
 
 module BishBosh.Component.PieceSquareByCoordinatesByRank(
 -- * Types
 -- ** Type-synonyms
 	PieceSquareValueByCoordinates,
---	PieceSquareValueByNPieces,
---	EitherPieceSquareValueByNPiecesByCoordinates,
+--	PieceSquareValueByCoordinatesByEitherNPieces,
 -- ** Data-types
-	PieceSquareByCoordinatesByRank(
---		MkPieceSquareByCoordinatesByRank,
---		deconstruct
-	),
+	PieceSquareByCoordinatesByRank(),
 -- * Constants
-	nPiecesBounds,
 	gnuPlotComment,
 -- * Functions
+--	merge,
 	findPieceSquareValue,
-	interpolatePieceSquareValues,
 	formatForGNUPlot,
 -- ** Constructor
 	mkPieceSquareByCoordinatesByRank
@@ -51,7 +46,6 @@ import qualified	BishBosh.Attribute.Rank			as Attribute.Rank
 import qualified	BishBosh.Cartesian.Abscissa		as Cartesian.Abscissa
 import qualified	BishBosh.Cartesian.Coordinates		as Cartesian.Coordinates
 import qualified	BishBosh.Colour.LogicalColour		as Colour.LogicalColour
-import qualified	BishBosh.Component.Piece		as Component.Piece
 import qualified	BishBosh.Property.FixedMembership	as Property.FixedMembership
 import qualified	BishBosh.Property.Reflectable		as Property.Reflectable
 import qualified	BishBosh.Text.ShowList			as Text.ShowList
@@ -62,60 +56,42 @@ import qualified	Data.Array.IArray
 import qualified	Data.Foldable
 import qualified	Data.List
 
-#if defined USE_UNBOXED && !(defined USE_NEWTYPE_WRAPPERS || defined USE_PRECISION)
-#define UNBOX
-import qualified	Data.Array.Unboxed
-#endif
-
 -- | The piece-square value may vary with coordinates.
 type PieceSquareValueByCoordinates	=
-#ifdef UNBOX
+#if defined USE_UNBOXED && !(defined USE_NEWTYPE_WRAPPERS || defined USE_PRECISION)
+#define UNBOX
 	Cartesian.Coordinates.UArrayByCoordinates
 #else
 	Cartesian.Coordinates.ArrayByCoordinates
 #endif
 		Type.Mass.PieceSquareValue
 
--- | The piece-square value may vary as the game progresses.
-type PieceSquareValueByNPieces =
-#ifdef UNBOX
-	Data.Array.Unboxed.UArray
-#else
-	Data.Array.IArray.Array
-#endif
-		Type.Count.NPieces Type.Mass.PieceSquareValue
+-- | The piece-square value may vary with /coordinates/ & optionally also the number of pieces remaining.
+type PieceSquareValueByCoordinatesByEitherNPieces	= Either PieceSquareValueByCoordinates (Data.Array.IArray.Array Type.Count.NPieces PieceSquareValueByCoordinates)
 
--- | Self-documentation.
-type EitherPieceSquareValueByNPiecesByCoordinates	= Either PieceSquareValueByCoordinates (Cartesian.Coordinates.ArrayByCoordinates PieceSquareValueByNPieces)	-- Interpolated.
-
--- | The value for each type of /piece/ of occupying each coordinate, at each stage in the lifetime of the game.
-newtype PieceSquareByCoordinatesByRank	= MkPieceSquareByCoordinatesByRank {
-	deconstruct	:: Attribute.Rank.ArrayByRank EitherPieceSquareValueByNPiecesByCoordinates
-} deriving (Eq, Show)
+-- | The piece-square value for various /coordinates/, optionally the number of pieces remaining, & /rank/.
+newtype PieceSquareByCoordinatesByRank	= MkPieceSquareByCoordinatesByRank (Attribute.Rank.ArrayByRank PieceSquareValueByCoordinatesByEitherNPieces) deriving (Eq, Show)
 
 instance Control.DeepSeq.NFData PieceSquareByCoordinatesByRank where
-	rnf MkPieceSquareByCoordinatesByRank { deconstruct = byRank }	=
+	rnf (MkPieceSquareByCoordinatesByRank pieceSquareValueByCoordinatesByEitherNPiecesByRank)	=
 #ifdef UNBOX
-		Control.DeepSeq.liftRnf (const () ||| Control.DeepSeq.liftRnf Control.DeepSeq.rwhnf)
+		Control.DeepSeq.liftRnf {-into ByRank-} (
+			Control.DeepSeq.rwhnf ||| Control.DeepSeq.liftRnf {-into ByNPieces-} Control.DeepSeq.rwhnf
+		)
 #else
 		Control.DeepSeq.rnf
 #endif
-			byRank
-
--- | The bounds of the number of pieces on the board, at the end-game & opening-game respectively.
-nPiecesBounds :: (Type.Count.NPieces, Type.Count.NPieces)
-nPiecesBounds	= (
-	3 {-minimum sufficient material-},
-	fromIntegral Colour.LogicalColour.nDistinctLogicalColours * Component.Piece.nPiecesPerSide
- )
+			pieceSquareValueByCoordinatesByEitherNPiecesByRank
 
 -- | Constructor.
-mkPieceSquareByCoordinatesByRank
-	:: (Attribute.Rank.Rank -> EitherPieceSquareValueByNPiecesByCoordinates)	-- ^ Convert a /rank/ into either (a /pieceSquareValue/ or a /pieceSquareValue/ which linearly varies with the number of /piece/s remaining) by /coordinates/.
-	-> PieceSquareByCoordinatesByRank
+mkPieceSquareByCoordinatesByRank :: (Attribute.Rank.Rank -> PieceSquareValueByCoordinatesByEitherNPieces) -> PieceSquareByCoordinatesByRank
 mkPieceSquareByCoordinatesByRank	= MkPieceSquareByCoordinatesByRank . Attribute.Rank.listArrayByRank . (`map` Property.FixedMembership.members)
 
--- | Find the piece-square value, at a stage in the game's lifetime defined by the total number of pieces remaining, for the specified /rank/ & /coordinates/.
+-- | Merge the /Left/ & /Right/ sides of 'PieceSquareValueByCoordinatesByEitherNPieces'.
+merge :: Type.Count.NPieces -> PieceSquareValueByCoordinatesByEitherNPieces -> PieceSquareValueByCoordinates
+merge nPieces	= id ||| (! nPieces)
+
+-- | Find the piece-square value, at a stage in the game's life-cycle defined by the total number of pieces remaining, for the specified /rank/ & /coordinates/.
 findPieceSquareValue
 	:: PieceSquareByCoordinatesByRank
 	-> Type.Count.NPieces			-- ^ A proxy for the progress through the game.
@@ -123,30 +99,11 @@ findPieceSquareValue
 	-> Attribute.Rank.Rank			-- ^ The /piece/'s /rank/.
 	-> Cartesian.Coordinates.Coordinates	-- ^ The /piece/'s location.
 	-> Type.Mass.PieceSquareValue
-findPieceSquareValue MkPieceSquareByCoordinatesByRank { deconstruct = byRank } nPieces logicalColour rank	= (
-	(!) ||| (
-		\byNPiecesByCoordinates	-> (! nPieces) . (byNPiecesByCoordinates !)
-	) $ byRank ! rank
+findPieceSquareValue (MkPieceSquareByCoordinatesByRank pieceSquareValueByCoordinatesByEitherNPiecesByRank) nPieces logicalColour rank	= (!) (
+	merge nPieces $ pieceSquareValueByCoordinatesByEitherNPiecesByRank ! rank
  ) . if Colour.LogicalColour.isBlack logicalColour
 	then Property.Reflectable.reflectOnX
 	else id
-
--- | Given the bounds over which two piece-square values vary as the game progresses from opening to end, return linearly interpolated values for all stages.
-interpolatePieceSquareValues
-	:: Type.Mass.PieceSquareValue	-- ^ Opening-game.
-	-> Type.Mass.PieceSquareValue	-- ^ End-game.
-	-> PieceSquareValueByNPieces
-interpolatePieceSquareValues openingGame endGame	= Data.Array.IArray.listArray nPiecesBounds . map (
-	fromRational . uncurry (+) . (
-		(* toRational openingGame) &&& (* toRational endGame) . (1 -)	-- N.B.: arithmetic must be conducted in an unbounded type; cf. 'PieceSquareValue'.
-	) . (
-		/ fromIntegral (
-			uncurry subtract nPiecesBounds	-- N.B.: this can't reasonably be zero.
-		) -- map into the closed unit-interval [0,1].
-	) . fromIntegral . subtract (
-		fst {-minimum-} nPiecesBounds
-	)
- ) $ uncurry enumFromTo nPiecesBounds
 
 -- | The character used in __GNUPlot__ to denote a comment.
 gnuPlotComment :: Char
@@ -155,11 +112,11 @@ gnuPlotComment	= '#'
 -- | Format the data for input to __GNUPlot__.
 formatForGNUPlot
 	:: PieceSquareByCoordinatesByRank
-	-> (Type.Mass.PieceSquareValue -> ShowS)			-- ^ Format a /pieceSquareValue/.
-	-> ShowS							-- ^ The column-delimiter.
-	-> (PieceSquareValueByNPieces -> Type.Mass.PieceSquareValue)	-- ^ Select one /PieceSquareValue/ from interpolated values.
+	-> (Type.Mass.PieceSquareValue -> ShowS)	-- ^ Format a /pieceSquareValue/.
+	-> ShowS					-- ^ The column-delimiter.
+	-> Type.Count.NPieces				-- ^ Select from interpolated values.
 	-> ShowS
-formatForGNUPlot MkPieceSquareByCoordinatesByRank { deconstruct = byRank } pieceSquareValueFormatter columnDelimiter selector	= (
+formatForGNUPlot (MkPieceSquareByCoordinatesByRank pieceSquareValueByCoordinatesByEitherNPiecesByRank) pieceSquareValueFormatter columnDelimiter nPieces	= (
 	showsRow (
 		showChar gnuPlotComment . showChar 'x' : showChar 'y' : map shows Attribute.Rank.range	-- Header comment.
 	) .
@@ -173,11 +130,9 @@ formatForGNUPlot MkPieceSquareByCoordinatesByRank { deconstruct = byRank } piece
 			then terminateRow	-- Separate isolines.
 			else id
 	) . showS
- ) id . zip (
-	Property.FixedMembership.members	:: [Cartesian.Coordinates.Coordinates]
- ) . Data.List.transpose . map (
-	Data.Array.IArray.elems ||| map selector {-select one PieceSquareValue from interpolated values-} . Data.Foldable.toList {-ByCoordinates-}
- ) $ Data.Foldable.toList {-ByRank-} byRank where
+ ) id . zip Property.FixedMembership.members . Data.List.transpose . map (
+	Data.Array.IArray.elems {-ByCoordinates-} . merge nPieces
+ ) $ Data.Foldable.toList {-ByRank-} pieceSquareValueByCoordinatesByEitherNPiecesByRank where
 	terminateRow	= showChar '\n'
 	showsRow	= Text.ShowList.showsDelimitedList columnDelimiter id terminateRow
 

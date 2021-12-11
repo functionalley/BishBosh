@@ -49,7 +49,9 @@ module BishBosh.Input.EvaluationOptions(
 --	incrementalEvaluationTag,
 --	pieceSquareTablesTag,
 --	pieceSquareTableEndGameTag,
+	nPiecesBounds,
 -- * Functions
+--	interpolatePieceSquareValues,
 --	fromPieceSquareTablePair,
 -- ** Constructor
 	mkEvaluationOptions
@@ -57,14 +59,19 @@ module BishBosh.Input.EvaluationOptions(
 
 import			BishBosh.Data.Bool()
 import			Control.Arrow((&&&), (***))
+import			Data.Array.IArray((!))
 import qualified	BishBosh.Cartesian.Coordinates				as Cartesian.Coordinates
 import qualified	BishBosh.Component.PieceSquareByCoordinatesByRank	as Component.PieceSquareByCoordinatesByRank
+import qualified	BishBosh.Colour.LogicalColour				as Colour.LogicalColour
+import qualified	BishBosh.Component.Piece				as Component.Piece
 import qualified	BishBosh.Data.Exception					as Data.Exception
 import qualified	BishBosh.Input.CriteriaWeights				as Input.CriteriaWeights
 import qualified	BishBosh.Input.PieceSquareTable				as Input.PieceSquareTable
 import qualified	BishBosh.Input.RankValues				as Input.RankValues
+import qualified	BishBosh.Property.FixedMembership			as Property.FixedMembership
 import qualified	BishBosh.Property.ShowFloat				as Property.ShowFloat
 import qualified	BishBosh.Text.ShowList					as Text.ShowList
+import qualified	BishBosh.Type.Count					as Type.Count
 import qualified	BishBosh.Type.Mass					as Type.Mass
 import qualified	Control.DeepSeq
 import qualified	Control.Exception
@@ -177,18 +184,44 @@ instance HXT.XmlPickler EvaluationOptions where
 	 ) . HXT.xpOption . HXT.xpElem pieceSquareTablesTag $ HXT.xpElem Input.PieceSquareTable.tag HXT.xpickle `HXT.xpPair` HXT.xpElem pieceSquareTableEndGameTag HXT.xpickle where
 		def	= Data.Default.def
 
+-- | The constant bounds of the number of pieces on the board, at the end-game & opening-game respectively.
+nPiecesBounds :: (Type.Count.NPieces, Type.Count.NPieces)
+nPiecesBounds	= (
+	3 {-minimum sufficient material-},
+	fromIntegral Colour.LogicalColour.nDistinctLogicalColours * Component.Piece.nPiecesPerSide
+ )
+
+-- | Given the bounds over which a piece-square value varies, as the game progresses from opening to end, return the linearly interpolated value for the specified stage.
+interpolatePieceSquareValues
+	:: Type.Count.NPieces						-- ^ The value to interpolate.
+	-> (Type.Mass.PieceSquareValue, Type.Mass.PieceSquareValue)	-- ^ (Opening-game, End-game) values.
+	-> Type.Mass.PieceSquareValue
+interpolatePieceSquareValues nPieces (openingGame, endGame)	= realToFrac . uncurry (+) . (
+	(* toRational openingGame) &&& (* toRational endGame) . (1 -)	-- N.B.: arithmetic must be conducted in an unbounded type, instead of 'PieceSquareValue'.
+ ) $ fromIntegral (
+	nPieces - fst {-minimum-} nPiecesBounds
+ ) / fromIntegral (
+	uncurry subtract nPiecesBounds	-- N.B.: this can't reasonably be zero.
+ )
+
 -- | Convert a /PieceSquareTablePair/ to a single linearly interpolated array.
 fromPieceSquareTablePair :: PieceSquareTablePair -> Component.PieceSquareByCoordinatesByRank.PieceSquareByCoordinatesByRank
 fromPieceSquareTablePair pieceSquareTablePair	= Component.PieceSquareByCoordinatesByRank.mkPieceSquareByCoordinatesByRank $ \rank -> (
 	\(openingGamePieceSquareValueByCoordinates, maybeEndGamePieceSquareValueByCoordinates) -> Data.Maybe.maybe (
-		Left openingGamePieceSquareValueByCoordinates
+		Left openingGamePieceSquareValueByCoordinates	-- There's only one value for this rank, so no interpolation is required.
 	) (
-		Right . Cartesian.Coordinates.listArrayByCoordinates . zipWith Component.PieceSquareByCoordinatesByRank.interpolatePieceSquareValues (
-			Data.Array.IArray.elems openingGamePieceSquareValueByCoordinates
-		) . Data.Array.IArray.elems
+		\endGamePieceSquareValueByCoordinates -> Right . Data.Array.IArray.listArray nPiecesBounds . map (
+			\nPieces -> Cartesian.Coordinates.listArrayByCoordinates $ map (
+				interpolatePieceSquareValues nPieces . (
+					(openingGamePieceSquareValueByCoordinates !) &&& (endGamePieceSquareValueByCoordinates !)
+				)
+			) Property.FixedMembership.members	-- Coordinates.
+		) $ uncurry enumFromTo nPiecesBounds
 	) maybeEndGamePieceSquareValueByCoordinates
  ) $ (
-	 uncurry (***) . ((Data.Maybe.fromJust {-values for the openingGame must be specified-} . ) &&& id) $ Input.PieceSquareTable.dereference rank
+	uncurry (***) . (
+		(.) Data.Maybe.fromJust {-all ranks must be defined for the openingGame-} &&& id
+	) $ Input.PieceSquareTable.dereference rank
  ) pieceSquareTablePair
 
 -- | Smart constructor.

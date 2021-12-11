@@ -31,7 +31,6 @@ module Main(main) where
 
 import			Control.Arrow((&&&), (***), (|||))
 import			Control.Category((>>>))
-import			Data.Array.IArray((!))
 import qualified	BishBosh.Component.PieceSquareByCoordinatesByRank	as Component.PieceSquareByCoordinatesByRank
 import qualified	BishBosh.ContextualNotation.PGN				as ContextualNotation.PGN
 import qualified	BishBosh.ContextualNotation.PGNDatabase			as ContextualNotation.PGNDatabase
@@ -281,7 +280,7 @@ main	= do
 					) (
 						showChar '\t'	-- Column-delimiter.
 					) (
-						! selector Component.PieceSquareByCoordinatesByRank.nPiecesBounds	-- Select from interpolated values.
+						selector Input.EvaluationOptions.nPiecesBounds	-- Select from interpolated values.
 					)
 				) [snd, fst]
 			 ) . Input.EvaluationOptions.getMaybePieceSquareByCoordinatesByRank $ Input.Options.getEvaluationOptions options
