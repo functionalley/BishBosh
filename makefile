@@ -32,6 +32,7 @@ hlint: $(BIN_DIR)/hlint
 	@$@ -j	--no-exit-code\
 		--cpp-define 'USE_NEWTYPE_WRAPPERS'\
 		--cpp-define 'USE_PARALLEL'\
+		--cpp-define 'USE_POLYPARSE=L'\
 		--ignore 'Use tuple-section'\
 		src-lib/ +RTS -N -RTS
 	@$@ -j	--no-exit-code\
