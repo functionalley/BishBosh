@@ -189,7 +189,8 @@ Library
         BishBosh.Component.EitherQualifiedMove
         BishBosh.Component.Move
         BishBosh.Component.Piece
-        BishBosh.Component.PieceSquareByCoordinatesByRank
+        BishBosh.Component.PieceSquareValueByCoordinates
+        BishBosh.Component.PieceSquareValueByCoordinatesByRank
         BishBosh.Component.QualifiedMove
         BishBosh.Component.Turn
         BishBosh.Component.Zobrist

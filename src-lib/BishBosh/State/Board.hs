@@ -74,7 +74,7 @@ import qualified	BishBosh.Colour.LogicalColour				as Colour.LogicalColour
 import qualified	BishBosh.Component.Accountant				as Component.Accountant
 import qualified	BishBosh.Component.Move					as Component.Move
 import qualified	BishBosh.Component.Piece				as Component.Piece
-import qualified	BishBosh.Component.PieceSquareByCoordinatesByRank	as Component.PieceSquareByCoordinatesByRank
+import qualified	BishBosh.Component.PieceSquareValueByCoordinatesByRank	as Component.PieceSquareValueByCoordinatesByRank
 import qualified	BishBosh.Data.Exception					as Data.Exception
 import qualified	BishBosh.Direction.Direction				as Direction.Direction
 import qualified	BishBosh.Property.Empty					as Property.Empty
@@ -385,13 +385,13 @@ movePiece move maybeMoveType board@MkBoard {
 
 -- | Calculate the total value of the /coordinates/ occupied by the /piece/s of either side, at a stage in the game's life-span defined by the total number of pieces remaining.
 sumPieceSquareValueByLogicalColour
-	:: Component.PieceSquareByCoordinatesByRank.PieceSquareByCoordinatesByRank
+	:: Component.PieceSquareValueByCoordinatesByRank.PieceSquareValueByCoordinatesByRank
 	-> Board
 	-> [Type.Mass.Base]	-- ^ Individual sums for each logical colours, of the PieceSquareValues.
-sumPieceSquareValueByLogicalColour pieceSquareByCoordinatesByRank MkBoard {
+sumPieceSquareValueByLogicalColour pieceSquareValueByCoordinatesByRank MkBoard {
 	getCoordinatesByRankByLogicalColour	= coordinatesByRankByLogicalColour,
 	getNPieces				= nPieces
-} = Component.Accountant.sumPieceSquareValueByLogicalColour pieceSquareByCoordinatesByRank coordinatesByRankByLogicalColour nPieces	-- Forward the request.
+} = Component.Accountant.sumPieceSquareValueByLogicalColour pieceSquareValueByCoordinatesByRank coordinatesByRankByLogicalColour nPieces	-- Forward the request.
 
 {- |
 	* Lists the source-/coordinates/ from which the referenced destination can be attacked.

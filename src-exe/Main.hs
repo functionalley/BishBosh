@@ -31,7 +31,7 @@ module Main(main) where
 
 import			Control.Arrow((&&&), (***), (|||))
 import			Control.Category((>>>))
-import qualified	BishBosh.Component.PieceSquareByCoordinatesByRank	as Component.PieceSquareByCoordinatesByRank
+import qualified	BishBosh.Component.PieceSquareValueByCoordinatesByRank	as Component.PieceSquareValueByCoordinatesByRank
 import qualified	BishBosh.ContextualNotation.PGN				as ContextualNotation.PGN
 import qualified	BishBosh.ContextualNotation.PGNDatabase			as ContextualNotation.PGNDatabase
 import qualified	BishBosh.ContextualNotation.QualifiedMoveForest		as ContextualNotation.QualifiedMoveForest
@@ -41,8 +41,8 @@ import qualified	BishBosh.Input.CommandLineOption			as Input.CommandLineOption
 import qualified	BishBosh.Input.EvaluationOptions			as Input.EvaluationOptions
 import qualified	BishBosh.Input.IOOptions				as Input.IOOptions
 import qualified	BishBosh.Input.Options					as Input.Options
-import qualified	BishBosh.Input.PieceSquareTable				as Input.PieceSquareTable
 import qualified	BishBosh.Input.PGNOptions				as Input.PGNOptions
+import qualified	BishBosh.Input.PieceSquareTable				as Input.PieceSquareTable
 import qualified	BishBosh.Input.UIOptions				as Input.UIOptions
 import qualified	BishBosh.Input.Verbosity				as Input.Verbosity
 import qualified	BishBosh.Model.Game					as Model.Game
@@ -266,14 +266,14 @@ main	= do
 			formatPieceSquareTableForGNUPlot options	= Data.Maybe.maybe (
 				Control.Exception.throwIO $ Data.Exception.mkNullDatum "the piece-square table is undefined."
 			 ) (
-				\pieceSquareByCoordinatesByRank	-> putStr . foldr ($) "" . zipWith (.) (
+				\pieceSquareValueByCoordinatesByRank	-> putStr . foldr ($) "" . zipWith (.) (
 					map (
-						\gamePhase	-> showChar Component.PieceSquareByCoordinatesByRank.gnuPlotComment . showString gamePhase . showString "-game:\n"
+						\gamePhase	-> showChar Component.PieceSquareValueByCoordinatesByRank.gnuPlotComment . showString gamePhase . showString "-game:\n"
 					) ["Opening", "End"]
 				) $ map (
-					\selector	-> Component.PieceSquareByCoordinatesByRank.formatForGNUPlot pieceSquareByCoordinatesByRank (
+					\selector	-> Component.PieceSquareValueByCoordinatesByRank.formatForGNUPlot pieceSquareValueByCoordinatesByRank (
 						Property.ShowFloat.showsFloatToN' (
-							Input.UIOptions.getNDecimalDigits . Input.IOOptions.getUIOptions $ Input.Options.getIOOptions options	-- PieceSquareValue formatter.
+							Input.UIOptions.getNDecimalDigits . Input.IOOptions.getUIOptions $ Input.Options.getIOOptions options	-- PieceSquareValue-formatter.
 						) . (
 							realToFrac	:: Type.Mass.PieceSquareValue -> Input.PieceSquareTable.IOFormat
 						)
@@ -283,7 +283,7 @@ main	= do
 						selector Input.EvaluationOptions.nPiecesBounds	-- Select from interpolated values.
 					)
 				) [snd, fst]
-			 ) . Input.EvaluationOptions.getMaybePieceSquareByCoordinatesByRank $ Input.Options.getEvaluationOptions options
+			 ) . Input.EvaluationOptions.getMaybePieceSquareValueByCoordinatesByRank $ Input.Options.getEvaluationOptions options
 
 #ifdef USE_UNIX
 	Concurrent.SignalHandlers.handleSignals

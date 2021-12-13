@@ -56,8 +56,9 @@ module BishBosh.Input.PieceSquareTable(
 	normaliseToUnitInterval,
 	mirror,
 	unmirror,
+-- ** Accessors
 	findUndefinedRanks,
-	dereference,
+	findPieceSquareValueByCoordinates,
 -- ** Constructors
 	mkPieceSquareTable,
 -- ** Predicates
@@ -69,7 +70,7 @@ import			Control.Arrow((&&&), (***))
 import qualified	BishBosh.Attribute.Rank					as Attribute.Rank
 import qualified	BishBosh.Cartesian.Abscissa				as Cartesian.Abscissa
 import qualified	BishBosh.Cartesian.Coordinates				as Cartesian.Coordinates
-import qualified	BishBosh.Component.PieceSquareByCoordinatesByRank	as Component.PieceSquareByCoordinatesByRank
+import qualified	BishBosh.Component.PieceSquareValueByCoordinates	as Component.PieceSquareValueByCoordinates
 import qualified	BishBosh.Data.Exception					as Data.Exception
 import qualified	BishBosh.Data.Foldable					as Data.Foldable
 import qualified	BishBosh.Data.Num					as Data.Num
@@ -81,7 +82,6 @@ import qualified	BishBosh.Text.ShowList					as Text.ShowList
 import qualified	BishBosh.Type.Mass					as Type.Mass
 import qualified	Control.Arrow
 import qualified	Control.Exception
-import qualified	Data.Array.IArray
 import qualified	Data.Default
 import qualified	Data.Map.Strict						as Map
 import qualified	Data.Set
@@ -109,7 +109,7 @@ type ReflectOnY	= Bool
 data PieceSquareTable	= MkPieceSquareTable {
 	getNormalise				:: Normalise,												-- ^ Whether to map the specified values into the closed unit-interval.	CAVEAT: incompatible with RelaxNG, the specification for which already constrains values to the unit-interval.
 	getReflectOnY				:: ReflectOnY,												-- ^ Whether values for the RHS of the board should be inferred by reflection about the y-axis.
-	getPieceSquareValueByCoordinatesByRank	:: Map.Map Attribute.Rank.Rank Component.PieceSquareByCoordinatesByRank.PieceSquareValueByCoordinates	-- ^ N.B.: on the assumption that the values for Black pieces are the reflection of those for White, merely the /rank/ of each /piece/ need be defined.
+	getPieceSquareValueByCoordinatesByRank	:: Map.Map Attribute.Rank.Rank Component.PieceSquareValueByCoordinates.PieceSquareValueByCoordinates	-- ^ N.B.: on the assumption that the values for Black pieces are the reflection of those for White, merely the /rank/ of each /piece/ need be defined.
 } deriving (Eq, Show)
 
 instance Property.ShowFloat.ShowFloat PieceSquareTable where
@@ -130,7 +130,7 @@ instance Property.ShowFloat.ShowFloat PieceSquareTable where
 			if reflectOnY
 				then unmirror
 				else id
-		) . Data.Array.IArray.elems
+		) . Component.PieceSquareValueByCoordinates.toList
 	 ) (
 		Map.toList pieceSquareValueByCoordinatesByRank
 	 )
@@ -160,7 +160,7 @@ instance HXT.XmlPickler PieceSquareTable where
 					if reflectOnY
 						then unmirror
 						else id
-				) . Data.Array.IArray.elems
+				) . Component.PieceSquareValueByCoordinates.toList
 			) pieceSquareValueByCoordinatesByRank
 		) -- Deconstruct to tuple.
 	 ) . HXT.xpTriple (
@@ -231,7 +231,7 @@ mkPieceSquareTable normalise reflectOnY assocs
 		getNormalise				= normalise,
 		getReflectOnY				= reflectOnY,
 		getPieceSquareValueByCoordinatesByRank	= Map.fromList . map (
-			Control.Arrow.second Cartesian.Coordinates.listArrayByCoordinates
+			Control.Arrow.second Component.PieceSquareValueByCoordinates.fromList
 		) . (
 			if reflectOnY
 				then map $ Control.Arrow.second mirror
@@ -256,6 +256,6 @@ findUndefinedRanks :: PieceSquareTable -> Data.Set.Set Attribute.Rank.Rank
 findUndefinedRanks MkPieceSquareTable { getPieceSquareValueByCoordinatesByRank = pieceSquareValueByCoordinatesByRank }	= Data.Set.fromAscList Property.FixedMembership.members `Data.Set.difference` Map.keysSet pieceSquareValueByCoordinatesByRank
 
 -- | Lookup the values for all /coordinates/, corresponding to the specified /rank/.
-dereference :: Attribute.Rank.Rank -> PieceSquareTable -> Maybe Component.PieceSquareByCoordinatesByRank.PieceSquareValueByCoordinates
-dereference rank MkPieceSquareTable { getPieceSquareValueByCoordinatesByRank = pieceSquareValueByCoordinatesByRank }	= Map.lookup rank pieceSquareValueByCoordinatesByRank
+findPieceSquareValueByCoordinates :: Attribute.Rank.Rank -> PieceSquareTable -> Maybe Component.PieceSquareValueByCoordinates.PieceSquareValueByCoordinates
+findPieceSquareValueByCoordinates rank MkPieceSquareTable { getPieceSquareValueByCoordinatesByRank = pieceSquareValueByCoordinatesByRank }	= Map.lookup rank pieceSquareValueByCoordinatesByRank
 

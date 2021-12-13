@@ -64,7 +64,8 @@ import qualified	BishBosh.Colour.LogicalColour				as Colour.LogicalColour
 import qualified	BishBosh.Component.Accountant				as Component.Accountant
 import qualified	BishBosh.Component.Move					as Component.Move
 import qualified	BishBosh.Component.Piece				as Component.Piece
-import qualified	BishBosh.Component.PieceSquareByCoordinatesByRank	as Component.PieceSquareByCoordinatesByRank
+import qualified	BishBosh.Component.PieceSquareValueByCoordinates	as Component.PieceSquareValueByCoordinates
+import qualified	BishBosh.Component.PieceSquareValueByCoordinatesByRank	as Component.PieceSquareValueByCoordinatesByRank
 import qualified	BishBosh.Component.Zobrist				as Component.Zobrist
 import qualified	BishBosh.Property.Empty					as Property.Empty
 import qualified	BishBosh.Property.FixedMembership			as Property.FixedMembership
@@ -225,13 +226,16 @@ instance StateProperty.View.View CoordinatesByRankByLogicalColour where
 	 )
 
 instance Component.Accountant.Accountant CoordinatesByRankByLogicalColour where
-	sumPieceSquareValueByLogicalColour pieceSquareByCoordinatesByRank MkCoordinatesByRankByLogicalColour { deconstruct = byLogicalColour } nPieces	= map (
+	sumPieceSquareValueByLogicalColour pieceSquareValueByCoordinatesByRank MkCoordinatesByRankByLogicalColour { deconstruct = byLogicalColour } nPieces	= map (
 		\(logicalColour, byRank) -> Data.List.foldl' (
-			\acc (rank, coordinatesList) -> Data.List.foldl' (
-				\acc' -> (+ acc') . realToFrac . Component.PieceSquareByCoordinatesByRank.findPieceSquareValue pieceSquareByCoordinatesByRank nPieces logicalColour rank
+			\acc (rank, coordinatesList) -> let
+				pieceSquareValueByCoordinates	= getPieceSquareValueByCoordinates rank
+			in pieceSquareValueByCoordinates `seq` Data.List.foldl' (
+				\acc' coordinates -> (+ acc') . realToFrac $! Component.PieceSquareValueByCoordinates.getPieceSquareValue pieceSquareValueByCoordinates logicalColour coordinates
 			) acc coordinatesList
 		) 0 $ Data.Array.IArray.assocs byRank
-	 ) $ Data.Array.IArray.assocs byLogicalColour
+	 ) $ Data.Array.IArray.assocs byLogicalColour where
+		getPieceSquareValueByCoordinates	= Component.PieceSquareValueByCoordinatesByRank.getPieceSquareValueByCoordinates pieceSquareValueByCoordinatesByRank nPieces
 
 instance Property.SelfValidating.SelfValidating CoordinatesByRankByLogicalColour where
 	findInvalidity selfValidator	= concatMap ($ selfValidator) [

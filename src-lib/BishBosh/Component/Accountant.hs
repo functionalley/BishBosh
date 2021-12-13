@@ -27,7 +27,7 @@ module BishBosh.Component.Accountant(
 	Accountant(..)
 ) where
 
-import qualified	BishBosh.Component.PieceSquareByCoordinatesByRank	as Component.PieceSquareByCoordinatesByRank
+import qualified	BishBosh.Component.PieceSquareValueByCoordinatesByRank	as Component.PieceSquareValueByCoordinatesByRank
 import qualified	BishBosh.Type.Count					as Type.Count
 import qualified	BishBosh.Type.Mass					as Type.Mass
 
@@ -35,7 +35,7 @@ import qualified	BishBosh.Type.Mass					as Type.Mass
 class Accountant accountant where
 	-- | Calculate the total value of the /coordinates/ occupied by the /piece/s of either side.
 	sumPieceSquareValueByLogicalColour
-		:: Component.PieceSquareByCoordinatesByRank.PieceSquareByCoordinatesByRank
+		:: Component.PieceSquareValueByCoordinatesByRank.PieceSquareValueByCoordinatesByRank
 		-> accountant
 		-> Type.Count.NPieces	-- ^ The number of pieces (of any logical colour or rank) remaining on the board; used to gauge progress through the game.
 		-> [Type.Mass.Base]	-- CAVEAT: can't return '[Type.Mass.PieceSquareValue]' because it's bounded.

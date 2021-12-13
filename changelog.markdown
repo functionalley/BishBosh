@@ -168,5 +168,7 @@ New Module				| Purpose
 ## 0.1.4.0
 * Efficiency:
 	+ Implemented functions **BishBosh.Cartesian.{Coordinates.fromEnum, Ordinate.reflect}** in unboxed primitive arithmetic.
-	+ Moved **Either** outwards in the data-type **BishBosh.Component.PieceSquareByCoordinatesByRank.Component.PieceSquareByCoordinatesByRank**, reducing its size, improving performance, & increasing LR symmetry.
+	+ Moved **Either** outwards in the data-type **BishBosh.Component.PieceSquareByCoordinatesByRank.PieceSquareByCoordinatesByRank**, reducing its size, improving performance, & increasing LR symmetry.
+* Structural:
+	+ Split module **BishBosh.Component.PieceSquareByCoordinatesByRank** into **BishBosh.Component.PieceSquareValueByCoordinates** & **BishBosh.Component.PieceSquareValueByCoordinatesByRank**.
 

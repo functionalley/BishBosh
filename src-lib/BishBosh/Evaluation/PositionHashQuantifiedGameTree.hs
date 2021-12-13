@@ -177,7 +177,7 @@ mkPositionHashQuantifiedGameTree evaluationOptions searchOptions zobrist moveFre
 							positionHash'	= Model.Game.updateIncrementalPositionHash game positionHash game' zobrist
 					in slave
 				) (
-					\pieceSquareByCoordinatesByRank -> let
+					\pieceSquareValueByCoordinatesByRank -> let
 						slave pieceSquareValueDifference positionHash game Data.Tree.Node {
 							Data.Tree.rootLabel	= game',
 							Data.Tree.subForest	= gameForest'
@@ -187,11 +187,11 @@ mkPositionHashQuantifiedGameTree evaluationOptions searchOptions zobrist moveFre
 							) evaluationOptions,
 							Data.Tree.subForest	= map (slave pieceSquareValueDifference' positionHash' game') gameForest'	-- Recurse.
 						} where
-							pieceSquareValueDifference'	= Evaluation.Fitness.measurePieceSquareValueDifferenceIncrementally pieceSquareValueDifference pieceSquareByCoordinatesByRank game'
+							pieceSquareValueDifference'	= Evaluation.Fitness.measurePieceSquareValueDifferenceIncrementally pieceSquareValueDifference pieceSquareValueByCoordinatesByRank game'
 							positionHash'			= Model.Game.updateIncrementalPositionHash game positionHash game' zobrist
-					in slave $ Evaluation.Fitness.measurePieceSquareValueDifference pieceSquareByCoordinatesByRank seedGame
+					in slave $ Evaluation.Fitness.measurePieceSquareValueDifference pieceSquareValueByCoordinatesByRank seedGame
 				) (
-					Input.EvaluationOptions.getMaybePieceSquareByCoordinatesByRank evaluationOptions
+					Input.EvaluationOptions.getMaybePieceSquareValueByCoordinatesByRank evaluationOptions
 				) apexPositionHash seedGame
 			) $ Data.Tree.subForest bareGameTree
 		}

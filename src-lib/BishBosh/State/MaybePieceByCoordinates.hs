@@ -72,7 +72,8 @@ import qualified	BishBosh.Component.Accountant				as Component.Accountant
 import qualified	BishBosh.Component.CastlingMove				as Component.CastlingMove
 import qualified	BishBosh.Component.Move					as Component.Move
 import qualified	BishBosh.Component.Piece				as Component.Piece
-import qualified	BishBosh.Component.PieceSquareByCoordinatesByRank	as Component.PieceSquareByCoordinatesByRank
+import qualified	BishBosh.Component.PieceSquareValueByCoordinates	as Component.PieceSquareValueByCoordinates
+import qualified	BishBosh.Component.PieceSquareValueByCoordinatesByRank	as Component.PieceSquareValueByCoordinatesByRank
 import qualified	BishBosh.Component.Zobrist				as Component.Zobrist
 import qualified	BishBosh.Data.Exception					as Data.Exception
 import qualified	BishBosh.Direction.Direction				as Direction.Direction
@@ -290,16 +291,17 @@ instance StateProperty.View.View MaybePieceByCoordinates where
 	fromAssocs	= MkMaybePieceByCoordinates . Data.Array.IArray.accumArray (flip const) Nothing {-default-} (minBound, maxBound) . map (Control.Arrow.second Just)
 
 instance Component.Accountant.Accountant MaybePieceByCoordinates where
-	sumPieceSquareValueByLogicalColour pieceSquareByCoordinatesByRank maybePieceByCoordinates nPieces = (
+	sumPieceSquareValueByLogicalColour pieceSquareValueByCoordinatesByRank maybePieceByCoordinates nPieces = (
 		\(b, w) -> [b, w]
 	 ) . Data.List.foldl' (
 		\(b, w) (coordinates, piece) -> let
 			logicalColour		= Component.Piece.getLogicalColour piece
-			pieceSquareValue	= realToFrac $! Component.PieceSquareByCoordinatesByRank.findPieceSquareValue pieceSquareByCoordinatesByRank nPieces logicalColour (Component.Piece.getRank piece) coordinates
+			pieceSquareValue	= realToFrac $! Component.PieceSquareValueByCoordinates.getPieceSquareValue (getPieceSquareValueByCoordinates $ Component.Piece.getRank piece) logicalColour coordinates
 		in if Colour.LogicalColour.isBlack logicalColour
 			then let b' = b + pieceSquareValue in b' `seq` (b', w)
 			else let w' = w + pieceSquareValue in w' `seq` (b, w')
-	 ) (0, 0) $ StateProperty.Seeker.findAllPieces maybePieceByCoordinates
+	 ) (0, 0) $ StateProperty.Seeker.findAllPieces maybePieceByCoordinates where
+		getPieceSquareValueByCoordinates	= Component.PieceSquareValueByCoordinatesByRank.getPieceSquareValueByCoordinates pieceSquareValueByCoordinatesByRank nPieces
 
 instance Property.SelfValidating.SelfValidating MaybePieceByCoordinates where
 	findInvalidity	= uncurry (++) . (StateProperty.Censor.findInvalidity &&& StateProperty.Seeker.findInvalidity)

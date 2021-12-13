@@ -55,7 +55,8 @@ import qualified	BishBosh.Cartesian.Ordinate				as Cartesian.Ordinate
 import qualified	BishBosh.Colour.LogicalColour				as Colour.LogicalColour
 import qualified	BishBosh.Component.Move					as Component.Move
 import qualified	BishBosh.Component.Piece				as Component.Piece
-import qualified	BishBosh.Component.PieceSquareByCoordinatesByRank	as Component.PieceSquareByCoordinatesByRank
+import qualified	BishBosh.Component.PieceSquareValueByCoordinates	as Component.PieceSquareValueByCoordinates
+import qualified	BishBosh.Component.PieceSquareValueByCoordinatesByRank	as Component.PieceSquareValueByCoordinatesByRank
 import qualified	BishBosh.Component.QualifiedMove			as Component.QualifiedMove
 import qualified	BishBosh.Component.Turn					as Component.Turn
 import qualified	BishBosh.Input.CriteriaWeights				as Input.CriteriaWeights
@@ -79,14 +80,14 @@ import qualified	Data.Maybe
 
 -- | Measures the difference in /piece-square value/ between players, from the perspective of the last player to move.
 measurePieceSquareValueDifference
-	:: Component.PieceSquareByCoordinatesByRank.PieceSquareByCoordinatesByRank
+	:: Component.PieceSquareValueByCoordinatesByRank.PieceSquareValueByCoordinatesByRank
 	-> Model.Game.Game
 	-> Type.Mass.Base	-- ^ Unbounded difference.
-measurePieceSquareValueDifference pieceSquareByCoordinatesByRank game	= Data.List.foldl1' (
+measurePieceSquareValueDifference pieceSquareValueByCoordinatesByRank game	= Data.List.foldl1' (
 	if Colour.LogicalColour.isBlack $! Model.Game.getNextLogicalColour game
 		then subtract
 		else (-)	-- Represent the piece-square value difference from Black's perspective; i.e. the last player to move.
- ) . State.Board.sumPieceSquareValueByLogicalColour pieceSquareByCoordinatesByRank $ Model.Game.getBoard game
+ ) . State.Board.sumPieceSquareValueByLogicalColour pieceSquareValueByCoordinatesByRank $ Model.Game.getBoard game
 
 {- |
 	* Measures the difference in /piece-square value/ between players, from the perspective of the last player to move.
@@ -97,23 +98,23 @@ measurePieceSquareValueDifference pieceSquareByCoordinatesByRank game	= Data.Lis
 -}
 measurePieceSquareValueDifferenceIncrementally
 	:: Type.Mass.Base	-- ^ The difference between players in the piece-square value, before the last move was applied & therefore also from the perspective of the previous player.
-	-> Component.PieceSquareByCoordinatesByRank.PieceSquareByCoordinatesByRank
+	-> Component.PieceSquareValueByCoordinatesByRank.PieceSquareValueByCoordinatesByRank
 	-> Model.Game.Game
 	-> Type.Mass.Base	-- ^ Unbounded difference.
-measurePieceSquareValueDifferenceIncrementally previousPieceSquareValueDifference pieceSquareByCoordinatesByRank game
+measurePieceSquareValueDifferenceIncrementally previousPieceSquareValueDifference pieceSquareValueByCoordinatesByRank game
 	| Attribute.MoveType.isSimple $! Component.QualifiedMove.getMoveType qualifiedMove	= let
-		findPieceSquareValue :: Cartesian.Coordinates.Coordinates -> Type.Mass.Base
-		findPieceSquareValue	= realToFrac . uncurry (
-			Component.PieceSquareByCoordinatesByRank.findPieceSquareValue pieceSquareByCoordinatesByRank
-		 ) (
-			State.Board.getNPieces {-N.B.: no capture occurred-} . Model.Game.getBoard &&& Property.Opposable.getOpposite . Model.Game.getNextLogicalColour $ game	{-the last player to move-}
-		 ) (
-			Component.Turn.getRank turn	-- N.B.: no promotion occurred.
+		pieceSquareValueByCoordinates	= Component.PieceSquareValueByCoordinatesByRank.getPieceSquareValueByCoordinates pieceSquareValueByCoordinatesByRank (
+			State.Board.getNPieces {-N.B.: no capture occurred-} $ Model.Game.getBoard game
+		 ) $ Component.Turn.getRank turn	-- N.B.: no promotion occurred.
+
+		getPieceSquareValue :: Cartesian.Coordinates.Coordinates -> Type.Mass.Base
+		getPieceSquareValue	= realToFrac . Component.PieceSquareValueByCoordinates.getPieceSquareValue pieceSquareValueByCoordinates (
+			Property.Opposable.getOpposite $ Model.Game.getNextLogicalColour game	{-the last player to move-}
 		 )
-	in uncurry (-) (
-		findPieceSquareValue . Component.Move.getDestination &&& findPieceSquareValue . Component.Move.getSource $ Component.QualifiedMove.getMove qualifiedMove
+	in pieceSquareValueByCoordinates `seq` uncurry (-) (
+		getPieceSquareValue . Component.Move.getDestination &&& getPieceSquareValue . Component.Move.getSource $ Component.QualifiedMove.getMove qualifiedMove
 	) - previousPieceSquareValueDifference {-from the previous player's perspective-}
-	| otherwise	= measurePieceSquareValueDifference pieceSquareByCoordinatesByRank game	-- N.B.: though non-simple (Castling, En-passant, promotion) can be calculated, the returns don't justify the effort.
+	| otherwise	= measurePieceSquareValueDifference pieceSquareValueByCoordinatesByRank game	-- N.B.: though non-simple (Castling, En-passant, promotion) can be calculated, the returns don't justify the effort.
 	where
 		Just turn	= Model.Game.maybeLastTurn game
 		qualifiedMove	= Component.Turn.getQualifiedMove turn
@@ -292,9 +293,9 @@ evaluateFitness maybePieceSquareValueDifference game
 			else 0	-- A draw.
 	) []
 	| otherwise	= do
-		criteriaWeights				<- Control.Monad.Reader.asks Input.EvaluationOptions.getCriteriaWeights
-		rankValuePair				<- Control.Monad.Reader.asks $ Input.EvaluationOptions.getRankValues &&& Input.EvaluationOptions.getMaximumTotalRankValue
-		maybePieceSquareByCoordinatesByRank	<- Control.Monad.Reader.asks Input.EvaluationOptions.getMaybePieceSquareByCoordinatesByRank
+		criteriaWeights					<- Control.Monad.Reader.asks Input.EvaluationOptions.getCriteriaWeights
+		rankValuePair					<- Control.Monad.Reader.asks $ Input.EvaluationOptions.getRankValues &&& Input.EvaluationOptions.getMaximumTotalRankValue
+		maybePieceSquareValueByCoordinatesByRank	<- Control.Monad.Reader.asks Input.EvaluationOptions.getMaybePieceSquareValueByCoordinatesByRank
 
 		return {-to Reader-monad-} $! Input.CriteriaWeights.calculateWeightedMean criteriaWeights (
 			uncurry measureValueOfMaterial rankValuePair game
@@ -303,7 +304,7 @@ evaluateFitness maybePieceSquareValueDifference game
 		 ) (
 			Data.Maybe.maybe 0 (
 				realToFrac . (/ fromIntegral Component.Piece.nPiecesPerSide)	-- Normalise.
-			) $ maybePieceSquareValueDifference <|> fmap (`measurePieceSquareValueDifference` game) maybePieceSquareByCoordinatesByRank
+			) $ maybePieceSquareValueDifference <|> fmap (`measurePieceSquareValueDifference` game) maybePieceSquareValueByCoordinatesByRank
 		 ) (
 			measureValueOfCastlingPotential game
 		 ) (

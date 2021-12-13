@@ -293,7 +293,7 @@ results	= sequence [
 	let
 		f :: Input.EvaluationOptions.EvaluationOptions -> Model.Game.Game -> Test.QuickCheck.Property
 		f evaluationOptions game	= Data.Maybe.isJust (
-			Input.EvaluationOptions.getMaybePieceSquareByCoordinatesByRank evaluationOptions
+			Input.EvaluationOptions.getMaybePieceSquareValueByCoordinatesByRank evaluationOptions
 		 ) && not (
 			Property.Null.isNull game
 		 ) ==> Test.QuickCheck.label "Game.prop_measurePieceSquareValueIncrementally" .
@@ -310,10 +310,10 @@ results	= sequence [
 		 ) . abs . uncurry (-)	-- Tolerance for floating-point errors.
 #endif
 		 $ (
-			measurePieceSquareValueDifference' &&& Evaluation.Fitness.measurePieceSquareValueDifferenceIncrementally (measurePieceSquareValueDifference' oldGame) pieceSquareByCoordinatesByRank
+			measurePieceSquareValueDifference' &&& Evaluation.Fitness.measurePieceSquareValueDifferenceIncrementally (measurePieceSquareValueDifference' oldGame) pieceSquareValueByCoordinatesByRank
 		 ) game where
-			pieceSquareByCoordinatesByRank		= Data.Maybe.fromJust $ Input.EvaluationOptions.getMaybePieceSquareByCoordinatesByRank evaluationOptions
-			measurePieceSquareValueDifference'	= Evaluation.Fitness.measurePieceSquareValueDifference pieceSquareByCoordinatesByRank
+			pieceSquareValueByCoordinatesByRank	= Data.Maybe.fromJust $ Input.EvaluationOptions.getMaybePieceSquareValueByCoordinatesByRank evaluationOptions
+			measurePieceSquareValueDifference'	= Evaluation.Fitness.measurePieceSquareValueDifference pieceSquareValueByCoordinatesByRank
 			(oldGame, _) : _			= Model.Game.rollBack game
 	in Test.QuickCheck.quickCheckWithResult Test.QuickCheck.stdArgs { Test.QuickCheck.maxSuccess = 2048 } f,
 	let

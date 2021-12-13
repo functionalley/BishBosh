@@ -74,22 +74,22 @@ results	= sequence [
 #ifdef USE_PRECISION
 	let
 		f :: Input.EvaluationOptions.EvaluationOptions -> State.Board.Board -> Test.QuickCheck.Property
-		f evaluationOptions board	= Data.Maybe.isJust maybePieceSquareByCoordinatesByRank ==> Test.QuickCheck.label "EvaluationOptions.prop_sumPieceSquareValueByLogicalColour" . uncurry (==) $ (
+		f evaluationOptions board	= Data.Maybe.isJust maybePieceSquareValueByCoordinatesByRank ==> Test.QuickCheck.label "EvaluationOptions.prop_sumPieceSquareValueByLogicalColour" . uncurry (==) $ (
 			sumPieceSquareValueByLogicalColour' . State.Board.getCoordinatesByRankByLogicalColour &&& sumPieceSquareValueByLogicalColour' . State.Board.getMaybePieceByCoordinates
 		 ) board where
-			maybePieceSquareByCoordinatesByRank	= Input.EvaluationOptions.getMaybePieceSquareByCoordinatesByRank evaluationOptions
+			maybePieceSquareValueByCoordinatesByRank	= Input.EvaluationOptions.getMaybePieceSquareValueByCoordinatesByRank evaluationOptions
 
 			sumPieceSquareValueByLogicalColour' :: Component.Accountant.Accountant accountant => accountant -> [Type.Mass.Base]
-			sumPieceSquareValueByLogicalColour'	= flip (Component.Accountant.sumPieceSquareValueByLogicalColour $ Data.Maybe.fromJust maybePieceSquareByCoordinatesByRank) $ State.Board.getNPieces board
+			sumPieceSquareValueByLogicalColour'	= flip (Component.Accountant.sumPieceSquareValueByLogicalColour $ Data.Maybe.fromJust maybePieceSquareValueByCoordinatesByRank) $ State.Board.getNPieces board
 	in Test.QuickCheck.quickCheckWithResult Test.QuickCheck.stdArgs { Test.QuickCheck.maxSuccess = 64 } f,
 #endif
 	let
 		f :: Input.EvaluationOptions.EvaluationOptions -> State.Board.Board -> Test.QuickCheck.Property
-		f evaluationOptions board	= Data.Maybe.isJust maybePieceSquareByCoordinatesByRank ==> Test.QuickCheck.label "EvaluationOptions.prop_sumPieceSquareValueByLogicalColour/reflectOnX" . uncurry (==) $ (
+		f evaluationOptions board	= Data.Maybe.isJust maybePieceSquareValueByCoordinatesByRank ==> Test.QuickCheck.label "EvaluationOptions.prop_sumPieceSquareValueByLogicalColour/reflectOnX" . uncurry (==) $ (
 			sumPieceSquareValueByLogicalColour &&& reverse . sumPieceSquareValueByLogicalColour . Property.Reflectable.reflectOnX
 		 ) board where
-			maybePieceSquareByCoordinatesByRank	= Input.EvaluationOptions.getMaybePieceSquareByCoordinatesByRank evaluationOptions
-			sumPieceSquareValueByLogicalColour	= State.Board.sumPieceSquareValueByLogicalColour $ Data.Maybe.fromJust maybePieceSquareByCoordinatesByRank
+			maybePieceSquareValueByCoordinatesByRank	= Input.EvaluationOptions.getMaybePieceSquareValueByCoordinatesByRank evaluationOptions
+			sumPieceSquareValueByLogicalColour		= State.Board.sumPieceSquareValueByLogicalColour $ Data.Maybe.fromJust maybePieceSquareValueByCoordinatesByRank
 	in Test.QuickCheck.quickCheckWithResult Test.QuickCheck.stdArgs { Test.QuickCheck.maxSuccess = 32 } f
  ]
 
