@@ -52,6 +52,7 @@ type TextParser	= Poly.Parser Char
 
 -- | Matches the specified char.
 char :: Char -> TextParser ()
+{-# ANN char "HLint: ignore Use void" #-}
 char c	= Poly.satisfyMsg (== c) [c] >> return {-to Parser-monad-} ()
 
 {- |
@@ -69,6 +70,7 @@ string	= mapM_ char
 -}
 spaces :: TextParser ()
 -- spaces	= Control.Monad.void . Poly.many $ Poly.satisfy Data.Char.isSpace	-- CAVEAT: poor performance ?!
+{-# ANN spaces "HLint: ignore Use void" #-}
 spaces	= Poly.many (Poly.satisfy Data.Char.isSpace) >> return {-to Parser-monad-} ()
 
 -- | Parses an unsigned base-10 integer.

@@ -106,6 +106,7 @@ ordinateParser	= ((+ yOriginOffset) . fromIntegral . Data.Char.ord) `fmap` Poly.
 
 -- | Parse a pair of /coordinates/.
 coordinatesParser :: Text.Poly.TextParser Cartesian.Coordinates.Coordinates
+{-# ANN coordinatesParser "HLint: ignore Use <$>" #-}
 coordinatesParser	= do
 	x	<- abscissaParser
 	y	<- ordinateParser

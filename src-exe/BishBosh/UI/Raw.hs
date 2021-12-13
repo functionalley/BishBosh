@@ -103,6 +103,7 @@ readMove :: forall positionHash randomGen. (
 	-> State.PlayState.PlayState positionHash
 	-> IO (State.PlayState.PlayState positionHash)
 {-# SPECIALISE readMove :: ContextualNotation.PositionHashQualifiedMoveTree.PositionHashQualifiedMoveTree Type.Crypto.PositionHash -> System.Random.StdGen -> Time.StopWatch.StopWatch -> State.PlayState.PlayState Type.Crypto.PositionHash -> IO (State.PlayState.PlayState Type.Crypto.PositionHash) #-}
+{-# ANN readMove "HLint: ignore Reduce duplication" #-}
 readMove positionHashQualifiedMoveTree randomGen runningWatch playState	= let
 	(game, options)			= State.PlayState.getGame &&& State.PlayState.getOptions $ playState
 	(searchOptions, ioOptions)	= Input.Options.getSearchOptions &&& Input.Options.getIOOptions $ options

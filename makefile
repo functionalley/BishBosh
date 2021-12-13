@@ -39,7 +39,6 @@ hlint: $(BIN_DIR)/hlint
 		--cpp-define 'MOVE_NOTATION=S'\
 		--cpp-define 'USE_HXTRELAXNG'\
 		--cpp-define 'USE_UNIX'\
-		--ignore 'Reduce duplication'\
 		src-exe/ +RTS -N -RTS
 	@$@ -j	--cpp-define 'USE_NEWTYPE_WRAPPERS'\
 		--cpp-define 'USE_BRATKO_KOPEC'\

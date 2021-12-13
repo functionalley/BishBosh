@@ -57,6 +57,7 @@ import qualified	Text.ParserCombinators.Poly.Plain		as Poly
 import			Control.Arrow((|||))
 import			Test.HUnit((~?=), (~?))
 import qualified	Text.ParserCombinators.Parsec
+{-# ANN module "HLint: ignore Use fewer imports" #-}
 #endif
 
 -- | Check the sanity of the implementation, by validating a list of static test-cases.
