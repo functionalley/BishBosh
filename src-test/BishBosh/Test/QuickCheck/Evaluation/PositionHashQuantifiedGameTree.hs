@@ -1,3 +1,4 @@
+{-# LANGUAGE CPP #-}
 {-
 	Copyright (C) 2018 Dr. Alistair Ward
 
@@ -36,19 +37,23 @@ import qualified	BishBosh.Input.EvaluationOptions			as Input.EvaluationOptions
 import qualified	BishBosh.Input.SearchOptions				as Input.SearchOptions
 import qualified	BishBosh.Model.Game					as Model.Game
 import qualified	BishBosh.Property.Empty					as Property.Empty
-import qualified	BishBosh.State.Position					as State.Position
 import qualified	BishBosh.Test.QuickCheck.Component.Zobrist		as Test.QuickCheck.Component.Zobrist
 import qualified	BishBosh.Type.Crypto					as Type.Crypto
 import qualified	BishBosh.Type.Mass					as Type.Mass
-import qualified	Data.List.Extra
-import qualified	Data.Ord
 import qualified	Data.Tree
 import qualified	Test.QuickCheck
+
+#ifndef USE_NARROW_NUMBERS
+import qualified	BishBosh.State.Position					as State.Position
+import qualified	Data.List.Extra
+import qualified	Data.Ord
 import			Test.QuickCheck((==>))
+#endif
 
 -- | The constant test-results for this data-type.
 results :: IO [Test.QuickCheck.Result]
 results	= sequence [
+#ifndef USE_NARROW_NUMBERS
 	let
 		f
 			:: Input.EvaluationOptions.EvaluationOptions
@@ -67,6 +72,7 @@ results	= sequence [
 				Data.Ord.comparing Evaluation.PositionHashQuantifiedGameTree.getPositionHash
 			 ) . take 10000 . Data.Tree.flatten . Evaluation.PositionHashQuantifiedGameTree.deconstruct $ Evaluation.PositionHashQuantifiedGameTree.mkPositionHashQuantifiedGameTree evaluationOptions searchOptions zobrist Property.Empty.empty {-MoveFrequency-} game
 	in Test.QuickCheck.quickCheckWithResult Test.QuickCheck.stdArgs { Test.QuickCheck.maxSuccess = 32 } f,
+#endif
 	let
 		f
 			:: Input.EvaluationOptions.EvaluationOptions

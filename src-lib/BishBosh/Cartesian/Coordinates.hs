@@ -39,7 +39,7 @@ module BishBosh.Cartesian.Coordinates(
 -- ** Type-synonyms
 --	Transformation,
 	ArrayByCoordinates,
-#ifdef USE_UNBOXED
+#ifdef UNBOX_ARRAYS
 	UArrayByCoordinates,
 #endif
 -- * Constants
@@ -105,7 +105,7 @@ import qualified	Data.List
 import qualified	Data.Map				as Map
 import qualified	Data.Maybe
 
-#ifdef USE_PARALLEL
+#ifdef PARALLELISE
 import qualified	Control.Parallel.Strategies
 #endif
 
@@ -114,7 +114,7 @@ import			GHC.Exts(Int(I#))
 import			GHC.Prim((+#), (*#))
 #endif
 
-#ifdef USE_UNBOXED
+#ifdef UNBOX_ARRAYS
 import qualified	Data.Array.Unboxed
 #endif
 
@@ -417,7 +417,7 @@ extrapolate coordinates	direction	= extrapolationsByDirectionByCoordinates ! coo
 -- | The constant lists of /coordinates/, extrapolated from every /coordinate/ in the /board/, in every /direction/.
 extrapolationsByDirectionByCoordinates :: ArrayByCoordinates (Direction.Direction.ArrayByDirection [Coordinates])
 extrapolationsByDirectionByCoordinates	= listArrayByCoordinates
-#ifdef USE_PARALLEL
+#ifdef PARALLELISE
 	. Control.Parallel.Strategies.withStrategy (Control.Parallel.Strategies.parList Control.Parallel.Strategies.rdeepseq)
 #endif
 	$ map (
@@ -508,7 +508,7 @@ isEnPassantRank MkCoordinates { getY = y }	= (== y) . Cartesian.Ordinate.enPassa
 -- | A boxed array indexed by /coordinates/, of arbitrary elements.
 type ArrayByCoordinates	= Data.Array.IArray.Array Coordinates
 
-#ifdef USE_UNBOXED
+#ifdef UNBOX_ARRAYS
 -- | An unboxed array indexed by /coordinates/, of fixed-size elements.
 type UArrayByCoordinates	= Data.Array.Unboxed.UArray Coordinates
 #endif

@@ -41,7 +41,7 @@ module BishBosh.Type.Length(
 	Column
 ) where
 
-#if defined(USE_NARROW_NUMBERS) || defined(USE_NEWTYPE_WRAPPERS)
+#if defined USE_NARROW_NUMBERS || defined USE_NEWTYPE_WRAPPERS
 #	ifdef USE_NARROW_NUMBERS
 import qualified	Data.Int
 #	endif

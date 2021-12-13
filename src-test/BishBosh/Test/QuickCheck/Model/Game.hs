@@ -297,7 +297,7 @@ results	= sequence [
 		 ) && not (
 			Property.Null.isNull game
 		 ) ==> Test.QuickCheck.label "Game.prop_measurePieceSquareValueIncrementally" .
-#ifdef USE_PRECISION
+#ifdef USE_PRECISE_NUMBERS
 		 uncurry (==)
 #else
 		 (

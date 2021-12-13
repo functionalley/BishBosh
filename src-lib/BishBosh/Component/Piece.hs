@@ -103,7 +103,7 @@ import qualified	Data.Maybe
 import qualified	Text.XML.HXT.Arrow.Pickle			as HXT
 import qualified	Text.XML.HXT.Arrow.Pickle.Schema
 
-#ifdef USE_PARALLEL
+#ifdef PARALLELISE
 import qualified	Control.Parallel.Strategies
 #endif
 
@@ -235,12 +235,12 @@ type ByRankByLogicalColour element	= Colour.LogicalColour.ArrayByLogicalColour (
 
 -- | Constructor of a certain shape of container, but with arbitrary contents.
 mkByRankByLogicalColour ::
-#ifdef USE_PARALLEL
+#ifdef PARALLELISE
 	Control.DeepSeq.NFData	element =>
 #endif
 	[Attribute.Rank.Rank] -> (Colour.LogicalColour.LogicalColour -> Attribute.Rank.Rank -> element) -> ByRankByLogicalColour element
 mkByRankByLogicalColour ranks mkElement	= Colour.LogicalColour.listArrayByLogicalColour
-#ifdef USE_PARALLEL
+#ifdef PARALLELISE
 	. Control.Parallel.Strategies.withStrategy (Control.Parallel.Strategies.parList Control.Parallel.Strategies.rdeepseq)
 #endif
 	$ map (

@@ -49,7 +49,7 @@ import qualified	Control.DeepSeq
 import qualified	Control.Exception
 #endif
 
-#ifdef USE_PRECISION
+#ifdef USE_PRECISE_NUMBERS
 import			BishBosh.Data.Ratio()
 #else
 import qualified	Text.XML.HXT.Arrow.Pickle	as HXT
@@ -57,7 +57,7 @@ import qualified	Text.XML.HXT.Arrow.Pickle	as HXT
 
 -- | The underling type.
 type Base	=
-#ifdef USE_PRECISION
+#ifdef USE_PRECISE_NUMBERS
 	Rational
 #else /* Floating-point */
 #	ifdef USE_NARROW_NUMBERS

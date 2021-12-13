@@ -48,7 +48,7 @@ import			Control.Arrow((|||))
 import qualified	Text.ParserCombinators.Parsec		as Parsec
 #endif
 
-#if !defined(USE_POLYPARSE) || USE_POLYPARSE != 'L'
+#if !defined USE_POLYPARSE || USE_POLYPARSE != 'L'
 import qualified	BishBosh.Data.Exception			as Data.Exception
 import qualified	Control.Exception
 #endif

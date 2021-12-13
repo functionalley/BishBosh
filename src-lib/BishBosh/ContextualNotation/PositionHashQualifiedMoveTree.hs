@@ -82,7 +82,7 @@ import qualified	Data.Tuple
 import qualified	System.Random
 import qualified	ToolShed.System.Random
 
-#ifdef USE_PARALLEL
+#ifdef PARALLELISE
 import qualified	Control.Parallel.Strategies
 #endif
 
@@ -246,7 +246,7 @@ findNextJoiningOnymousQualifiedMovesFromPosition positionHashQualifiedMoveTree g
 	| otherwise			= [
 		Control.Arrow.second (concatMap snd {-[OnymousResult]-}) movePair |	-- Discard the opponent's matching move, but cite the names of archived games it reached.
 			movePair@(_, _ : _)	<-
-#ifdef USE_PARALLEL
+#ifdef PARALLELISE
 				Control.Parallel.Strategies.withStrategy (
 					Control.Parallel.Strategies.parList $ Control.Parallel.Strategies.evalTuple2 Control.Parallel.Strategies.r0 {-pre-match move-} Control.Parallel.Strategies.rdeepseq {-matching moves-}
 				) .

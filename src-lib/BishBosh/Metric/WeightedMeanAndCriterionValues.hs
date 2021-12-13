@@ -50,7 +50,7 @@ import qualified	BishBosh.Type.Mass		as Type.Mass
 import qualified	Control.DeepSeq
 import qualified	Factory.Math.Statistics
 
-#ifdef USE_PARALLEL
+#ifdef PARALLELISE
 import qualified	Control.Parallel.Strategies
 #endif
 
@@ -108,7 +108,7 @@ calculateWeightedMean :: [(Metric.CriterionValue.CriterionValue, Metric.Criterio
 calculateWeightedMean	= uncurry mkWeightedMeanAndCriterionValues . (
 	Factory.Math.Statistics.getWeightedMean &&& map (realToFrac . fst)
  )
-#ifdef USE_PARALLEL
+#ifdef PARALLELISE
 	. Control.Parallel.Strategies.withStrategy (
 		Control.Parallel.Strategies.parList $ Control.Parallel.Strategies.evalTuple2 Control.Parallel.Strategies.rdeepseq Control.Parallel.Strategies.r0
 	)

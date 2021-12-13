@@ -46,7 +46,7 @@ import qualified	Data.Maybe
 import qualified	Test.QuickCheck
 import			Test.QuickCheck((==>))
 
-#ifdef USE_PRECISION
+#ifdef USE_PRECISE_NUMBERS
 import qualified	BishBosh.Component.Accountant		as Component.Accountant
 import qualified	BishBosh.Type.Mass			as Type.Mass
 #endif
@@ -71,7 +71,7 @@ instance Test.QuickCheck.Arbitrary Input.EvaluationOptions.EvaluationOptions whe
 -- | The constant test-results for this data-type.
 results :: IO [Test.QuickCheck.Result]
 results	= sequence [
-#ifdef USE_PRECISION
+#ifdef USE_PRECISE_NUMBERS
 	let
 		f :: Input.EvaluationOptions.EvaluationOptions -> State.Board.Board -> Test.QuickCheck.Property
 		f evaluationOptions board	= Data.Maybe.isJust maybePieceSquareValueByCoordinatesByRank ==> Test.QuickCheck.label "EvaluationOptions.prop_sumPieceSquareValueByLogicalColour" . uncurry (==) $ (

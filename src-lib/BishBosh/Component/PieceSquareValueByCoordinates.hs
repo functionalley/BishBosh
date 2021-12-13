@@ -47,8 +47,7 @@ import qualified	Control.DeepSeq
 import qualified	Data.Array.IArray
 
 type ByCoordinates	=
-#if defined USE_UNBOXED && !(defined USE_NEWTYPE_WRAPPERS || defined USE_PRECISION)
-#define UNBOX
+#ifdef UNBOX_ARRAYS
 	Cartesian.Coordinates.UArrayByCoordinates
 #else
 	Cartesian.Coordinates.ArrayByCoordinates
@@ -60,7 +59,7 @@ newtype PieceSquareValueByCoordinates	= MkPieceSquareValueByCoordinates ByCoordi
 
 instance Control.DeepSeq.NFData PieceSquareValueByCoordinates where
 	rnf (MkPieceSquareValueByCoordinates pieceSquareValueByCoordinates)	=
-#ifdef UNBOX
+#ifdef UNBOX_ARRAYS
 		Control.DeepSeq.rwhnf
 #else
 		Control.DeepSeq.rnf

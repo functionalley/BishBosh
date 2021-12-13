@@ -72,14 +72,14 @@ flag hxtrelaxng
     Default:		True
 
 -- Whether to use narrower numerical types than machine-defaults. CAVEAT: this option increases both the space allocated & the execution-time.
--- CAVEAT: incompatible with the flag 'precision', & to some extent 'unboxed'.
+-- CAVEAT: incompatible with the flag 'precisenumbers', & to some extent 'unbox'.
 flag narrownumbers
     Description:	Use narrow numerical types.
     Manual:		True
     Default:		False
 
 -- Whether, to wrap common types in 'newtype' for increased type-safety. CAVEAT: there's a ~10% performance-penalty.
--- CAVEAT: partially incompatible with flags 'narrownumbers' & 'unboxed'.
+-- CAVEAT: incompatible with flag 'unbox'.
 flag newtypewrappers
     Description:	Wrap common types in newtype for increased type-safety.
     Manual:		True
@@ -93,10 +93,10 @@ flag polyparse
     Description:	Link with package "polyparse" when available, rather than "parsec".
     Default:		True
 
--- Whether to use precise (rational) types rather than floating-point.
--- CAVEAT: conceptually incompatible with the flag 'narrownumbers', & to some extent the flag 'unboxed'.
-flag precision
-    Description:	Use precise fractional types.
+-- Whether to use precise (rational) numeric types rather than faster floating-point.
+-- CAVEAT: conceptually incompatible with the flag 'narrownumbers', & to some extent the flag 'unbox'.
+flag precisenumbers
+    Description:	Use precise rational numeric types.
     Manual:		True
     Default:		False
 
@@ -106,9 +106,9 @@ flag threaded
     Manual:		True
     Default:		True
 
--- Whether to use unboxed types where possible; e.g. in arrays or by primitive arithmetic.
--- CAVEAT: partially incompatible with flags ['narrownumbers', newtypewrappers', 'precision'].
-flag unboxed
+-- Whether to use unboxed types where possible; e.g. in arrays or in primitive arithmetic.
+-- CAVEAT: incompatible with flag 'newtypewrappers', & to some extent flags 'narrownumbers' & 'precisenumbers'.
+flag unbox
     Description:	Use unboxed types.
     Manual:		True
     Default:		True
@@ -316,32 +316,31 @@ Library
     if impl(ghc >= 7.0) && flag(llvm)
         GHC-options:	-fllvm
 
-    if flag(precision)
-        CPP-Options:	-DUSE_PRECISION
+    if flag(precisenumbers)
+        CPP-Options:	-DUSE_PRECISE_NUMBERS
     elif flag(narrownumbers)
         CPP-Options:	-DUSE_NARROW_NUMBERS
 
     if flag(newtypewrappers)
         CPP-Options:	-DUSE_NEWTYPE_WRAPPERS
+    elif flag(unbox)
+        if !flag(precisenumbers)
+            CPP-Options:	-DUNBOX_ARRAYS
+
+        if !flag(narrownumbers)
+            Build-depends:	ghc-prim ^>= 0.6.1
+            CPP-Options:	-DUSE_PRIMITIVE
 
     if flag(polyparse)
         Build-depends:		polyparse ^>= 1.13
         CPP-Options:		-DUSE_POLYPARSE='L'
         Exposed-modules:	BishBosh.Text.Poly
     else
-        Build-depends:	parsec ^>= 3.1.14.0
+        Build-depends:		parsec ^>= 3.1.14.0
 
     if flag(threaded)
         Build-depends:	parallel >= 3.0
-        CPP-Options:	-DUSE_PARALLEL
-
-    if flag(unboxed)
-        CPP-Options:	-DUSE_UNBOXED
-
--- Use unboxed primitive arithmetic when numeric types are already unwrapped & of the default width for the CPU.
-        if !(flag(narrownumbers) || flag(newtypewrappers))
-            Build-depends:	ghc-prim ^>= 0.6.1
-            CPP-Options:	-DUSE_PRIMITIVE
+        CPP-Options:	-DPARALLELISE
 
 Executable bishbosh
     Import:	commonStanza, exeStanza, profStanza
@@ -527,8 +526,8 @@ Test-Suite quickcheck-tests
     if flag(newtypewrappers)
         CPP-Options:	-DUSE_NEWTYPE_WRAPPERS
 
-    if flag(precision)
-        CPP-Options:	-DUSE_PRECISION
+    if flag(precisenumbers)
+        CPP-Options:	-DUSE_PRECISE_NUMBERS
     elif flag(narrownumbers)
         CPP-Options:	-DUSE_NARROW_NUMBERS
 

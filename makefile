@@ -31,7 +31,7 @@ graphmod: $(BIN_DIR)/graphmod
 hlint: $(BIN_DIR)/hlint
 	@$@ -j	--no-exit-code\
 		--cpp-define 'USE_NEWTYPE_WRAPPERS'\
-		--cpp-define 'USE_PARALLEL'\
+		--cpp-define 'PARALLELISE'\
 		--cpp-define 'USE_POLYPARSE=L'\
 		--ignore 'Use tuple-section'\
 		src-lib/ +RTS -N -RTS
@@ -47,14 +47,14 @@ hlint: $(BIN_DIR)/hlint
 
 # Serially compile with various CPP-flags & run the test-suites.
 test:
-	@for FLAG in -polyparse newtypewrappers unboxed -hxtrelaxng -threaded precision narrownumbers; do\
+	@for FLAG in -polyparse newtypewrappers unbox -hxtrelaxng -threaded precisenumbers narrownumbers; do\
 		echo $${FLAG};\
 		stack '$@' --flag="$(PACKAGE_NAME):$${FLAG}" $(GHC_OPTIONS) '$(PACKAGE_NAME):test:hunit-tests' '$(PACKAGE_NAME):test:quickcheck-tests' || break;\
 	done
 
 # Repeatedly compile with random CPP-flags & run the test-suites, until failure.
 randomTest:
-	FLAGS=$$(shuf --echo -- hxtrelaxng narrownumbers newtypewrappers polyparse precision threaded unboxed | head --lines=3 | sed -e '1s/^/-/' -e 's/\(.*\)/--flag=$(PACKAGE_NAME):\1/');\
+	FLAGS=$$(shuf --echo -- hxtrelaxng narrownumbers newtypewrappers polyparse precisenumbers threaded unbox | head --lines=3 | sed -e '1s/^/-/' -e 's/\(.*\)/--flag=$(PACKAGE_NAME):\1/');\
 	echo $${FLAGS};\
 	stack test $${FLAGS} $(GHC_OPTIONS) '$(PACKAGE_NAME):test:hunit-tests' '$(PACKAGE_NAME):test:quickcheck-tests';
 	make '$@'; # Recurse.

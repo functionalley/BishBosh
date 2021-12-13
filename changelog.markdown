@@ -171,4 +171,5 @@ New Module				| Purpose
 	+ Moved **Either** outwards in the data-type **BishBosh.Component.PieceSquareByCoordinatesByRank.PieceSquareByCoordinatesByRank**, reducing its size, improving performance, & increasing LR symmetry.
 * Structural:
 	+ Split module **BishBosh.Component.PieceSquareByCoordinatesByRank** into **BishBosh.Component.PieceSquareValueByCoordinates** & **BishBosh.Component.PieceSquareValueByCoordinatesByRank**.
+	+ Migrated the **CPP**-logic to establish compatibility between environment-variables, into the Cabal-file; also renamed some environment-variables & flags for clarity.
 
