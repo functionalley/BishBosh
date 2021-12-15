@@ -39,6 +39,7 @@ module BishBosh.Attribute.MoveType(
 	enPassant,
 -- * Functions
 	nPiecesMutator,
+	apply,
 -- ** Constructors
 	mkMaybeNormalMoveType,
 	mkNormalMoveType,
@@ -265,4 +266,23 @@ nPiecesMutator :: Enum nPieces => MoveType -> (nPieces -> nPieces)
 nPiecesMutator moveType
 	| isCapture moveType	= pred
 	| otherwise		= id
+
+-- | Permit the caller to react in an arbitrary way, according to a specific move-type.
+apply
+	:: (
+		IsShort -> a,	-- Castle.
+		a,		-- En-passant
+		(
+			Maybe Attribute.Rank.Rank {-captured-},
+			Maybe Attribute.Rank.Rank {-promotion-}
+		) -> a
+	)		-- ^ The handlers for each move-type; Castle, En-passant & Normal.
+	-> MoveType
+	-> a
+apply (onCastle, _, _) (Castle isShort)	= onCastle isShort
+apply (_, onEnPassant, _) EnPassant	= onEnPassant
+apply (_, _, onNormal) Normal {
+	getMaybeTakenRank	= maybeTakenRank,
+	getMaybePromotionRank	= maybePromotionRank
+}					= onNormal (maybeTakenRank, maybePromotionRank)
 

@@ -1,3 +1,4 @@
+{-# LANGUAGE LambdaCase #-}
 {-
 	Copyright (C) 2018 Dr. Alistair Ward
 
@@ -46,13 +47,15 @@ module BishBosh.Evaluation.Fitness(
 ) where
 
 import			Control.Applicative((<|>))
-import			Control.Arrow((&&&))
+import			Control.Arrow((&&&), (***))
 import			Data.Array.IArray((!))
 import qualified	BishBosh.Attribute.MoveType				as Attribute.MoveType
+import qualified	BishBosh.Attribute.Rank					as Attribute.Rank
 import qualified	BishBosh.Cartesian.Abscissa				as Cartesian.Abscissa
 import qualified	BishBosh.Cartesian.Coordinates				as Cartesian.Coordinates
 import qualified	BishBosh.Cartesian.Ordinate				as Cartesian.Ordinate
 import qualified	BishBosh.Colour.LogicalColour				as Colour.LogicalColour
+import qualified	BishBosh.Component.CastlingMove				as Component.CastlingMove
 import qualified	BishBosh.Component.Move					as Component.Move
 import qualified	BishBosh.Component.Piece				as Component.Piece
 import qualified	BishBosh.Component.PieceSquareValueByCoordinates	as Component.PieceSquareValueByCoordinates
@@ -94,30 +97,44 @@ measurePieceSquareValueDifference pieceSquareValueByCoordinatesByRank game	= Dat
 
 	* The previous value is provided, to enable calculation by difference.
 
-	* N.B.: because of diminishing returns, the piece-square value for everything but simple moves is calculated from scratch.
+	* CAVEAT: after a capture, the value is recounted from scratch, because there's one fewer pieces remaining & the piece-square value may depend on NPieces, so all pieces are potentially impacted.
 -}
 measurePieceSquareValueDifferenceIncrementally
 	:: Type.Mass.Base	-- ^ The difference between players in the piece-square value, before the last move was applied & therefore also from the perspective of the previous player.
 	-> Component.PieceSquareValueByCoordinatesByRank.PieceSquareValueByCoordinatesByRank
 	-> Model.Game.Game
 	-> Type.Mass.Base	-- ^ Unbounded difference.
-measurePieceSquareValueDifferenceIncrementally previousPieceSquareValueDifference pieceSquareValueByCoordinatesByRank game
-	| Attribute.MoveType.isSimple $! Component.QualifiedMove.getMoveType qualifiedMove	= let
-		pieceSquareValueByCoordinates	= Component.PieceSquareValueByCoordinatesByRank.getPieceSquareValueByCoordinates pieceSquareValueByCoordinatesByRank (
-			State.Board.getNPieces {-N.B.: no capture occurred-} $ Model.Game.getBoard game
-		 ) $ Component.Turn.getRank turn	-- N.B.: no promotion occurred.
+measurePieceSquareValueDifferenceIncrementally previousPieceSquareValueDifference pieceSquareValueByCoordinatesByRank game	= Data.Maybe.maybe (
+	measurePieceSquareValueDifference pieceSquareValueByCoordinatesByRank game	-- Recalculate.
+ ) (
+	subtract previousPieceSquareValueDifference
+ ) . Attribute.MoveType.apply (
+	\isShort	-> Just . (+ quietMovePieceSquareDifference) . uncurry subtract . uncurry (***) (
+		getPieceSquareValue &&& getPieceSquareValue $! getPieceSquareValueByCoordinates Attribute.Rank.Rook
+	) . (
+		Component.Move.getSource &&& Component.Move.getDestination
+	) . Component.CastlingMove.getRooksMove . (
+		if isShort then snd else fst
+	) $ Component.CastlingMove.getLongAndShortMoves previousLogicalColour,
+	Nothing,	-- En-passant.
+	\case
+		(Nothing, maybePromotionRank)	-> Just $! Data.Maybe.maybe quietMovePieceSquareDifference (
+			uncurry subtract . uncurry (***) getMovePieceSquareValues . (,) (getPieceSquareValueByCoordinates rank) . getPieceSquareValueByCoordinates
+		 ) maybePromotionRank
+		_				-> Nothing	-- Capture.
+ ) $! Component.QualifiedMove.getMoveType qualifiedMove where
+	(previousLogicalColour, (qualifiedMove, rank))	= Property.Opposable.getOpposite . Model.Game.getNextLogicalColour &&& (Component.Turn.getQualifiedMove &&& Component.Turn.getRank) . Data.Maybe.fromJust . Model.Game.maybeLastTurn $ game	-- Deconstruct.
 
-		getPieceSquareValue :: Cartesian.Coordinates.Coordinates -> Type.Mass.Base
-		getPieceSquareValue	= realToFrac . Component.PieceSquareValueByCoordinates.getPieceSquareValue pieceSquareValueByCoordinates (
-			Property.Opposable.getOpposite $ Model.Game.getNextLogicalColour game	{-the last player to move-}
-		 )
-	in pieceSquareValueByCoordinates `seq` uncurry (-) (
-		getPieceSquareValue . Component.Move.getDestination &&& getPieceSquareValue . Component.Move.getSource $ Component.QualifiedMove.getMove qualifiedMove
-	) - previousPieceSquareValueDifference {-from the previous player's perspective-}
-	| otherwise	= measurePieceSquareValueDifference pieceSquareValueByCoordinatesByRank game	-- N.B.: though non-simple (Castling, En-passant, promotion) can be calculated, the returns don't justify the effort.
-	where
-		Just turn	= Model.Game.maybeLastTurn game
-		qualifiedMove	= Component.Turn.getQualifiedMove turn
+	getPieceSquareValueByCoordinates :: Attribute.Rank.Rank -> Component.PieceSquareValueByCoordinates.PieceSquareValueByCoordinates
+	getPieceSquareValueByCoordinates	= Component.PieceSquareValueByCoordinatesByRank.getPieceSquareValueByCoordinates pieceSquareValueByCoordinatesByRank . State.Board.getNPieces $ Model.Game.getBoard game
+
+	getPieceSquareValue :: Component.PieceSquareValueByCoordinates.PieceSquareValueByCoordinates -> Cartesian.Coordinates.Coordinates -> Type.Mass.Base
+	getPieceSquareValue pieceSquareByCoordinates 	= realToFrac . Component.PieceSquareValueByCoordinates.getPieceSquareValue pieceSquareByCoordinates previousLogicalColour
+
+	getMovePieceSquareValues :: (Component.PieceSquareValueByCoordinates.PieceSquareValueByCoordinates -> Type.Mass.Base, Component.PieceSquareValueByCoordinates.PieceSquareValueByCoordinates -> Type.Mass.Base)
+	getMovePieceSquareValues	= uncurry (***) (id &&& id $ flip getPieceSquareValue) . (Component.Move.getSource &&& Component.Move.getDestination) $ Component.QualifiedMove.getMove qualifiedMove
+
+	quietMovePieceSquareDifference	= uncurry subtract . uncurry (&&&) getMovePieceSquareValues $! getPieceSquareValueByCoordinates rank
 
 -- | Measure the arithmetic difference between the total /rank-value/ of the /piece/s currently held by either side; <https://www.chessprogramming.org/Material>.
 measureValueOfMaterial
