@@ -229,13 +229,12 @@ instance Component.Accountant.Accountant CoordinatesByRankByLogicalColour where
 	sumPieceSquareValueByLogicalColour pieceSquareValueByCoordinatesByRank MkCoordinatesByRankByLogicalColour { deconstruct = byLogicalColour } nPieces	= map (
 		\(logicalColour, byRank) -> Data.List.foldl' (
 			\acc (rank, coordinatesList) -> let
-				pieceSquareValueByCoordinates	= getPieceSquareValueByCoordinates rank
+				pieceSquareValueByCoordinates	= Component.PieceSquareValueByCoordinatesByRank.getPieceSquareValueByCoordinates pieceSquareValueByCoordinatesByRank nPieces rank
 			in pieceSquareValueByCoordinates `seq` Data.List.foldl' (
-				\acc' coordinates -> (+ acc') . realToFrac $! Component.PieceSquareValueByCoordinates.getPieceSquareValue pieceSquareValueByCoordinates logicalColour coordinates
+				\acc' coordinates -> acc' + (realToFrac $! Component.PieceSquareValueByCoordinates.getPieceSquareValue pieceSquareValueByCoordinates logicalColour coordinates)
 			) acc coordinatesList
 		) 0 $ Data.Array.IArray.assocs byRank
-	 ) $ Data.Array.IArray.assocs byLogicalColour where
-		getPieceSquareValueByCoordinates	= Component.PieceSquareValueByCoordinatesByRank.getPieceSquareValueByCoordinates pieceSquareValueByCoordinatesByRank nPieces
+	 ) $ Data.Array.IArray.assocs byLogicalColour
 
 instance Property.SelfValidating.SelfValidating CoordinatesByRankByLogicalColour where
 	findInvalidity selfValidator	= concatMap ($ selfValidator) [
