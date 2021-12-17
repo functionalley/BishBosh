@@ -34,7 +34,8 @@ module BishBosh.State.PlayState(
 --		getMoveFrequency,
 		getSearchState,
 		getOptions,
-		getMaybeApplicationTerminationReason
+		getMaybeApplicationTerminationReason,
+		getNPliesSinceStandardOpeningMatch
 	),
 -- * Functions
 	calculateCriterionValueStatistics,
@@ -46,6 +47,7 @@ module BishBosh.State.PlayState(
 -- ** Mutators
 	reconstructPositionHashQuantifiedGameTree,
 	resetPositionHashQuantifiedGameTree,
+	rollBackPositionHashQuantifiedGameTree,
 --	setPositionHashQuantifiedGameTree,
 	updateWithAutomaticMove,
 	updateWithManualMove,
@@ -71,6 +73,7 @@ import qualified	BishBosh.Notation.MoveNotation				as Notation.MoveNotation
 import qualified	BishBosh.Search.SearchState				as Search.SearchState
 import qualified	BishBosh.State.ApplicationTerminationReason		as State.ApplicationTerminationReason
 import qualified	BishBosh.State.TurnsByLogicalColour			as State.TurnsByLogicalColour
+import qualified	BishBosh.Type.Count					as Type.Count
 import qualified	BishBosh.Type.Crypto					as Type.Crypto
 import qualified	BishBosh.Type.Mass					as Type.Mass
 import qualified	Control.Exception
@@ -88,7 +91,8 @@ data PlayState positionHash	= MkPlayState {
 	getMoveFrequency			:: Model.GameTree.MoveFrequency,						-- ^ The constant frequency of moves extracted from file.
 	getSearchState				:: Search.SearchState.SearchState positionHash,
 	getOptions				:: Input.Options.Options,							-- ^ The constant options by which the game is configured.
-	getMaybeApplicationTerminationReason	:: Maybe State.ApplicationTerminationReason.ApplicationTerminationReason	-- ^ Whether the game has terminated.
+	getMaybeApplicationTerminationReason	:: Maybe State.ApplicationTerminationReason.ApplicationTerminationReason,	-- ^ Whether the game has terminated.
+	getNPliesSinceStandardOpeningMatch	:: Type.Count.NPlies								-- ^ The number of plies since matching the position with a standard opening.
 }
 
 -- | Constructor.
@@ -114,7 +118,8 @@ initialise options zobrist moveFrequency game	= MkPlayState {
 		Input.Options.getEvaluationOptions &&& Input.Options.getSearchOptions $ options
 	) zobrist moveFrequency game,
 	getOptions				= options,
-	getMaybeApplicationTerminationReason	= Nothing
+	getMaybeApplicationTerminationReason	= Nothing,
+	getNPliesSinceStandardOpeningMatch	= 0
 }
 
 -- | Accessor.
@@ -131,7 +136,10 @@ setPositionHashQuantifiedGameTree positionHashQuantifiedGameTree playState@MkPla
 }
 
 -- | Reconstruct the /positionHashQuantifiedGameTree/ (in the /searchState/), with the apex set to the specified game.
-reconstructPositionHashQuantifiedGameTree :: Data.Bits.Bits positionHash => Model.Game.Game -> Transformation positionHash
+reconstructPositionHashQuantifiedGameTree
+	:: Data.Bits.Bits positionHash
+	=> Model.Game.Game
+	-> Transformation positionHash
 {-# SPECIALISE reconstructPositionHashQuantifiedGameTree :: Model.Game.Game -> Transformation Type.Crypto.PositionHash #-}
 reconstructPositionHashQuantifiedGameTree game playState@MkPlayState {
 	getZobrist		= zobrist,
@@ -148,7 +156,21 @@ resetPositionHashQuantifiedGameTree :: Data.Bits.Bits positionHash => Transforma
 {-# SPECIALISE resetPositionHashQuantifiedGameTree :: Transformation Type.Crypto.PositionHash #-}
 resetPositionHashQuantifiedGameTree playState	= reconstructPositionHashQuantifiedGameTree Data.Default.def playState {
 	getCriterionValues			= [],
-	getMaybeApplicationTerminationReason	= Nothing
+	getMaybeApplicationTerminationReason	= Nothing,
+	getNPliesSinceStandardOpeningMatch	= 0
+}
+
+-- | Roll-back the state by the specified number of plies.
+rollBackPositionHashQuantifiedGameTree
+	:: Data.Bits.Bits positionHash
+	=> Model.Game.Game
+	-> Type.Count.NPlies
+	-> Transformation positionHash
+{-# SPECIALISE rollBackPositionHashQuantifiedGameTree :: Model.Game.Game -> Type.Count.NPlies -> Transformation Type.Crypto.PositionHash #-}
+rollBackPositionHashQuantifiedGameTree game nPlies playState@MkPlayState {
+	getNPliesSinceStandardOpeningMatch	= nPliesSinceStandardOpeningMatch
+} = reconstructPositionHashQuantifiedGameTree game playState {
+	getNPliesSinceStandardOpeningMatch	= max 0 $ nPliesSinceStandardOpeningMatch - nPlies
 }
 
 -- | Mutator.
@@ -156,14 +178,21 @@ updateWithAutomaticMove
 	:: [Metric.CriterionValue.CriterionValue]
 	-> Search.SearchState.SearchState positionHash
 	-> Transformation positionHash
-updateWithAutomaticMove criterionValues searchState playState	= playState {
-	getCriterionValues	= criterionValues : getCriterionValues playState,
-	getSearchState		= searchState
+updateWithAutomaticMove criterionValues' searchState playState@MkPlayState {
+	getCriterionValues			= criterionValues,
+	getNPliesSinceStandardOpeningMatch	= nPliesSinceStandardOpeningMatch
+} = playState {
+	getCriterionValues			= criterionValues' : criterionValues,
+	getSearchState				= searchState,
+	getNPliesSinceStandardOpeningMatch	= succ nPliesSinceStandardOpeningMatch
 }
 
 -- | Mutator.
-updateWithManualMove :: Model.Game.Game -> Transformation positionHash
-updateWithManualMove game playState@MkPlayState { getSearchState = searchState }	= setPositionHashQuantifiedGameTree (
+updateWithManualMove
+	:: Model.Game.Game
+	-> Bool	-- ^ Whether the move matches a standard opening.
+	-> Transformation positionHash
+updateWithManualMove game standardOpeningMatch playState@MkPlayState { getSearchState = searchState }	= setPositionHashQuantifiedGameTree (
 	Data.Maybe.fromMaybe (
 		Control.Exception.throw $ Data.Exception.mkIncompatibleData "BishBosh.State.PlayState.updateWithManualMove:\tEvaluation.PositionHashQuantifiedGameTree.reduce failed."
 	) . Evaluation.PositionHashQuantifiedGameTree.reduce (
@@ -175,7 +204,11 @@ updateWithManualMove game playState@MkPlayState { getSearchState = searchState }
 			)
 		) . Evaluation.QuantifiedGame.getLastTurn . Evaluation.PositionHashQuantifiedGameTree.getQuantifiedGame
 	) $ Search.SearchState.getPositionHashQuantifiedGameTree searchState
- ) playState
+ ) $ playState {
+	getNPliesSinceStandardOpeningMatch	= if standardOpeningMatch
+		then 0
+		else succ $ getNPliesSinceStandardOpeningMatch playState
+ } 
 
 -- | Calculate the /root-mean-square/ & the /standard-deviation/, of the values of each type of /criterion/.
 calculateCriterionValueStatistics :: (

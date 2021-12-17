@@ -93,6 +93,14 @@
 					</optional><optional>
 						<element name="standardOpeningOptions">
 							<optional>
+								<attribute name="maximumPliesSinceMatch">
+									<data type="nonNegativeInteger"/>
+								</attribute>
+							</optional><optional>
+								<attribute name="preferVictories">
+									<ref name="Boolean"/>
+								</attribute>
+							</optional><optional>
 								<attribute name="tryToMatchMoves">
 									<ref name="Boolean"/>
 								</attribute>
@@ -102,10 +110,6 @@
 								</attribute>
 							</optional><optional>
 								<attribute name="tryToMatchColourFlippedPosition">
-									<ref name="Boolean"/>
-								</attribute>
-							</optional><optional>
-								<attribute name="preferVictories">
 									<ref name="Boolean"/>
 								</attribute>
 							</optional>

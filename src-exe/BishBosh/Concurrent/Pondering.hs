@@ -66,10 +66,7 @@ ponder
 	-> Control.Concurrent.MVar answer
 	-> IO (Pondering premise)
 ponder putStrLn' (premiseString, premise) answer mVar	= do
-	threadId	<- Control.Concurrent.forkIO $ do
-		Control.Concurrent.putMVar mVar $!! answer
-
-		putStrLn' $ showString "pondering-thread has a response based on " premiseString
+	threadId	<- Control.Concurrent.forkIO . Control.Concurrent.putMVar mVar $!! answer
 
 	putStrLn' . showString "pondering (on " . shows threadId $ showString ") a response to " premiseString
 

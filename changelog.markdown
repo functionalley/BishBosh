@@ -169,7 +169,8 @@ New Module				| Purpose
 * Efficiency:
 	+ Implemented functions **BishBosh.Cartesian.{Coordinates.fromEnum, Ordinate.reflect}** in unboxed primitive arithmetic.
 	+ Moved **Either** outwards in the data-type **BishBosh.Component.PieceSquareByCoordinatesByRank.PieceSquareByCoordinatesByRank**, reducing its size, improving performance, & increasing LR symmetry.
-	+ Added function **Attribute.MoveType.apply**, & called it from **Evaluation.Fitness.measurePieceSquareValueDifferenceIncrementally** to facilitate catering for *Castling* & *Promotion*.
+	+ Added function **BishBosh.Attribute.MoveType.apply**, & called it from **BishBosh.Evaluation.Fitness.measurePieceSquareValueDifferenceIncrementally** to facilitate catering for *Castling* & *Promotion*.
+	+ Added record-field **BishBosh.Input.StandardOpeningOptions.getMaybeMaximumPliesSinceMatch**, to limit the number of failures to match the position against a prerecorded game, before abandoning further attempts.
 * Structural:
 	+ Split module **BishBosh.Component.PieceSquareByCoordinatesByRank** into **BishBosh.Component.PieceSquareValueByCoordinates** & **BishBosh.Component.PieceSquareValueByCoordinatesByRank**.
 	+ Migrated the **CPP**-logic to establish compatibility between environment-variables, into the Cabal-file; also renamed some environment-variables & flags for clarity.

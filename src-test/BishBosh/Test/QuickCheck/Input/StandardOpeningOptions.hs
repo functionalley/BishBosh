@@ -25,9 +25,15 @@
 
 module BishBosh.Test.QuickCheck.Input.StandardOpeningOptions() where
 
+import			BishBosh.Test.QuickCheck.Type.Count()
 import qualified	BishBosh.Input.StandardOpeningOptions	as Input.StandardOpeningOptions
 import qualified	Test.QuickCheck
 
 instance Test.QuickCheck.Arbitrary Input.StandardOpeningOptions.StandardOpeningOptions where
-	arbitrary	= Input.StandardOpeningOptions.mkStandardOpeningOptions <$> Test.QuickCheck.arbitrary <*> Test.QuickCheck.arbitrary <*> Test.QuickCheck.arbitrary <*> Test.QuickCheck.arbitrary
+	arbitrary	= Input.StandardOpeningOptions.mkStandardOpeningOptions
+		<$> Test.QuickCheck.arbitrary
+		<*> Test.QuickCheck.arbitrary
+		<*> Test.QuickCheck.arbitrary
+		<*> Test.QuickCheck.arbitrary
+		<*> Test.QuickCheck.arbitrary
 

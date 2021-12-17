@@ -19,7 +19,7 @@
 {- |
  [@AUTHOR@]	Dr. Alistair Ward
 
- [@DESCRIPTION@]	Defines configurable options related to the process of searching standard-openings.
+ [@DESCRIPTION@]	Defines configurable options related to the process of searching standard openings.
 -}
 
 module BishBosh.Input.StandardOpeningOptions(
@@ -30,7 +30,8 @@ module BishBosh.Input.StandardOpeningOptions(
 --		getTryToMatchMoves,
 --		getTryToMatchViaJoiningMove,
 --		getTryToMatchColourFlippedPosition,
-		getPreferVictories
+		getPreferVictories,
+		getMaybeMaximumPliesSinceMatch
 	),
 -- * Constants
 	tag,
@@ -38,6 +39,7 @@ module BishBosh.Input.StandardOpeningOptions(
 --	tryToMatchViaJoiningMoveTag,
 --	tryToMatchColourFlippedPositionTag,
 --	preferVictoriesTag,
+--	maximumPliesSinceMatchTag,
 -- * Functions
 -- ** Constructor
 	mkStandardOpeningOptions,
@@ -47,8 +49,10 @@ module BishBosh.Input.StandardOpeningOptions(
 
 import			BishBosh.Data.Bool()	-- For 'HXT.xpickle'.
 import qualified	BishBosh.Text.ShowList						as Text.ShowList
+import qualified	BishBosh.Type.Count						as Type.Count
 import qualified	Control.DeepSeq
 import qualified	Data.Default
+import qualified	Data.Maybe
 import qualified	BishBosh.ContextualNotation.PositionHashQualifiedMoveTree	as ContextualNotation.PositionHashQualifiedMoveTree
 import qualified	Text.XML.HXT.Arrow.Pickle					as HXT
 
@@ -72,30 +76,42 @@ tryToMatchColourFlippedPositionTag	= "tryToMatchColourFlippedPosition"
 preferVictoriesTag :: String
 preferVictoriesTag			= "preferVictories"
 
+-- | Used to qualify XML.
+maximumPliesSinceMatchTag :: String
+maximumPliesSinceMatchTag		= "maximumPliesSinceMatch"
+
 -- | Defines options related to searching for a move.
 data StandardOpeningOptions	= MkStandardOpeningOptions {
+	getMaybeMaximumPliesSinceMatch		:: Maybe Type.Count.NPlies,								-- ^ The optional maximum number of plies, after the last match with a prerecorded game, before abandoning further attempts. If unspecified then there's no limit.
+	getPreferVictories			:: ContextualNotation.PositionHashQualifiedMoveTree.PreferVictories,			-- ^ Whether from all matching positions extracted from PGN-Databases, to prefer moves which result in a greater probability of victory, for the player who has the next move.
 	getTryToMatchMoves			:: ContextualNotation.PositionHashQualifiedMoveTree.TryToMatchMoves,			-- ^ Whether to attempt to exactly match moves with a standard opening; transpositions won't be matched.
 	getTryToMatchViaJoiningMove		:: ContextualNotation.PositionHashQualifiedMoveTree.TryToMatchViaJoiningMove,		-- ^ Whether to attempt to join the current position to a standard opening that's only one ply away.
-	getTryToMatchColourFlippedPosition	:: ContextualNotation.PositionHashQualifiedMoveTree.TryToMatchColourFlippedPosition,	-- ^ Whether to attempt to match a colour-flipped version of the current position with a standard opening.
-	getPreferVictories			:: ContextualNotation.PositionHashQualifiedMoveTree.PreferVictories			-- ^ Whether from all matching positions extracted from PGN-Databases, to prefer moves which result in a greater probability of victory, for the player who has the next move.
+	getTryToMatchColourFlippedPosition	:: ContextualNotation.PositionHashQualifiedMoveTree.TryToMatchColourFlippedPosition	-- ^ Whether to attempt to match a colour-flipped version of the current position with a standard opening.
 } deriving Eq
 
 instance Control.DeepSeq.NFData StandardOpeningOptions where
 	rnf MkStandardOpeningOptions {
+		getMaybeMaximumPliesSinceMatch		= maybeMaximumPliesSinceMatch,
+		getPreferVictories			= preferVictories,
 		getTryToMatchMoves			= tryToMatchMoves,
 		getTryToMatchViaJoiningMove		= tryToMatchViaJoiningMove,
-		getTryToMatchColourFlippedPosition	= tryToMatchColourFlippedPosition,
-		getPreferVictories			= preferVictories
-	} = Control.DeepSeq.rnf (tryToMatchMoves, tryToMatchViaJoiningMove, tryToMatchColourFlippedPosition, preferVictories)
+		getTryToMatchColourFlippedPosition	= tryToMatchColourFlippedPosition
+	} = Control.DeepSeq.rnf (maybeMaximumPliesSinceMatch, preferVictories, tryToMatchMoves, tryToMatchViaJoiningMove, tryToMatchColourFlippedPosition)
 
 instance Show StandardOpeningOptions where
 	showsPrec _ MkStandardOpeningOptions {
+		getMaybeMaximumPliesSinceMatch		= maybeMaximumPliesSinceMatch,
+		getPreferVictories			= preferVictories,
 		getTryToMatchMoves			= tryToMatchMoves,
 		getTryToMatchViaJoiningMove		= tryToMatchViaJoiningMove,
-		getTryToMatchColourFlippedPosition	= tryToMatchColourFlippedPosition,
-		getPreferVictories			= preferVictories
-	} = Text.ShowList.showsAssociationList' [
+		getTryToMatchColourFlippedPosition	= tryToMatchColourFlippedPosition
+	} = Text.ShowList.showsAssociationList' $ Data.Maybe.maybe id (
+		(:) . (,) maximumPliesSinceMatchTag . shows
+	 ) maybeMaximumPliesSinceMatch [
 		(
+			preferVictoriesTag,
+			shows preferVictories
+		), (
 			tryToMatchMovesTag,
 			shows tryToMatchMoves
 		), (
@@ -104,52 +120,55 @@ instance Show StandardOpeningOptions where
 		), (
 			tryToMatchColourFlippedPositionTag,
 			shows tryToMatchColourFlippedPosition
-		), (
-			preferVictoriesTag,
-			shows preferVictories
 		)
 	 ]
 
 instance Data.Default.Default StandardOpeningOptions where
 	def = MkStandardOpeningOptions {
+		getMaybeMaximumPliesSinceMatch		= Nothing,	-- Unlimited.
+		getPreferVictories			= True,
 		getTryToMatchMoves			= True,
 		getTryToMatchViaJoiningMove		= True,
-		getTryToMatchColourFlippedPosition	= True,
-		getPreferVictories			= True
+		getTryToMatchColourFlippedPosition	= True
 	}
 
 instance HXT.XmlPickler StandardOpeningOptions where
 	xpickle	= HXT.xpDefault Data.Default.def . HXT.xpElem tag . HXT.xpWrap (
-		\(a, b, c, d) -> mkStandardOpeningOptions a b c d,	-- Construct.
+		\(a, b, c, d, e) -> mkStandardOpeningOptions a b c d e,	-- Construct.
 		\MkStandardOpeningOptions {
+			getMaybeMaximumPliesSinceMatch		= maybeMaximumPliesSinceMatch,
+			getPreferVictories			= preferVictories,
 			getTryToMatchMoves			= tryToMatchMoves,
 			getTryToMatchViaJoiningMove		= tryToMatchViaJoiningMove,
-			getTryToMatchColourFlippedPosition	= tryToMatchColourFlippedPosition,
-			getPreferVictories			= preferVictories
-		} -> (tryToMatchMoves, tryToMatchViaJoiningMove, tryToMatchColourFlippedPosition, preferVictories) -- Deconstruct.
-	 ) $ HXT.xp4Tuple (
+			getTryToMatchColourFlippedPosition	= tryToMatchColourFlippedPosition
+		} -> (maybeMaximumPliesSinceMatch, preferVictories, tryToMatchMoves, tryToMatchViaJoiningMove, tryToMatchColourFlippedPosition) -- Deconstruct.
+	 ) $ HXT.xp5Tuple (
+		HXT.xpOption $ HXT.xpAttr maximumPliesSinceMatchTag HXT.xpickle
+	 ) (
+		getPreferVictories def `HXT.xpDefault` HXT.xpAttr preferVictoriesTag HXT.xpickle
+	 ) (
 		getTryToMatchMoves def `HXT.xpDefault` HXT.xpAttr tryToMatchMovesTag HXT.xpickle
 	 ) (
 		getTryToMatchViaJoiningMove def `HXT.xpDefault` HXT.xpAttr tryToMatchViaJoiningMoveTag HXT.xpickle
 	 ) (
 		getTryToMatchColourFlippedPosition def `HXT.xpDefault` HXT.xpAttr tryToMatchColourFlippedPositionTag HXT.xpickle
-	 ) (
-		getPreferVictories def `HXT.xpDefault` HXT.xpAttr preferVictoriesTag HXT.xpickle
 	 ) where
 		def	= Data.Default.def
 
 -- | Smart constructor.
 mkStandardOpeningOptions
-	:: ContextualNotation.PositionHashQualifiedMoveTree.TryToMatchMoves
+	:: Maybe Type.Count.NPlies	-- ^ The optional maximum number of plies, after the last position matched against a standard opening, to abandon further match-attempts.
+	-> ContextualNotation.PositionHashQualifiedMoveTree.PreferVictories
+	-> ContextualNotation.PositionHashQualifiedMoveTree.TryToMatchMoves
 	-> ContextualNotation.PositionHashQualifiedMoveTree.TryToMatchViaJoiningMove
 	-> ContextualNotation.PositionHashQualifiedMoveTree.TryToMatchColourFlippedPosition
-	-> ContextualNotation.PositionHashQualifiedMoveTree.PreferVictories
 	-> StandardOpeningOptions
-mkStandardOpeningOptions tryToMatchMoves tryToMatchViaJoiningMove tryToMatchColourFlippedPosition preferVictories	= MkStandardOpeningOptions {
+mkStandardOpeningOptions maybeNPlies preferVictories tryToMatchMoves tryToMatchViaJoiningMove tryToMatchColourFlippedPosition	= MkStandardOpeningOptions {
+	getMaybeMaximumPliesSinceMatch		= maybeNPlies,
+	getPreferVictories			= preferVictories,
 	getTryToMatchMoves			= tryToMatchMoves,
 	getTryToMatchViaJoiningMove		= tryToMatchViaJoiningMove,
-	getTryToMatchColourFlippedPosition	= tryToMatchColourFlippedPosition,
-	getPreferVictories			= preferVictories
+	getTryToMatchColourFlippedPosition	= tryToMatchColourFlippedPosition
 }
 
 -- | Accessor.

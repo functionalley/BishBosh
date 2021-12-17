@@ -204,8 +204,10 @@ readMove positionHashQualifiedMoveTree randomGen	= slave where
 		(game, options)			= State.PlayState.getGame &&& State.PlayState.getOptions $ playState
 		(searchOptions, ioOptions)	= Input.Options.getSearchOptions &&& Input.Options.getIOOptions $ options
 
-		(searchDepthByLogicalColour, tryToMatchSwitches)	= Input.SearchOptions.getSearchDepthByLogicalColour &&& Input.StandardOpeningOptions.getMatchSwitches . Input.SearchOptions.getStandardOpeningOptions $ searchOptions
+		(searchDepthByLogicalColour, standardOpeningOptions)	= Input.SearchOptions.getSearchDepthByLogicalColour &&& Input.SearchOptions.getStandardOpeningOptions $ searchOptions
 		fullyManual						= Data.Foldable.null searchDepthByLogicalColour
+
+		matchSwitches	= Input.StandardOpeningOptions.getMatchSwitches standardOpeningOptions
 
 		uiOptions	= Input.IOOptions.getUIOptions ioOptions
 
@@ -220,7 +222,21 @@ readMove positionHashQualifiedMoveTree randomGen	= slave where
 
 			onCommand :: UI.Command.Command -> IO (State.PlayState.PlayState positionHash)
 			onCommand UI.Command.Hint	= do
-				Control.Monad.unless (Model.Game.isTerminated game) . Data.Maybe.maybe (
+				Control.Monad.unless (Model.Game.isTerminated game) $ (
+					let
+						nPliesSinceStandardOpeningMatch	= State.PlayState.getNPliesSinceStandardOpeningMatch playState
+					in if Data.Maybe.maybe True {-unlimited-} (nPliesSinceStandardOpeningMatch <=) $ Input.StandardOpeningOptions.getMaybeMaximumPliesSinceMatch standardOpeningOptions
+						then do
+							Control.Monad.when (verbosity > Data.Default.def) . System.IO.hPutStrLn System.IO.stderr $ Text.ShowPrefix.showsPrefixInfo "attempting to match the current position with prerecorded games."
+
+							return {-to IO-monad-} $ ContextualNotation.PositionHashQualifiedMoveTree.maybeRandomlySelectOnymousQualifiedMove randomGen (
+								Input.StandardOpeningOptions.getPreferVictories standardOpeningOptions
+							 ) matchSwitches positionHashQualifiedMoveTree game
+						else do
+							Control.Monad.when (verbosity == maxBound) . System.IO.hPutStrLn System.IO.stderr . Text.ShowPrefix.showsPrefixInfo $ shows nPliesSinceStandardOpeningMatch " plies since matching the position with a prerecorded game => not attempting."
+
+							return {-to IO-monad-} Nothing	-- Don't attempt to match.
+				 ) >>= Data.Maybe.maybe (
 					do
 						Control.Monad.when (verbosity > Data.Default.def && not (ContextualNotation.PositionHashQualifiedMoveTree.isTerminal positionHashQualifiedMoveTree)) . System.IO.hPutStrLn System.IO.stderr $ Text.ShowPrefix.showsPrefixInfo "failed to find any suitable archived move."
 
@@ -242,9 +258,7 @@ readMove positionHashQualifiedMoveTree randomGen	= slave where
 					\(qualifiedMove, _) -> putStrLn . showString hintTag . showChar ' ' $ if displaySAN
 						then ContextualNotation.StandardAlgebraic.showMove explicitEnpassant qualifiedMove game
 						else Notation.MoveNotation.showNotation moveNotation qualifiedMove
-				 ) $ ContextualNotation.PositionHashQualifiedMoveTree.maybeRandomlySelectOnymousQualifiedMove randomGen (
-					Input.StandardOpeningOptions.getPreferVictories . Input.SearchOptions.getStandardOpeningOptions $ searchOptions
-				 ) tryToMatchSwitches positionHashQualifiedMoveTree game
+				 )
 
 				return {-to IO-monad-} playState	-- N.B.: though one could merely call "eventLoop", a new random-generator is desirable in case an alternative hint is requested.
 			onCommand (UI.Command.Print printObject)	= do
@@ -302,7 +316,7 @@ readMove positionHashQualifiedMoveTree randomGen	= slave where
 			onCommand (UI.Command.RollBack maybeNPlies)	= let
 				rollBack :: Type.Count.NPlies -> IO (State.PlayState.PlayState positionHash)
 				rollBack nPlies
-					| (game', _) : _ <- drop (fromIntegral $ pred nPlies) $ Model.Game.rollBack game	= return {-to IO-monad-} $ State.PlayState.reconstructPositionHashQuantifiedGameTree game' playState
+					| (game', _) : _ <- drop (fromIntegral $ pred nPlies) $ Model.Game.rollBack game	= return {-to IO-monad-} $ State.PlayState.rollBackPositionHashQuantifiedGameTree game' nPlies playState
 					| otherwise										= onCommand UI.Command.Restart
 			 in Data.Maybe.maybe (
 				let
@@ -414,7 +428,7 @@ readMove positionHashQualifiedMoveTree randomGen	= slave where
 										[(name, _result)]	-> showString ":\t" . showString name
 										_			-> id
 								) ""
-							 ) $ ContextualNotation.PositionHashQualifiedMoveTree.findNextOnymousQualifiedMoves tryToMatchSwitches positionHashQualifiedMoveTree game
+							 ) $ ContextualNotation.PositionHashQualifiedMoveTree.findNextOnymousQualifiedMoves matchSwitches positionHashQualifiedMoveTree game
 
 							eventLoop
 						"computer"	-> eventLoop	-- No action required.
@@ -967,7 +981,7 @@ readMove positionHashQualifiedMoveTree randomGen	= slave where
 
 								let
 									game'		= Model.Game.applyEitherQualifiedMove eitherQualifiedMove game
-									playState'	= State.PlayState.updateWithManualMove game' playState
+									playState'	= State.PlayState.updateWithManualMove game' False {-No match-} playState
 
 								Control.Monad.when (verbosity == maxBound) $ do
 									System.IO.hPutStrLn System.IO.stderr . Text.ShowPrefix.showsPrefixInfo . showString Component.Move.tag . Text.ShowList.showsAssociation . shows (
@@ -1023,6 +1037,8 @@ takeTurns positionHashQualifiedMoveTree randomGen playState	= do
 		evaluationOptions	= Input.Options.getEvaluationOptions options
 		searchOptions		= Input.Options.getSearchOptions options
 
+		standardOpeningOptions	= Input.SearchOptions.getStandardOpeningOptions searchOptions
+
 		(uiOptions, maybeMaximumPGNNames)	= Input.IOOptions.getUIOptions &&& Input.IOOptions.getMaybeMaximumPGNNames $ ioOptions
 
 		moveNotation	= Input.UIOptions.getMoveNotation uiOptions
@@ -1061,7 +1077,23 @@ takeTurns positionHashQualifiedMoveTree randomGen playState	= do
 								else return {-to IO-monad-}
 						 ) maybePondering
 				 ) (
-					\searchDepth' -> Data.Maybe.maybe (
+					\searchDepth' -> (
+						let
+							nPliesSinceStandardOpeningMatch	= State.PlayState.getNPliesSinceStandardOpeningMatch playState'
+						in if Data.Maybe.maybe True {-unlimited-} (nPliesSinceStandardOpeningMatch <=) $ Input.StandardOpeningOptions.getMaybeMaximumPliesSinceMatch standardOpeningOptions
+							then do
+								Control.Monad.when (verbosity > Data.Default.def) . System.IO.hPutStrLn System.IO.stderr $ Text.ShowPrefix.showsPrefixInfo "attempting to match the current position with prerecorded games."
+
+								return {-to IO-monad-} $ uncurry (
+									ContextualNotation.PositionHashQualifiedMoveTree.maybeRandomlySelectOnymousQualifiedMove randomGen'
+								 ) (
+									Input.StandardOpeningOptions.getPreferVictories &&& Input.StandardOpeningOptions.getMatchSwitches $ standardOpeningOptions
+								 ) positionHashQualifiedMoveTree game'	-- Determine whether the automated player's move can be decided by a search of recorded games or we must decide ourself.
+							else do
+								Control.Monad.when (verbosity == maxBound) . System.IO.hPutStrLn System.IO.stderr . Text.ShowPrefix.showsPrefixInfo $ shows nPliesSinceStandardOpeningMatch " plies since matching the position with a prerecorded game => not attempting."
+
+								return {-to IO-monad-} Nothing	-- Don't attempt to match.
+					) >>= Data.Maybe.maybe (
 						do
 							Control.Monad.when (
 								verbosity > Data.Default.def && not (
@@ -1158,7 +1190,7 @@ takeTurns positionHashQualifiedMoveTree randomGen playState	= do
 							Data.Maybe.maybe (
 								return {-to IO-monad-} ()
 							 ) (
-								Concurrent.Pondering.abort mVar >=> Control.Monad.when (verbosity == maxBound) . System.IO.hPutStrLn System.IO.stderr . Text.ShowPrefix.showsPrefixInfo . showString "pondering pre-empted by standard-opening match => "
+								Concurrent.Pondering.abort mVar >=> Control.Monad.when (verbosity == maxBound) . System.IO.hPutStrLn System.IO.stderr . Text.ShowPrefix.showsPrefixInfo . showString "pondering pre-empted by a match with a prerecorded game => "
 							 ) maybePondering
 
 							let selectedGame	= Model.Game.applyQualifiedMove qualifiedMove game'
@@ -1175,12 +1207,8 @@ takeTurns positionHashQualifiedMoveTree randomGen playState	= do
 
 							putStrLn . showString moveTag . showChar ' ' $ Notation.MoveNotation.showNotation moveNotation qualifiedMove	-- Send the move to the GUI.
 
-							return {-to IO-monad-} (State.PlayState.updateWithManualMove selectedGame playState', Nothing)	-- N.B.: one could ponder, but would have to construct a game-tree, & the chance of a subsequent standard-opening move is high.
-					 ) $ uncurry (
-						ContextualNotation.PositionHashQualifiedMoveTree.maybeRandomlySelectOnymousQualifiedMove randomGen'
-					 ) (
-						Input.StandardOpeningOptions.getPreferVictories &&& Input.StandardOpeningOptions.getMatchSwitches $ Input.SearchOptions.getStandardOpeningOptions searchOptions
-					 ) positionHashQualifiedMoveTree game'	-- Determine whether the automated player's move can be decided by a search of recorded games or we must decide ourself.
+							return {-to IO-monad-} (State.PlayState.updateWithManualMove selectedGame True {-match-} playState', Nothing)	-- N.B.: one could ponder, but would have to construct a game-tree, & the chance of a subsequent standard opening move is high.
+					 )
 				 ) (
 					if Input.UIOptions.isCECPManualMode uiOptions'
 						then Nothing

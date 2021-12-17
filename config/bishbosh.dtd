@@ -75,25 +75,27 @@
 			trapRepeatedPositions			(False | True)	#IMPLIED
 			usePondering				(False | True)	#IMPLIED
 		>
-		<!ELEMENT standardOpeningOptions EMPTY>
-			<!ATTLIST standardOpeningOptions
-				tryToMatchMoves			(False | True)	#IMPLIED
-				tryToMatchViaJoiningMove	(False | True)	#IMPLIED
-				tryToMatchColourFlippedPosition	(False | True)	#IMPLIED
-				preferVictories			(False | True)	#IMPLIED
-			>
-		<!ELEMENT searchDepthByLogicalColour (byLogicalColour)*>
-			<!ELEMENT byLogicalColour EMPTY>
-				<!ATTLIST byLogicalColour
-					logicalColour	(Black | White) #REQUIRED
-					searchDepth	CDATA		#REQUIRED
-				>
 		<!ELEMENT transpositions EMPTY>
 			<!ATTLIST transpositions
 				retireTranspositionsAfter	CDATA	#REQUIRED
 				minimumTranspositionSearchDepth	CDATA	#REQUIRED
 			>
 		<!ENTITY transpositions SYSTEM "transpositions.xml">
+		<!ELEMENT standardOpeningOptions EMPTY>
+			<!ATTLIST standardOpeningOptions
+				maximumPliesSinceMatch		CDATA		#IMPLIED
+				preferVictories			(False | True)	#IMPLIED
+				tryToMatchMoves			(False | True)	#IMPLIED
+				tryToMatchViaJoiningMove	(False | True)	#IMPLIED
+				tryToMatchColourFlippedPosition	(False | True)	#IMPLIED
+			>
+		<!ENTITY standardOpeningOptions SYSTEM "standardOpeningOptions.xml">
+		<!ELEMENT searchDepthByLogicalColour (byLogicalColour)*>
+			<!ELEMENT byLogicalColour EMPTY>
+				<!ATTLIST byLogicalColour
+					logicalColour	(Black | White) #REQUIRED
+					searchDepth	CDATA		#REQUIRED
+				>
 	<!ELEMENT ioOptions ((pgnOptions)*, (persistence)?, (uiOptions)?)>
 		<!ATTLIST ioOptions
 			outputConfigFilePath	CDATA	#IMPLIED

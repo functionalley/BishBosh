@@ -23,7 +23,7 @@
 
 	* Constructs the Zobrist data-type.
 
-	* Analyses standard-opening moves in order to statically sort the move-tree.
+	* Analyses standard opening moves in order to statically sort the move-tree.
 
 	* Reads any persistent game-state from file, to initialise the play-state, which constructs the quantified move tree.
 

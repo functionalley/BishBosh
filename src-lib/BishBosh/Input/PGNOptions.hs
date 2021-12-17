@@ -134,13 +134,12 @@ instance Show PGNOptions where
 		getIdentificationTags	= identificationTags,
 		getMinimumPlies		= minimumPlies,
 		getMaybeMaximumGames	= maybeMaximumGames
-	} = Text.ShowList.showsAssociationList' [
+	} = Text.ShowList.showsAssociationList' $ Data.Maybe.maybe id (
+		(:) . (,) decompressorTag . shows
+	 ) maybeDecompressor [
 		(
 			databaseFilePathTag,
 			shows databaseFilePath
-		), (
-			decompressorTag,
-			shows maybeDecompressor
 		), (
 			isStrictlySequentialTag,
 			shows isStrictlySequential

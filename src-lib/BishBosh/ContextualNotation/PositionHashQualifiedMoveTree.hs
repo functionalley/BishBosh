@@ -100,7 +100,7 @@ data PositionHashQualifiedMoveTree positionHash	= MkPositionHashQualifiedMoveTre
 	getZobrist		:: Component.Zobrist.Zobrist positionHash,	-- ^ Used to hash each position in the tree.
 	getTree			:: Tree positionHash,
 	getMinimumPieces	:: ! Type.Count.NPieces,			-- ^ The minimum number of /piece/s remaining after the last /move/ in any game defined in the tree.
-	getHasAnyVictories	:: Bool						-- ^ Whether a victory has been recorded for any game in the tree; which won't be the case if it was constructed from a PGN-database containing standard-openings.
+	getHasAnyVictories	:: Bool						-- ^ Whether a victory has been recorded for any game in the tree; which won't be the case if it was constructed from a PGN-database containing standard openings.
 }
 
 -- | Constructor: augment the specified /qualified-move forest/ with a /Zobrist-hash/ of the /position/ & include the default initial game at the apex.

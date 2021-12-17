@@ -78,7 +78,7 @@ checkMatch matchSwitches game moveStrings expectedMove	= map (
 -- | Check the sanity of the implementation, by validating a list of static test-cases.
 testCases :: Test.HUnit.Test
 testCases	= Test.HUnit.test [
-	"ContextualNotation.PositionHashQualifiedMoveTree.findNextOnymousQualifiedMoves" ~: checkMatch (True, False, False) game2 (init moveStrings2) finalMove2,	-- Exact match for standard-opening.
+	"ContextualNotation.PositionHashQualifiedMoveTree.findNextOnymousQualifiedMoves" ~: checkMatch (True, False, False) game2 (init moveStrings2) finalMove2,	-- Exact match for standard opening.
 	"ContextualNotation.PositionHashQualifiedMoveTree.findNextOnymousQualifiedMoves/transposition" ~: checkMatch (False, False, False) game1 (words "e2e4 c7c5 d2d4 c5d4p g1f3 d7d6 f3d4p g8f6 b1c3") finalMove1,	-- White's 2nd & 3rd moves have been transposed & Black's 2nd & 3rd move also have been transposed.
 	"ContextualNotation.PositionHashQualifiedMoveTree.findNextOnymousQualifiedMoves/transposition" ~: checkMatch (False, False, False) game2 (words "g1f3 d7d6 e2e4 c7c5 d2d4 c5d4p f3d4p g8f6 b1c3 a7a6 c1g5 e7e6 f2f4 d8b6 d1d2 b6b2p a1b1 b2a3 f4f5 b8c6 f5e6p f7e6p d4c6n b7c6n e4e5 d6e5p g5f6n g7f6b c3e4 f8e7 f1e2 h7h5 b1b3 a3a4") finalMove2,	-- White & also Black's 1st & 2nd moves have been transposed.
 	"ContextualNotation.PositionHashQualifiedMoveTree.findNextOnymousQualifiedMoves/join" ~: checkMatch (False, True {-TryToMatchViaJoiningMove-}, False) game1 (words "e2e4 c7c5 g1f3 d7d6 d2d4 c5d4p b1c3 g8f6") (
