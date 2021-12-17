@@ -208,7 +208,7 @@ updateWithManualMove game standardOpeningMatch playState@MkPlayState { getSearch
 	getNPliesSinceStandardOpeningMatch	= if standardOpeningMatch
 		then 0
 		else succ $ getNPliesSinceStandardOpeningMatch playState
- } 
+ }
 
 -- | Calculate the /root-mean-square/ & the /standard-deviation/, of the values of each type of /criterion/.
 calculateCriterionValueStatistics :: (

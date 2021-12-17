@@ -129,7 +129,7 @@ measurePieceSquareValueDifferenceIncrementally previousPieceSquareValueDifferenc
 	getPieceSquareValueByCoordinates	= Component.PieceSquareValueByCoordinatesByRank.getPieceSquareValueByCoordinates pieceSquareValueByCoordinatesByRank . State.Board.getNPieces $ Model.Game.getBoard game
 
 	getPieceSquareValue :: Component.PieceSquareValueByCoordinates.PieceSquareValueByCoordinates -> Cartesian.Coordinates.Coordinates -> Type.Mass.Base
-	getPieceSquareValue pieceSquareByCoordinates 	= realToFrac . Component.PieceSquareValueByCoordinates.getPieceSquareValue pieceSquareByCoordinates previousLogicalColour
+	getPieceSquareValue pieceSquareByCoordinates	= realToFrac . Component.PieceSquareValueByCoordinates.getPieceSquareValue pieceSquareByCoordinates previousLogicalColour
 
 	getMovePieceSquareValues :: (Component.PieceSquareValueByCoordinates.PieceSquareValueByCoordinates -> Type.Mass.Base, Component.PieceSquareValueByCoordinates.PieceSquareValueByCoordinates -> Type.Mass.Base)
 	getMovePieceSquareValues	= uncurry (***) (id &&& id $ flip getPieceSquareValue) . (Component.Move.getSource &&& Component.Move.getDestination) $ Component.QualifiedMove.getMove qualifiedMove
