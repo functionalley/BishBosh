@@ -1,4 +1,4 @@
-{-# LANGUAGE CPP, LambdaCase #-}
+{-# LANGUAGE LambdaCase #-}
 {-
 	Copyright (C) 2018 Dr. Alistair Ward
 
@@ -102,10 +102,6 @@ import qualified	Data.Map					as Map
 import qualified	Data.Maybe
 import qualified	Text.XML.HXT.Arrow.Pickle			as HXT
 import qualified	Text.XML.HXT.Arrow.Pickle.Schema
-
-#ifdef PARALLELISE
-import qualified	Control.Parallel.Strategies
-#endif
 
 -- | Used to qualify XML.
 tag :: String
@@ -234,18 +230,13 @@ promote newRank piece
 type ByRankByLogicalColour element	= Colour.LogicalColour.ArrayByLogicalColour (Map.Map Attribute.Rank.Rank element)
 
 -- | Constructor of a certain shape of container, but with arbitrary contents.
-mkByRankByLogicalColour ::
-#ifdef PARALLELISE
-	Control.DeepSeq.NFData	element =>
-#endif
-	[Attribute.Rank.Rank] -> (Colour.LogicalColour.LogicalColour -> Attribute.Rank.Rank -> element) -> ByRankByLogicalColour element
-mkByRankByLogicalColour ranks mkElement	= Colour.LogicalColour.listArrayByLogicalColour
-#ifdef PARALLELISE
-	. Control.Parallel.Strategies.withStrategy (Control.Parallel.Strategies.parList Control.Parallel.Strategies.rdeepseq)
-#endif
-	$ map (
-		\logicalColour	-> Map.fromList $ map (id &&& mkElement logicalColour) ranks
-	) Property.FixedMembership.members
+mkByRankByLogicalColour
+	:: [Attribute.Rank.Rank]
+	-> (Colour.LogicalColour.LogicalColour -> Attribute.Rank.Rank -> element)
+	-> ByRankByLogicalColour element
+mkByRankByLogicalColour ranks mkElement	= Colour.LogicalColour.listArrayByLogicalColour $ map (
+	\logicalColour	-> Map.fromList $ map (id &&& mkElement logicalColour) ranks
+ ) Property.FixedMembership.members
 
 {- |
 	* The constant /vector/s over which the specified type of /piece/ can attack.

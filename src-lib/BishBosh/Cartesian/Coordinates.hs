@@ -105,10 +105,6 @@ import qualified	Data.List
 import qualified	Data.Map				as Map
 import qualified	Data.Maybe
 
-#ifdef PARALLELISE
-import qualified	Control.Parallel.Strategies
-#endif
-
 #ifdef USE_PRIMITIVE
 import			GHC.Exts(Int(I#))
 import			GHC.Prim((+#), (*#))
@@ -416,13 +412,9 @@ extrapolate coordinates	direction	= extrapolationsByDirectionByCoordinates ! coo
 
 -- | The constant lists of /coordinates/, extrapolated from every /coordinate/ in the /board/, in every /direction/.
 extrapolationsByDirectionByCoordinates :: ArrayByCoordinates (Direction.Direction.ArrayByDirection [Coordinates])
-extrapolationsByDirectionByCoordinates	= listArrayByCoordinates
-#ifdef PARALLELISE
-	. Control.Parallel.Strategies.withStrategy (Control.Parallel.Strategies.parList Control.Parallel.Strategies.rdeepseq)
-#endif
-	$ map (
-		\coordinates	-> Direction.Direction.listArrayByDirection $ extrapolate' coordinates `map` Property.FixedMembership.members {-direction-}
-	) Property.FixedMembership.members {-coordinates-}
+extrapolationsByDirectionByCoordinates	= listArrayByCoordinates $ map (
+	\coordinates	-> Direction.Direction.listArrayByDirection $ extrapolate' coordinates `map` Property.FixedMembership.members {-direction-}
+ ) Property.FixedMembership.members {-coordinates-}
 
 -- | Apply the specified function to each line of /coordinates/ extrapolated from the specified central hub, in each of the specified /direction/s.
 applyAlongDirectionsFrom
