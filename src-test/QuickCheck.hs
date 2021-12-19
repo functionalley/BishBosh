@@ -1,3 +1,4 @@
+{-# LANGUAGE CPP #-}
 {-
 	Copyright (C) 2018 Dr. Alistair Ward
 
@@ -46,7 +47,6 @@ import qualified	BishBosh.Test.QuickCheck.Input.CriteriaWeights					as Test.Quic
 import qualified	BishBosh.Test.QuickCheck.Input.EvaluationOptions				as Test.QuickCheck.Input.EvaluationOptions
 import qualified	BishBosh.Test.QuickCheck.Input.Options						as Test.QuickCheck.Input.Options
 import qualified	BishBosh.Test.QuickCheck.Input.PieceSquareTable					as Test.QuickCheck.Input.PieceSquareTable
-import qualified	BishBosh.Test.QuickCheck.Metric.RankValue					as Test.QuickCheck.Metric.RankValue
 import qualified	BishBosh.Test.QuickCheck.Model.Game						as Test.QuickCheck.Model.Game
 import qualified	BishBosh.Test.QuickCheck.Model.GameTree						as Test.QuickCheck.Model.GameTree
 import qualified	BishBosh.Test.QuickCheck.Model.MoveFrequency					as Test.QuickCheck.Model.MoveFrequency
@@ -76,6 +76,10 @@ import qualified	BishBosh.Test.QuickCheck.UI.SetObject						as Test.QuickCheck.U
 import qualified	Control.Monad
 import qualified	System.Exit
 import qualified	ToolShed.Test.QuickCheck.Result
+
+#ifdef USE_NEWTYPE_WRAPPERS
+import qualified	BishBosh.Test.QuickCheck.Metric.RankValue					as Test.QuickCheck.Metric.RankValue
+#endif
 
 -- | Entry-point to the test-suite.
 main :: IO ()
@@ -124,7 +128,9 @@ main	= mapM_ (
 	Test.QuickCheck.ContextualNotation.PGN.results,
 	Test.QuickCheck.ContextualNotation.QualifiedMoveForest.results,
 	Test.QuickCheck.Input.CriteriaWeights.results,
+#ifdef USE_NEWTYPE_WRAPPERS
 	Test.QuickCheck.Metric.RankValue.results,
+#endif
 	Test.QuickCheck.Evaluation.PositionHashQuantifiedGameTree.results,
 	Test.QuickCheck.Search.KillerMoves.results,
 	Test.QuickCheck.UI.PrintObject.results,

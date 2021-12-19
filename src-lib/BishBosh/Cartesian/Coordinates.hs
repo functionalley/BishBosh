@@ -39,9 +39,7 @@ module BishBosh.Cartesian.Coordinates(
 -- ** Type-synonyms
 --	Transformation,
 	ArrayByCoordinates,
-#ifdef UNBOX_ARRAYS
 	UArrayByCoordinates,
-#endif
 -- * Constants
 	tag,
 	topLeft,
@@ -100,6 +98,7 @@ import qualified	Control.Arrow
 import qualified	Control.DeepSeq
 import qualified	Control.Exception
 import qualified	Data.Array.IArray
+import qualified	Data.Array.Unboxed
 import qualified	Data.Foldable
 import qualified	Data.List
 import qualified	Data.Map				as Map
@@ -108,10 +107,6 @@ import qualified	Data.Maybe
 #ifdef USE_PRIMITIVE
 import			GHC.Exts(Int(I#))
 import			GHC.Prim((+#), (*#))
-#endif
-
-#ifdef UNBOX_ARRAYS
-import qualified	Data.Array.Unboxed
 #endif
 
 -- | Used to qualify XML.
@@ -151,13 +146,12 @@ instance Enum Coordinates where
 		}
 	 ) . (`divMod` fromIntegral Cartesian.Abscissa.xLength)
 
-#ifdef USE_PRIMITIVE
 	fromEnum MkCoordinates {
+#ifdef USE_PRIMITIVE
 		getX	= I# x,
 		getY	= I# y
 	} = I# (8# *# y +# x)	-- CAVEAT: bypasses modules 'Cartesian.{Abscissa, Ordinate}'.
 #else
-	fromEnum MkCoordinates {
 		getX	= x,
 		getY	= y
 	} = fromIntegral Cartesian.Abscissa.xLength * Cartesian.Ordinate.toIx y + Cartesian.Abscissa.toIx x
@@ -500,10 +494,8 @@ isEnPassantRank MkCoordinates { getY = y }	= (== y) . Cartesian.Ordinate.enPassa
 -- | A boxed array indexed by /coordinates/, of arbitrary elements.
 type ArrayByCoordinates	= Data.Array.IArray.Array Coordinates
 
-#ifdef UNBOX_ARRAYS
 -- | An unboxed array indexed by /coordinates/, of fixed-size elements.
 type UArrayByCoordinates	= Data.Array.Unboxed.UArray Coordinates
-#endif
 
 -- | Array-constructor from an ordered list of elements.
 listArrayByCoordinates :: Data.Array.IArray.IArray a e => [e] -> a Coordinates e

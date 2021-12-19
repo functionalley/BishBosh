@@ -1,3 +1,4 @@
+{-# LANGUAGE CPP #-}
 {-
 	Copyright (C) 2021 Dr. Alistair Ward
 
@@ -24,37 +25,48 @@
 	* The relative value of a /rank/ of chess-piece.
 
 	* <https://en.wikipedia.org/wiki/Chess_piece_relative_value#Hans_Berliner.27s_system%20Chess-piece%20relative%20values>
+
+	* CAVEAT: this isn't measured in conventional centi-pawns units; values are constrained to the closed unit interval, & there's no requirement /Pawn/'s value to be @1@.
 -}
 
 module BishBosh.Metric.RankValue(
 -- * Types
+#ifdef USE_NEWTYPE_WRAPPERS
 -- ** Data-types
 	RankValue(
 --		MkRankValue,
 --		deconstruct
 	),
--- * Constants
---	tag,
 -- * Functions
 -- ** Constructor
---	mkRankValue
+--	mkRankValue,
+#else
+-- ** Type-synonyms
+	RankValue,
+#endif
+-- * Constants
+	tag
 ) where
 
+import qualified	BishBosh.Type.Mass		as Type.Mass
+
+#ifdef USE_NEWTYPE_WRAPPERS
 import qualified	BishBosh.Data.Exception		as Data.Exception
 import qualified	BishBosh.Data.Num		as Data.Num
 import qualified	BishBosh.Property.ShowFloat	as Property.ShowFloat
-import qualified	BishBosh.Type.Mass		as Type.Mass
 import qualified	Control.Arrow
 import qualified	Control.DeepSeq
 import qualified	Control.Exception
 import qualified	Data.List.Extra
 import qualified	Text.XML.HXT.Arrow.Pickle	as HXT
+#endif
 
 -- | Used to qualify XML.
 tag :: String
 tag	= "rankValue"
 
 -- | The constant value associated with a /rank/; the higher, the more valuable it is considered to be.
+#ifdef USE_NEWTYPE_WRAPPERS
 newtype RankValue = MkRankValue {
 	deconstruct	:: Type.Mass.RankValue
 } deriving (Eq, Ord)
@@ -94,4 +106,6 @@ mkRankValue :: Type.Mass.RankValue -> RankValue
 mkRankValue rankValue
 	| Data.Num.inClosedUnitInterval rankValue	= MkRankValue rankValue
 	| otherwise					= Control.Exception.throw . Data.Exception.mkOutOfBounds . showString "BishBosh.Metric.RankValue.mkRankValue:\t" $ shows rankValue " must be within the closed unit-interval [0,1]."
-
+#else
+type RankValue	 = Type.Mass.Base
+#endif

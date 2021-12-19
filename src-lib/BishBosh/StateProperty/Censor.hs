@@ -1,3 +1,4 @@
+{-# LANGUAGE CPP #-}
 {-
 	Copyright (C) 2018 Dr. Alistair Ward
 
@@ -39,7 +40,13 @@ import qualified	BishBosh.Property.SelfValidating	as Property.SelfValidating
 import qualified	BishBosh.Type.Count			as Type.Count
 
 -- | The difference in the number of /piece/s of each /rank/ held by either side.
-type NPiecesByRank	= Attribute.Rank.ArrayByRank Type.Count.NPieces
+type NPiecesByRank	=
+#ifdef UNBOX_TYPECOUNT_ARRAYS
+	Attribute.Rank.UArrayByRank
+#else
+	Attribute.Rank.ArrayByRank
+#endif
+		Type.Count.NPieces
 
 -- | An interface which may be implemented by data which can perform a census of the /piece/s on the /board/.
 class Censor censor where

@@ -1,3 +1,4 @@
+{-# LANGUAGE CPP #-}
 {-
 	Copyright (C) 2018 Dr. Alistair Ward
 
@@ -132,7 +133,9 @@ instance Control.DeepSeq.NFData Board where
 		getMaybePieceByCoordinates			= maybePieceByCoordinates,
 		getCoordinatesByRankByLogicalColour		= coordinatesByRankByLogicalColour,
 		getNDefendersByCoordinatesByLogicalColour	= nDefendersByCoordinatesByLogicalColour,
+#ifndef UNBOX_TYPECOUNT_ARRAYS
 		getNPiecesDifferenceByRank			= nPiecesDifferenceByRank,
+#endif
 		getNPawnsByFileByLogicalColour			= nPawnsByFileByLogicalColour,
 		getNPieces					= nPieces,
 		getPassedPawnCoordinatesByLogicalColour		= passedPawnCoordinatesByLogicalColour
@@ -140,7 +143,9 @@ instance Control.DeepSeq.NFData Board where
 		maybePieceByCoordinates,
 		coordinatesByRankByLogicalColour,
 		nDefendersByCoordinatesByLogicalColour,
+#ifndef UNBOX_TYPECOUNT_ARRAYS
 		nPiecesDifferenceByRank,
+#endif
 		nPawnsByFileByLogicalColour,
 		nPieces,
 		passedPawnCoordinatesByLogicalColour

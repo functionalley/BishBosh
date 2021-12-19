@@ -1,3 +1,4 @@
+{-# LANGUAGE CPP #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 {-
 	Copyright (C) 2018 Dr. Alistair Ward
@@ -25,13 +26,20 @@
 
 module BishBosh.Test.QuickCheck.Input.RankValues() where
 
-import			BishBosh.Test.QuickCheck.Metric.RankValue()
 import qualified	BishBosh.Attribute.Rank			as Attribute.Rank
 import qualified	BishBosh.Input.RankValues		as Input.RankValues
 import qualified	BishBosh.Property.FixedMembership	as Property.FixedMembership
 import qualified	Data.List
 import qualified	Test.QuickCheck
 
+#ifdef USE_NEWTYPE_WRAPPERS
+import			BishBosh.Test.QuickCheck.Metric.RankValue()
+#endif
+
 instance Test.QuickCheck.Arbitrary Input.RankValues.RankValues where
-	arbitrary	= Input.RankValues.fromAssocs . zip Property.FixedMembership.members . Data.List.sort {-ensures Q is most valuable (except K)-} <$> Test.QuickCheck.vector (fromIntegral Attribute.Rank.nDistinctRanks)
+	arbitrary	= Input.RankValues.fromAssocs . zip Property.FixedMembership.members . Data.List.sort {-ensures Q is most valuable (except K)-}
+#ifndef USE_NEWTYPE_WRAPPERS
+		. map (recip . fromInteger . succ . abs)	-- Map into the closed unit interval.
+#endif
+		<$> Test.QuickCheck.vector (fromIntegral Attribute.Rank.nDistinctRanks)
 

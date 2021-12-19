@@ -31,6 +31,7 @@ module BishBosh.Attribute.Rank(
 -- ** Type-synonyms
 	EvaluateRank,
 	ArrayByRank,
+	UArrayByRank,
 -- ** Data-types
 	Rank(..),
 -- * Constants
@@ -63,6 +64,7 @@ import qualified	BishBosh.Type.Count			as Type.Count
 import qualified	Control.DeepSeq
 import qualified	Control.Exception
 import qualified	Data.Array.IArray
+import qualified	Data.Array.Unboxed
 import qualified	Data.Char
 import qualified	Data.List
 import qualified	Data.Ord
@@ -206,6 +208,9 @@ initialAllocationByRankPerSide	= listArrayByRank [8, 2, 2, 2, 1, 1]
 
 -- | A boxed array indexed by /rank/, of arbitrary values.
 type ArrayByRank	= Data.Array.IArray.Array Rank
+
+-- | An unboxed array indexed by /rank/, of fixed-size elements.
+type UArrayByRank	= Data.Array.Unboxed.UArray Rank
 
 -- | Array-constructor from an ordered list of elements.
 listArrayByRank :: Data.Array.IArray.IArray a e => [e] -> a Rank e

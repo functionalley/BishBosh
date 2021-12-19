@@ -72,14 +72,12 @@ flag hxtrelaxng
     Default:		True
 
 -- Whether to use narrower numerical types than machine-defaults. CAVEAT: this option increases both the space allocated & the execution-time.
--- CAVEAT: incompatible with the flag 'precisenumbers', & to some extent 'unbox'.
 flag narrownumbers
     Description:	Use narrow numerical types.
     Manual:		True
     Default:		False
 
--- Whether, to wrap common types in 'newtype' for increased type-safety. CAVEAT: there's a ~10% performance-penalty.
--- CAVEAT: incompatible with flag 'unbox'.
+-- Whether to wrap common types in 'newtype' for increased type-safety. CAVEAT: there's a small performance-penalty.
 flag newtypewrappers
     Description:	Wrap common types in newtype for increased type-safety.
     Manual:		True
@@ -94,7 +92,6 @@ flag polyparse
     Default:		True
 
 -- Whether to use precise (rational) numeric types rather than faster floating-point.
--- CAVEAT: conceptually incompatible with the flag 'narrownumbers', & to some extent the flag 'unbox'.
 flag precisenumbers
     Description:	Use precise rational numeric types.
     Manual:		True
@@ -107,7 +104,6 @@ flag threaded
     Default:		True
 
 -- Whether to use unboxed types where possible; e.g. in arrays or in primitive arithmetic.
--- CAVEAT: incompatible with flag 'newtypewrappers', & to some extent flags 'narrownumbers' & 'precisenumbers'.
 flag unbox
     Description:	Use unboxed types.
     Manual:		True
@@ -324,12 +320,14 @@ Library
     if flag(newtypewrappers)
         CPP-Options:	-DUSE_NEWTYPE_WRAPPERS
     elif flag(unbox)
-        if !flag(precisenumbers)
-            CPP-Options:	-DUNBOX_ARRAYS
+        CPP-Options:	-DUNBOX_TYPECOUNT_ARRAYS
 
         if !flag(narrownumbers)
             Build-depends:	ghc-prim ^>= 0.6.1
             CPP-Options:	-DUSE_PRIMITIVE
+
+        if !flag(precisenumbers)
+            CPP-Options:	-DUNBOX_TYPEMASS_ARRAYS
 
     if flag(polyparse)
         Build-depends:		polyparse ^>= 1.13
@@ -483,7 +481,6 @@ Test-Suite quickcheck-tests
         BishBosh.Test.QuickCheck.Input.UIOptions
         BishBosh.Test.QuickCheck.Input.Verbosity
         BishBosh.Test.QuickCheck.Metric.CriterionWeight
-        BishBosh.Test.QuickCheck.Metric.RankValue
         BishBosh.Test.QuickCheck.Model.Game
         BishBosh.Test.QuickCheck.Model.GameTree
         BishBosh.Test.QuickCheck.Model.MoveFrequency
@@ -524,6 +521,7 @@ Test-Suite quickcheck-tests
         QuickCheck	^>= 2.13.2
 
     if flag(newtypewrappers)
+        Other-modules:	BishBosh.Test.QuickCheck.Metric.RankValue
         CPP-Options:	-DUSE_NEWTYPE_WRAPPERS
 
     if flag(precisenumbers)

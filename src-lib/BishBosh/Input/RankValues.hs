@@ -1,3 +1,4 @@
+{-# LANGUAGE CPP #-}
 {-
 	Copyright (C) 2018 Dr. Alistair Ward
 
@@ -70,7 +71,13 @@ tag	= "rankValues"
 	* CAVEAT: a @King@ can never be taken, but assigning the value /infinity/ creates problems, so typically it has the value @0@.
 -}
 newtype RankValues	= MkRankValues {
-	deconstruct	:: Attribute.Rank.ArrayByRank Metric.RankValue.RankValue
+	deconstruct	::
+#ifdef UNBOX_TYPEMASS_ARRAYS
+		Attribute.Rank.UArrayByRank
+#else
+		Attribute.Rank.ArrayByRank
+#endif
+			Metric.RankValue.RankValue
 } deriving (Eq, Read, Show)
 
 instance Property.ShowFloat.ShowFloat RankValues where
@@ -89,13 +96,24 @@ instance Data.Default.Default RankValues where
 	 ]
 
 instance Control.DeepSeq.NFData RankValues where
-	rnf (MkRankValues byRank)	= Control.DeepSeq.rnf byRank
+	rnf (MkRankValues byRank)	=
+#ifdef UNBOX_TYPEMASS_ARRAYS
+		Control.DeepSeq.rwhnf
+	
+#else
+		Control.DeepSeq.rnf
+#endif
+			byRank
 
 instance HXT.XmlPickler RankValues where
 	xpickle	= HXT.xpDefault Data.Default.def . HXT.xpWrap (
 		fromAssocs,				-- Construct from an association-list.
 		Data.Array.IArray.assocs . deconstruct	-- Deconstruct to an association-list.
-	 ) . HXT.xpList1 . HXT.xpElem tag $ HXT.xpickle {-Rank-} `HXT.xpPair` HXT.xpickle {-RankValue-}
+	 ) . HXT.xpList1 . HXT.xpElem tag $ HXT.xpickle {-Rank-} `HXT.xpPair`
+#ifndef USE_NEWTYPE_WRAPPER
+		HXT.xpAttr Metric.RankValue.tag 
+#endif
+		HXT.xpickle
 
 -- | Smart constructor.
 fromAssocs :: [(Attribute.Rank.Rank, Metric.RankValue.RankValue)] -> RankValues

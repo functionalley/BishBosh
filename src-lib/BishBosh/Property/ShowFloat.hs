@@ -31,6 +31,7 @@ module BishBosh.Property.ShowFloat(
 ) where
 
 import qualified	BishBosh.Type.Count	as Type.Count
+import qualified	Data.Ratio
 import qualified	Numeric
 
 -- | Render the specified data to the specified number of decimal digits.
@@ -40,6 +41,15 @@ showsFloatToN' nDecimalDigits	= Numeric.showFFloat (Just $ fromIntegral nDecimal
 -- | An alternative to 'Show', for floating-point data.
 class ShowFloat a where
 	showsFloat	:: (Double -> ShowS) -> a -> ShowS
+
+instance ShowFloat Double where
+	showsFloat	= id
+
+instance ShowFloat Float where
+	showsFloat fromDouble	= fromDouble . realToFrac
+
+instance Integral r => ShowFloat (Data.Ratio.Ratio r) where
+	showsFloat fromDouble	= fromDouble . realToFrac
 
 -- | Render the specified data to the specified number of decimal digits.
 showsFloatToN :: ShowFloat a => Type.Count.NDecimalDigits -> a -> ShowS
