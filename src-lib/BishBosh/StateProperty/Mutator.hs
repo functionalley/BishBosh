@@ -34,11 +34,11 @@ module BishBosh.StateProperty.Mutator(
 	removePiece
 ) where
 
-import qualified	BishBosh.Attribute.Rank		as Attribute.Rank
-import qualified	BishBosh.Cartesian.Coordinates	as Cartesian.Coordinates
-import qualified	BishBosh.Component.Move		as Component.Move
-import qualified	BishBosh.Component.Piece	as Component.Piece
-import qualified	BishBosh.Property.Empty		as Property.Empty
+import qualified	BishBosh.Attribute.MoveType		as Attribute.MoveType
+import qualified	BishBosh.Cartesian.Coordinates		as Cartesian.Coordinates
+import qualified	BishBosh.Component.Move			as Component.Move
+import qualified	BishBosh.Component.Piece		as Component.Piece
+import qualified	BishBosh.Property.Empty			as Property.Empty
 
 {- |
 	* An interface which may be implemented by data which can mutate the board.
@@ -61,10 +61,9 @@ class Mutator mutator where
 
 	-- | Move the specified piece, accounting for promotions & casualties.
 	movePiece
-		:: Component.Move.Move							-- ^ The source & destination /coordinates/.
-		-> Component.Piece.Piece						-- ^ The /piece/ which moved.
-		-> Maybe Attribute.Rank.Rank						-- ^ The (possibly promoted) /rank/ to place at the destination.
-		-> Either Cartesian.Coordinates.Coordinates (Maybe Attribute.Rank.Rank)	-- ^ Either the /coordinates/ of any @Pawn@ which was just captured en-passant, or the /rank/ of any /piece/ taken.
+		:: Component.Move.Move
+		-> Attribute.MoveType.MoveType
+		-> Component.Piece.Piece	-- ^ The /piece/ which moved, rather than the (ptentially promoted) one that arrived.
 		-> mutator
 		-> mutator
 

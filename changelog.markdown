@@ -166,6 +166,7 @@ New Module				| Purpose
 * Increased minimum version for package **deepseq**, to access function **rwhnf**.
 
 ## 0.1.4.0
+* Rationalised the type-signature of function **BishBosh.StateProperty.Mutator.movePiece** & refactored **BishBosh.State.{Board, CoordinatesByRankByLogicalColour, MaybePieceByCoordinates}.movePiece**.
 * Efficiency:
 	+ Implemented functions **BishBosh.Cartesian.{Coordinates.fromEnum, Ordinate.reflect}** in unboxed primitive arithmetic.
 	+ Moved **Either** outwards in the data-type **BishBosh.Component.PieceSquareByCoordinatesByRank.PieceSquareByCoordinatesByRank**, reducing its size, improving performance, & increasing LR symmetry.

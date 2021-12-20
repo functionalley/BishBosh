@@ -55,7 +55,7 @@ module BishBosh.State.MaybePieceByCoordinates(
 ) where
 
 import			Control.Applicative((<|>))
-import			Control.Arrow((&&&), (***), (|||))
+import			Control.Arrow((&&&), (***))
 import			Control.Category((>>>))
 import			Data.Array.IArray((!), (//))
 import qualified	BishBosh.Attribute.MoveType				as Attribute.MoveType
@@ -248,23 +248,24 @@ instance StateProperty.Hashable.Hashable MaybePieceByCoordinates where
 	 ] -- List-comprehension.
 
 instance StateProperty.Mutator.Mutator MaybePieceByCoordinates where
-	defineCoordinates maybePiece coordinates MkMaybePieceByCoordinates {
-		deconstruct	= byCoordinates
-	} = Control.Exception.assert (
+	defineCoordinates maybePiece coordinates MkMaybePieceByCoordinates { deconstruct = byCoordinates }	= Control.Exception.assert (
 		Data.Maybe.isJust maybePiece || Data.Maybe.isJust (byCoordinates ! coordinates)
 	 ) . MkMaybePieceByCoordinates $ byCoordinates // [(coordinates, maybePiece)]
 
-	movePiece move sourcePiece maybePromotionRank eitherPassingPawnsDestinationOrMaybeTakenRank MkMaybePieceByCoordinates {
-		deconstruct	= byCoordinates
-	} = MkMaybePieceByCoordinates $ byCoordinates // (
-		(:) . flip (,) Nothing {-take en-passant-} ||| const id $ eitherPassingPawnsDestinationOrMaybeTakenRank
+	movePiece move moveType sourcePiece MkMaybePieceByCoordinates { deconstruct = byCoordinates }	= MkMaybePieceByCoordinates $ byCoordinates // (
+		if Attribute.MoveType.isEnPassant moveType
+			then (:) (
+				Cartesian.Coordinates.retreat (Component.Piece.getLogicalColour sourcePiece) $ Component.Move.getDestination move,
+				Nothing
+			)
+			else id
 	 ) [
 		(
 			Component.Move.getSource move,
 			Nothing	-- Remove the piece from the source.
 		), (
 			Component.Move.getDestination move,
-			Just $ Data.Maybe.maybe id Component.Piece.promote maybePromotionRank sourcePiece	-- Place the piece at the destination, removing any opposing incumbent as a side-effect.
+			Just $ Data.Maybe.maybe id Component.Piece.promote (Attribute.MoveType.getMaybePromotedRank moveType) sourcePiece       -- Place the piece at the destination, removing any opposing incumbent as a side-effect.
 		)
 	 ]
 

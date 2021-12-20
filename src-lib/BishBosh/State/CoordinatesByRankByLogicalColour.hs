@@ -54,8 +54,9 @@ module BishBosh.State.CoordinatesByRankByLogicalColour(
 	sortCoordinates
 ) where
 
-import			Control.Arrow((&&&), (|||))
+import			Control.Arrow((&&&))
 import			Data.Array.IArray((!), (//))
+import qualified	BishBosh.Attribute.MoveType				as Attribute.MoveType
 import qualified	BishBosh.Attribute.Rank					as Attribute.Rank
 import qualified	BishBosh.Cartesian.Abscissa				as Cartesian.Abscissa
 import qualified	BishBosh.Cartesian.Coordinates				as Cartesian.Coordinates
@@ -160,32 +161,36 @@ instance StateProperty.Mutator.Mutator CoordinatesByRankByLogicalColour where
 		) maybePiece
 	 ) . deconstruct . purgeCoordinates coordinates
 
-	movePiece move sourcePiece maybePromotionRank eitherPassingPawnsDestinationOrMaybeTakenRank MkCoordinatesByRankByLogicalColour {
-		deconstruct	= byLogicalColour
-	} = MkCoordinatesByRankByLogicalColour $ byLogicalColour // (
-		(:) . (`deleteOpponentsCoordinates` Attribute.Rank.Pawn) ||| Data.Maybe.maybe id {-quiet move-} (
-			(:) . deleteOpponentsCoordinates destination
-		) $ eitherPassingPawnsDestinationOrMaybeTakenRank
+	movePiece move moveType sourcePiece MkCoordinatesByRankByLogicalColour { deconstruct = byLogicalColour }	= MkCoordinatesByRankByLogicalColour $ byLogicalColour // (
+		let
+			deleteOpponentsCoordinates coordinates rank	= id &&& deleteCoordinatesFromRank coordinates rank . (byLogicalColour !) $ Property.Opposable.getOpposite logicalColour
+		in Attribute.MoveType.apply (
+			const id,	-- Castle.
+			(Cartesian.Coordinates.retreat logicalColour destination `deleteOpponentsCoordinates` Attribute.Rank.Pawn :),	-- En-passant.
+			Data.Maybe.maybe id (
+				(:) . deleteOpponentsCoordinates destination
+			) . fst {-taken Rank-}
+		) moveType
 	 ) [
 		let
 			byRank	= byLogicalColour ! logicalColour
 		in (
 			logicalColour,
 			byRank // Data.Maybe.maybe (
-				return {-to List-monad-} . Control.Arrow.second (destination :)	-- Add the destination to the mover.
+				return {-to List-monad-} . Control.Arrow.second (destination :)	-- Add the destination to the mover's unpromoted rank.
 			) (
 				\promotionRank -> (:) (
-					promotionRank,
-					destination : byRank ! promotionRank	-- Add the destination to the mover's promoted rank.
+					id &&& (destination :) . (byRank !) $ promotionRank	-- Add the destination to the mover's promoted rank.
 				) . return {-to List-monad-}
-			) maybePromotionRank (
-				id &&& Data.List.delete (Component.Move.getSource move) . (byRank !) $ Component.Piece.getRank sourcePiece
+			) (
+				Attribute.MoveType.getMaybePromotedRank moveType
+			) (
+				id &&& Data.List.delete (Component.Move.getSource move) . (byRank !) $ Component.Piece.getRank sourcePiece	-- Remove the piece from the source.
 			)
 		) -- Pair.
 	 ] where
-		destination					= Component.Move.getDestination move
-		logicalColour					= Component.Piece.getLogicalColour sourcePiece
-		deleteOpponentsCoordinates coordinates rank	= id &&& deleteCoordinatesFromRank coordinates rank . (byLogicalColour !) $ Property.Opposable.getOpposite logicalColour
+		destination	= Component.Move.getDestination move
+		logicalColour	= Component.Piece.getLogicalColour sourcePiece
 
 {- |
 	* Find any @Knight@s of the specified /logical colour/, in attack-range around the specified /coordinates/.

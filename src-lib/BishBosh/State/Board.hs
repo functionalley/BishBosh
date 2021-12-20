@@ -1,4 +1,4 @@
-{-# LANGUAGE CPP #-}
+{-# LANGUAGE CPP, LambdaCase #-}
 {-
 	Copyright (C) 2018 Dr. Alistair Ward
 
@@ -65,7 +65,7 @@ module BishBosh.State.Board(
 	exposesKing
 ) where
 
-import			Control.Arrow((&&&), (***), (|||))
+import			Control.Arrow((&&&), (***))
 import			Data.Array.IArray((!), (//))
 import qualified	BishBosh.Attribute.MoveType				as Attribute.MoveType
 import qualified	BishBosh.Attribute.Rank					as Attribute.Rank
@@ -184,13 +184,8 @@ instance StateProperty.Hashable.Hashable Board where
 	listRandoms zobrist MkBoard { getCoordinatesByRankByLogicalColour = coordinatesByRankByLogicalColour }	= StateProperty.Hashable.listRandoms zobrist coordinatesByRankByLogicalColour	-- Forward.
 
 instance StateProperty.Mutator.Mutator Board where
-	defineCoordinates maybePiece coordinates MkBoard {
-		getMaybePieceByCoordinates	= maybePieceByCoordinates
-	} = fromMaybePieceByCoordinates $ StateProperty.Mutator.defineCoordinates maybePiece coordinates maybePieceByCoordinates
-
-	movePiece move sourcePiece maybePromotionRank eitherPassingPawnsDestinationOrMaybeTakenRank MkBoard {
-		getMaybePieceByCoordinates	= maybePieceByCoordinates
-	} = fromMaybePieceByCoordinates $ StateProperty.Mutator.movePiece move sourcePiece maybePromotionRank eitherPassingPawnsDestinationOrMaybeTakenRank maybePieceByCoordinates
+	defineCoordinates maybePiece coordinates MkBoard { getMaybePieceByCoordinates = maybePieceByCoordinates }	= fromMaybePieceByCoordinates $ StateProperty.Mutator.defineCoordinates maybePiece coordinates maybePieceByCoordinates
+	movePiece move moveType sourcePiece MkBoard { getMaybePieceByCoordinates = maybePieceByCoordinates }		= fromMaybePieceByCoordinates $ StateProperty.Mutator.movePiece move moveType sourcePiece maybePieceByCoordinates
 
 instance StateProperty.Seeker.Seeker Board where
 	findProximateKnights MkBoard {
@@ -240,9 +235,9 @@ movePiece move maybeMoveType board@MkBoard {
 	getNPieces					= nPieces
 }
 	| Just sourcePiece <- State.MaybePieceByCoordinates.dereference maybePieceByCoordinates source	= let
-		oppositePiece				= Property.Opposable.getOpposite sourcePiece
-		(logicalColour, opponentsLogicalColour)	= ($! sourcePiece) &&& ($! oppositePiece) $ Component.Piece.getLogicalColour
+		(logicalColour, (opponentsLogicalColour, oppositePiece))	= Component.Piece.getLogicalColour &&& ((Component.Piece.getLogicalColour &&& id) . Property.Opposable.getOpposite) $ sourcePiece
 
+-- CAVEAT: this is an incomplete implementation, since Castling isn't represented, but rather implemented via two sequential calls to 'movePiece'.
 		moveType :: Attribute.MoveType.MoveType
 		moveType -- CAVEAT: one can't call 'State.MaybePieceByCoordinates.inferMoveType', since that performs some move-validation, & therefore exceeds the remit of this module.
 			| Just explicitMoveType	<- maybeMoveType					= explicitMoveType
@@ -254,20 +249,13 @@ movePiece move maybeMoveType board@MkBoard {
 				else Nothing
 
 -- Derive the required values from moveType.
-		(maybePromotionRank, maybeExplicitlyTakenRank)	= Attribute.Rank.getMaybePromotionRank &&& Attribute.MoveType.getMaybeExplicitlyTakenRank $! moveType	-- Deconstruct.
-		destinationPiece				= Data.Maybe.maybe id Component.Piece.promote maybePromotionRank sourcePiece
-		wasPawnTakenExplicitly				= maybeExplicitlyTakenRank == Just Attribute.Rank.Pawn
-
-		eitherPassingPawnsDestinationOrMaybeTakenRank :: Either Cartesian.Coordinates.Coordinates (Maybe Attribute.Rank.Rank)
-		eitherPassingPawnsDestinationOrMaybeTakenRank
-			| Attribute.MoveType.isEnPassant moveType	= Left $ Cartesian.Coordinates.retreat logicalColour destination
-			| otherwise					= Right maybeExplicitlyTakenRank
-
-		eitherPassingPawnsDestinationOrMaybeTakenPiece :: Either Cartesian.Coordinates.Coordinates (Maybe Component.Piece.Piece)
-		eitherPassingPawnsDestinationOrMaybeTakenPiece	= fmap (Component.Piece.mkPiece opponentsLogicalColour) <$> eitherPassingPawnsDestinationOrMaybeTakenRank
+		(destinationPiece, (maybeExplicitlyTakenPiece, wasPawnTakenExplicitly))	= ($ sourcePiece) . Data.Maybe.maybe id Component.Piece.promote . Attribute.Rank.getMaybePromotionRank &&& (fmap (Component.Piece.mkPiece opponentsLogicalColour) &&& (== Just Attribute.Rank.Pawn)) . Attribute.MoveType.getMaybeExplicitlyTakenRank $! moveType
 
 		movePiece' :: StateProperty.Mutator.Mutator mutator => mutator -> mutator
-		movePiece'	= StateProperty.Mutator.movePiece move sourcePiece maybePromotionRank eitherPassingPawnsDestinationOrMaybeTakenRank
+		movePiece'	= StateProperty.Mutator.movePiece move moveType sourcePiece
+
+		enpassantCaptureCoordinates :: Cartesian.Coordinates.Coordinates
+		enpassantCaptureCoordinates	= Cartesian.Coordinates.retreat logicalColour destination	-- CAVEAT: only valid when the move-type is En-passant.
 
 		board'@MkBoard { getMaybePieceByCoordinates = maybePieceByCoordinates' }	= MkBoard {
 			getMaybePieceByCoordinates			= movePiece' maybePieceByCoordinates,
@@ -290,14 +278,13 @@ movePiece move maybeMoveType board@MkBoard {
 				(! Colour.LogicalColour.Black) &&& (! Colour.LogicalColour.White) $ nDefendersByCoordinatesByLogicalColour // (
 					let
 						nDefendersByCoordinates	= nDefendersByCoordinatesByLogicalColour ! opponentsLogicalColour
-					in (:) . (,) opponentsLogicalColour . (`Map.delete` nDefendersByCoordinates) {-Pawn has been taken-} ||| (
-						\maybeExplicitlyTakenRank' -> if Data.Maybe.isJust maybeExplicitlyTakenRank'
-							then (:) (
-								opponentsLogicalColour,
-								Map.delete destination nDefendersByCoordinates	-- This piece has been taken.
-							)
-							else id
-					) $ eitherPassingPawnsDestinationOrMaybeTakenRank
+					in Attribute.MoveType.apply (
+						const id,	-- Castle.
+						(:) . (,) opponentsLogicalColour $ Map.delete enpassantCaptureCoordinates nDefendersByCoordinates,	-- Pawn taken En-passant.
+						\case
+							(Just _, _)	-> (:) . (,) opponentsLogicalColour $ Map.delete destination nDefendersByCoordinates	-- Piece has been taken.
+							_		-> id
+					) moveType
 				 ) [
 					id &&& Map.delete source . (nDefendersByCoordinatesByLogicalColour !) $ logicalColour	-- This piece has been moved.
 				 ] -- Singleton.
@@ -305,14 +292,16 @@ movePiece move maybeMoveType board@MkBoard {
 				\l r -> fst l == fst r	-- Compare coordinates.
 			) $ [
 				(affectedCoordinates, affectedPiece) |
-					(knightsCoordinates, knight)	<- (source, sourcePiece) : (,) destination `map` (destinationPiece : (const [] ||| Data.Maybe.maybeToList) eitherPassingPawnsDestinationOrMaybeTakenPiece),
+					(knightsCoordinates, knight)	<- (source, sourcePiece) : (,) destination `map` (
+						destinationPiece : Data.Maybe.maybeToList maybeExplicitlyTakenPiece
+					),
 					Component.Piece.isKnight knight,
 					affectedCoordinates		<- Data.Maybe.mapMaybe (`Cartesian.Vector.maybeTranslate` knightsCoordinates) Cartesian.Vector.attackVectorsForKnight,
 					affectedPiece			<- Data.Maybe.maybeToList $! State.MaybePieceByCoordinates.dereference maybePieceByCoordinates' affectedCoordinates,
 					Component.Piece.isFriend knight affectedPiece
 			] {-list-comprehension-} ++ [
 				(blockingCoordinates, blockingPiece) |
-					passingPawnsDestination			<- return {-to List-monad-} ||| const [] $ eitherPassingPawnsDestinationOrMaybeTakenRank,
+					passingPawnsDestination			<- [enpassantCaptureCoordinates | Attribute.MoveType.isEnPassant moveType],
 					(direction, antiParallelDirection)	<- Direction.Direction.opposites,
 					(blockingCoordinates, blockingPiece)	<- case State.MaybePieceByCoordinates.findBlockingPieces maybePieceByCoordinates' passingPawnsDestination $ Just [direction, antiParallelDirection] of
 						[cp, cp'] -> [
@@ -335,7 +324,6 @@ movePiece move maybeMoveType board@MkBoard {
 						 ) locatedPieces
 			] {-list-comprehension-} ++ (destination, destinationPiece) : [
 				(blockingCoordinates, blockingPiece) |
-					let maybeExplicitlyTakenPiece	= const Nothing ||| id $ eitherPassingPawnsDestinationOrMaybeTakenPiece,
 					(direction, antiParallelDirection)	<- Direction.Direction.opposites,
 					(coordinates, piece)			<- [(source, sourcePiece), (destination, destinationPiece)],
 					(blockingCoordinates, blockingPiece)	<- case State.MaybePieceByCoordinates.findBlockingPieces maybePieceByCoordinates' coordinates $ Just [direction, antiParallelDirection] of
@@ -358,21 +346,25 @@ movePiece move maybeMoveType board@MkBoard {
 				if Colour.LogicalColour.isBlack logicalColour
 					then (-)	-- Since White pieces are arbitrarily counted as positive, negate the adjustment if the current player is Black.
 					else (+)
-			) nPiecesDifferenceByRank $ if Attribute.MoveType.isEnPassant moveType
-				then [(Attribute.Rank.Pawn, 1)]	-- Increment relative number of Pawns.
-				else Data.Maybe.maybe id (
-					(:) . flip (,) 1	-- Increment.
-				) maybeExplicitlyTakenRank $ Data.Maybe.maybe [] (
-					\promotionRank -> [
-						(
-							promotionRank,
-							1	-- Increment.
-						), (
-							Attribute.Rank.Pawn,
-							negate 1	-- Decrement relative number of Pawns.
-						)
-					]
-				) maybePromotionRank,
+			) nPiecesDifferenceByRank $ Attribute.MoveType.apply (
+				const [],			-- Castle.
+				[(Attribute.Rank.Pawn, 1)],	-- Enpassant => increment relative number of Pawns.
+				uncurry ($) . (
+					Data.Maybe.maybe id (
+						(:) . flip (,) 1	-- Capture => Increment.
+					) *** Data.Maybe.maybe [] (
+						\promotionRank -> [
+							(
+								promotionRank,
+								1		-- Increment.
+							), (
+								Attribute.Rank.Pawn,
+								negate 1	-- Decrement relative number of Pawns.
+							)
+						]
+					)
+				)  -- Normal.
+			) moveType,
 			getNPawnsByFileByLogicalColour		= if Component.Piece.isPawn sourcePiece && not (Attribute.MoveType.isQuiet moveType) || wasPawnTakenExplicitly
 				then StateProperty.Seeker.countPawnsByFileByLogicalColour coordinatesByRankByLogicalColour'	-- Recalculate.
 				else getNPawnsByFileByLogicalColour board,

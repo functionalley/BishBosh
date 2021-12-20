@@ -33,12 +33,10 @@ import			BishBosh.Test.QuickCheck.Component.Piece()
 import			BishBosh.Test.QuickCheck.Model.Game()
 import			Control.Arrow((&&&))
 import			Test.QuickCheck ((==>))
-import qualified	BishBosh.Attribute.MoveType			as Attribute.MoveType
 import qualified	BishBosh.Cartesian.Coordinates			as Cartesian.Coordinates
 import qualified	BishBosh.Component.Move				as Component.Move
 import qualified	BishBosh.Component.QualifiedMove		as Component.QualifiedMove
 import qualified	BishBosh.Component.Piece			as Component.Piece
-import qualified	BishBosh.Component.Turn				as Component.Turn
 import qualified	BishBosh.Model.Game				as Model.Game
 import qualified	BishBosh.Property.Null				as Property.Null
 import qualified	BishBosh.State.Board				as State.Board
@@ -74,13 +72,9 @@ results	= sequence [
 				board			= Model.Game.getBoard game
 
 				movePiece :: StateProperty.Mutator.Mutator mutator => mutator -> mutator
-				movePiece	= StateProperty.Mutator.movePiece move (
-					Data.Maybe.fromJust . State.MaybePieceByCoordinates.dereference (State.Board.getMaybePieceByCoordinates board) $ Component.Move.getSource move
-				 ) (
-					Attribute.MoveType.getMaybePromotedRank moveType
-				 ) $ if Attribute.MoveType.isEnPassant moveType
-					then Left . Component.Move.getDestination . Component.QualifiedMove.getMove . Component.Turn.getQualifiedMove . Data.Maybe.fromJust $ Model.Game.maybeLastTurn game
-					else Right $ Attribute.MoveType.getMaybeExplicitlyTakenRank moveType
+				movePiece	= StateProperty.Mutator.movePiece move moveType (
+					Data.Maybe.fromJust . State.MaybePieceByCoordinates.dereference (State.Board.getMaybePieceByCoordinates board) . Component.Move.getSource $ Component.QualifiedMove.getMove qualifiedMove
+				 )
 			in uncurry (==) $ (
 				normalise . StateProperty.View.translate . movePiece . State.Board.getMaybePieceByCoordinates &&& normalise . movePiece . State.Board.getCoordinatesByRankByLogicalColour
 			) board
