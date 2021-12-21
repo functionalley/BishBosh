@@ -81,6 +81,7 @@ module BishBosh.Cartesian.Coordinates(
 	arrayByCoordinates,
 -- ** Predicates
 --	inBounds,
+	isBetween,
 	isPawnsFirstRank,
 	isEnPassantRank,
 	areSquaresIsochromatic
@@ -486,6 +487,18 @@ getLogicalColourOfSquare coordinates
 -- | Whether the specified squares have the same /logical colour/.
 areSquaresIsochromatic :: [Coordinates] -> Bool
 areSquaresIsochromatic	= uncurry (||) . (all (== minBound) &&& all (== maxBound)) . map getLogicalColourOfSquare
+
+{- |
+	* Whether the specified coordinates lie within the open interval (source, destination); neither source nor destination lies in this interval.
+
+	* CAVEAT: the source & destination must form a straight line of non-zero length (i.e. a valid Queen's move).
+-}
+isBetween
+	:: Coordinates	-- ^ Source.
+	-> Coordinates	-- ^ Destination.
+	-> Coordinates	-- ^ Potential intermediary.
+	-> Bool
+isBetween source destination	= (`elem` init {-drop the destination-} (interpolate source destination))
 
 -- | The conventional starting /coordinates/ for the @King@ of the specified /logical colour/.
 kingsStartingCoordinates :: Colour.LogicalColour.LogicalColour -> Coordinates

@@ -142,6 +142,16 @@ results = sequence [
 		f	= Test.QuickCheck.label "Coordinates.prop_applyAlongDirectionsFrom" . uncurry (==) . (
 			flip (Cartesian.Coordinates.applyAlongDirectionsFrom id) Nothing &&& flip (Cartesian.Coordinates.applyAlongDirectionsFrom id) (Just Property.FixedMembership.members)
 		 )
+	in Test.QuickCheck.quickCheckWithResult Test.QuickCheck.stdArgs { Test.QuickCheck.maxSuccess = 16 } f,
+	let
+		f :: Cartesian.Coordinates.Coordinates -> Cartesian.Coordinates.Coordinates -> Test.QuickCheck.Property
+		f source destination	= source /= destination && Property.Orientated.isStraight (Cartesian.Vector.measureDistance source destination) ==> Test.QuickCheck.label "Coordinates.prop_isBetween(terminals)" . not $ any (Cartesian.Coordinates.isBetween source destination) [source, destination]
+	in Test.QuickCheck.quickCheckWithResult Test.QuickCheck.stdArgs { Test.QuickCheck.maxSuccess = 16 } f,
+	let
+		f :: Cartesian.Coordinates.Coordinates -> Cartesian.Coordinates.Coordinates -> Cartesian.Coordinates.Coordinates -> Test.QuickCheck.Property
+		f source destination intermediary	= source /= destination && Property.Orientated.isStraight (Cartesian.Vector.measureDistance source destination) ==> Test.QuickCheck.label "Coordinates.prop_isBetween(symmetrical)" . uncurry (==) $ (
+			Cartesian.Coordinates.isBetween source destination &&& Cartesian.Coordinates.isBetween destination source
+		 ) intermediary
 	in Test.QuickCheck.quickCheckWithResult Test.QuickCheck.stdArgs { Test.QuickCheck.maxSuccess = 16 } f
  ]
 

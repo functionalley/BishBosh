@@ -1108,7 +1108,7 @@ listQualifiedMovesAvailableTo game@MkGame {
 				let piece	= Component.Piece.mkPiece logicalColour rank,
 				source			<- State.CoordinatesByRankByLogicalColour.dereference coordinatesByRankByLogicalColour logicalColour rank,	-- Find the source of a potential blocking move.
 				(destination, Nothing)	<- State.MaybePieceByCoordinates.listDestinationsFor maybePieceByCoordinates source piece,	-- The blocker must move to an empty square, otherwise the checker was already blocked.
-				Control.Exception.assert (checkedFrom /= kingsCoordinates) . elem destination . init {-drop King's location-} $ Cartesian.Coordinates.interpolate checkedFrom kingsCoordinates,
+				Control.Exception.assert (checkedFrom /= kingsCoordinates) $ Cartesian.Coordinates.isBetween kingsCoordinates checkedFrom destination,
 				maybePromotionRank	<- listMaybePromotionRanks destination piece
 		 ] -- List-comprehension.
 		attackers		-> Control.Exception.assert (
