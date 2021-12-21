@@ -92,14 +92,13 @@ instance Data.Default.Default RankValues where
 		3,
 		3,
 		9,
-		0	-- N.B.: move-selection is independent of the King's value (since it can't be taken), so it can be defined arbitrarily.
+		0	-- N.B.: the King's value is immaterial (since it can't be taken), so it can be defined arbitrarily.
 	 ]
 
 instance Control.DeepSeq.NFData RankValues where
 	rnf (MkRankValues byRank)	=
 #ifdef UNBOX_TYPEMASS_ARRAYS
 		Control.DeepSeq.rwhnf
-	
 #else
 		Control.DeepSeq.rnf
 #endif
@@ -110,8 +109,8 @@ instance HXT.XmlPickler RankValues where
 		fromAssocs,				-- Construct from an association-list.
 		Data.Array.IArray.assocs . deconstruct	-- Deconstruct to an association-list.
 	 ) . HXT.xpList1 . HXT.xpElem tag $ HXT.xpickle {-Rank-} `HXT.xpPair`
-#ifndef USE_NEWTYPE_WRAPPER
-		HXT.xpAttr Metric.RankValue.tag 
+#ifndef USE_NEWTYPE_WRAPPERS
+		HXT.xpAttr Metric.RankValue.tag
 #endif
 		HXT.xpickle
 
