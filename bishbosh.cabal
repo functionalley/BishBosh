@@ -57,11 +57,11 @@ source-repository head
     type:	git
     location:	https://github.com/functionalley/BishBosh
 
--- Enable using: 'runhaskell Setup configure -f llvm --verbose'.
-flag llvm
-    Description:	Whether the 'llvm' compiler-backend has been installed and is required for code-generation.
+-- Whether to use unsafe array-indexing where possible.
+flag arrayunsafeat
+    Description:	Use unsafe array-indexing.
     Manual:		True
-    Default:		False
+    Default:		True
 
 -- Automatically disabled when the required package isn't available.
 -- To force validation of the XML-configuration against the packaged DTD, manually disable using one of:
@@ -70,6 +70,12 @@ flag llvm
 flag hxtrelaxng
     Description:	Link with package "hxt-relaxng" when available, for more precise specification of the XML-configuration than a traditional DTD.
     Default:		True
+
+-- Enable using: 'runhaskell Setup configure -f llvm --verbose'.
+flag llvm
+    Description:	Whether the 'llvm' compiler-backend has been installed and is required for code-generation.
+    Manual:		True
+    Default:		False
 
 -- Whether to use narrower numerical types than machine-defaults. CAVEAT: this option increases both the space allocated & the execution-time.
 flag narrownumbers
@@ -309,6 +315,9 @@ Library
         time,
         toolshed	^>= 0.18.0
 
+    if flag(arrayunsafeat)
+        CPP-Options:	-DUSE_ARRAY_UNSAFEAT
+
     if impl(ghc >= 7.0) && flag(llvm)
         GHC-options:	-fllvm
 
@@ -475,8 +484,8 @@ Test-Suite quickcheck-tests
         BishBosh.Test.QuickCheck.Input.Options
         BishBosh.Test.QuickCheck.Input.PGNOptions
         BishBosh.Test.QuickCheck.Input.PieceSquareTable
-        BishBosh.Test.QuickCheck.Input.RankValues
         BishBosh.Test.QuickCheck.Input.SearchOptions
+        BishBosh.Test.QuickCheck.Input.RankValues
         BishBosh.Test.QuickCheck.Input.StandardOpeningOptions
         BishBosh.Test.QuickCheck.Input.UIOptions
         BishBosh.Test.QuickCheck.Input.Verbosity

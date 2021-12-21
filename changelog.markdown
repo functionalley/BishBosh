@@ -173,6 +173,7 @@ New Module				| Purpose
 	+ Added function **BishBosh.Attribute.MoveType.apply**, & called it from **BishBosh.Evaluation.Fitness.measurePieceSquareValueDifferenceIncrementally** to facilitate catering for *Castling* & *Promotion*.
 	+ Added record-field **BishBosh.Input.StandardOpeningOptions.getMaybeMaximumPliesSinceMatch**, to limit the number of failures to match the position against a prerecorded game, before abandoning further attempts.
 	+ Unboxed arrays **BishBosh.Input.RankValue.RankValues** & **BishBosh.StateProperty.Censor.NPiecesByRank** (used in record-field **BishBosh.State.Board.getNPiecesDifferenceByRank**), to improve the efficiency of function **BishBosh.Evaluation.Fitness.measureValueOfMaterial**.
+	+ Added function **Cartesian.Coordinates.ixInterpolate** to support **State.MaybePieceByCoordinates.isClear**, where it can use **Data.Array.Base.unsafeAt** to bypass repeated conversion from coordinates to array-indices.
 * Structural:
 	+ Split module **BishBosh.Component.PieceSquareByCoordinatesByRank** into **BishBosh.Component.PieceSquareValueByCoordinates** & **BishBosh.Component.PieceSquareValueByCoordinatesByRank**.
 	+ Migrated the **CPP**-logic to establish compatibility between environment-variables, into the Cabal-file; also renamed some environment-variables & flags for clarity.

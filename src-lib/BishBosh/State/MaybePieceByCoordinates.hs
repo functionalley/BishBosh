@@ -1,3 +1,4 @@
+{-# LANGUAGE CPP #-}
 {-
 	Copyright (C) 2018 Dr. Alistair Ward
 
@@ -83,7 +84,6 @@ import qualified	BishBosh.Property.ExtendedPositionDescription		as Property.Exte
 import qualified	BishBosh.Property.FixedMembership			as Property.FixedMembership
 import qualified	BishBosh.Property.ForsythEdwards			as Property.ForsythEdwards
 import qualified	BishBosh.Property.Opposable				as Property.Opposable
-import qualified	BishBosh.Property.Orientated				as Property.Orientated
 import qualified	BishBosh.Property.Reflectable				as Property.Reflectable
 import qualified	BishBosh.Property.SelfValidating			as Property.SelfValidating
 import qualified	BishBosh.StateProperty.Censor				as StateProperty.Censor
@@ -104,6 +104,12 @@ import qualified	Data.List
 import qualified	Data.List.Extra
 import qualified	Data.Maybe
 import qualified	ToolShed.Data.List.Runlength
+
+#ifdef USE_ARRAY_UNSAFEAT
+import qualified	Data.Array.Base
+#else
+import qualified	BishBosh.Property.Orientated				as Property.Orientated
+#endif
 
 {- |
 	* This structure allows one to determine what /piece/ (if any) is located at specific /coordinates/.
@@ -553,9 +559,16 @@ isClear
 	-> Cartesian.Coordinates.Coordinates	-- ^ Source.
 	-> Cartesian.Coordinates.Coordinates	-- ^ Destination.
 	-> Bool
-isClear maybePieceByCoordinates source destination	= Control.Exception.assert (
-	source /= destination && Property.Orientated.isStraight (Component.Move.mkMove source destination)
- ) . all (isVacant maybePieceByCoordinates) . init {-discard the destination-} $ Cartesian.Coordinates.interpolate source destination
+isClear 
+#ifdef USE_ARRAY_UNSAFEAT
+	MkMaybePieceByCoordinates { deconstruct = byCoordinates } source destination	= all (
+		Data.Maybe.isNothing . Data.Array.Base.unsafeAt byCoordinates
+	) . init {-discard the destination-} $ Cartesian.Coordinates.ixInterpolate source destination
+#else
+	maybePieceByCoordinates source destination	= Control.Exception.assert (
+		source /= destination && Property.Orientated.isStraight (Component.Move.mkMove source destination)
+	) . all (isVacant maybePieceByCoordinates) . init {-discard the destination-} $ Cartesian.Coordinates.interpolate source destination
+#endif
 
 -- | Whether there's a blockage between a /piece/ presumed to exist at the specified source, & a /piece/ presumed to exist @ the specified destination.
 isObstructed

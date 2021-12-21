@@ -47,11 +47,17 @@ module BishBosh.Cartesian.Coordinates(
 	nSquares,
 --	extrapolationsByDirectionByCoordinates,
 --	interpolationsByDestinationBySource,
+#ifdef USE_ARRAY_UNSAFEAT
+--	ixInterpolationsByDestinationBySource
+#endif
 -- * Functions
 --	extrapolate',
 	extrapolate,
 	applyAlongDirectionsFrom,
 	interpolate,
+#ifdef USE_ARRAY_UNSAFEAT
+	ixInterpolate,
+#endif
 	getLogicalColourOfSquare,
 	kingsStartingCoordinates,
 	rooksStartingCoordinates,
@@ -439,6 +445,16 @@ interpolationsByDestinationBySource	= Data.Array.IArray.amap (
 -}
 interpolate :: Coordinates -> Coordinates -> [Coordinates]
 interpolate coordinatesSource coordinatesDestination	= interpolationsByDestinationBySource ! coordinatesSource Map.! coordinatesDestination
+
+#ifdef USE_ARRAY_UNSAFEAT
+-- | The constant lists of /coordinate/ array-indexes, between every permutation of source & valid destination on the /board/.
+ixInterpolationsByDestinationBySource :: ArrayByCoordinates (Map.Map Coordinates [Int])
+ixInterpolationsByDestinationBySource	= Data.Array.IArray.amap (Map.map $ map fromEnum) interpolationsByDestinationBySource
+
+-- | Generates a line of array-indexes covering the coordinates in the half open interval @(source, destination]@.
+ixInterpolate :: Coordinates -> Coordinates -> [Int]
+ixInterpolate coordinatesSource coordinatesDestination	= ixInterpolationsByDestinationBySource ! coordinatesSource Map.! coordinatesDestination
+#endif
 
 {- |
 	* Measures the signed distance between source & destination /coordinates/.
