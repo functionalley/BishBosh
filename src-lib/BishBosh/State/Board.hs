@@ -61,6 +61,7 @@ module BishBosh.State.Board(
 -- ** Mutators
 	movePiece,
 -- ** Predicates
+	passesThroughCheck,
 	isKingChecked,
 	exposesKing
 ) where
@@ -445,6 +446,16 @@ isKingChecked
 isKingChecked board@MkBoard { getCoordinatesByRankByLogicalColour = coordinatesByRankByLogicalColour }	= not . null . uncurry ($!) . (
 	findAttackersOf board &&& State.CoordinatesByRankByLogicalColour.getKingsCoordinates coordinatesByRankByLogicalColour
  )
+
+-- | Confirm whether the specified move passes through check.
+passesThroughCheck
+	:: Board
+	-> Colour.LogicalColour.LogicalColour	-- ^ The mover's /logical colour/.
+	-> Component.Move.Move
+	-> Bool
+passesThroughCheck board logicalColour	= not . all (
+	null . findAttackersOf board logicalColour . fst {-coordinates-}
+ ) . Component.Move.interpolate
 
 {- |
 	* Whether one's own @King@ has become exposed in the proposed /board/.

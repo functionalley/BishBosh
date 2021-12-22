@@ -500,9 +500,7 @@ findAvailableCastlingMoves MkGame {
 				Cartesian.Coordinates.kingsStartingCoordinates logicalColour
 			) castlingRooksSource,
 			let castlingKingsMove	= Component.CastlingMove.getKingsMove castlingMove,
-			all (
-				null . State.Board.findAttackersOf board logicalColour
-			) $ Component.Move.interpolate castlingKingsMove	-- The King mustn't be checked anywhere alongs its route.
+			not $ State.Board.passesThroughCheck board logicalColour castlingKingsMove
 	] {-list-comprehension-}
 	| otherwise	= [] {-have already Castled-}
 
@@ -920,9 +918,7 @@ validateQualifiedMove game@MkGame {
 								maybeChecked == Just sourceLogicalColour,
 								"it can't castle out of check"
 							), (
-								not . all (
-									null . State.Board.findAttackersOf board sourceLogicalColour
-								) $ Component.Move.interpolate move,	-- The King mustn't pass through check when moving from source to destination (inclusive); a long castle still permits the square right of the Rook to be checked.
+								State.Board.passesThroughCheck board sourceLogicalColour move,	-- The King mustn't pass through check when moving from source to destination (inclusive); a long castle still permits the square right of the Rook to be checked.
 								"it can't castle through check"
 							)
 						] -- Tests which are independent of the implied Rook.
