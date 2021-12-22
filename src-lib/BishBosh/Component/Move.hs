@@ -156,7 +156,7 @@ measureDistance	MkMove {
 } = Cartesian.Vector.measureDistance source destination
 
 -- | Generates a line of /coordinates/ covering the half open interval @(source, destination]@.
-interpolate :: Move -> [Cartesian.Coordinates.Coordinates]
+interpolate :: Move -> Cartesian.Coordinates.QualifiedStraightLine
 interpolate move@MkMove {
 	getSource	= source,
 	getDestination	= destination

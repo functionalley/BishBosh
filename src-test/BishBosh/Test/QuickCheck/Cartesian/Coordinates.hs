@@ -119,14 +119,20 @@ results = sequence [
 					| null extrapolation	= source
 					| otherwise		= last extrapolation
 			 in source == destination || source : extrapolation == reverse (
-				destination : Cartesian.Coordinates.interpolate destination source
+				destination : map fst {-Coordinates-} (
+					Cartesian.Coordinates.interpolate destination source
+				)
 			 )
-		 ) $ Cartesian.Coordinates.extrapolate source direction
+		 ) . map fst {-Coordinates-} $ Cartesian.Coordinates.extrapolate source direction
 	in Test.QuickCheck.quickCheckWithResult Test.QuickCheck.stdArgs { Test.QuickCheck.maxSuccess = 64 } f,
 	let
 		f :: Cartesian.Coordinates.Coordinates -> Cartesian.Coordinates.Coordinates -> Test.QuickCheck.Property
-		f source destination	= isValidMove source destination ==> Test.QuickCheck.label "Coordinates.prop_interpolate" $ source : Cartesian.Coordinates.interpolate source destination == reverse (
-			destination : Cartesian.Coordinates.interpolate destination source
+		f source destination	= isValidMove source destination ==> Test.QuickCheck.label "Coordinates.prop_interpolate" $ source : map fst {-Coordinates-} (
+			Cartesian.Coordinates.interpolate source destination
+		 ) == reverse (
+			destination : map fst {-Coordinates-} (
+				Cartesian.Coordinates.interpolate destination source
+			)
 		 )
 	in Test.QuickCheck.quickCheckWithResult Test.QuickCheck.stdArgs { Test.QuickCheck.maxSuccess = 64 } f,
 	let

@@ -64,7 +64,7 @@ testCases	= Test.HUnit.test [
 	let
 		kingsColour		= minBound
 		destination		= Cartesian.Coordinates.mkRelativeCoordinates ((+ 3) *** (+ 3))
-		directionToCoordinates	= last . Cartesian.Coordinates.extrapolate destination
+		directionToCoordinates	= fst {-Coordinates-} . last . Cartesian.Coordinates.extrapolate destination
 		mkPiece			= Component.Piece.mkPiece $ Property.Opposable.getOpposite kingsColour
 		maybeShift		= (`Cartesian.Vector.maybeTranslate` destination)
 	in all (

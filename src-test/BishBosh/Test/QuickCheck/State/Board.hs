@@ -157,7 +157,9 @@ results	= sequence [
 				isClear	= State.MaybePieceByCoordinates.isClear maybePieceByCoordinates source
 			in all (
 				\direction -> Data.Maybe.maybe (
-					Data.Maybe.maybe True isClear . Data.Maybe.listToMaybe . reverse $ Cartesian.Coordinates.extrapolate source direction
+					Data.Maybe.maybe True (
+						isClear . fst {-Coordinates-}
+					) .  Data.Maybe.listToMaybe . reverse $ Cartesian.Coordinates.extrapolate source direction
 				) (
 					isClear . fst {-destination-}
 				) $ State.MaybePieceByCoordinates.findBlockingPiece maybePieceByCoordinates source direction

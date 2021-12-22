@@ -37,6 +37,7 @@ module BishBosh.Cartesian.Coordinates(
 		getY
 	),
 -- ** Type-synonyms
+	QualifiedStraightLine,
 --	Transformation,
 	ArrayByCoordinates,
 	UArrayByCoordinates,
@@ -47,17 +48,11 @@ module BishBosh.Cartesian.Coordinates(
 	nSquares,
 --	extrapolationsByDirectionByCoordinates,
 --	interpolationsByDestinationBySource,
-#ifdef USE_ARRAY_UNSAFEAT
---	ixInterpolationsByDestinationBySource
-#endif
 -- * Functions
 --	extrapolate',
 	extrapolate,
 	applyAlongDirectionsFrom,
 	interpolate,
-#ifdef USE_ARRAY_UNSAFEAT
-	ixInterpolate,
-#endif
 	getLogicalColourOfSquare,
 	kingsStartingCoordinates,
 	rooksStartingCoordinates,
@@ -399,6 +394,17 @@ extrapolate' MkCoordinates {
 			| direction == Direction.Direction.nw	= (xDecreasing,	yIncreasing)
 			| otherwise {-NE-}			= (xIncreasing,	yIncreasing)
 
+-- | A line of /coordinates/, qualified by an array-index into any 'ArrayByCoordinates'.
+type QualifiedStraightLine	= [(Coordinates, Int)]
+
+-- | The constant lists of (/coordinates/, array-index), extrapolated from every /coordinate/ in the /board/, in every /direction/.
+extrapolationsByDirectionByCoordinates :: ArrayByCoordinates (Direction.Direction.ArrayByDirection QualifiedStraightLine)
+extrapolationsByDirectionByCoordinates	= listArrayByCoordinates $ map (
+	\coordinates	-> Direction.Direction.listArrayByDirection $ map (
+		map (id &&& fromEnum) . extrapolate' coordinates
+	) Property.FixedMembership.members {-direction-}
+ ) Property.FixedMembership.members {-coordinates-}
+
 {- |
 	* Generates a line of /coordinates/, starting just after the specified source & proceeding in the specified /direction/ to the edge of the board.
 
@@ -408,18 +414,12 @@ extrapolate' MkCoordinates {
 extrapolate
 	:: Coordinates				-- ^ The point from which to start.
 	-> Direction.Direction.Direction	-- ^ The direction in which to proceed.
-	-> [Coordinates]
+	-> QualifiedStraightLine
 extrapolate coordinates	direction	= extrapolationsByDirectionByCoordinates ! coordinates ! direction
 
--- | The constant lists of /coordinates/, extrapolated from every /coordinate/ in the /board/, in every /direction/.
-extrapolationsByDirectionByCoordinates :: ArrayByCoordinates (Direction.Direction.ArrayByDirection [Coordinates])
-extrapolationsByDirectionByCoordinates	= listArrayByCoordinates $ map (
-	\coordinates	-> Direction.Direction.listArrayByDirection $ extrapolate' coordinates `map` Property.FixedMembership.members {-direction-}
- ) Property.FixedMembership.members {-coordinates-}
-
--- | Apply the specified function to each line of /coordinates/ extrapolated from the specified central hub, in each of the specified /direction/s.
+-- | Apply the specified function to each 'QualifiedStraightLine' extrapolated from the specified central hub, in each of the specified /direction/s.
 applyAlongDirectionsFrom
-	:: ([Coordinates] -> [a])			-- ^ Individually map each straight line of coordinates extrapolated from the central hub.
+	:: (QualifiedStraightLine -> [a])		-- ^ Individually map each 'QualifiedCoordinatesLine' extrapolated from the central hub.
 	-> Coordinates					-- ^ The central hub from which to extrapolate.
 	-> Maybe [Direction.Direction.Direction]	-- ^ The directions in which to extrapolate; 'Nothing' implies omnidirectional.
 	-> [a]
@@ -429,33 +429,23 @@ applyAlongDirectionsFrom f from	= Data.Maybe.maybe (
 	concatMap $ f . (extrapolationsByDirectionByCoordinates ! from !)
  )
 
--- | The constant lists of /coordinates/, between every permutation of source & valid destination on the /board/.
-interpolationsByDestinationBySource :: ArrayByCoordinates (Map.Map Coordinates [Coordinates])
+-- | The constant 'QualifiedStraightLine', between every permutation of source & valid destination on the /board/.
+interpolationsByDestinationBySource :: ArrayByCoordinates (Map.Map Coordinates QualifiedStraightLine)
 interpolationsByDestinationBySource	= Data.Array.IArray.amap (
 	Map.fromList . map (
-		last {-destination-} &&& id {-interpolation-}
+		fst {-coordinates-} . last {-destination-} &&& id {-interpolation-}
 	) . concatMap (
 		tail {-remove null list-} . Data.List.inits	-- Generate all possible interpolations from this extrapolation.
 	) . Data.Foldable.toList
  ) extrapolationsByDirectionByCoordinates	-- Derive from extrapolations.
 
 {- |
-	* Generates a line of /coordinates/ covering the half open interval @(source, destination]@.
+	* Generates a 'QualifiedStraightLine' covering the half open interval @(source, destination]@.
 
 	* CAVEAT: the destination-/coordinates/ must be a valid @Queen@'s /move/ from the source; so that all intermediate points lie on a square of the board.
 -}
-interpolate :: Coordinates -> Coordinates -> [Coordinates]
+interpolate :: Coordinates -> Coordinates -> QualifiedStraightLine
 interpolate coordinatesSource coordinatesDestination	= interpolationsByDestinationBySource ! coordinatesSource Map.! coordinatesDestination
-
-#ifdef USE_ARRAY_UNSAFEAT
--- | The constant lists of /coordinate/ array-indexes, between every permutation of source & valid destination on the /board/.
-ixInterpolationsByDestinationBySource :: ArrayByCoordinates (Map.Map Coordinates [Int])
-ixInterpolationsByDestinationBySource	= Data.Array.IArray.amap (Map.map $ map fromEnum) interpolationsByDestinationBySource
-
--- | Generates a line of array-indexes covering the coordinates in the half open interval @(source, destination]@.
-ixInterpolate :: Coordinates -> Coordinates -> [Int]
-ixInterpolate coordinatesSource coordinatesDestination	= ixInterpolationsByDestinationBySource ! coordinatesSource Map.! coordinatesDestination
-#endif
 
 {- |
 	* Measures the signed distance between source & destination /coordinates/.
@@ -498,7 +488,7 @@ isBetween
 	-> Coordinates	-- ^ Destination.
 	-> Coordinates	-- ^ Potential intermediary.
 	-> Bool
-isBetween source destination	= (`elem` init {-drop the destination-} (interpolate source destination))
+isBetween source destination intermediary	= Data.Maybe.isJust . Data.List.find ((== intermediary) . fst {-coordinates-}) . init {-drop the destination-} $ interpolate source destination
 
 -- | The conventional starting /coordinates/ for the @King@ of the specified /logical colour/.
 kingsStartingCoordinates :: Colour.LogicalColour.LogicalColour -> Coordinates

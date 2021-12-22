@@ -38,7 +38,9 @@ import			Test.HUnit((~?), (~?=), (~:))
 -- | Check the sanity of the implementation, by validating a list of static test-cases.
 testCases :: Test.HUnit.Test
 testCases	= Test.HUnit.test [
-	all (Colour.LogicalColourOfSquare.isBlack . Cartesian.Coordinates.getLogicalColourOfSquare) (
+	all (
+		Colour.LogicalColourOfSquare.isBlack . Cartesian.Coordinates.getLogicalColourOfSquare . fst {-Coordinates-}
+	) (
 		Cartesian.Coordinates.extrapolate (minBound :: Cartesian.Coordinates.Coordinates) maxBound {-direction-}
 	) ~? "'BishBosh.Cartesian.Coordinates.getLogicalColourOfSquare' failed to find black squares on the main diagonal.",
 	"'BishBosh.Cartesian.Coordinates.getLogicalColourOfSquare' failed to count equal numbers of black & white squares." ~: (

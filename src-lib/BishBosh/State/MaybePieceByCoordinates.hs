@@ -391,16 +391,22 @@ listDestinationsFor maybePieceByCoordinates@MkMaybePieceByCoordinates { deconstr
 			else []	-- The path immediately ahead is blocked.
 		else {-N,K-} findAttackDestinations . Data.Maybe.maybe True {-unoccupied-} $ (/= logicalColour) . Component.Piece.getLogicalColour
 	else {-R,B,Q-} let
-		takeUntil :: [Cartesian.Coordinates.Coordinates] -> [(Cartesian.Coordinates.Coordinates, Maybe Attribute.Rank.Rank)]
-		takeUntil (destination : remainder)
-			| Just blockingPiece	<- byCoordinates ! destination	= [
+		takeUntil :: Cartesian.Coordinates.QualifiedStraightLine -> [(Cartesian.Coordinates.Coordinates, Maybe Attribute.Rank.Rank)]
+#ifdef USE_ARRAY_UNSAFEAT
+		takeUntil ((destination, ix) : remainder)
+			| Just blockingPiece	<- Data.Array.Base.unsafeAt byCoordinates ix
+#else
+		takeUntil ((destination, _) : remainder)
+			| Just blockingPiece	<- byCoordinates ! destination
+#endif
+			= [
 				(
 					destination,
 					Just $ Component.Piece.getRank blockingPiece
 				) | Component.Piece.getLogicalColour blockingPiece /= logicalColour
 			] -- List-comprehension.
-			| otherwise						= (destination, Nothing) : takeUntil remainder	-- Recurse.
-		takeUntil _							= []
+			| otherwise	= (destination, Nothing) : takeUntil remainder	-- Recurse.
+		takeUntil _		= []
 	in Cartesian.Coordinates.applyAlongDirectionsFrom takeUntil source $ if Component.Piece.isQueen piece
 		then Nothing	-- i.e. all directions.
 		else Just $ Component.Piece.getAttackDirections piece
@@ -481,11 +487,17 @@ findBlockingPiece
 	-> Direction.Direction.Direction	-- ^ The direction in which to search.
 	-> Maybe Component.Piece.LocatedPiece	-- ^ Any blocking piece.
 findBlockingPiece MkMaybePieceByCoordinates { deconstruct = byCoordinates } source	= slave . Cartesian.Coordinates.extrapolate source where
-	slave :: [Cartesian.Coordinates.Coordinates] -> Maybe Component.Piece.LocatedPiece
-	slave (coordinates : remainder)
-		| Just blockingPiece	<- byCoordinates ! coordinates	= Just (coordinates, blockingPiece)	-- Terminate with success.
-		| otherwise						= slave remainder			-- Recurse.
-	slave _								= Nothing				-- Terminate with failure.
+	slave :: Cartesian.Coordinates.QualifiedStraightLine -> Maybe Component.Piece.LocatedPiece
+#ifdef USE_ARRAY_UNSAFEAT
+	slave ((coordinates, ix) : remainder)
+		| Just blockingPiece	<- Data.Array.Base.unsafeAt byCoordinates ix
+#else
+	slave ((coordinates, _) : remainder)
+		| Just blockingPiece	<- byCoordinates ! coordinates
+#endif
+				= Just (coordinates, blockingPiece)	-- Terminate with success.
+		| otherwise	= slave remainder			-- Recurse.
+	slave _			= Nothing				-- Terminate with failure.
 
 {- |
 	* Find the first /piece/ of either /logical colour/, encountered in each of the specified /direction/s, from just after the specified /coordinates/.
@@ -498,16 +510,22 @@ findBlockingPieces
 	-> Maybe [Direction.Direction.Direction]	-- ^ The directions in which to search; 'Nothing' implies omni-directional.
 	-> [Component.Piece.LocatedPiece]		-- ^ Blocking pieces in non-specific directions.
 findBlockingPieces MkMaybePieceByCoordinates { deconstruct = byCoordinates }	= Cartesian.Coordinates.applyAlongDirectionsFrom slave where
-	slave :: [Cartesian.Coordinates.Coordinates] -> [Component.Piece.LocatedPiece]
-	slave (coordinates : remainder)
-		| Just blockingPiece	<- byCoordinates ! coordinates	= [(coordinates, blockingPiece)]	-- Terminate with success.
-		| otherwise						= slave remainder			-- Recurse.
-	slave _								= []					-- Terminate with failure.
+	slave :: Cartesian.Coordinates.QualifiedStraightLine -> [Component.Piece.LocatedPiece]
+#ifdef USE_ARRAY_UNSAFEAT
+	slave ((coordinates, ix) : remainder)
+		| Just blockingPiece	<- Data.Array.Base.unsafeAt byCoordinates ix
+#else
+	slave ((coordinates, _) : remainder)
+		| Just blockingPiece	<- byCoordinates ! coordinates	
+#endif
+				= [(coordinates, blockingPiece)]	-- Terminate with success.
+		| otherwise	= slave remainder			-- Recurse.
+	slave _			= []					-- Terminate with failure.
 
 {- |
 	* Find the /coordinates/ of any attacker who can strike the specified /coordinates/, from the specified /direction/ (as seen by the target).
 
-	* N.B.: there no requirement for there to actually be a /piece/ to attack at the specified target.
+	* N.B.: there's no requirement for there to actually be a /piece/ to attack at the specified target.
 -}
 findAttackerInDirection
 	:: MaybePieceByCoordinates
@@ -562,13 +580,16 @@ isClear
 isClear 
 #ifdef USE_ARRAY_UNSAFEAT
 	MkMaybePieceByCoordinates { deconstruct = byCoordinates } source destination	= all (
-		Data.Maybe.isNothing . Data.Array.Base.unsafeAt byCoordinates
-	) . init {-discard the destination-} $ Cartesian.Coordinates.ixInterpolate source destination
+		Data.Maybe.isNothing . Data.Array.Base.unsafeAt byCoordinates . snd {-ix-}
+	)
 #else
 	maybePieceByCoordinates source destination	= Control.Exception.assert (
 		source /= destination && Property.Orientated.isStraight (Component.Move.mkMove source destination)
-	) . all (isVacant maybePieceByCoordinates) . init {-discard the destination-} $ Cartesian.Coordinates.interpolate source destination
+	) . all (
+		isVacant maybePieceByCoordinates . fst {-coordinates-}
+	)
 #endif
+	. init {-discard the destination-} $ Cartesian.Coordinates.interpolate source destination
 
 -- | Whether there's a blockage between a /piece/ presumed to exist at the specified source, & a /piece/ presumed to exist @ the specified destination.
 isObstructed
