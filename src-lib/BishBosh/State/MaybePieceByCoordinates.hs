@@ -606,11 +606,12 @@ isObstructed maybePieceByCoordinates source	= not . isClear maybePieceByCoordina
 	otherwise one would also need to confirm that the opponent's @Pawn@ had just double-advanced into the appropriate position.
 -}
 isEnPassantMove :: MaybePieceByCoordinates -> Component.Move.Move -> Bool
-isEnPassantMove maybePieceByCoordinates@MkMaybePieceByCoordinates { deconstruct = byCoordinates } move
-	| Just piece	<- byCoordinates ! source
-	, let logicalColour	= Component.Piece.getLogicalColour piece
-	= Cartesian.Coordinates.isEnPassantRank source logicalColour && Component.Piece.isPawn piece && destination `elem` Component.Piece.findAttackDestinations piece source && isVacant maybePieceByCoordinates destination	-- The move is either En-passant or invalid.
-	| otherwise	= False	-- No piece.
-	where
-		(source, destination)	= Component.Move.getSource &&& Component.Move.getDestination $ move
+isEnPassantMove maybePieceByCoordinates@MkMaybePieceByCoordinates { deconstruct = byCoordinates } move	= Data.Maybe.maybe False {-No piece-} (
+	\piece -> uncurry (&&) (
+		Cartesian.Coordinates.isEnPassantRank source . Component.Piece.getLogicalColour &&& Component.Piece.isPawn $ piece
+	) && uncurry (&&) (
+		(`elem` Component.Piece.findAttackDestinations piece source) &&& isVacant maybePieceByCoordinates $ Component.Move.getDestination move	-- The move is either En-passant or invalid.
+	)
+ ) $ byCoordinates ! source where
+	source	= Component.Move.getSource move
 
