@@ -364,7 +364,7 @@ movePiece move maybeMoveType board@MkBoard {
 							)
 						]
 					)
-				)  -- Normal.
+				) -- Normal.
 			) moveType,
 			getNPawnsByFileByLogicalColour		= if Component.Piece.isPawn sourcePiece && not (Attribute.MoveType.isQuiet moveType) || wasPawnTakenExplicitly
 				then StateProperty.Seeker.countPawnsByFileByLogicalColour coordinatesByRankByLogicalColour'	-- Recalculate.
