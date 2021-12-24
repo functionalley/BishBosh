@@ -64,14 +64,19 @@ flag arrayunsafeat
     Default:		True
 
 -- Automatically disabled when the required package isn't available.
--- To force validation of the XML-configuration against the packaged DTD, manually disable using one of:
+-- To force validation of the XML-configuration against the packaged DTD.
+-- Disable using:
 --	runhaskell Setup configure -f -hxtrelaxng --verbose;
---	stack build --flag 'bishbosh:-hxtrelaxng' --cabal-verbose;
+--	stack build --flag='bishbosh:-hxtrelaxng';
 flag hxtrelaxng
     Description:	Link with package "hxt-relaxng" when available, for more precise specification of the XML-configuration than a traditional DTD.
     Default:		True
 
--- Enable using: 'runhaskell Setup configure -f llvm --verbose'.
+-- Compile using LLVM; requires the 'llc' & 'opt' tools (from 'llvm') to be on one's PATH.
+-- CAVEAT: build-time ~150 %, runtime ~97 % (i.e. slightly faster).
+-- Enable using:
+--	runhaskell Setup configure -f llvm --verbose.
+--	stack build --flag='bishbosh:llvm';
 flag llvm
     Description:	Whether the 'llvm' compiler-backend has been installed and is required for code-generation.
     Manual:		True
@@ -90,9 +95,10 @@ flag newtypewrappers
     Default:		False
 
 -- Automatically disabled when the required package isn't available.
--- To access Parsec's more precise error-messages, manually disable using one of:
+-- To access Parsec's more precise error-messages.
+-- Disable using:
 --	runhaskell Setup configure -f -polyparse --verbose;
---	stack build --flag 'bishbosh:-polyparse' --cabal-verbose;
+--	stack build --flag='bishbosh:-polyparse';
 flag polyparse
     Description:	Link with package "polyparse" when available, rather than "parsec".
     Default:		True
@@ -116,7 +122,7 @@ flag unbox
     Default:		True
 
 -- Automatically disabled when the required package isn't available.
--- CAVEAT: on MS-Windows, it may be available but won't necessarily build, so specify "-f -unix --verbose" when configuring the package.
+-- CAVEAT: on MS-Windows, it may be available but won't necessarily build; disable using 'runhaskell Setup configure -f -unix --verbose'.
 flag unix
     Description:	Link with package "unix" when available.
     Default:		True
@@ -132,6 +138,9 @@ common commonStanza
 
     GHC-options:	-Wall -Wredundant-constraints -fno-warn-tabs
 
+    if impl(ghc >= 7.0) && flag(llvm)
+        GHC-options:	-fllvm
+
 common exeStanza
     Hs-source-dirs:	src-exe
     GHC-options:	-O2
@@ -140,9 +149,6 @@ common exeStanza
     Build-depends:
         bishbosh,
         hxt	^>= 9.3.1
-
-    if impl(ghc >= 7.0) && flag(llvm)
-        GHC-options:	-fllvm
 
 common profStanza
     if impl(ghc >= 7.4.1)
@@ -162,6 +168,9 @@ common testStanza
         random,
         toolshed	^>= 0.18.0
 
+    if impl(ghc >= 6.8)
+        GHC-options:	-Werror
+
     if flag(polyparse)
         Build-depends:	polyparse ^>= 1.13
         CPP-Options:	-DUSE_POLYPARSE='L'
@@ -170,7 +179,7 @@ common testStanza
 
 Library
     Import:		commonStanza, profStanza
-    GHC-options:	-O2 -fno-warn-unused-top-binds -Wno-all-missed-specialisations
+    GHC-options:	-O2 -fno-warn-unused-top-binds
     Hs-source-dirs:	src-lib
 
     Exposed-modules:
@@ -317,9 +326,6 @@ Library
 
     if flag(arrayunsafeat)
         CPP-Options:	-DUSE_ARRAY_UNSAFEAT
-
-    if impl(ghc >= 7.0) && flag(llvm)
-        GHC-options:	-fllvm
 
     if flag(precisenumbers)
         CPP-Options:	-DUSE_PRECISE_NUMBERS

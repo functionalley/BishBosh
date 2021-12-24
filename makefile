@@ -47,14 +47,14 @@ hlint: $(BIN_DIR)/hlint
 
 # Serially compile with various CPP-flags & run the test-suites.
 test:
-	@for FLAG in -polyparse newtypewrappers unbox precisenumbers narrownumbers -hxtrelaxng -arrayunsafeat -threaded; do\
+	@for FLAG in -polyparse newtypewrappers unbox precisenumbers narrownumbers -hxtrelaxng -arrayunsafeat -threaded llvm; do\
 		echo $${FLAG};\
 		stack '$@' --flag="$(PACKAGE_NAME):$${FLAG}" $(GHC_OPTIONS) '$(PACKAGE_NAME):test:hunit-tests' '$(PACKAGE_NAME):test:quickcheck-tests' || break;\
 	done
 
 # Repeatedly compile with random CPP-flags & run the test-suites, until failure.
 randomTest:
-	FLAGS=$$(shuf --echo -- arrayunsafeat hxtrelaxng narrownumbers newtypewrappers polyparse precisenumbers threaded unbox | head --lines=3 | sed -e '1s/^/-/' -e 's/\(.*\)/--flag=$(PACKAGE_NAME):\1/');\
+	@FLAGS=$$(shuf --echo -- arrayunsafeat hxtrelaxng llvm narrownumbers newtypewrappers polyparse precisenumbers threaded unbox | head --lines=4 | sed -e '1,2s/^/-/' -e 's/\(.*\)/--flag=$(PACKAGE_NAME):\1/');\
 	echo $${FLAGS};\
 	stack test $${FLAGS} $(GHC_OPTIONS) '$(PACKAGE_NAME):test:hunit-tests' '$(PACKAGE_NAME):test:quickcheck-tests';
 	make '$@'; # Recurse.
