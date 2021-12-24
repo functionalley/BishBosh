@@ -150,14 +150,20 @@ results = sequence [
 		 )
 	in Test.QuickCheck.quickCheckWithResult Test.QuickCheck.stdArgs { Test.QuickCheck.maxSuccess = 16 } f,
 	let
-		f :: Cartesian.Coordinates.Coordinates -> Cartesian.Coordinates.Coordinates -> Test.QuickCheck.Property
-		f source destination	= source /= destination && Property.Orientated.isStraight (Cartesian.Vector.measureDistance source destination) ==> Test.QuickCheck.label "Coordinates.prop_isBetween(terminals)" . not $ any (Cartesian.Coordinates.isBetween source destination) [source, destination]
-	in Test.QuickCheck.quickCheckWithResult Test.QuickCheck.stdArgs { Test.QuickCheck.maxSuccess = 16 } f,
+		f :: Cartesian.Coordinates.Coordinates -> Direction.Direction.Direction -> Test.QuickCheck.Property
+		f source direction	= not (null qualifiedStraightLine) ==> let
+			destination	= fst {-coordinates-} $ last qualifiedStraightLine
+		 in Test.QuickCheck.label "Coordinates.prop_isBetween(terminals)" . not $ any (Cartesian.Coordinates.isBetween source destination) [source, destination] where
+			qualifiedStraightLine	= Cartesian.Coordinates.extrapolate source direction
+	in Test.QuickCheck.quickCheckWithResult Test.QuickCheck.stdArgs { Test.QuickCheck.maxSuccess = 32 } f,
 	let
-		f :: Cartesian.Coordinates.Coordinates -> Cartesian.Coordinates.Coordinates -> Cartesian.Coordinates.Coordinates -> Test.QuickCheck.Property
-		f source destination intermediary	= source /= destination && Property.Orientated.isStraight (Cartesian.Vector.measureDistance source destination) ==> Test.QuickCheck.label "Coordinates.prop_isBetween(symmetrical)" . uncurry (==) $ (
+		f :: Cartesian.Coordinates.Coordinates -> Direction.Direction.Direction -> Cartesian.Coordinates.Coordinates -> Test.QuickCheck.Property
+		f source direction intermediary	= not (null qualifiedStraightLine) ==> let
+			destination	= fst {-coordinates-} $ last qualifiedStraightLine
+		 in Test.QuickCheck.label "Coordinates.prop_isBetween(symmetrical)" . uncurry (==) $ (
 			Cartesian.Coordinates.isBetween source destination &&& Cartesian.Coordinates.isBetween destination source
-		 ) intermediary
-	in Test.QuickCheck.quickCheckWithResult Test.QuickCheck.stdArgs { Test.QuickCheck.maxSuccess = 16 } f
+		 ) intermediary where
+			qualifiedStraightLine	= Cartesian.Coordinates.extrapolate source direction
+	in Test.QuickCheck.quickCheckWithResult Test.QuickCheck.stdArgs { Test.QuickCheck.maxSuccess = 64 } f
  ]
 
