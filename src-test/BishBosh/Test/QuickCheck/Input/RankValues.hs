@@ -37,9 +37,12 @@ import			BishBosh.Test.QuickCheck.Metric.RankValue()
 #endif
 
 instance Test.QuickCheck.Arbitrary Input.RankValues.RankValues where
-	arbitrary	= Input.RankValues.fromAssocs . zip Property.FixedMembership.members . Data.List.sort {-ensures Q is most valuable (except K)-}
+	arbitrary	= Input.RankValues.fromAssocs . zip Property.FixedMembership.members . Data.List.sort {-ensures Q is most valuable (except K)-} 
 #ifndef USE_NEWTYPE_WRAPPERS
 		. map (recip . fromInteger . succ . abs)	-- Map into the closed unit interval.
 #endif
-		<$> Test.QuickCheck.vector (fromIntegral Attribute.Rank.nDistinctRanks)
+		<$> Test.QuickCheck.suchThat (
+			Test.QuickCheck.vector $ fromIntegral Attribute.Rank.nDistinctRanks
+		) (any (/= 0))
+
 
