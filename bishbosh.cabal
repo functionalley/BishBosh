@@ -338,7 +338,7 @@ Library
         CPP-Options:	-DUNBOX_TYPECOUNT_ARRAYS
 
         if !flag(narrownumbers)
-            Build-depends:	ghc-prim ^>= 0.6.1
+            Build-depends:	ghc-prim
             CPP-Options:	-DUSE_PRIMITIVE
 
         if !flag(precisenumbers)
