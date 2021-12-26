@@ -168,8 +168,9 @@ common testStanza
         random,
         toolshed	^>= 0.18.0
 
-    if impl(ghc >= 6.8)
-        GHC-options:	-Werror
+-- Hackage complains about the fragility resulting from new warnings added to ghc.
+--    if impl(ghc >= 6.8)
+--        GHC-options:	-Werror
 
     if flag(polyparse)
         Build-depends:	polyparse ^>= 1.13
