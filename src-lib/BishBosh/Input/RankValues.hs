@@ -52,6 +52,7 @@ import qualified	BishBosh.Metric.RankValue	as Metric.RankValue
 import qualified	BishBosh.Property.ShowFloat	as Property.ShowFloat
 import qualified	BishBosh.Text.ShowList		as Text.ShowList
 import qualified	BishBosh.Type.Mass		as Type.Mass
+import qualified	Control.Arrow
 import qualified	Control.DeepSeq
 import qualified	Control.Exception
 import qualified	Data.Array.IArray
@@ -78,7 +79,13 @@ newtype RankValues	= MkRankValues {
 		Attribute.Rank.ArrayByRank
 #endif
 			Metric.RankValue.RankValue
-} deriving (Eq, Read, Show)
+} deriving Eq
+
+instance Read RankValues where
+	readsPrec precedence	= map (Control.Arrow.first fromAssocs) . readsPrec precedence
+
+instance Show RankValues where
+	showsPrec precedence MkRankValues { deconstruct = byRank }	= showsPrec precedence $ Data.Array.IArray.assocs byRank
 
 instance Property.ShowFloat.ShowFloat RankValues where
 	showsFloat fromDouble	= Text.ShowList.showsAssociationList' . map (show *** Property.ShowFloat.showsFloat fromDouble) . Data.Array.IArray.assocs . deconstruct

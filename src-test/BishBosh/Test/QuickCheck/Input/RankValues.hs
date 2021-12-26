@@ -24,13 +24,17 @@
  [@DESCRIPTION@]	Implements 'Test.QuickCheck.Arbitrary'.
 -}
 
-module BishBosh.Test.QuickCheck.Input.RankValues() where
+module BishBosh.Test.QuickCheck.Input.RankValues(
+-- * Constants
+	results
+) where
 
 import qualified	BishBosh.Attribute.Rank			as Attribute.Rank
 import qualified	BishBosh.Input.RankValues		as Input.RankValues
 import qualified	BishBosh.Property.FixedMembership	as Property.FixedMembership
 import qualified	Data.List
 import qualified	Test.QuickCheck
+import qualified	ToolShed.Test.ReversibleIO
 
 #ifdef USE_NEWTYPE_WRAPPERS
 import			BishBosh.Test.QuickCheck.Metric.RankValue()
@@ -45,4 +49,22 @@ instance Test.QuickCheck.Arbitrary Input.RankValues.RankValues where
 			Test.QuickCheck.vector $ fromIntegral Attribute.Rank.nDistinctRanks
 		) (any (/= 0))
 
+-- | The constant test-results for this data-type.
+results :: IO [Test.QuickCheck.Result]
+results	= sequence [
+	let
+		f :: Input.RankValues.RankValues -> Test.QuickCheck.Property
+		f	= Test.QuickCheck.label "RankValues.prop_readPrependedWhiteSpace" . ToolShed.Test.ReversibleIO.readPrependedWhiteSpace
+	in Test.QuickCheck.quickCheckWithResult Test.QuickCheck.stdArgs { Test.QuickCheck.maxSuccess = 32 } f,
+	let
+		f :: String -> Test.QuickCheck.Property
+		f garbage	= Test.QuickCheck.label "RankValues.prop_read" $ case (reads garbage :: [(Input.RankValues.RankValues, String)]) of
+			[_]	-> True
+			_	-> True	-- Unless the read-implementation throws an exception.
+	in Test.QuickCheck.quickCheckWithResult Test.QuickCheck.stdArgs { Test.QuickCheck.maxSuccess = 256 } f,
+	let
+		f :: Input.RankValues.RankValues -> String -> Test.QuickCheck.Property
+		f rankValue	= Test.QuickCheck.label "RankValues.prop_readTrailingGarbage" . ToolShed.Test.ReversibleIO.readTrailingGarbage (const True) rankValue
+	in Test.QuickCheck.quickCheckWithResult Test.QuickCheck.stdArgs { Test.QuickCheck.maxSuccess = 256 } f
+ ]
 

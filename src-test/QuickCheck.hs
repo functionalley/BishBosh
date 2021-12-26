@@ -47,6 +47,7 @@ import qualified	BishBosh.Test.QuickCheck.Input.CriteriaWeights					as Test.Quic
 import qualified	BishBosh.Test.QuickCheck.Input.EvaluationOptions				as Test.QuickCheck.Input.EvaluationOptions
 import qualified	BishBosh.Test.QuickCheck.Input.Options						as Test.QuickCheck.Input.Options
 import qualified	BishBosh.Test.QuickCheck.Input.PieceSquareTable					as Test.QuickCheck.Input.PieceSquareTable
+import qualified	BishBosh.Test.QuickCheck.Input.RankValues					as Test.QuickCheck.Input.RankValues
 import qualified	BishBosh.Test.QuickCheck.Model.Game						as Test.QuickCheck.Model.Game
 import qualified	BishBosh.Test.QuickCheck.Model.GameTree						as Test.QuickCheck.Model.GameTree
 import qualified	BishBosh.Test.QuickCheck.Model.MoveFrequency					as Test.QuickCheck.Model.MoveFrequency
@@ -93,9 +94,14 @@ main	= mapM_ (
 	Test.QuickCheck.Attribute.Rank.results,
 	Test.QuickCheck.Attribute.MoveType.results,
 	Test.QuickCheck.Direction.Direction.results,
+#ifdef USE_NEWTYPE_WRAPPERS
+	Test.QuickCheck.Metric.RankValue.results,
+#endif
+	Test.QuickCheck.Input.CriteriaWeights.results,
 	Test.QuickCheck.Input.EvaluationOptions.results,
 	Test.QuickCheck.Input.Options.results,
 	Test.QuickCheck.Input.PieceSquareTable.results,
+	Test.QuickCheck.Input.RankValues.results,
 	Test.QuickCheck.Cartesian.Coordinates.results,
 	Test.QuickCheck.Cartesian.Vector.results,
 	Test.QuickCheck.Component.Piece.results,
@@ -127,10 +133,6 @@ main	= mapM_ (
 	Test.QuickCheck.ContextualNotation.PGNComment.results,
 	Test.QuickCheck.ContextualNotation.PGN.results,
 	Test.QuickCheck.ContextualNotation.QualifiedMoveForest.results,
-	Test.QuickCheck.Input.CriteriaWeights.results,
-#ifdef USE_NEWTYPE_WRAPPERS
-	Test.QuickCheck.Metric.RankValue.results,
-#endif
 	Test.QuickCheck.Evaluation.PositionHashQuantifiedGameTree.results,
 	Test.QuickCheck.Search.KillerMoves.results,
 	Test.QuickCheck.UI.PrintObject.results,

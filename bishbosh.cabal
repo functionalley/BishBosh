@@ -162,7 +162,7 @@ common profStanza
 common testStanza
     Hs-source-dirs:	src-test
     Build-depends:
-        array		>= 0.5.4.0,
+        array		>= 0.5.2.0,
         bishbosh,
         mtl		^>= 2.2.2,
         random,
@@ -313,7 +313,7 @@ Library
         BishBosh.UI.SetObject
 
     Build-depends:
-        array		>= 0.5.4.0,
+        array		>= 0.5.2.0,
         deepseq		>= 1.4.3,
         extra		^>= 1.7.4,
         factory		^>= 0.3.1,
@@ -371,7 +371,7 @@ Executable bishbosh
         Other-modules:	BishBosh.Concurrent.SignalHandlers
 
     Build-depends:
-        array		>= 0.5.4.0,
+        array		>= 0.5.2.0,
         deepseq		^>= 1.4.1,
         directory,
         extra		^>= 1.7.4,
