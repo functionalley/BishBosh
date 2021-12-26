@@ -30,7 +30,7 @@ module BishBosh.Rule.Result(
 --		VictoryBy,
 --		Draw
 	),
--- * Function
+-- * Functions
 	findMaybeVictor,
 -- ** Constructor
 	mkResult,

@@ -27,7 +27,7 @@ module BishBosh.Data.RoseTree(
 -- ** Type-synonyms
 --	Transformation,
 	IsMatch,
--- * Function
+-- * Functions
 	countTerminalNodes,
 	drawTree,
 	drawForest,

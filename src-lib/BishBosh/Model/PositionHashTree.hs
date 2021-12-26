@@ -28,7 +28,7 @@ module BishBosh.Model.PositionHashTree(
 --	BarePositionHashTree,
 -- ** Data-types
 	PositionHashTree(),
--- * Function
+-- * Functions
 	countDistinctPositions,
 -- ** Constructors
 	mkPositionHashTree

@@ -34,7 +34,7 @@ module BishBosh.Colour.LogicalColourOfSquare(
 	black,
 	white,
 -- * Functions
--- ** Predicate
+-- ** Predicates
 	isBlack
 ) where
 

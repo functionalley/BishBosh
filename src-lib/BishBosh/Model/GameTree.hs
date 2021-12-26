@@ -38,7 +38,7 @@ module BishBosh.Model.GameTree(
 --		MkGameTree,
 		deconstruct
 	),
--- * Function
+-- * Functions
 --	compareByMVVLVA,
 --	getLastMove,
 --	staticExchangeEvaluation,

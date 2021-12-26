@@ -24,7 +24,7 @@
 
 module BishBosh.Component.QualifiedMove(
 -- * Types
--- * Type-synonyms
+-- ** Type-synonyms
 	QualifiedMoveSequence,
 -- ** Data-types
 	QualifiedMove(

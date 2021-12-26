@@ -109,3 +109,4 @@ mkRankValue rankValue
 #else
 type RankValue	 = Type.Mass.Base
 #endif
+

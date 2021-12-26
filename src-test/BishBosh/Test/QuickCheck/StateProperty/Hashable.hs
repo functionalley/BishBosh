@@ -23,7 +23,7 @@
 -}
 
 module BishBosh.Test.QuickCheck.StateProperty.Hashable(
--- * Constants,
+-- * Constants
 	results
 ) where
 

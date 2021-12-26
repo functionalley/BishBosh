@@ -31,7 +31,7 @@ module BishBosh.Rule.GameTerminationReason(
 -- * Types
 -- ** Data-types
 	GameTerminationReason(),
--- * Function
+-- * Functions
 	toResult,
 -- ** Constructors
 	mkCheckMate,
